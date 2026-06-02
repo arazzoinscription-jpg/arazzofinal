@@ -48,11 +48,35 @@ export default async function AdminPage() {
   return (
     <div className="min-h-screen bg-cream-DEFAULT p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <span className="text-3xl">⚙️</span>
-          <h1 className="font-playfair text-3xl font-bold text-gray-900">
-            Administration
-          </h1>
+        <div className="flex items-center justify-between mb-8 gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">⚙️</span>
+            <h1 className="font-playfair text-3xl font-bold text-gray-900">
+              Administration
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href="/dashboard/profil"
+              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-violet-DEFAULT font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors text-sm"
+            >
+              👤 Mon profil
+            </a>
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-gray-600 font-semibold px-4 py-2 rounded-xl hover:bg-cream-50 transition-colors text-sm"
+            >
+              📚 Espace élève
+            </a>
+            <form action="/api/auth/signout" method="POST">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 bg-white border border-cream-200 text-gray-600 font-semibold px-4 py-2 rounded-xl hover:bg-red-50 hover:text-red-500 transition-colors text-sm"
+              >
+                🚪 Déconnexion
+              </button>
+            </form>
+          </div>
         </div>
 
         {/* Stats */}
