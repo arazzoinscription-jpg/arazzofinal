@@ -28,6 +28,7 @@ export default async function FormateurLayout({
     { href: "/formateur", icon: "📊", label: "Vue d'ensemble" },
     { href: "/formateur/cours/nouveau", icon: "➕", label: "Nouveau cours" },
     { href: "/formateur/stats", icon: "💰", label: "Revenus & stats" },
+    { href: "/formateur/etudiantes-inactives", icon: "😴", label: "Étudiantes inactives" },
   ];
 
   return (
