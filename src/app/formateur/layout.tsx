@@ -31,6 +31,7 @@ export default async function FormateurLayout({
     { href: "/formateur/stats", icon: "💰", label: "Revenus & stats" },
     { href: "/formateur/sessions", icon: "🎥", label: "Sessions live" },
     { href: "/formateur/ressources", icon: "📂", label: "Ressources" },
+    { href: "/formateur/annonces", icon: "📢", label: "Annonces" },
     { href: "/formateur/etudiantes-inactives", icon: "😴", label: "Étudiantes inactives" },
   ];
 
