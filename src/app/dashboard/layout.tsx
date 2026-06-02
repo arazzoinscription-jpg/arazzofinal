@@ -24,6 +24,7 @@ export default async function DashboardLayout({
   const navLinks = [
     { href: "/dashboard", icon: "📚", label: "Mes cours" },
     { href: "/dashboard/progression", icon: "📈", label: "Ma progression" },
+    { href: "/dashboard/sessions", icon: "🎥", label: "Sessions live" },
     { href: "/dashboard/patrons", icon: "📄", label: "Mes patrons" },
     { href: "/dashboard/certificats", icon: "🎓", label: "Certificats" },
     { href: "/dashboard/profil", icon: "👤", label: "Mon profil" },
