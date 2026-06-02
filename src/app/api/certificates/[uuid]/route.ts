@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: { uuid: string } }
 ) {
-  const supabase = await createClient();
+  // Accès public (QR scanné par un employeur/vérificateur, sans connexion)
+  const supabase = createAdminClient();
 
   const { data: cert } = await supabase
     .from("certificates")
@@ -101,10 +103,28 @@ export async function GET(
   doc.setTextColor(100, 100, 100);
   doc.text(`Délivré le ${issuedDate}`, W / 2, 158, { align: "center" });
 
-  // UUID for verification
-  doc.setFontSize(8);
-  doc.text(`Réf : ${cert.uuid_public}`, W / 2, 185, { align: "center" });
-  doc.text("arazzo.formation", W / 2, 192, { align: "center" });
+  // QR code de vérification (bas droite)
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
+  const verifyUrl = cert.qr_url || `${site}/certificat/${cert.uuid_public}`;
+  try {
+    const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });
+    doc.addImage(qrDataUrl, "PNG", W - 48, 158, 30, 30);
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 120);
+    doc.text("Vérifier l'authenticité", W - 33, 191, { align: "center" });
+  } catch { /* QR optionnel */ }
+
+  // Numéro + référence (bas gauche)
+  const numero = cert.numero || cert.uuid_public.slice(0, 8).toUpperCase();
+  doc.setFontSize(9);
+  doc.setFont("times", "bold");
+  doc.setTextColor(75, 59, 199);
+  doc.text(`N° ${numero}`, 24, 180);
+  doc.setFontSize(7);
+  doc.setFont("times", "normal");
+  doc.setTextColor(120, 120, 120);
+  doc.text(`Réf : ${cert.uuid_public}`, 24, 186);
+  doc.text("arazzo.formation", 24, 191);
 
   // Orange bottom bar
   doc.setFillColor(224, 120, 64);

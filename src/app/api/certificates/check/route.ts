@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { sendCertificateEmail } from "@/lib/resend";
+import { sendEmail } from "@/lib/email";
+import { tplCertificate } from "@/lib/email-templates";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -44,35 +45,33 @@ export async function POST(req: NextRequest) {
 
   if (existing) return NextResponse.json({ ok: true, already: true });
 
-  // Issue certificate
+  // Émettre le certificat avec numéro unique + URL de vérification (QR)
   const uuid = randomUUID();
+  const year = new Date().getFullYear();
+  const numero = `ARZ-${year}-${uuid.slice(0, 6).toUpperCase()}`;
+  const verifyUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/certificat/${uuid}`;
+
   await supabase.from("certificates").insert({
     user_id: user.id,
     course_id: courseId,
     issued_at: new Date().toISOString(),
     uuid_public: uuid,
+    numero,
+    qr_url: verifyUrl,
   });
 
   const { data: profile } = await supabase
-    .from("users")
-    .select("nom, email")
-    .eq("id", user.id)
-    .single();
-
+    .from("users").select("nom, email").eq("id", user.id).single();
   const { data: course } = await supabase
-    .from("courses")
-    .select("titre_fr")
-    .eq("id", courseId)
-    .single();
+    .from("courses").select("titre_fr").eq("id", courseId).single();
 
   if (profile && course) {
-    await sendCertificateEmail(
-      profile.email,
-      profile.nom,
-      course.titre_fr,
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/certificates/${uuid}`
-    );
+    const tpl = tplCertificate(profile.nom, course.titre_fr, `${process.env.NEXT_PUBLIC_SITE_URL}/api/certificates/${uuid}`);
+    await sendEmail({
+      userId: user.id, to: profile.email, category: "certificates",
+      subject: tpl.subject, html: tpl.html,
+    });
   }
 
-  return NextResponse.json({ ok: true, uuid });
+  return NextResponse.json({ ok: true, uuid, numero });
 }
