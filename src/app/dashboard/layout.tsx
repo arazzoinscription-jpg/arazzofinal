@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { SearchBar } from "@/components/search/search-bar";
 
 export default async function DashboardLayout({
   children,
@@ -112,8 +113,11 @@ export default async function DashboardLayout({
 
       {/* Main */}
       <main className="flex-1 ml-64">
-        {/* Barre supérieure avec cloche de notifications */}
-        <div className="sticky top-0 z-20 bg-cream-DEFAULT/80 backdrop-blur-sm border-b border-cream-200 px-8 py-3 flex items-center justify-end gap-3">
+        {/* Barre supérieure : recherche + cloche de notifications */}
+        <div className="sticky top-0 z-20 bg-cream-DEFAULT/80 backdrop-blur-sm border-b border-cream-200 px-8 py-3 flex items-center gap-3">
+          <div className="flex-1 max-w-md">
+            <SearchBar compact />
+          </div>
           <NotificationBell userId={user.id} />
         </div>
         <div className="p-8">{children}</div>
