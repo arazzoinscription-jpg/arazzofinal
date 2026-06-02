@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { RefundButton } from "./refund-button";
 
 export const metadata = { title: "Paiements — Admin" };
 export const dynamic = "force-dynamic";
@@ -8,7 +9,7 @@ export default async function AdminPaiementsPage() {
 
   const { data: enrolls } = await admin
     .from("enrollments")
-    .select("amount, currency, paid_at, user:users(nom, email), course:courses(titre_fr)")
+    .select("id, amount, currency, paid_at, user:users(nom, email), course:courses(titre_fr)")
     .order("paid_at", { ascending: false })
     .limit(50);
 
@@ -49,19 +50,27 @@ export default async function AdminPaiementsPage() {
               <th className="px-5 py-3 font-medium">Formation</th>
               <th className="px-5 py-3 font-medium">Montant</th>
               <th className="px-5 py-3 font-medium">Date</th>
+              <th className="px-5 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-cream-100">
             {!enrolls?.length ? (
-              <tr><td colSpan={4} className="text-center py-10 text-gray-400">Aucune transaction.</td></tr>
-            ) : enrolls.map((e, i) => (
-              <tr key={i} className="hover:bg-cream-50 font-dm">
+              <tr><td colSpan={5} className="text-center py-10 text-gray-400">Aucune transaction.</td></tr>
+            ) : enrolls.map((e) => (
+              <tr key={e.id} className="hover:bg-cream-50 font-dm">
                 <td className="px-5 py-3 text-gray-700">{(e.user as any)?.nom ?? "—"}</td>
                 <td className="px-5 py-3 text-gray-500 truncate max-w-xs">{(e.course as any)?.titre_fr ?? "—"}</td>
                 <td className="px-5 py-3 font-semibold text-gray-900">
                   {e.currency === "EUR" ? `${Number(e.amount).toFixed(0)} €` : `${Number(e.amount).toLocaleString("fr-DZ")} DA`}
                 </td>
                 <td className="px-5 py-3 text-gray-400">{new Date(e.paid_at).toLocaleDateString("fr-FR")}</td>
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-2">
+                    <a href={`/api/invoices/${e.id}`} target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-violet-DEFAULT hover:underline">📄 Reçu</a>
+                    <RefundButton enrollmentId={e.id} />
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

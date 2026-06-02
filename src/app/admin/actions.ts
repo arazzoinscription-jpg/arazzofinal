@@ -41,3 +41,29 @@ export async function toggleCoursePublish(courseId: string, published: boolean) 
   revalidatePath("/admin/formations");
   return { ok: true };
 }
+
+/** Rembourse une inscription : trace le paiement + remboursement et révoque l'accès. */
+export async function refundEnrollment(enrollmentId: string, reason: string) {
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: enr } = await admin
+    .from("enrollments").select("user_id, course_id, amount, currency").eq("id", enrollmentId).single();
+  if (!enr) return { ok: false, error: "Inscription introuvable." };
+
+  const { data: pay } = await admin.from("payments").insert({
+    user_id: enr.user_id, course_id: enr.course_id, amount: enr.amount,
+    currency: enr.currency, provider: "chargily", status: "refunded",
+  }).select().single();
+
+  if (pay) await admin.from("refunds").insert({ payment_id: pay.id, amount: enr.amount, reason: reason || "Remboursement admin" });
+
+  await admin.from("enrollments").delete().eq("id", enrollmentId);
+  await admin.from("notifications").insert({
+    user_id: enr.user_id, type: "system", title: "💸 Remboursement effectué",
+    body: "Votre paiement a été remboursé et l'accès au cours a été retiré.", link: "/dashboard",
+  });
+
+  revalidatePath("/admin/paiements");
+  return { ok: true };
+}

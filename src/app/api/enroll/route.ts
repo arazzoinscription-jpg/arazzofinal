@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { validateCoupon } from "@/lib/coupons";
 import { createStripeCheckout } from "@/lib/stripe";
 import { createChargilyCheckout } from "@/lib/chargily";
 
@@ -13,7 +15,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
-  const { courseId, currency } = await req.json();
+  const { courseId, currency, couponCode } = await req.json();
 
   const { data: course } = await supabase
     .from("courses")
@@ -23,6 +25,20 @@ export async function POST(req: NextRequest) {
 
   if (!course) {
     return NextResponse.json({ error: "Cours introuvable" }, { status: 404 });
+  }
+
+  // Appliquer un éventuel coupon
+  let priceDzd = course.prix_dzd;
+  let priceEur = course.prix_eur;
+  let couponId: string | null = null;
+  if (couponCode) {
+    const admin = createAdminClient();
+    const base = currency === "eur" ? course.prix_eur : course.prix_dzd;
+    const res = await validateCoupon(admin, couponCode, base);
+    if (!res.valid) return NextResponse.json({ error: res.reason ?? "Coupon invalide" }, { status: 400 });
+    couponId = res.couponId ?? null;
+    if (currency === "eur") priceEur = res.final ?? course.prix_eur;
+    else priceDzd = res.final ?? course.prix_dzd;
   }
 
   const { data: existing } = await supabase
@@ -41,7 +57,7 @@ export async function POST(req: NextRequest) {
   if (currency === "eur") {
     const session = await createStripeCheckout({
       courseId,
-      priceEur: course.prix_eur,
+      priceEur,
       courseTitre: course.titre_fr,
       userId: user.id,
       userEmail: user.email!,
@@ -53,7 +69,7 @@ export async function POST(req: NextRequest) {
 
   if (currency === "dzd") {
     const checkout = await createChargilyCheckout({
-      amount: course.prix_dzd,
+      amount: priceDzd,
       description: course.titre_fr,
       webhookEndpoint: `${baseUrl}/api/webhooks/chargily`,
       backUrl: `${baseUrl}/dashboard?enrolled=1`,
@@ -61,6 +77,7 @@ export async function POST(req: NextRequest) {
         course_id: courseId,
         user_id: user.id,
         type: "course",
+        coupon_id: couponId ?? "",
       },
     });
     return NextResponse.json({ url: checkout.checkout_url });
