@@ -57,6 +57,12 @@ export default async function AdminPage() {
           </div>
           <div className="flex items-center gap-2">
             <a
+              href="/admin/activite"
+              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-violet-DEFAULT font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors text-sm"
+            >
+              📜 Journal
+            </a>
+            <a
               href="/dashboard/profil"
               className="inline-flex items-center gap-2 bg-white border border-cream-200 text-violet-DEFAULT font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors text-sm"
             >

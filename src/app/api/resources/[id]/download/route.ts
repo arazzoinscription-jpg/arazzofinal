@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logActivity } from "@/lib/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // Compteur + journal de téléchargement
   await admin.rpc("increment_resource_download", { rid: resource.id }).then(undefined, () => {});
   await admin.from("resource_downloads").insert({ resource_id: resource.id, user_id: user.id });
+  await logActivity(user.id, "download", { resourceId: resource.id });
 
   // URL signée (60s)
   const { data: signed, error } = await admin.storage

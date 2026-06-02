@@ -1,5 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { logActivity } from "@/lib/activity";
 import { LessonWatch } from "@/components/player/lesson-watch";
 import { LessonSidebar } from "./lesson-sidebar";
 
@@ -52,6 +54,24 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .eq("user_id", user.id);
 
   const completedLessons = new Set(progressData?.map((p) => p.lesson_id));
+
+  // Journal d'activité : consultation de leçon (dédoublonné sur 30 min)
+  {
+    const admin = createAdminClient();
+    const { data: recent } = await admin
+      .from("activity_log")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("action", "course_view")
+      .gte("created_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
+      .contains("meta", { lessonId: lesson.id })
+      .maybeSingle();
+    if (!recent) {
+      await logActivity(user.id, "course_view", {
+        lessonId: lesson.id, lessonTitre: lesson.titre, courseTitre: course?.titre_fr,
+      });
+    }
+  }
 
   // Progression vidéo sauvegardée (reprise + % regardé)
   const { data: vp } = await supabase
