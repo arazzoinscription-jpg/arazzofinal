@@ -36,10 +36,11 @@ export async function GET(req: NextRequest) {
 
     if (!stage) continue;
 
-    // Anti-doublon
-    const { data: already } = await admin
-      .from("session_reminders").select("id").eq("session_id", s.id).eq("stage", stage).maybeSingle();
-    if (already) continue;
+    // Anti-doublon ATOMIQUE : on réserve le créneau via la contrainte unique
+    // (session_id, stage) AVANT tout travail. Si l'insert échoue, c'est déjà fait.
+    const { error: lockErr } = await admin
+      .from("session_reminders").insert({ session_id: s.id, stage });
+    if (lockErr) continue;
 
     // Audience : inscrites du cours, ou toutes les élèves si session globale
     let userIds: string[] = [];
@@ -77,7 +78,6 @@ export async function GET(req: NextRequest) {
       await sendEmail({ userId: p.id, to: p.email, category: "announcements", subject: tpl.subject, html: tpl.html });
     }
 
-    await admin.from("session_reminders").insert({ session_id: s.id, stage });
     if (stage === "j1") j1++; else h1++;
   }
 
