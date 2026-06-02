@@ -30,6 +30,7 @@ export default async function DashboardLayout({
     { href: "/dashboard/annonces", icon: "📢", label: "Annonces" },
     { href: "/dashboard/patrons", icon: "📄", label: "Mes patrons" },
     { href: "/dashboard/certificats", icon: "🎓", label: "Certificats" },
+    { href: "/dashboard/support", icon: "🎫", label: "Support" },
     { href: "/dashboard/profil", icon: "👤", label: "Mon profil" },
     { href: "/dashboard/preferences", icon: "🔔", label: "Préférences email" },
   ];
