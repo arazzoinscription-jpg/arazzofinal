@@ -33,6 +33,17 @@ export default async function DashboardPage() {
 
   const completedLessons = new Set(progressRecords?.map((p) => p.lesson_id));
 
+  // Cours ayant du nouveau contenu (notifications new_content non lues)
+  const { data: newContentNotifs } = await supabase
+    .from("notifications")
+    .select("course_id")
+    .eq("user_id", user!.id)
+    .eq("type", "new_content")
+    .is("read_at", null);
+  const coursesWithNew = new Set(
+    (newContentNotifs ?? []).map((n) => n.course_id).filter(Boolean)
+  );
+
   return (
     <div>
       <div className="mb-8">
@@ -123,9 +134,16 @@ export default async function DashboardPage() {
                     )}
                   </div>
                   <div className="p-5 flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">
-                      {course?.titre_fr}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900 line-clamp-1">
+                        {course?.titre_fr}
+                      </h3>
+                      {coursesWithNew.has(course?.id) && (
+                        <span className="flex-shrink-0 inline-flex items-center gap-1 bg-orange-DEFAULT text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                          ✨ Nouveau
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between mb-2 text-sm">
                       <span className="text-gray-400">
                         {done}/{totalLessons} leçons

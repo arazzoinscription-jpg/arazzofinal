@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export default async function DashboardLayout({
   children,
@@ -107,7 +108,13 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main */}
-      <main className="flex-1 ml-64 p-8">{children}</main>
+      <main className="flex-1 ml-64">
+        {/* Barre supérieure avec cloche de notifications */}
+        <div className="sticky top-0 z-20 bg-cream-DEFAULT/80 backdrop-blur-sm border-b border-cream-200 px-8 py-3 flex items-center justify-end gap-3">
+          <NotificationBell userId={user.id} />
+        </div>
+        <div className="p-8">{children}</div>
+      </main>
     </div>
   );
 }
