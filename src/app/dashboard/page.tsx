@@ -8,11 +8,31 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Gamification : recalcul (badges/points/série) puis lecture
+  await supabase.rpc("sync_gamification");
+
   const { data: profile } = await supabase
     .from("users")
-    .select("nom, ville, pays")
+    .select("nom, ville, pays, total_points, level")
     .eq("id", user!.id)
     .single();
+
+  const { data: streak } = await supabase
+    .from("learning_streaks")
+    .select("current_streak")
+    .eq("user_id", user!.id)
+    .maybeSingle();
+
+  const { data: allBadges } = await supabase
+    .from("badges")
+    .select("code, titre, description, icon, points")
+    .order("points", { ascending: true });
+
+  const { data: myBadges } = await supabase
+    .from("user_badges")
+    .select("badge:badges(code)")
+    .eq("user_id", user!.id);
+  const earnedCodes = new Set((myBadges ?? []).map((b) => (b.badge as { code?: string })?.code));
 
   const { data: enrollments } = await supabase
     .from("enrollments")
@@ -55,6 +75,56 @@ export default async function DashboardPage() {
             ? `${profile.ville}, ${profile.pays}`
             : "Bienvenue sur Arazzo Formation"}
         </p>
+      </div>
+
+      {/* ── Gamification ── */}
+      <div className="bg-gradient-to-br from-violet-DEFAULT to-violet-800 rounded-3xl p-6 mb-8 text-white shadow-glow overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-blush-300/15 rounded-full -translate-y-1/3 translate-x-1/3 blur-2xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center gap-6">
+          {/* Niveau + points + série */}
+          <div className="flex gap-6 flex-shrink-0">
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center text-3xl font-bold font-playfair">
+                {profile?.level ?? 1}
+              </div>
+              <div className="text-xs text-violet-200 mt-1.5 font-dm">Niveau</div>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-bold font-playfair">
+                {profile?.total_points ?? 0}
+              </div>
+              <div className="text-xs text-violet-200 mt-1.5 font-dm">Points</div>
+            </div>
+            <div className="text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-bold font-playfair">
+                🔥{streak?.current_streak ?? 0}
+              </div>
+              <div className="text-xs text-violet-200 mt-1.5 font-dm">Jours de suite</div>
+            </div>
+          </div>
+          {/* Badges */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-violet-200 font-dm mb-2">
+              Mes badges ({earnedCodes.size}/{allBadges?.length ?? 0})
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(allBadges ?? []).map((b) => {
+                const earned = earnedCodes.has(b.code);
+                return (
+                  <div
+                    key={b.code}
+                    title={`${b.titre} — ${b.description}`}
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all ${
+                      earned ? "bg-white/20 ring-2 ring-orange-DEFAULT" : "bg-white/5 grayscale opacity-40"
+                    }`}
+                  >
+                    {b.icon}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats */}

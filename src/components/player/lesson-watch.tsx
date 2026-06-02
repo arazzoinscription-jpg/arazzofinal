@@ -113,6 +113,8 @@ export function LessonWatch({
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ courseId }),
       }).catch(() => {});
+      // Gamification : badges + points + série (après le certificat éventuel)
+      supabase.rpc("sync_gamification").then(undefined, () => {});
     }
     setLoading(false);
     router.refresh();
