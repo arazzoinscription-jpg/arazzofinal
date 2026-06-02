@@ -40,3 +40,5 @@ eleves-sans-email.csv
 
 # Exports / données sources
 *.xml
+
+.vercel

@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+// Fallback au build/preview pour éviter que le constructeur ne jette
+// quand la clé n'est pas injectée (la vraie clé est utilisée en production).
+export const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder_build_key");
 const FROM = process.env.RESEND_FROM || "noreply@arazzo.formation";
 
 export async function sendWelcomeEmail(to: string, nom: string) {
