@@ -1,0 +1,156 @@
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata = { title: "Mon espace — Arazzo Formation" };
+
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("nom, ville, pays")
+    .eq("id", user!.id)
+    .single();
+
+  const { data: enrollments } = await supabase
+    .from("enrollments")
+    .select(`
+      *,
+      course:courses(
+        id, titre_fr, titre_ar, thumbnail, duree,
+        chapters(lessons(id))
+      )
+    `)
+    .eq("user_id", user!.id)
+    .order("paid_at", { ascending: false });
+
+  const { data: progressRecords } = await supabase
+    .from("progress")
+    .select("lesson_id")
+    .eq("user_id", user!.id);
+
+  const completedLessons = new Set(progressRecords?.map((p) => p.lesson_id));
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="font-playfair text-3xl font-bold text-gray-900">
+          Bonjour, {profile?.nom?.split(" ")[0] ?? "!"} 👋
+        </h1>
+        <p className="text-gray-500 mt-1">
+          {profile?.ville && profile?.pays
+            ? `${profile.ville}, ${profile.pays}`
+            : "Bienvenue sur Arazzo Formation"}
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+        {[
+          { icon: "📚", label: "Formations achetées", value: enrollments?.length ?? 0 },
+          { icon: "✅", label: "Leçons complétées", value: completedLessons.size },
+          {
+            icon: "🎓",
+            label: "Certificats",
+            value: "(voir onglet)",
+            isText: true,
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="bg-white rounded-2xl p-6 border border-cream-200 flex items-center gap-4"
+          >
+            <span className="text-3xl">{s.icon}</span>
+            <div>
+              <div className="text-2xl font-bold font-playfair text-violet-DEFAULT">
+                {s.value}
+              </div>
+              <div className="text-sm text-gray-500">{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Courses */}
+      <h2 className="font-playfair text-xl font-bold text-gray-900 mb-5">
+        Mes formations
+      </h2>
+
+      {!enrollments?.length ? (
+        <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">
+          <div className="text-6xl mb-4">🧵</div>
+          <p className="text-xl text-gray-400 mb-4">
+            Vous n'avez pas encore de formation
+          </p>
+          <a
+            href="/formations"
+            className="inline-block bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
+          >
+            Explorer le catalogue
+          </a>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {enrollments.map((enrollment) => {
+            const course = enrollment.course as any;
+            const totalLessons = course?.chapters?.reduce(
+              (acc: number, ch: any) => acc + (ch.lessons?.length ?? 0),
+              0
+            ) ?? 0;
+            const allLessonIds: string[] = course?.chapters?.flatMap(
+              (ch: any) => ch.lessons?.map((l: any) => l.id) ?? []
+            ) ?? [];
+            const done = allLessonIds.filter((id) => completedLessons.has(id)).length;
+            const pct = totalLessons > 0 ? Math.round((done / totalLessons) * 100) : 0;
+
+            return (
+              <div
+                key={enrollment.id}
+                className="bg-white rounded-2xl border border-cream-200 overflow-hidden hover:shadow-lg transition-all"
+              >
+                <div className="flex">
+                  <div className="w-28 h-28 bg-violet-100 flex-shrink-0 flex items-center justify-center text-4xl">
+                    {course?.thumbnail ? (
+                      <img
+                        src={course.thumbnail}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      "🧵"
+                    )}
+                  </div>
+                  <div className="p-5 flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">
+                      {course?.titre_fr}
+                    </h3>
+                    <div className="flex items-center justify-between mb-2 text-sm">
+                      <span className="text-gray-400">
+                        {done}/{totalLessons} leçons
+                      </span>
+                      <span className="font-bold text-violet-DEFAULT">{pct}%</span>
+                    </div>
+                    <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden mb-3">
+                      <div
+                        className="h-full bg-gradient-to-r from-violet-500 to-orange-400 rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <a
+                      href={`/dashboard/cours/${allLessonIds[0] ?? course?.id}`}
+                      className="inline-block bg-violet-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-violet-700 transition-colors"
+                    >
+                      {pct === 0 ? "Commencer" : pct === 100 ? "Revoir" : "Continuer"} →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

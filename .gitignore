@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+
+# Production build
+build/
+
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+npm-debug.log*
+
+# Misc
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Migration scripts contenant des secrets (clé service-role en dur)
+scripts/import-arazzo-tutor.mjs
+scripts/organize-catalog.mjs
+scripts/build-levels.mjs
+scripts/import-enrollments.mjs
+eleves-sans-email.csv
+
+# Exports / données sources
+*.xml

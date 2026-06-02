@@ -1,0 +1,137 @@
+import { createClient } from "@/lib/supabase/server";
+
+export const metadata = { title: "Revenus & Statistiques — Arazzo Formation" };
+
+export default async function FormateurStatsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: enrollments } = await supabase
+    .from("enrollments")
+    .select(`
+      amount, currency, paid_at,
+      course:courses!inner(titre_fr, formateur_id)
+    `)
+    .eq("courses.formateur_id", user!.id)
+    .order("paid_at", { ascending: false });
+
+  // Group by month
+  const byMonth: Record<string, { dzd: number; eur: number; count: number }> = {};
+  enrollments?.forEach((e: any) => {
+    const month = e.paid_at.slice(0, 7); // YYYY-MM
+    if (!byMonth[month]) byMonth[month] = { dzd: 0, eur: 0, count: 0 };
+    if (e.currency === "DZD") byMonth[month].dzd += e.amount;
+    else byMonth[month].eur += e.amount;
+    byMonth[month].count += 1;
+  });
+
+  const months = Object.entries(byMonth)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 12);
+
+  const totalDzd = enrollments?.filter(e => e.currency === "DZD").reduce((s, e) => s + e.amount, 0) ?? 0;
+  const totalEur = enrollments?.filter(e => e.currency === "EUR").reduce((s, e) => s + e.amount, 0) ?? 0;
+
+  return (
+    <div>
+      <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-8">
+        Revenus & Statistiques
+      </h1>
+
+      {/* Totals */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+        {[
+          { label: "Total DZD", value: `${totalDzd.toLocaleString("fr-DZ")} DA`, icon: "🇩🇿" },
+          { label: "Total EUR", value: `${totalEur.toFixed(2)} €`, icon: "🌍" },
+          { label: "Ventes totales", value: enrollments?.length ?? 0, icon: "📊" },
+        ].map((s) => (
+          <div key={s.label} className="bg-white rounded-2xl p-6 border border-cream-200">
+            <div className="text-2xl mb-2">{s.icon}</div>
+            <div className="text-3xl font-bold font-playfair text-violet-DEFAULT">
+              {s.value}
+            </div>
+            <div className="text-sm text-gray-500 mt-1">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Monthly table */}
+      <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+        <div className="p-5 border-b border-cream-100">
+          <h2 className="font-semibold text-gray-900">Revenus par mois</h2>
+        </div>
+        {months.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">Aucune vente pour l'instant</div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-cream-50">
+              <tr>
+                <th className="text-left px-6 py-3 text-sm text-gray-500">Mois</th>
+                <th className="text-left px-6 py-3 text-sm text-gray-500">Ventes</th>
+                <th className="text-left px-6 py-3 text-sm text-gray-500">DZD</th>
+                <th className="text-left px-6 py-3 text-sm text-gray-500">EUR</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cream-100">
+              {months.map(([month, data]) => {
+                const [yr, mo] = month.split("-");
+                const label = new Date(Number(yr), Number(mo) - 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+                return (
+                  <tr key={month} className="hover:bg-cream-50">
+                    <td className="px-6 py-3 text-gray-700 capitalize">{label}</td>
+                    <td className="px-6 py-3 text-gray-700 font-semibold">{data.count}</td>
+                    <td className="px-6 py-3 text-gray-700">
+                      {data.dzd > 0 ? `${data.dzd.toLocaleString("fr-DZ")} DA` : "—"}
+                    </td>
+                    <td className="px-6 py-3 text-gray-700">
+                      {data.eur > 0 ? `${data.eur.toFixed(2)} €` : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Recent transactions */}
+      <h2 className="font-playfair text-xl font-bold text-gray-900 mt-10 mb-5">
+        Transactions récentes
+      </h2>
+      <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-cream-50">
+            <tr>
+              <th className="text-left px-6 py-3 text-sm text-gray-500">Cours</th>
+              <th className="text-left px-6 py-3 text-sm text-gray-500">Date</th>
+              <th className="text-left px-6 py-3 text-sm text-gray-500">Montant</th>
+              <th className="text-left px-6 py-3 text-sm text-gray-500">Devise</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-cream-100">
+            {enrollments?.slice(0, 20).map((e: any, i) => (
+              <tr key={i} className="hover:bg-cream-50">
+                <td className="px-6 py-3 text-gray-700 text-sm">{e.course?.titre_fr}</td>
+                <td className="px-6 py-3 text-gray-500 text-sm">
+                  {new Date(e.paid_at).toLocaleDateString("fr-FR")}
+                </td>
+                <td className="px-6 py-3 font-semibold text-gray-900">
+                  {e.currency === "DZD"
+                    ? `${Number(e.amount).toLocaleString("fr-DZ")} DA`
+                    : `${Number(e.amount).toFixed(2)} €`}
+                </td>
+                <td className="px-6 py-3">
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    e.currency === "DZD" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                  }`}>
+                    {e.currency}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

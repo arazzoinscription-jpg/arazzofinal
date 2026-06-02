@@ -1,0 +1,150 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --violet: #4b3bc7;
+  --orange: #e07840;
+  --cream: #f5f0eb;
+  --blush: #e9b8cd;     /* rose poudré */
+  --rose: #f5dde7;      /* rose très clair */
+  --gold: #cba36b;      /* or champagne */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "DM Sans", sans-serif;
+  background-color: #f5f0eb;
+  color: #1a1a2e;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: "Playfair Display", serif;
+  letter-spacing: -0.01em;
+}
+
+[dir="rtl"] {
+  font-family: "Noto Naskh Arabic", "DM Sans", sans-serif;
+}
+
+/* ── Bunny player ───────────────────────────────────────────── */
+.bunny-player-wrapper {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+.bunny-player-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ── Scrollbar élégante ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #f5f0eb; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(#4b3bc7, #e07840);
+  border-radius: 10px;
+  border: 2px solid #f5f0eb;
+}
+
+/* ── Animations ─────────────────────────────────────────────── */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50%      { transform: translateY(-14px) rotate(var(--r, 0deg)); }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50%      { transform: translateY(-22px) rotate(var(--r, 0deg)); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+@keyframes draw-stitch {
+  to { stroke-dashoffset: 0; }
+}
+
+@layer utilities {
+  .animate-float       { animation: float 6s ease-in-out infinite; }
+  .animate-float-slow  { animation: float-slow 8s ease-in-out infinite; }
+  .animate-spin-slow   { animation: spin-slow 22s linear infinite; }
+  .fade-up             { animation: fade-up 0.7s cubic-bezier(.2,.7,.3,1) both; }
+  .fade-up-1 { animation: fade-up 0.7s cubic-bezier(.2,.7,.3,1) 0.1s both; }
+  .fade-up-2 { animation: fade-up 0.7s cubic-bezier(.2,.7,.3,1) 0.2s both; }
+  .fade-up-3 { animation: fade-up 0.7s cubic-bezier(.2,.7,.3,1) 0.3s both; }
+  .fade-up-4 { animation: fade-up 0.7s cubic-bezier(.2,.7,.3,1) 0.4s both; }
+
+  /* Texte dégradé féminin violet → orange → rose */
+  .text-gradient {
+    background-image: linear-gradient(110deg, #4b3bc7, #7c5fd6, #e07840);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-rose {
+    background-image: linear-gradient(110deg, #4b3bc7, #c96fa0, #e07840);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-shimmer {
+    background: linear-gradient(110deg, #4b3bc7 20%, #e9b8cd 40%, #e07840 60%, #4b3bc7 80%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 5s linear infinite;
+  }
+
+  /* Carte verre dépoli */
+  .glass {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  /* Ombre douce premium */
+  .shadow-soft {
+    box-shadow: 0 10px 40px -12px rgba(75, 59, 199, 0.18);
+  }
+  .shadow-glow {
+    box-shadow: 0 20px 60px -20px rgba(224, 120, 64, 0.35);
+  }
+
+  /* Ligne de couture pointillée décorative */
+  .stitch-border {
+    border: 2px dashed rgba(75, 59, 199, 0.25);
+  }
+}
+
+/* Motif fond rose poudré subtil */
+.bg-blush-mesh {
+  background-color: #f9f4f0;
+  background-image:
+    radial-gradient(at 15% 15%, rgba(233, 184, 205, 0.30) 0px, transparent 50%),
+    radial-gradient(at 85% 10%, rgba(124, 95, 214, 0.12) 0px, transparent 50%),
+    radial-gradient(at 80% 85%, rgba(224, 120, 64, 0.14) 0px, transparent 50%),
+    radial-gradient(at 10% 90%, rgba(233, 184, 205, 0.22) 0px, transparent 50%);
+}

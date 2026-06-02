@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 120" width="340" height="120">
+  <!-- Scissors violet -->
+  <g transform="translate(8,8)">
+    <!-- blade top-left -->
+    <line x1="18" y1="52" x2="52" y2="18" stroke="#4B3BC7" stroke-width="5" stroke-linecap="round"/>
+    <!-- blade bottom-left -->
+    <line x1="18" y1="18" x2="52" y2="52" stroke="#4B3BC7" stroke-width="5" stroke-linecap="round"/>
+    <!-- circle handles -->
+    <circle cx="10" cy="60" r="9" fill="none" stroke="#4B3BC7" stroke-width="3"/>
+    <circle cx="10" cy="10" r="9" fill="none" stroke="#4B3BC7" stroke-width="3"/>
+    <!-- blades right side -->
+    <line x1="52" y1="18" x2="85" y2="8" stroke="#4B3BC7" stroke-width="4" stroke-linecap="round"/>
+    <line x1="52" y1="52" x2="85" y2="62" stroke="#4B3BC7" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- ARAZZO text violet -->
+  <text x="100" y="62" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="700" fill="#4B3BC7" letter-spacing="2">ARAZZO</text>
+
+  <!-- Formation italic orange -->
+  <text x="106" y="90" font-family="Georgia, 'Times New Roman', serif" font-size="22" font-style="italic" fill="#E07840" letter-spacing="1">Formation</text>
+</svg>
