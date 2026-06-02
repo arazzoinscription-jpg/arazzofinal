@@ -6,10 +6,13 @@ import { CoursesSection } from "@/components/sections/courses-section";
 import { TestimonialsSection } from "@/components/sections/testimonials";
 import { BecomeTrainerSection } from "@/components/sections/become-trainer";
 import { CtaSection } from "@/components/sections/cta";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
+
+// ISR : page régénérée au plus toutes les 10 minutes (landing ultra-rapide)
+export const revalidate = 600;
 
 export default async function HomePage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data: courses } = await supabase
     .from("courses")
     .select("*, formateur:users(nom)")

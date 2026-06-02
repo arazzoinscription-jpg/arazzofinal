@@ -1,15 +1,24 @@
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import { BuyButton } from "./buy-button";
+
+// ISR : fiches cours pré-rendues + revalidées toutes les 5 minutes
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const supabase = createPublicClient();
+  const { data } = await supabase.from("courses").select("slug").eq("published", true);
+  return (data ?? []).map((c) => ({ slug: c.slug }));
+}
 
 export async function generateMetadata({
   params,
 }: {
   params: { slug: string };
 }) {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   const { data } = await supabase
     .from("courses")
     .select("titre_fr, description_fr")
@@ -27,7 +36,7 @@ export default async function CourseDetailPage({
 }: {
   params: { slug: string };
 }) {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data: course } = await supabase
     .from("courses")
@@ -42,21 +51,6 @@ export default async function CourseDetailPage({
     .single();
 
   if (!course) notFound();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let isEnrolled = false;
-  if (user) {
-    const { data: enroll } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("course_id", course.id)
-      .single();
-    isEnrolled = !!enroll;
-  }
 
   const totalLessons = (course.chapters as any[])?.reduce(
     (acc: number, c: any) => acc + (c.lessons?.length ?? 0),
@@ -212,8 +206,6 @@ export default async function CourseDetailPage({
                     courseTitre={course.titre_fr}
                     prixDzd={course.prix_dzd}
                     prixEur={course.prix_eur}
-                    isEnrolled={isEnrolled}
-                    isLoggedIn={!!user}
                     firstLessonId={
                       (course.chapters as any[])?.[0]?.lessons?.[0]?.id
                     }

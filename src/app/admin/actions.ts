@@ -38,7 +38,10 @@ export async function toggleCoursePublish(courseId: string, published: boolean) 
   if (!ok || !admin) return { ok: false, error: "Accès refusé." };
   const { error } = await admin.from("courses").update({ published }).eq("id", courseId);
   if (error) return { ok: false, error: error.message };
+  // Revalider le cache ISR des pages publiques
   revalidatePath("/admin/formations");
+  revalidatePath("/");
+  revalidatePath("/formations");
   return { ok: true };
 }
 
