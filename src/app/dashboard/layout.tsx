@@ -25,6 +25,7 @@ export default async function DashboardLayout({
     { href: "/dashboard/patrons", icon: "📄", label: "Mes patrons" },
     { href: "/dashboard/certificats", icon: "🎓", label: "Certificats" },
     { href: "/dashboard/profil", icon: "👤", label: "Mon profil" },
+    { href: "/dashboard/preferences", icon: "🔔", label: "Préférences email" },
   ];
 
   return (
