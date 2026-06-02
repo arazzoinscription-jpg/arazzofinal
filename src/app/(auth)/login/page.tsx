@@ -27,6 +27,9 @@ export default function LoginPage() {
       return;
     }
 
+    // Journaliser la connexion (IP, appareil) — best effort
+    fetch("/api/auth/log-login", { method: "POST" }).catch(() => {});
+
     router.push("/dashboard");
   }
 
