@@ -1,8 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { BunnyPlayer } from "@/components/player/bunny-player";
+import { LessonWatch } from "@/components/player/lesson-watch";
 import { LessonSidebar } from "./lesson-sidebar";
-import { MarkCompleteButton } from "./mark-complete-button";
 
 export default async function LessonPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -19,7 +18,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
       chapter:chapters(
         *,
         course:courses(
-          id, titre_fr,
+          id, titre_fr, slug, min_watch_pct,
           chapters(
             id, titre, ordre,
             lessons(id, titre, ordre, duree_minutes, is_preview)
@@ -54,6 +53,14 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
   const completedLessons = new Set(progressData?.map((p) => p.lesson_id));
 
+  // Progression vidéo sauvegardée (reprise + % regardé)
+  const { data: vp } = await supabase
+    .from("video_progress")
+    .select("last_position_sec, watched_pct")
+    .eq("user_id", user.id)
+    .eq("lesson_id", lesson.id)
+    .maybeSingle();
+
   return (
     <div className="flex gap-6">
       {/* Lesson player */}
@@ -67,23 +74,19 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </h1>
         </div>
 
-        <BunnyPlayer
-          videoUrl={lesson.video_url_bunny}
+        <LessonWatch
           lessonId={lesson.id}
+          courseId={course?.id}
+          videoUrl={lesson.video_url_bunny}
+          initialPosition={vp?.last_position_sec ?? 0}
+          initialPct={vp?.watched_pct ?? 0}
+          minPct={course?.min_watch_pct ?? 80}
+          isCompleted={completedLessons.has(lesson.id)}
         />
 
-        <div className="mt-6 flex items-center justify-between">
-          <MarkCompleteButton
-            lessonId={lesson.id}
-            courseId={course?.id}
-            isCompleted={completedLessons.has(lesson.id)}
-          />
-          {lesson.duree_minutes && (
-            <span className="text-sm text-gray-400">
-              ⏱ {lesson.duree_minutes} minutes
-            </span>
-          )}
-        </div>
+        {lesson.duree_minutes && (
+          <div className="mt-4 text-sm text-gray-400">⏱ {lesson.duree_minutes} minutes</div>
+        )}
       </div>
 
       {/* Sidebar — chapters + lessons */}
