@@ -47,12 +47,20 @@ export default async function FormateurDashboard() {
         <h1 className="font-playfair text-3xl font-bold text-gray-900">
           Tableau de bord
         </h1>
-        <Link
-          href="/formateur/cours/nouveau"
-          className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
-        >
-          ➕ Nouveau cours
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/formateur/packs/nouveau"
+            className="border-2 border-violet-DEFAULT text-violet-DEFAULT px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-50 transition-colors"
+          >
+            📦 Nouveau pack
+          </Link>
+          <Link
+            href="/formateur/cours/nouveau"
+            className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
+          >
+            ➕ Nouveau cours
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
