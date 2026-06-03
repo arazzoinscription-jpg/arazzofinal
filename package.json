@@ -11,6 +11,7 @@
     "migrate:courses": "tsx scripts/import-tutor-courses.ts"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "@stripe/stripe-js": "^4.0.0",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.0",

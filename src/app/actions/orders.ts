@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { sendOrderReceived } from "./emails";
 
 // ── Schémas ──────────────────────────────────────────────────────────────
 const CartItemSchema = z.object({
@@ -125,6 +126,9 @@ export async function createOrder(
 
   // Vide le panier DB de l'utilisateur
   await supabase.from("cart_items").delete().eq("user_id", user.id);
+
+  // Email « commande reçue » (best-effort, ne bloque pas la commande)
+  try { await sendOrderReceived(order.id); } catch { /* ignore */ }
 
   revalidatePath("/compte/commandes");
   return { ok: true, orderId: order.id, orderNumber: order.order_number ?? undefined };

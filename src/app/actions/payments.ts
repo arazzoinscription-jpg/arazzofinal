@@ -5,8 +5,9 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail } from "@/lib/email";
 import { generateInvoice } from "./invoices";
+import { enrollAfterPayment } from "@/lib/enrollment";
+import { sendPaymentApproved, sendCourseAccess } from "./emails";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
 const MAX_PROOF_SIZE = 10 * 1024 * 1024; // 10 Mo
@@ -325,25 +326,10 @@ export async function validatePayment(orderId: string) {
     .from("order_payments").select("id").eq("order_id", order.id).eq("status", "approved").maybeSingle();
   if (!approved) return { ok: false, error: "Aucun paiement approuvé pour cette commande." };
 
-  // 1) Compte client (création si inexistant — checkout invité)
-  let customerId = order.customer_id;
-  let isNewAccount = false;
-  if (!customerId && order.email) {
-    const { data: created } = await admin.auth.admin.createUser({
-      email: order.email, email_confirm: true,
-      user_metadata: { nom: order.full_name ?? order.email.split("@")[0] },
-    });
-    if (created?.user) {
-      customerId = created.user.id;
-      isNewAccount = true;
-      await admin.from("orders").update({ customer_id: customerId }).eq("id", order.id);
-    }
-  }
-
-  // 2) Confirmation de la commande
+  // 1) Confirmation de la commande
   await admin.from("orders").update({ status: "confirmed" }).eq("id", order.id);
 
-  // 3) Décrément du stock (produits à stock limité)
+  // 2) Décrément du stock (produits à stock limité)
   const items = (order.order_items as { product_id: string | null; course_id: string | null; quantity: number }[]) ?? [];
   for (const it of items) {
     if (!it.product_id) continue;
@@ -353,53 +339,23 @@ export async function validatePayment(orderId: string) {
     }
   }
 
-  // 4) Enrôlement dans les formations achetées
-  if (customerId) {
-    for (const it of items) {
-      if (!it.course_id) continue;
-      const { data: already } = await admin
-        .from("enrollments").select("id").eq("user_id", customerId).eq("course_id", it.course_id).maybeSingle();
-      if (!already) {
-        await admin.from("enrollments").insert({
-          user_id: customerId, course_id: it.course_id, order_id: order.id, enrolled_at: new Date().toISOString(),
-        });
-      }
-    }
-  }
+  // 3) Compte + profil + enrôlement (centralisés dans enrollAfterPayment)
+  await enrollAfterPayment(order.id);
 
-  // 5) Facture PDF (best-effort)
+  // 4) Facture PDF (best-effort)
   let invoiceUrl: string | null = null;
   try {
     const inv = await generateInvoice(order.id);
     if (inv.ok && inv.url) invoiceUrl = inv.url;
   } catch { /* la facture pourra être régénérée plus tard */ }
 
-  // 6) Magic link + email de confirmation
-  if (order.email) {
-    let magicLink: string | null = null;
-    try {
-      const { data: link } = await admin.auth.admin.generateLink({
-        type: "magiclink", email: order.email,
-      });
-      magicLink = link?.properties?.action_link ?? null;
-    } catch { /* ignore */ }
-
-    const prenom = (order.full_name ?? "").split(" ")[0] || "Bonjour";
-    const html = `
-      <div style="font-family:Arial,sans-serif;color:#333;">
-        <h2 style="color:#4B3BC7;">Merci ${prenom} ! 🎉</h2>
-        <p>Votre commande est <strong>confirmée</strong>. Total : <strong>${Number(order.total).toLocaleString("fr-DZ")} DA</strong>.</p>
-        ${isNewAccount ? "<p>Un compte a été créé pour vous afin d'accéder à vos achats.</p>" : ""}
-        ${invoiceUrl ? `<p><a href="${invoiceUrl}" style="color:#E07840;">📄 Télécharger votre facture</a></p>` : ""}
-        ${magicLink ? `<p><a href="${magicLink}" style="background:#4B3BC7;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;">Accéder à mon espace</a></p>` : `<p><a href="${SITE}/dashboard">Accéder à mon espace</a></p>`}
-      </div>`;
-
-    await sendEmail({
-      userId: customerId ?? null, to: order.email, category: "purchases", force: true,
-      subject: "Votre commande Arazzo est confirmée ✅", html,
-    });
-  }
+  // 5) Emails : confirmation de paiement + accès aux formations (magic link)
+  try {
+    await sendPaymentApproved(order.id, invoiceUrl);
+    await sendCourseAccess(order.id); // ignoré automatiquement s'il n'y a aucune formation
+  } catch { /* l'échec d'un email ne doit pas bloquer la validation */ }
 
   revalidatePath("/compte/commandes");
+  revalidatePath("/dashboard/commandes");
   return { ok: true };
 }

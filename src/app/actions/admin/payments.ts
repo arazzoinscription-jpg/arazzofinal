@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validatePayment } from "../payments";
+import { sendPaymentRejected, sendResubmitRequest } from "../emails";
 
 const PROOFS_BUCKET = "proofs";
 const SIGNED_TTL = 60 * 60;
@@ -66,6 +67,12 @@ export async function reviewProof(input: z.infer<typeof ReviewSchema>) {
       }).eq("id", proof.payment_id);
     }
     await admin.from("orders").update({ status: "payment_pending" }).eq("id", proof.order_id);
+
+    // Email au client (best-effort)
+    try {
+      if (decision === "rejected") await sendPaymentRejected(proof.order_id, note ?? "");
+      else await sendResubmitRequest(proof.order_id, note ?? "");
+    } catch { /* ignore */ }
   }
 
   revalidatePath("/admin/paiements");
