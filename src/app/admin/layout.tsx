@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Toaster } from "@/components/ui/toast";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -14,6 +15,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     { href: "/admin/utilisateurs", label: "Utilisateurs", icon: "👥" },
     { href: "/admin/etudiants", label: "Étudiants inscrits", icon: "🎓" },
     { href: "/admin/formations", label: "Formations", icon: "📚" },
+    { href: "/admin/commandes", label: "Commandes", icon: "🧾" },
+    { href: "/admin/produits", label: "Produits", icon: "🛍️" },
+    { href: "/admin/preuves", label: "Preuves", icon: "✅" },
     { href: "/admin/paiements", label: "Paiements", icon: "💳" },
     { href: "/admin/coupons", label: "Coupons", icon: "🎟" },
     { href: "/admin/emails", label: "Emails", icon: "📧" },
@@ -39,6 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </div>
       {children}
+      <Toaster />
     </div>
   );
 }

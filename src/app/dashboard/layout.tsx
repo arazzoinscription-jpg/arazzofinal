@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { SearchBar } from "@/components/search/search-bar";
+import { Toaster } from "@/components/ui/toast";
 
 export default async function DashboardLayout({
   children,
@@ -24,6 +25,8 @@ export default async function DashboardLayout({
 
   const navLinks = [
     { href: "/dashboard", icon: "📚", label: "Mes cours" },
+    { href: "/dashboard/commandes", icon: "📦", label: "Mes commandes" },
+    { href: "/dashboard/factures", icon: "🧾", label: "Mes factures" },
     { href: "/dashboard/actualites", icon: "📰", label: "Actualités" },
     { href: "/dashboard/groupes", icon: "👥", label: "Mes groupes" },
     { href: "/dashboard/progression", icon: "📈", label: "Ma progression" },
@@ -127,6 +130,7 @@ export default async function DashboardLayout({
           <NotificationBell userId={user.id} />
         </div>
         <div className="p-8">{children}</div>
+        <Toaster />
       </main>
     </div>
   );

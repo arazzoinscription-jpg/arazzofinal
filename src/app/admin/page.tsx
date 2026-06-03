@@ -39,6 +39,15 @@ export default async function AdminPage() {
       .limit(10),
   ]);
 
+  // ── Statistiques e-commerce ──
+  const { data: paidOrders } = await supabase
+    .from("orders").select("total, status")
+    .in("status", ["confirmed", "shipped", "delivered"]);
+  const ca = (paidOrders ?? []).reduce((s, o) => s + Number(o.total), 0);
+  const { count: ordersCount } = await supabase.from("orders").select("*", { count: "exact", head: true });
+  const { count: pendingProofs } = await supabase
+    .from("payment_proofs").select("*", { count: "exact", head: true }).eq("status", "pending");
+
   async function promoteToFormateur(userId: string) {
     "use server";
     const s = await createClient();
@@ -101,6 +110,34 @@ export default async function AdminPage() {
               <div className="text-sm text-gray-500">{s.label}</div>
             </div>
           ))}
+        </div>
+
+        {/* Stats e-commerce */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {[
+            { label: "Chiffre d'affaires", value: `${ca.toLocaleString("fr-DZ")} DA`, icon: "💰", isText: true },
+            { label: "Commandes", value: ordersCount ?? 0, icon: "🧾" },
+            { label: "Preuves en attente", value: pendingProofs ?? 0, icon: "⏳" },
+            { label: "Boutique", value: "Gérer", icon: "🛍️", href: "/admin/produits", isText: true },
+          ].map((s) => {
+            const card = (
+              <div className="bg-white rounded-2xl p-5 border border-cream-200 h-full">
+                <div className="text-2xl mb-2">{s.icon}</div>
+                <div className={`font-bold font-playfair text-violet-DEFAULT ${s.isText ? "text-xl" : "text-3xl"}`}>{s.value}</div>
+                <div className="text-sm text-gray-500">{s.label}</div>
+              </div>
+            );
+            return s.href
+              ? <a key={s.label} href={s.href} className="hover:opacity-90 transition-opacity">{card}</a>
+              : <div key={s.label}>{card}</div>;
+          })}
+        </div>
+
+        {/* Accès rapides e-commerce */}
+        <div className="flex flex-wrap gap-3 mb-10">
+          <a href="/admin/preuves" className="bg-violet-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-700">✅ Vérifier les preuves{pendingProofs ? ` (${pendingProofs})` : ""}</a>
+          <a href="/admin/commandes" className="bg-white border border-cream-200 text-violet-DEFAULT px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-50">🧾 Commandes</a>
+          <a href="/admin/produits" className="bg-white border border-cream-200 text-violet-DEFAULT px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-50">🛍️ Produits</a>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
