@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { SearchBar } from "@/components/search/search-bar";
 import { Toaster } from "@/components/ui/toast";
+import { DashboardNav } from "./dashboard-nav";
+
+const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", admin: "Administratrice" };
 
 export default async function DashboardLayout({
   children,
@@ -23,114 +26,71 @@ export default async function DashboardLayout({
     .eq("id", user.id)
     .single();
 
-  const navLinks = [
-    { href: "/dashboard", icon: "📚", label: "Mes cours" },
-    { href: "/boutique", icon: "🛍️", label: "Boutique" },
-    { href: "/dashboard/commandes", icon: "📦", label: "Mes commandes" },
-    { href: "/dashboard/factures", icon: "🧾", label: "Mes factures" },
-    { href: "/dashboard/actualites", icon: "📰", label: "Actualités" },
-    { href: "/dashboard/groupes", icon: "👥", label: "Mes groupes" },
-    { href: "/dashboard/progression", icon: "📈", label: "Ma progression" },
-    { href: "/dashboard/recompenses", icon: "🏅", label: "Récompenses" },
-    { href: "/dashboard/sessions", icon: "🎥", label: "Sessions live" },
-    { href: "/dashboard/ressources", icon: "📂", label: "Ressources" },
-    { href: "/dashboard/annonces", icon: "📢", label: "Annonces" },
-    { href: "/dashboard/patrons", icon: "📄", label: "Mes patrons" },
-    { href: "/dashboard/certificats", icon: "🎓", label: "Certificats" },
-    { href: "/dashboard/support", icon: "🎫", label: "Support" },
-    { href: "/dashboard/profil", icon: "👤", label: "Mon profil" },
-    { href: "/dashboard/securite", icon: "🔐", label: "Sécurité" },
-    { href: "/dashboard/preferences", icon: "🔔", label: "Préférences email" },
-  ];
+  const role = profile?.role ?? "eleve";
+  const prenom = (profile?.nom ?? "").split(" ")[0] || "vous";
 
   return (
     <div className="min-h-screen bg-cream-DEFAULT flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#1a1a2e] flex flex-col fixed inset-y-0 left-0 z-30">
-        <div className="p-6 border-b border-white/10">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-orange-DEFAULT text-xl">✂️</span>
+      {/* ── Sidebar ── */}
+      <aside className="w-64 flex flex-col fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-teal-800 to-teal-900 shadow-xl">
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-white/10">
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="w-9 h-9 rounded-xl bg-orange-DEFAULT/90 flex items-center justify-center text-white text-lg">✂️</span>
             <div>
-              <div className="font-playfair font-bold text-white text-lg">ARAZZO</div>
-              <div className="font-playfair italic text-orange-DEFAULT text-xs -mt-0.5">
-                Formation
-              </div>
+              <div className="font-playfair font-bold text-white text-lg leading-none">ARAZZO</div>
+              <div className="font-playfair italic text-orange-300 text-xs">Formation</div>
             </div>
           </Link>
         </div>
 
-        {/* User */}
-        <div className="p-4 border-b border-white/10">
+        {/* Carte utilisateur */}
+        <div className="px-4 py-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-violet-DEFAULT flex items-center justify-center text-white font-bold">
-              {profile?.nom?.[0]?.toUpperCase() ?? "?"}
-            </div>
-            <div>
-              <div className="text-white text-sm font-semibold">
-                {profile?.nom ?? "Élève"}
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="" className="w-11 h-11 rounded-full object-cover ring-2 ring-white/20" />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-white/15 ring-2 ring-white/20 flex items-center justify-center text-white font-bold">
+                {profile?.nom?.[0]?.toUpperCase() ?? "?"}
               </div>
-              <div className="text-gray-400 text-xs capitalize">
-                {profile?.role ?? "eleve"}
-              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-white text-sm font-semibold truncate">{profile?.nom ?? "Élève"}</div>
+              <div className="text-white/50 text-xs">{ROLE_LABEL[role] ?? role}</div>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
-          {navLinks.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-colors text-sm font-medium"
-            >
-              <span>{l.icon}</span>
-              {l.label}
-            </Link>
-          ))}
+        {/* Navigation groupée */}
+        <DashboardNav role={role} />
 
-          {profile?.role === "formateur" || profile?.role === "admin" ? (
-            <Link
-              href="/formateur"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-orange-DEFAULT hover:bg-white/10 transition-colors text-sm font-semibold mt-4"
-            >
-              <span>🎓</span>
-              Espace formateur
-            </Link>
-          ) : null}
-
-          {profile?.role === "admin" ? (
-            <Link
-              href="/admin"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-orange-DEFAULT hover:bg-white/10 transition-colors text-sm font-semibold"
-            >
-              <span>⚙️</span>
-              Administration
-            </Link>
-          ) : null}
-        </nav>
-
-        <div className="p-4 border-t border-white/10">
+        {/* Déconnexion */}
+        <div className="p-3 border-t border-white/10">
           <form action="/api/auth/signout" method="POST">
             <button
               type="submit"
-              className="w-full text-left text-gray-400 hover:text-white text-sm px-4 py-2 transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 text-sm font-medium transition-colors"
             >
-              🚪 Déconnexion
+              <span className="text-base">🚪</span> Déconnexion
             </button>
           </form>
         </div>
       </aside>
 
-      {/* Main */}
-      <main className="flex-1 ml-64">
-        {/* Barre supérieure : recherche + cloche de notifications */}
-        <div className="sticky top-0 z-20 bg-cream-DEFAULT/80 backdrop-blur-sm border-b border-cream-200 px-8 py-3 flex items-center gap-3">
+      {/* ── Contenu ── */}
+      <main className="flex-1 ml-64 min-w-0">
+        {/* Barre supérieure */}
+        <div className="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b border-cream-200 px-6 lg:px-8 py-3 flex items-center gap-4">
+          <div className="hidden sm:block">
+            <p className="text-xs text-gray-400 font-dm leading-none">Bonjour 👋</p>
+            <p className="text-sm font-semibold text-teal-800 font-dm capitalize">{prenom}</p>
+          </div>
           <div className="flex-1 max-w-md">
             <SearchBar compact />
           </div>
           <NotificationBell userId={user.id} />
         </div>
-        <div className="p-8">{children}</div>
+        <div className="p-6 lg:p-8">{children}</div>
         <Toaster />
       </main>
     </div>

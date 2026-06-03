@@ -42,6 +42,20 @@ const config: Config = {
           200: "#E8DED4",
           300: "#D6C9BA",
         },
+        // Teal/pétrole — accent principal du dashboard (inspiré du site de référence)
+        teal: {
+          DEFAULT: "#247390",
+          50: "#EAF2F5",
+          100: "#CFE1E8",
+          200: "#9FC3D1",
+          300: "#6FA5BA",
+          400: "#3F87A3",
+          500: "#247390",
+          600: "#1D5C73",
+          700: "#164556",
+          800: "#0E3340",
+          900: "#082531",
+        },
         blush: {
           DEFAULT: "#E9B8CD",
           50: "#FCF5F8",
