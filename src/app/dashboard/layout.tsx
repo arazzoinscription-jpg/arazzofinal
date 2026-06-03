@@ -25,6 +25,7 @@ export default async function DashboardLayout({
 
   const navLinks = [
     { href: "/dashboard", icon: "📚", label: "Mes cours" },
+    { href: "/boutique", icon: "🛍️", label: "Boutique" },
     { href: "/dashboard/commandes", icon: "📦", label: "Mes commandes" },
     { href: "/dashboard/factures", icon: "🧾", label: "Mes factures" },
     { href: "/dashboard/actualites", icon: "📰", label: "Actualités" },

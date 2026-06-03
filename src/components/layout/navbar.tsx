@@ -24,11 +24,13 @@ export function Navbar() {
   const links = lang === "fr"
     ? [
         { href: "/formations",  label: "Formations" },
+        { href: "/boutique",    label: "Boutique" },
         { href: "/patrons",     label: "Patrons" },
         { href: "/a-propos",    label: "À propos" },
       ]
     : [
         { href: "/formations",  label: "الدورات" },
+        { href: "/boutique",    label: "المتجر" },
         { href: "/patrons",     label: "البترونات" },
         { href: "/a-propos",    label: "من نحن" },
       ];
