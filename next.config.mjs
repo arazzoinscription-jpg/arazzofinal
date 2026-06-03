@@ -2,7 +2,7 @@
 const nextConfig = {
   // Autorise l'upload de photos (quiz pratiques) via Server Actions
   experimental: {
-    serverActions: { bodySizeLimit: "10mb" },
+    serverActions: { bodySizeLimit: "25mb" },
   },
   images: {
     remotePatterns: [

@@ -26,6 +26,8 @@ export default async function FormateurLayout({
 
   const navLinks = [
     { href: "/formateur", icon: "📊", label: "Vue d'ensemble" },
+    { href: "/formateur/actualites", icon: "📰", label: "Actualités" },
+    { href: "/formateur/groupes", icon: "👥", label: "Mes groupes" },
     { href: "/formateur/analytics", icon: "📈", label: "Statistiques avancées" },
     { href: "/formateur/cours/nouveau", icon: "➕", label: "Nouveau cours" },
     { href: "/formateur/packs", icon: "📦", label: "Packs de cours" },
