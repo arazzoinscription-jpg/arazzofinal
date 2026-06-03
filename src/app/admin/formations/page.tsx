@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PublishToggle } from "./publish-toggle";
 
@@ -36,20 +37,27 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
               <th className="px-5 py-3 font-medium">Prix</th>
               <th className="px-5 py-3 font-medium">Inscrites</th>
               <th className="px-5 py-3 font-medium">Publiée</th>
+              <th className="px-5 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-cream-100">
             {!courses?.length ? (
-              <tr><td colSpan={4} className="text-center py-10 text-gray-400">Aucune formation.</td></tr>
+              <tr><td colSpan={5} className="text-center py-10 text-gray-400">Aucune formation.</td></tr>
             ) : courses.map((c) => (
               <tr key={c.id} className="hover:bg-cream-50 font-dm">
                 <td className="px-5 py-3">
                   <div className="font-medium text-gray-900 truncate max-w-xs">{c.titre_fr}</div>
-                  <div className="text-xs text-gray-400">{(c.formateur as any)?.nom ?? "—"}</div>
+                  <div className="text-xs text-gray-400">par {(c.formateur as any)?.nom ?? "—"}</div>
                 </td>
                 <td className="px-5 py-3 text-gray-600">{Number(c.prix_dzd).toLocaleString("fr-DZ")} DA</td>
                 <td className="px-5 py-3 text-gray-600">{(c.enrollments as any[])?.length ?? 0}</td>
                 <td className="px-5 py-3"><PublishToggle courseId={c.id} published={c.published} /></td>
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <Link href={`/formateur/cours/${c.id}/edit`} className="text-violet-DEFAULT font-semibold hover:underline">Modifier</Link>
+                    <Link href={`/formateur/cours/${c.id}/inscrits`} className="text-gray-500 hover:text-violet-DEFAULT hover:underline">Inscrits</Link>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

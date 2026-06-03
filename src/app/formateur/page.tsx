@@ -12,7 +12,7 @@ export default async function FormateurDashboard() {
   const { data: courses } = await supabase
     .from("courses")
     .select(`
-      id, titre_fr, published, created_at, prix_dzd, prix_eur, thumbnail,
+      id, titre_fr, description_fr, published, created_at, prix_dzd, prix_eur, thumbnail,
       enrollments(id, currency, amount)
     `)
     .eq("formateur_id", user!.id)
@@ -108,6 +108,7 @@ export default async function FormateurDashboard() {
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Cours</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Statut</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Élèves</th>
+                <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Créé le</th>
                 <th className="text-left px-6 py-4 text-sm font-semibold text-gray-600">Revenus</th>
                 <th className="px-6 py-4" />
               </tr>
@@ -127,14 +128,19 @@ export default async function FormateurDashboard() {
                   <tr key={course.id} className="hover:bg-cream-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-xl overflow-hidden">
+                        <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
                           {course.thumbnail ? (
                             <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
                           ) : "🧵"}
                         </div>
-                        <span className="font-medium text-gray-900 line-clamp-1">
-                          {course.titre_fr}
-                        </span>
+                        <div className="min-w-0">
+                          <span className="font-medium text-gray-900 line-clamp-1">
+                            {course.titre_fr}
+                          </span>
+                          {course.description_fr && (
+                            <p className="text-xs text-gray-400 line-clamp-1 max-w-xs">{course.description_fr}</p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -149,17 +155,28 @@ export default async function FormateurDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-700 font-semibold">{count}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      {new Date(course.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {revDzd > 0 && <div>{revDzd.toLocaleString("fr-DZ")} DA</div>}
                       {revEur > 0 && <div>{revEur.toFixed(0)} €</div>}
                     </td>
                     <td className="px-6 py-4">
-                      <a
-                        href={`/formateur/cours/${course.id}/edit`}
-                        className="text-violet-DEFAULT font-semibold text-sm hover:underline"
-                      >
-                        Modifier
-                      </a>
+                      <div className="flex flex-col gap-1.5">
+                        <a
+                          href={`/formateur/cours/${course.id}/edit`}
+                          className="text-violet-DEFAULT font-semibold text-sm hover:underline"
+                        >
+                          Modifier
+                        </a>
+                        <a
+                          href={`/formateur/cours/${course.id}/inscrits`}
+                          className="text-gray-500 text-sm hover:text-violet-DEFAULT hover:underline"
+                        >
+                          Voir les inscrits
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 );
