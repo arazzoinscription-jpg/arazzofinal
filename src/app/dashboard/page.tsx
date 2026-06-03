@@ -78,7 +78,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Gamification ── */}
-      <div className="bg-gradient-to-br from-teal-600 to-teal-900 rounded-3xl p-6 mb-8 text-white shadow-xl overflow-hidden relative">
+      <div className="bg-gradient-to-br from-violet-600 to-violet-900 rounded-3xl p-6 mb-8 text-white shadow-xl overflow-hidden relative">
         <div className="absolute top-0 right-0 w-48 h-48 bg-orange-300/20 rounded-full -translate-y-1/3 translate-x-1/3 blur-2xl" />
         <div className="relative flex flex-col lg:flex-row lg:items-center gap-6">
           {/* Niveau + XP + série */}
@@ -88,16 +88,16 @@ export default async function DashboardPage() {
                 <div className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center text-2xl font-bold font-playfair">
                   🔥{profile?.current_streak ?? 0}
                 </div>
-                <div className="text-xs text-teal-100 mt-1.5 font-dm">Jours de suite</div>
+                <div className="text-xs text-violet-100 mt-1.5 font-dm">Jours de suite</div>
               </div>
               <div>
                 <div className="font-playfair text-2xl font-bold capitalize">{profile?.level_label ?? "apprentie"}</div>
-                <div className="text-sm text-teal-100 font-dm">{xpTotal} XP · {profile?.xp_this_month ?? 0} ce mois</div>
+                <div className="text-sm text-violet-100 font-dm">{xpTotal} XP · {profile?.xp_this_month ?? 0} ce mois</div>
                 {/* Barre vers le niveau suivant */}
                 <div className="mt-2 w-44 h-2 bg-white/15 rounded-full overflow-hidden">
                   <div className="h-full bg-orange-DEFAULT rounded-full" style={{ width: `${tierPct}%` }} />
                 </div>
-                <div className="text-[11px] text-teal-100 mt-1 font-dm">
+                <div className="text-[11px] text-violet-100 mt-1 font-dm">
                   {nextTier > xpTotal ? `${nextTier - xpTotal} XP avant le niveau suivant` : "Niveau max atteint 🎉"}
                 </div>
               </div>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
           {/* Badges */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-teal-100 font-dm">Mes badges ({earnedCodes.size}/{allBadges?.length ?? 0})</p>
+              <p className="text-sm text-violet-100 font-dm">Mes badges ({earnedCodes.size}/{allBadges?.length ?? 0})</p>
               <a href="/dashboard/recompenses" className="text-xs text-orange-200 font-semibold hover:underline">Tout voir →</a>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -129,25 +129,20 @@ export default async function DashboardPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
         {[
-          { icon: "📚", label: "Formations achetées", value: enrollments?.length ?? 0 },
-          { icon: "✅", label: "Leçons complétées", value: completedLessons.size },
-          {
-            icon: "🎓",
-            label: "Certificats",
-            value: "(voir onglet)",
-            isText: true,
-          },
+          { icon: "📚", label: "Formations achetées", value: enrollments?.length ?? 0, chip: "bg-violet-50 text-violet-700", isText: false },
+          { icon: "✅", label: "Leçons complétées", value: completedLessons.size, chip: "bg-orange-50 text-orange-600", isText: false },
+          { icon: "🎓", label: "Certificats", value: "Voir l'onglet", chip: "bg-blush-50 text-blush-500", isText: true },
         ].map((s) => (
           <div
             key={s.label}
-            className="bg-white rounded-2xl p-6 border border-cream-200 flex items-center gap-4"
+            className="bg-white rounded-2xl p-5 border border-cream-200 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4"
           >
-            <span className="text-3xl">{s.icon}</span>
+            <span className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${s.chip}`}>{s.icon}</span>
             <div>
-              <div className="text-2xl font-bold font-playfair text-teal-700">
+              <div className={`font-bold font-playfair text-gray-900 ${s.isText ? "text-lg" : "text-3xl"}`}>
                 {s.value}
               </div>
-              <div className="text-sm text-gray-500">{s.label}</div>
+              <div className="text-sm text-gray-500 font-dm">{s.label}</div>
             </div>
           </div>
         ))}
@@ -191,7 +186,7 @@ export default async function DashboardPage() {
                 className="bg-white rounded-2xl border border-cream-200 overflow-hidden hover:shadow-lg transition-all"
               >
                 <div className="flex">
-                  <div className="w-28 h-28 bg-teal-50 flex-shrink-0 flex items-center justify-center text-4xl">
+                  <div className="w-28 h-28 bg-violet-50 flex-shrink-0 flex items-center justify-center text-4xl">
                     {course?.thumbnail ? (
                       <img
                         src={course.thumbnail}
@@ -217,17 +212,17 @@ export default async function DashboardPage() {
                       <span className="text-gray-400">
                         {done}/{totalLessons} leçons
                       </span>
-                      <span className="font-bold text-teal-700">{pct}%</span>
+                      <span className="font-bold text-violet-700">{pct}%</span>
                     </div>
                     <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden mb-3">
                       <div
-                        className="h-full bg-gradient-to-r from-teal-500 to-orange-400 rounded-full transition-all"
+                        className="h-full bg-gradient-to-r from-violet-500 to-orange-400 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                     <a
                       href={`/dashboard/cours/${allLessonIds[0] ?? course?.id}`}
-                      className="inline-block bg-teal-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+                      className="inline-block bg-violet-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-violet-700 transition-colors"
                     >
                       {pct === 0 ? "Commencer" : pct === 100 ? "Revoir" : "Continuer"} →
                     </a>

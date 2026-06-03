@@ -32,7 +32,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-cream-DEFAULT flex">
       {/* ── Sidebar ── */}
-      <aside className="w-64 flex flex-col fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-teal-800 to-teal-900 shadow-xl">
+      <aside className="w-64 flex flex-col fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-violet-800 to-violet-900 shadow-xl">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-white/10">
           <Link href="/" className="flex items-center gap-2.5">
@@ -83,7 +83,7 @@ export default async function DashboardLayout({
         <div className="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b border-cream-200 px-6 lg:px-8 py-3 flex items-center gap-4">
           <div className="hidden sm:block">
             <p className="text-xs text-gray-400 font-dm leading-none">Bonjour 👋</p>
-            <p className="text-sm font-semibold text-teal-800 font-dm capitalize">{prenom}</p>
+            <p className="text-sm font-semibold text-violet-800 font-dm capitalize">{prenom}</p>
           </div>
           <div className="flex-1 max-w-md">
             <SearchBar compact />
