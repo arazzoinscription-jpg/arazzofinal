@@ -38,7 +38,7 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
     .select(`
       id, content, created_at, author_id,
       author:users(id, nom, role, avatar_url),
-      post_images(image_url, expired),
+      post_images(image_url, expired, uploaded_at),
       likes(user_id),
       comments(id, content, created_at, author_id, author:users(id, nom, role, avatar_url))
     `)
@@ -78,7 +78,12 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
         role: r.author?.role ?? "eleve",
         avatar_url: r.author?.avatar_url ?? null,
       },
-      images: (r.post_images ?? []).map((i: any) => ({ image_url: i.image_url, expired: i.expired })),
+      images: (r.post_images ?? []).map((i: any) => {
+        // Règle des 48h appliquée à l'affichage, même avant le passage du cron de purge
+        const tooOld = i.uploaded_at ? Date.now() - new Date(i.uploaded_at).getTime() > 48 * 60 * 60 * 1000 : false;
+        const expired = i.expired || tooOld;
+        return { image_url: expired ? null : i.image_url, expired };
+      }),
       likeCount: likes.length,
       liked: likes.some((l) => l.user_id === me.id),
       comments,
