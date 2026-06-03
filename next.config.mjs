@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Autorise l'upload de photos (quiz pratiques) via Server Actions
+  experimental: {
+    serverActions: { bodySizeLimit: "10mb" },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "storage.bunnycdn.com" },

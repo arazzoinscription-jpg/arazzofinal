@@ -85,8 +85,36 @@ h1, h2, h3 {
 @keyframes draw-stitch {
   to { stroke-dashoffset: 0; }
 }
+/* ── Gamification ── */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0.9; }
+}
+@keyframes xp-float {
+  0%   { transform: translateY(0) scale(0.8); opacity: 0; }
+  20%  { transform: translateY(-8px) scale(1); opacity: 1; }
+  80%  { transform: translateY(-26px) scale(1); opacity: 1; }
+  100% { transform: translateY(-44px) scale(0.9); opacity: 0; }
+}
+@keyframes flame {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50%      { transform: scale(1.12) rotate(2deg); }
+}
+@keyframes badge-pop {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes question-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
 
 @layer utilities {
+  .animate-flame       { animation: flame 1.4s ease-in-out infinite; }
+  .animate-xp-float    { animation: xp-float 1.8s ease-out forwards; }
+  .animate-badge-pop   { animation: badge-pop 0.5s cubic-bezier(.2,.8,.3,1.2) both; }
+  .animate-question-in { animation: question-in 0.35s ease-out both; }
   .animate-float       { animation: float 6s ease-in-out infinite; }
   .animate-float-slow  { animation: float-slow 8s ease-in-out infinite; }
   .animate-spin-slow   { animation: spin-slow 22s linear infinite; }

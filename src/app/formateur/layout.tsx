@@ -30,6 +30,8 @@ export default async function FormateurLayout({
     { href: "/formateur/cours/nouveau", icon: "➕", label: "Nouveau cours" },
     { href: "/formateur/stats", icon: "💰", label: "Revenus & stats" },
     { href: "/formateur/sessions", icon: "🎥", label: "Sessions live" },
+    { href: "/formateur/quiz", icon: "📝", label: "Quiz" },
+    { href: "/formateur/pratiques", icon: "🪡", label: "Travaux pratiques" },
     { href: "/formateur/ressources", icon: "📂", label: "Ressources" },
     { href: "/formateur/annonces", icon: "📢", label: "Annonces" },
     { href: "/formateur/tickets", icon: "🎫", label: "Tickets support" },
