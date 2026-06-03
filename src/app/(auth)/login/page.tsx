@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { mergeCartOnLogin } from "@/app/actions/cart";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,12 @@ export default function LoginPage() {
     // Journaliser la connexion (IP, appareil) — best effort
     fetch("/api/auth/log-login", { method: "POST" }).catch(() => {});
 
-    router.push("/dashboard");
+    // Fusionne le panier invité (cookie) dans le compte
+    await mergeCartOnLogin().catch(() => {});
+
+    // Respecte ?redirect= (ex. depuis le checkout), sinon dashboard
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    router.push(redirect && redirect.startsWith("/") ? redirect : "/dashboard");
   }
 
   async function handleMagicLink() {

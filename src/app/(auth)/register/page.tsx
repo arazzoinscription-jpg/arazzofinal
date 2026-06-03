@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { mergeCartOnLogin } from "@/app/actions/cart";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -49,7 +50,11 @@ export default function RegisterPage() {
       });
     }
 
-    router.push("/dashboard");
+    // Fusionne le panier invité (cookie) si une session est active
+    await mergeCartOnLogin().catch(() => {});
+
+    const redirect = new URLSearchParams(window.location.search).get("redirect");
+    router.push(redirect && redirect.startsWith("/") ? redirect : "/dashboard");
   }
 
   const pays = [
