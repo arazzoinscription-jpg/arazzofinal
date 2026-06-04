@@ -1,27 +1,28 @@
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
+import { Clapperboard, Ruler, GraduationCap } from "lucide-react";
 
 const pillars = [
   {
     num:   "01",
-    icon:  "🎬",
+    Icon:  Clapperboard,
     title: "Formations vidéo",
     desc:  "Du débutant à l'expert — pas-à-pas filmés en atelier, avec patrons à télécharger.",
-    tint:  "from-violet-DEFAULT/15 to-violet-DEFAULT/5",
+    tint:  "from-violet-DEFAULT/15 to-violet-DEFAULT/5 text-violet-700",
   },
   {
     num:   "02",
-    icon:  "📐",
+    Icon:  Ruler,
     title: "Patrons numériques",
     desc:  "PDF A4 · A0 · DXF · projecteur. Marges de couture incluses, mesures FR + EU + DZ.",
-    tint:  "from-blush-200/50 to-blush-100/30",
+    tint:  "from-blush-200/60 to-blush-100/40 text-blush-500",
   },
   {
     num:   "03",
-    icon:  "🎓",
+    Icon:  GraduationCap,
     title: "Espace formateur",
     desc:  "Vendez vos cours et vos patrons. Commission claire, paiement en DZD ou en EUR.",
-    tint:  "from-orange-DEFAULT/15 to-orange-DEFAULT/5",
+    tint:  "from-orange-DEFAULT/15 to-orange-DEFAULT/5 text-orange-600",
   },
 ];
 
@@ -55,8 +56,8 @@ export function ApproachSection() {
               </span>
 
               <div className="relative">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${p.tint} flex items-center justify-center text-3xl mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
-                  {p.icon}
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${p.tint} flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
+                  <p.Icon size={30} strokeWidth={1.75} />
                 </div>
                 <h3 className="font-playfair text-2xl font-bold text-gray-900 mb-3">
                   {p.title}

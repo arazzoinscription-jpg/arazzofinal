@@ -2,6 +2,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { HeroSection } from "@/components/sections/hero";
 import { ApproachSection } from "@/components/sections/approach";
+import { CategoriesSection } from "@/components/sections/categories";
+import { AtelierShowcaseSection } from "@/components/sections/atelier-showcase";
 import { CoursesSection } from "@/components/sections/courses-section";
 import { TestimonialsSection } from "@/components/sections/testimonials";
 import { BecomeTrainerSection } from "@/components/sections/become-trainer";
@@ -26,6 +28,8 @@ export default async function HomePage() {
       <main>
         <HeroSection />
         <ApproachSection />
+        <CategoriesSection />
+        <AtelierShowcaseSection />
         <CoursesSection courses={courses ?? []} />
         <TestimonialsSection />
         <BecomeTrainerSection />

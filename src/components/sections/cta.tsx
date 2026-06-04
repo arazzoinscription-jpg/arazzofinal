@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Reveal } from "@/components/ui/reveal";
+import { Scissors, Check } from "lucide-react";
 
 export function CtaSection() {
   return (
@@ -12,7 +13,9 @@ export function CtaSection() {
           <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-white/5 translate-y-1/3 -translate-x-1/3" />
 
           <div className="relative">
-            <div className="text-5xl mb-5">✂️</div>
+            <div className="flex justify-center mb-5">
+              <span className="w-16 h-16 rounded-2xl bg-white/15 flex items-center justify-center text-white"><Scissors size={30} /></span>
+            </div>
             <h2 className="font-playfair text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
               Prête à passer du fil au design ?
             </h2>
@@ -23,11 +26,11 @@ export function CtaSection() {
             {/* Garantie */}
             <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-9 mt-6">
               <span className="inline-flex items-center gap-2 text-white font-dm">
-                <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">✓</span>
+                <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white"><Check size={14} strokeWidth={3} /></span>
                 30 jours satisfaite ou remboursée
               </span>
               <span className="inline-flex items-center gap-2 text-white font-dm">
-                <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">✓</span>
+                <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white"><Check size={14} strokeWidth={3} /></span>
                 Première leçon offerte
               </span>
             </div>
