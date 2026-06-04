@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { BookOpen, CheckCircle2, Flame, Sparkles, Trophy, CalendarClock, Target, ArrowRight } from "lucide-react";
 import { WeeklyActivityChart, type DayDatum } from "@/components/dashboard/WeeklyActivityChart";
+import { Reveal } from "@/components/ui/reveal";
 
 export const metadata = { title: "Mon espace — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -109,14 +110,16 @@ export default async function DashboardPage() {
 
       {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {KPIS.map((k) => {
+        {KPIS.map((k, i) => {
           const Icon = k.icon;
           return (
-            <div key={k.label} className="bg-white rounded-3xl p-5 shadow-sm border border-cream-200 hover:shadow-md transition-shadow">
-              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center ${k.chip}`}><Icon size={20} /></span>
-              <div className="mt-3 text-3xl font-bold font-playfair text-gray-900">{k.value}</div>
-              <div className="text-sm text-gray-500 font-dm">{k.label}</div>
-            </div>
+            <Reveal key={k.label} animation="up" delay={i * 70}>
+              <div className="bg-white rounded-3xl p-5 shadow-sm border border-cream-200 hover:shadow-md transition-shadow">
+                <span className={`w-11 h-11 rounded-2xl flex items-center justify-center ${k.chip}`}><Icon size={20} /></span>
+                <div className="mt-3 text-3xl font-bold font-playfair text-gray-900">{k.value}</div>
+                <div className="text-sm text-gray-500 font-dm">{k.label}</div>
+              </div>
+            </Reveal>
           );
         })}
       </div>
@@ -244,8 +247,9 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {courses.map((c) => (
-              <div key={c.id} className="bg-white rounded-3xl border border-cream-200 overflow-hidden hover:shadow-lg transition-all flex">
+            {courses.map((c, i) => (
+              <Reveal key={c.id} animation="up" delay={i * 60}>
+              <div className="bg-white rounded-3xl border border-cream-200 overflow-hidden hover:shadow-lg transition-all flex h-full">
                 <div className="w-28 h-auto bg-orange-50 flex-shrink-0 flex items-center justify-center text-4xl">
                   {c.thumbnail ? <img src={c.thumbnail} alt="" className="w-full h-full object-cover" /> : "🧵"}
                 </div>
@@ -267,6 +271,7 @@ export default async function DashboardPage() {
                   </a>
                 </div>
               </div>
+              </Reveal>
             ))}
           </div>
         )}

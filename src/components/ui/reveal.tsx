@@ -1,17 +1,24 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion, type Variants } from "framer-motion";
 
 type Anim = "up" | "left" | "right" | "zoom" | "fade";
 
-const hidden: Record<Anim, string> = {
-  up:    "opacity-0 translate-y-10",
-  left:  "opacity-0 -translate-x-10",
-  right: "opacity-0 translate-x-10",
-  zoom:  "opacity-0 scale-95",
-  fade:  "opacity-0",
+// Décalage initial selon le type d'animation
+const OFFSET: Record<Anim, { x?: number; y?: number; scale?: number }> = {
+  up: { y: 40 },
+  left: { x: -40 },
+  right: { x: 40 },
+  zoom: { scale: 0.95 },
+  fade: {},
 };
 
+/**
+ * Apparition au scroll via Motion (framer-motion).
+ * API conservée à l'identique (children, className, animation, delay ms, once)
+ * pour rester compatible avec les usages existants.
+ * Respecte « prefers-reduced-motion ».
+ */
 export function Reveal({
   children,
   className = "",
@@ -25,36 +32,28 @@ export function Reveal({
   delay?: number;
   once?: boolean;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
+  const reduce = useReducedMotion();
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          if (once) io.disconnect();
-        } else if (!once) {
-          setShown(false);
-        }
-      },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [once]);
+  const variants: Variants = {
+    hidden: reduce ? { opacity: 0 } : { opacity: 0, ...OFFSET[animation] },
+    show: {
+      opacity: 1,
+      x: 0,
+      y: 0,
+      scale: 1,
+      transition: { duration: 0.7, ease: [0.2, 0.7, 0.3, 1], delay: delay / 1000 },
+    },
+  };
 
   return (
-    <div
-      ref={ref}
-      style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-[800ms] ease-[cubic-bezier(.2,.7,.3,1)] ${
-        shown ? "opacity-100 translate-x-0 translate-y-0 scale-100" : hidden[animation]
-      } ${className}`}
+    <motion.div
+      className={className}
+      variants={variants}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once, amount: 0.15, margin: "0px 0px -8% 0px" }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
