@@ -72,7 +72,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2">
-            <span className="text-orange-DEFAULT text-3xl">✂️</span>
+            <img src="/images/arazzo-icon.png" alt="Arazzo" className="w-12 h-12 rounded-2xl shadow-sm" />
             <div>
               <div className="font-playfair font-bold text-orange-600 text-2xl">ARAZZO</div>
               <div className="font-playfair italic text-orange-DEFAULT text-sm -mt-1">Formation</div>

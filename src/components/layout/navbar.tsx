@@ -43,15 +43,13 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
 
           {/* ── Logo ── */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/images/logo-arazzo.svg"
-              alt="Arazzo Formation"
-              width={160}
-              height={54}
-              priority
-              className="h-12 w-auto"
-            />
+          <Link href="/" className="flex items-center gap-2.5">
+            <img src="/images/arazzo-icon.png" alt="Arazzo Formation" width={44} height={44}
+              className="h-11 w-11 rounded-xl shadow-sm" />
+            <span className="font-playfair font-bold text-xl leading-none whitespace-nowrap">
+              <span className="text-orange-500">Arazzo</span>{" "}
+              <span className={scrolled ? "text-violet-700" : "text-white"}>Formation</span>
+            </span>
           </Link>
 
           {/* ── Desktop nav ── */}

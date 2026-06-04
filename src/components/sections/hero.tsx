@@ -35,12 +35,11 @@ export function HeroSection() {
         <source src="/videos/hero-couture.mp4" type="video/mp4" />
       </video>
 
-      {/* ── Voile dégradé orange-dominant (couleurs du logo) — lisibilité + chaleur ── */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#3a1402]/92 via-orange-900/70 to-violet-900/35" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1402]/85 via-transparent to-orange-950/35" />
-      {/* halos : orange dominant, touche violette */}
-      <div className="absolute -bottom-32 right-0 w-[40rem] h-[40rem] rounded-full bg-orange-500/30 blur-3xl pointer-events-none" />
-      <div className="absolute -top-24 -left-20 w-[30rem] h-[30rem] rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
+      {/* ── Voile dégradé violet-dominant (couleurs du logo) — lisibilité + ambiance ── */}
+      <div className="absolute inset-0 bg-gradient-to-r from-violet-950/90 via-violet-900/65 to-orange-900/25" />
+      <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-violet-950/40" />
+      {/* halo orange doux */}
+      <div className="absolute -bottom-32 right-0 w-[40rem] h-[40rem] rounded-full bg-orange-500/20 blur-3xl pointer-events-none" />
 
       {/* ── Contenu ── */}
       <motion.div
