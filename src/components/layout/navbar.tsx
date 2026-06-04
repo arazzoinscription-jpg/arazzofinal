@@ -26,12 +26,14 @@ export function Navbar() {
         { href: "/formations",  label: "Formations" },
         { href: "/boutique",    label: "Boutique" },
         { href: "/patrons",     label: "Patrons" },
+        { href: "/offre",       label: "Offre" },
         { href: "/a-propos",    label: "À propos" },
       ]
     : [
         { href: "/formations",  label: "الدورات" },
         { href: "/boutique",    label: "المتجر" },
         { href: "/patrons",     label: "البترونات" },
+        { href: "/offre",       label: "العرض" },
         { href: "/a-propos",    label: "من نحن" },
       ];
 
