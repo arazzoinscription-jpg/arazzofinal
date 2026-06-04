@@ -27,7 +27,7 @@ export default async function AdminPreuvesPage({ searchParams }: { searchParams:
         {TABS.map((t) => (
           <Link key={t.value} href={t.value ? `/admin/preuves?status=${t.value}` : "/admin/preuves?status="}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold font-dm transition-colors ${
-              status === t.value ? "bg-violet-DEFAULT text-white" : "bg-white text-gray-600 border border-cream-200 hover:bg-cream-50"
+              status === t.value ? "bg-orange-DEFAULT text-white" : "bg-white text-gray-600 border border-cream-200 hover:bg-cream-50"
             }`}>
             {t.label}
           </Link>

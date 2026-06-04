@@ -42,13 +42,13 @@ export default async function FormateurSessionsPage() {
           <p className="text-gray-400 font-dm text-sm">Aucune session planifiée.</p>
         ) : upcoming.map((s) => (
           <div key={s.id} className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-xl bg-violet-DEFAULT text-white flex flex-col items-center justify-center flex-shrink-0">
+            <div className="w-14 h-14 rounded-xl bg-orange-DEFAULT text-white flex flex-col items-center justify-center flex-shrink-0">
               <span className="text-lg">🎥</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 font-dm">{s.titre}</div>
               <div className="text-sm text-gray-500 font-dm">📅 {fmt(s.starts_at)} · {(s.course as any)?.titre_fr ?? "Toutes"}</div>
-              {s.meet_url && <a href={s.meet_url} target="_blank" rel="noopener noreferrer" className="text-xs text-violet-DEFAULT hover:underline">{s.meet_url}</a>}
+              {s.meet_url && <a href={s.meet_url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline">{s.meet_url}</a>}
             </div>
             <DeleteSessionButton id={s.id} />
           </div>

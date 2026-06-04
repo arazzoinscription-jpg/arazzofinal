@@ -56,7 +56,7 @@ export default async function FormateurGroupesPage() {
                     <DeleteGroupButton id={g.id} />
                   </div>
                   <Link href={`/formateur/groupes/${g.id}`}
-                    className="inline-block mt-3 bg-violet-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-violet-700 transition-colors">
+                    className="inline-block mt-3 bg-orange-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-orange-600 transition-colors">
                     Gérer & publier →
                   </Link>
                 </div>

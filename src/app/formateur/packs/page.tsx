@@ -66,13 +66,13 @@ export default async function PacksPage() {
 
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {titres.slice(0, 4).map((t, i) => (
-                    <span key={i} className="text-xs bg-violet-50 text-violet-DEFAULT px-2 py-0.5 rounded-full">{t}</span>
+                    <span key={i} className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">{t}</span>
                   ))}
                   {titres.length > 4 && <span className="text-xs text-gray-400">+{titres.length - 4}</span>}
                 </div>
 
                 <div className="flex items-center justify-between border-t border-cream-100 pt-3">
-                  <span className="font-bold text-violet-DEFAULT font-playfair">
+                  <span className="font-bold text-orange-600 font-playfair">
                     {Number(p.prix_dzd).toLocaleString("fr-DZ")} DA · {Number(p.prix_eur).toFixed(0)} €
                   </span>
                   <DeletePackButton id={p.id} />

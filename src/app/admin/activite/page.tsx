@@ -33,7 +33,7 @@ export default async function AdminActivitePage() {
             <span className="text-3xl">📜</span>
             <h1 className="font-playfair text-3xl font-bold text-gray-900">Journal d'activité</h1>
           </div>
-          <Link href="/admin" className="text-sm text-violet-DEFAULT hover:underline font-dm">← Retour admin</Link>
+          <Link href="/admin" className="text-sm text-orange-600 hover:underline font-dm">← Retour admin</Link>
         </div>
 
         {/* Répartition */}

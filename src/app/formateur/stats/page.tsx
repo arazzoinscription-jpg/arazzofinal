@@ -47,7 +47,7 @@ export default async function FormateurStatsPage() {
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-6 border border-cream-200">
             <div className="text-2xl mb-2">{s.icon}</div>
-            <div className="text-3xl font-bold font-playfair text-violet-DEFAULT">
+            <div className="text-3xl font-bold font-playfair text-orange-600">
               {s.value}
             </div>
             <div className="text-sm text-gray-500 mt-1">{s.label}</div>

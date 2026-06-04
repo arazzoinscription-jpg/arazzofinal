@@ -8,7 +8,7 @@ function Avatar({ nom, url }: { nom: string; url: string | null }) {
   if (url) return <img src={url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />;
   const initial = (nom?.[0] ?? "?").toUpperCase();
   return (
-    <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-DEFAULT flex items-center justify-center font-semibold flex-shrink-0">
+    <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center font-semibold flex-shrink-0">
       {initial}
     </div>
   );
@@ -86,7 +86,7 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
           <div className="flex items-center gap-2">
             <span className="font-semibold text-gray-900 font-dm truncate">{post.author.nom}</span>
             <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
-              post.author.role === "formateur" ? "bg-violet-100 text-violet-DEFAULT"
+              post.author.role === "formateur" ? "bg-orange-100 text-orange-600"
                 : post.author.role === "admin" ? "bg-orange-100 text-orange-700"
                 : "bg-gray-100 text-gray-500"
             }`}>{roleLabel(post.author.role)}</span>
@@ -126,7 +126,7 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
           <span>{liked ? "❤️" : "🤍"}</span> {likeCount}
         </button>
         <button onClick={() => setShowComments((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-violet-DEFAULT transition-colors">
+          className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-orange-600 transition-colors">
           💬 {comments.length}
         </button>
       </div>
@@ -152,9 +152,9 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
           <form onSubmit={onAddComment} className="flex items-center gap-2">
             <input value={newComment} onChange={(e) => setNewComment(e.target.value)}
               placeholder="Écrire un commentaire…"
-              className="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
             <button type="submit" disabled={isCommenting || !newComment.trim()}
-              className="bg-violet-DEFAULT text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50">
+              className="bg-orange-DEFAULT text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
               Envoyer
             </button>
           </form>

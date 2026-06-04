@@ -8,7 +8,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   payment_pending: { label: "Paiement attendu", cls: "bg-yellow-100 text-yellow-700" },
   payment_review: { label: "Vérification", cls: "bg-blue-100 text-blue-700" },
   confirmed: { label: "Confirmée", cls: "bg-green-100 text-green-700" },
-  shipped: { label: "Expédiée", cls: "bg-violet-100 text-violet-700" },
+  shipped: { label: "Expédiée", cls: "bg-orange-100 text-orange-600" },
   delivered: { label: "Livrée", cls: "bg-green-100 text-green-700" },
   cancelled: { label: "Annulée", cls: "bg-red-100 text-red-700" },
   refunded: { label: "Remboursée", cls: "bg-gray-100 text-gray-600" },
@@ -28,7 +28,7 @@ export default async function AdminCommandesPage({ searchParams }: { searchParam
       {/* Filtres */}
       <form className="flex flex-wrap gap-3 mb-6">
         <input name="q" defaultValue={searchParams.q ?? ""} placeholder="N° commande, nom, email…"
-          className="flex-1 min-w-56 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          className="flex-1 min-w-56 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         <select name="status" defaultValue={searchParams.status ?? ""} className="border border-cream-200 rounded-xl px-4 py-2.5 bg-white">
           <option value="">Tous statuts</option>
           {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -37,7 +37,7 @@ export default async function AdminCommandesPage({ searchParams }: { searchParam
           <option value="">Tous paiements</option>
           {Object.entries(METHOD).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <button className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700">Filtrer</button>
+        <button className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600">Filtrer</button>
       </form>
 
       <div className="bg-white rounded-2xl border border-cream-200 overflow-x-auto">
@@ -64,7 +64,7 @@ export default async function AdminCommandesPage({ searchParams }: { searchParam
                   </td>
                   <td className="px-5 py-3 text-gray-600">{o.full_name}<span className="block text-xs text-gray-400">{o.email}</span></td>
                   <td className="px-5 py-3 text-gray-600">{METHOD[o.payment_method] ?? "—"}</td>
-                  <td className="px-5 py-3 font-semibold text-violet-DEFAULT">{fmt(o.total)}</td>
+                  <td className="px-5 py-3 font-semibold text-orange-600">{fmt(o.total)}</td>
                   <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${st.cls}`}>{st.label}</span></td>
                   <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString("fr-FR")}</td>
                 </tr>

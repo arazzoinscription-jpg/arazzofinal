@@ -40,8 +40,8 @@ export default async function StudentGroupesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {groups.map((g) => (
             <Link key={g.id} href={`/dashboard/groupes/${g.id}`}
-              className="bg-white rounded-2xl border border-cream-200 overflow-hidden hover:shadow-lg hover:border-violet-200 transition-all">
-              <div className="h-28 bg-violet-100 flex items-center justify-center text-4xl overflow-hidden">
+              className="bg-white rounded-2xl border border-cream-200 overflow-hidden hover:shadow-lg hover:border-orange-200 transition-all">
+              <div className="h-28 bg-orange-100 flex items-center justify-center text-4xl overflow-hidden">
                 {g.cover_image_url ? <img src={g.cover_image_url} alt="" className="w-full h-full object-cover" /> : "👥"}
               </div>
               <div className="p-4">

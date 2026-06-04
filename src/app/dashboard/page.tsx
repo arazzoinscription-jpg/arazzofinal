@@ -88,7 +88,7 @@ export default async function DashboardPage() {
   const dateStr = today.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
   const KPIS = [
-    { icon: BookOpen, label: "Formations", value: courses.length, chip: "bg-violet-50 text-violet-700" },
+    { icon: BookOpen, label: "Formations", value: courses.length, chip: "bg-orange-50 text-orange-600" },
     { icon: CheckCircle2, label: "Leçons faites", value: completedLessons.size, chip: "bg-green-50 text-green-600" },
     { icon: Sparkles, label: "XP total", value: xpTotal, chip: "bg-orange-50 text-orange-600" },
     { icon: Flame, label: "Série (jours)", value: profile?.current_streak ?? 0, chip: "bg-blush-50 text-blush-500" },
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
           <h1 className="font-playfair text-3xl font-bold text-gray-900">Bonjour, {prenom} 👋</h1>
           <p className="text-gray-500 mt-1 capitalize font-dm">{dateStr}</p>
         </div>
-        <a href="/formations" className="inline-flex items-center gap-1.5 bg-violet-DEFAULT text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-violet-700 transition-colors w-fit">
+        <a href="/formations" className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-orange-600 transition-colors w-fit">
           Explorer le catalogue <ArrowRight size={16} />
         </a>
       </div>
@@ -124,26 +124,26 @@ export default async function DashboardPage() {
       {/* Rangée A : héro continuer + niveau */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Continuer l'apprentissage */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-violet-700 to-violet-900 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-56 h-56 bg-orange-400/20 rounded-full -translate-y-1/3 translate-x-1/4 blur-3xl" />
+        <div className="lg:col-span-2 bg-gradient-to-br from-orange-500 to-orange-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-56 h-56 bg-orange-500/30 rounded-full -translate-y-1/3 translate-x-1/4 blur-3xl" />
           <div className="relative">
-            <p className="text-violet-200 text-sm font-dm mb-1">Continuer l'apprentissage</p>
+            <p className="text-orange-100 text-sm font-dm mb-1">Continuer l'apprentissage</p>
             {hero ? (
               <>
                 <h2 className="font-playfair text-2xl font-bold mb-4 line-clamp-1">{hero.titre}</h2>
                 <div className="flex items-center gap-5">
                   <Ring pct={hero.pct} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-violet-100 text-sm font-dm">{hero.done}/{hero.total} leçons terminées</p>
+                    <p className="text-orange-100 text-sm font-dm">{hero.done}/{hero.total} leçons terminées</p>
                     <a href={`/dashboard/cours/${hero.firstLesson ?? hero.id}`}
-                      className="inline-flex items-center gap-1.5 mt-3 bg-white text-violet-800 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors">
+                      className="inline-flex items-center gap-1.5 mt-3 bg-white text-orange-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors">
                       {hero.pct === 0 ? "Commencer" : "Reprendre"} <ArrowRight size={16} />
                     </a>
                   </div>
                 </div>
               </>
             ) : (
-              <p className="text-violet-100 font-dm mt-2">Aucune formation en cours. Explorez le catalogue pour commencer !</p>
+              <p className="text-orange-100 font-dm mt-2">Aucune formation en cours. Explorez le catalogue pour commencer !</p>
             )}
           </div>
         </div>
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
             <span className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Trophy size={18} /></span>
             <span className="font-semibold text-gray-900 font-dm">Mon niveau</span>
           </div>
-          <p className="font-playfair text-2xl font-bold text-violet-700 capitalize">{profile?.level_label ?? "apprentie"}</p>
+          <p className="font-playfair text-2xl font-bold text-orange-600 capitalize">{profile?.level_label ?? "apprentie"}</p>
           <p className="text-sm text-gray-500 font-dm">{xpTotal} XP · {profile?.xp_this_month ?? 0} ce mois</p>
           <div className="mt-3 h-2.5 bg-cream-200 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-violet-500 to-orange-400 rounded-full" style={{ width: `${tierPct}%` }} />
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
               <h3 className="font-bold text-lg text-gray-900 font-dm">Activité de la semaine</h3>
               <p className="text-sm text-gray-400 font-dm">Leçons terminées par jour</p>
             </div>
-            <span className="text-sm font-semibold text-violet-700">{totalDone}/{totalLessons} au total</span>
+            <span className="text-sm font-semibold text-orange-600">{totalDone}/{totalLessons} au total</span>
           </div>
           <WeeklyActivityChart data={week} />
         </div>
@@ -201,7 +201,7 @@ export default async function DashboardPage() {
           {/* Objectif hebdo */}
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-cream-200">
             <div className="flex items-center gap-2 mb-3">
-              <span className="w-9 h-9 rounded-xl bg-violet-50 text-violet-700 flex items-center justify-center"><Target size={18} /></span>
+              <span className="w-9 h-9 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><Target size={18} /></span>
               <span className="font-semibold text-gray-900 font-dm">Objectif hebdo</span>
             </div>
             <p className="text-sm text-gray-500 font-dm mb-2">{weekDone}/{weekGoal} leçons cette semaine</p>
@@ -217,7 +217,7 @@ export default async function DashboardPage() {
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-cream-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-lg text-gray-900 font-dm">Mes badges <span className="text-gray-400 font-normal text-sm">({earnedCodes.size}/{allBadges?.length ?? 0})</span></h3>
-          <a href="/dashboard/recompenses" className="text-sm text-violet-700 font-semibold hover:underline">Tout voir →</a>
+          <a href="/dashboard/recompenses" className="text-sm text-orange-600 font-semibold hover:underline">Tout voir →</a>
         </div>
         <div className="flex flex-wrap gap-2.5">
           {(allBadges ?? []).map((b) => {
@@ -225,7 +225,7 @@ export default async function DashboardPage() {
             return (
               <div key={b.slug} title={`${b.name} — ${b.description}`}
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-all ${
-                  earned ? "bg-violet-50 ring-2 ring-orange-DEFAULT" : "bg-gray-50 grayscale opacity-40"}`}>
+                  earned ? "bg-orange-50 ring-2 ring-orange-DEFAULT" : "bg-gray-50 grayscale opacity-40"}`}>
                 {b.icon}
               </div>
             );
@@ -246,7 +246,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {courses.map((c) => (
               <div key={c.id} className="bg-white rounded-3xl border border-cream-200 overflow-hidden hover:shadow-lg transition-all flex">
-                <div className="w-28 h-auto bg-violet-50 flex-shrink-0 flex items-center justify-center text-4xl">
+                <div className="w-28 h-auto bg-orange-50 flex-shrink-0 flex items-center justify-center text-4xl">
                   {c.thumbnail ? <img src={c.thumbnail} alt="" className="w-full h-full object-cover" /> : "🧵"}
                 </div>
                 <div className="p-5 flex-1 min-w-0">
@@ -256,13 +256,13 @@ export default async function DashboardPage() {
                   </div>
                   <div className="flex items-center justify-between mb-2 text-sm">
                     <span className="text-gray-400">{c.done}/{c.total} leçons</span>
-                    <span className="font-bold text-violet-700">{c.pct}%</span>
+                    <span className="font-bold text-orange-600">{c.pct}%</span>
                   </div>
                   <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden mb-3">
                     <div className="h-full bg-gradient-to-r from-violet-500 to-orange-400 rounded-full transition-all" style={{ width: `${c.pct}%` }} />
                   </div>
                   <a href={`/dashboard/cours/${c.firstLesson ?? c.id}`}
-                    className="inline-block bg-violet-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-violet-700 transition-colors">
+                    className="inline-block bg-orange-DEFAULT text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-orange-600 transition-colors">
                     {c.pct === 0 ? "Commencer" : c.pct === 100 ? "Revoir" : "Continuer"} →
                   </a>
                 </div>
@@ -281,8 +281,8 @@ function Ring({ pct }: { pct: number }) {
   return (
     <div className="relative w-[76px] h-[76px] flex-shrink-0">
       <svg width="76" height="76" className="-rotate-90">
-        <circle cx="38" cy="38" r={R} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="7" />
-        <circle cx="38" cy="38" r={R} fill="none" stroke="#F4801F" strokeWidth="7" strokeLinecap="round"
+        <circle cx="38" cy="38" r={R} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="7" />
+        <circle cx="38" cy="38" r={R} fill="none" stroke="#ffffff" strokeWidth="7" strokeLinecap="round"
           strokeDasharray={C} strokeDashoffset={C - (C * pct) / 100} />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center text-white font-bold">{pct}%</span>

@@ -74,7 +74,7 @@ export default async function PatronsPage() {
                     download
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full bg-violet-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors text-sm"
+                    className="flex items-center justify-center gap-2 w-full bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors text-sm"
                   >
                     ⬇️ Télécharger le PDF
                   </a>

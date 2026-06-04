@@ -25,7 +25,7 @@ export default async function StudentGroupPage({ params }: { params: { id: strin
 
   return (
     <div className="max-w-2xl">
-      <Link href="/dashboard/groupes" className="text-sm text-violet-DEFAULT font-semibold hover:underline">← Mes groupes</Link>
+      <Link href="/dashboard/groupes" className="text-sm text-orange-600 font-semibold hover:underline">← Mes groupes</Link>
 
       <div className="my-4 flex items-center gap-4">
         {group.cover_image_url && <img src={group.cover_image_url} alt="" className="w-16 h-16 rounded-2xl object-cover" />}

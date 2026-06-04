@@ -73,7 +73,7 @@ export default async function CertificatsPage() {
                     href={`/api/certificates/${cert.uuid_public}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 bg-violet-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors text-sm"
+                    className="flex-1 flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors text-sm"
                   >
                     ⬇️ Télécharger PDF
                   </a>

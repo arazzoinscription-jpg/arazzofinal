@@ -40,8 +40,8 @@ export function PracticalSubmission({ quizId, existing }: { quizId: string; exis
         )}
         {existing.comment && <p className="text-sm text-gray-600 font-dm mb-3">Votre note : {existing.comment}</p>}
         {existing.feedback && (
-          <div className="bg-violet-50 rounded-xl p-4">
-            <p className="text-sm font-semibold text-violet-DEFAULT font-dm mb-1">💬 Retour de votre formatrice</p>
+          <div className="bg-orange-50 rounded-xl p-4">
+            <p className="text-sm font-semibold text-orange-600 font-dm mb-1">💬 Retour de votre formatrice</p>
             <p className="text-sm text-gray-700 font-dm">{existing.feedback}</p>
           </div>
         )}
@@ -83,7 +83,7 @@ export function PracticalSubmission({ quizId, existing }: { quizId: string; exis
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Photo de votre réalisation *</label>
         <input ref={fileRef} type="file" accept="image/*" onChange={onFile} required
-          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-violet-50 file:text-violet-DEFAULT file:font-semibold hover:file:bg-violet-100" />
+          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-50 file:text-orange-600 file:font-semibold hover:file:bg-orange-100" />
       </div>
 
       {preview && (
@@ -94,7 +94,7 @@ export function PracticalSubmission({ quizId, existing }: { quizId: string; exis
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Commentaire (optionnel)</label>
         <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={2}
           placeholder="Décrivez votre travail…"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
       </div>
 
       {err && <p className="text-sm text-red-500">{err}</p>}

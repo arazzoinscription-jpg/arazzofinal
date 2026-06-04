@@ -32,7 +32,7 @@ export default async function CourseEnrolleesPage({ params }: { params: { id: st
 
   return (
     <div className="max-w-4xl">
-      <Link href={backHref} className="text-sm text-violet-DEFAULT font-semibold hover:underline">← Retour</Link>
+      <Link href={backHref} className="text-sm text-orange-600 font-semibold hover:underline">← Retour</Link>
 
       <div className="my-4">
         <h1 className="font-playfair text-3xl font-bold text-gray-900">Étudiants inscrits</h1>

@@ -51,7 +51,7 @@ export function PreferencesForm({ initial }: { initial: PrefsInput }) {
               aria-checked={prefs[f.key]}
               onClick={() => toggle(f.key)}
               className={`relative inline-flex h-7 w-12 flex-shrink-0 rounded-full transition-colors ${
-                prefs[f.key] ? "bg-violet-DEFAULT" : "bg-gray-300"
+                prefs[f.key] ? "bg-orange-DEFAULT" : "bg-gray-300"
               }`}
             >
               <span
@@ -73,7 +73,7 @@ export function PreferencesForm({ initial }: { initial: PrefsInput }) {
       <button
         onClick={save}
         disabled={isPending}
-        className="mt-6 bg-violet-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50"
+        className="mt-6 bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
       >
         {isPending ? "Enregistrement…" : "Enregistrer mes préférences"}
       </button>

@@ -39,7 +39,7 @@ export default async function SupportPage() {
           </div>
         ) : tickets.map((t) => (
           <Link key={t.id} href={`/dashboard/support/${t.id}`}
-            className="block bg-white rounded-2xl p-4 border border-cream-200 hover:shadow-lg hover:border-violet-200 transition-all">
+            className="block bg-white rounded-2xl p-4 border border-cream-200 hover:shadow-lg hover:border-orange-200 transition-all">
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-gray-900 font-dm truncate">{t.sujet}</span>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${STATUS[t.statut]?.cls}`}>{STATUS[t.statut]?.label}</span>

@@ -70,7 +70,7 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
         <select value={type} onChange={(e) => setType(e.target.value as QType)}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
           <option value="qcm">QCM (choix multiple)</option>
           <option value="true_false">Vrai / Faux</option>
           <option value="number">Réponse numérique</option>
@@ -81,7 +81,7 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Question *</label>
         <textarea value={question} onChange={(e) => setQuestion(e.target.value)} required rows={2}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
       </div>
 
       {type === "qcm" && (
@@ -91,7 +91,7 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
             <div key={i} className="flex items-center gap-2">
               <input type="radio" name="correct" checked={correctQcm === i} onChange={() => setCorrectQcm(i)} className="accent-violet-600" />
               <input value={o} onChange={(e) => setOption(i, e.target.value)} placeholder={`Option ${i + 1}`}
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
               {options.length > 2 && (
                 <button type="button" onClick={() => setOptions((arr) => arr.filter((_, j) => j !== i))}
                   className="text-red-400 hover:text-red-600 text-sm px-1">✕</button>
@@ -100,7 +100,7 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
           ))}
           {options.length < 6 && (
             <button type="button" onClick={() => setOptions((o) => [...o, ""])}
-              className="text-sm text-violet-DEFAULT font-semibold hover:underline">+ Ajouter une option</button>
+              className="text-sm text-orange-600 font-semibold hover:underline">+ Ajouter une option</button>
           )}
         </div>
       )}
@@ -109,7 +109,7 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Bonne réponse</label>
           <select value={correctTf} onChange={(e) => setCorrectTf(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500">
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500">
             <option value="Vrai">Vrai</option>
             <option value="Faux">Faux</option>
           </select>
@@ -120,7 +120,7 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Bonne réponse (nombre)</label>
           <input value={correctNum} onChange={(e) => setCorrectNum(e.target.value)} inputMode="decimal"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
       )}
 
@@ -128,20 +128,20 @@ export function QuestionForm({ quizId, nextIndex }: { quizId: string; nextIndex:
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Points</label>
           <input type="number" min={1} value={points} onChange={(e) => setPoints(Math.max(1, Number(e.target.value)))}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Explication (affichée après réponse, optionnel)</label>
         <textarea value={explanation} onChange={(e) => setExplanation(e.target.value)} rows={2}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
       </div>
 
       {err && <p className="text-sm text-red-500">{err}</p>}
 
       <button type="submit" disabled={isPending}
-        className="bg-violet-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50">
+        className="bg-orange-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
         {isPending ? "Ajout…" : "+ Ajouter la question"}
       </button>
     </form>

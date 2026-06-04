@@ -25,8 +25,8 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
       <form className="flex gap-3 mb-6">
         <input name="q" defaultValue={q} placeholder="Rechercher une formation…"
-          className="flex-1 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
-        <button className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700">Rechercher</button>
+          className="flex-1 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        <button className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600">Rechercher</button>
       </form>
 
       <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
@@ -54,8 +54,8 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                 <td className="px-5 py-3"><PublishToggle courseId={c.id} published={c.published} /></td>
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
-                    <Link href={`/formateur/cours/${c.id}/edit`} className="text-violet-DEFAULT font-semibold hover:underline">Modifier</Link>
-                    <Link href={`/formateur/cours/${c.id}/inscrits`} className="text-gray-500 hover:text-violet-DEFAULT hover:underline">Inscrits</Link>
+                    <Link href={`/formateur/cours/${c.id}/edit`} className="text-orange-600 font-semibold hover:underline">Modifier</Link>
+                    <Link href={`/formateur/cours/${c.id}/inscrits`} className="text-gray-500 hover:text-orange-600 hover:underline">Inscrits</Link>
                   </div>
                 </td>
               </tr>

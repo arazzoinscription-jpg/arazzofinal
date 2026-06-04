@@ -67,13 +67,13 @@ export default async function AdminPage() {
           <div className="flex items-center gap-2">
             <a
               href="/admin/activite"
-              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-violet-DEFAULT font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors text-sm"
+              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-orange-600 font-semibold px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors text-sm"
             >
               📜 Journal
             </a>
             <a
               href="/dashboard/profil"
-              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-violet-DEFAULT font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors text-sm"
+              className="inline-flex items-center gap-2 bg-white border border-cream-200 text-orange-600 font-semibold px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors text-sm"
             >
               👤 Mon profil
             </a>
@@ -104,7 +104,7 @@ export default async function AdminPage() {
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl p-5 border border-cream-200">
               <div className="text-2xl mb-2">{s.icon}</div>
-              <div className="text-3xl font-bold font-playfair text-violet-DEFAULT">
+              <div className="text-3xl font-bold font-playfair text-orange-600">
                 {s.value}
               </div>
               <div className="text-sm text-gray-500">{s.label}</div>
@@ -123,7 +123,7 @@ export default async function AdminPage() {
             const card = (
               <div className="bg-white rounded-2xl p-5 border border-cream-200 h-full">
                 <div className="text-2xl mb-2">{s.icon}</div>
-                <div className={`font-bold font-playfair text-violet-DEFAULT ${s.isText ? "text-xl" : "text-3xl"}`}>{s.value}</div>
+                <div className={`font-bold font-playfair text-orange-600 ${s.isText ? "text-xl" : "text-3xl"}`}>{s.value}</div>
                 <div className="text-sm text-gray-500">{s.label}</div>
               </div>
             );
@@ -135,9 +135,9 @@ export default async function AdminPage() {
 
         {/* Accès rapides e-commerce */}
         <div className="flex flex-wrap gap-3 mb-10">
-          <a href="/admin/preuves" className="bg-violet-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-700">✅ Vérifier les preuves{pendingProofs ? ` (${pendingProofs})` : ""}</a>
-          <a href="/admin/commandes" className="bg-white border border-cream-200 text-violet-DEFAULT px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-50">🧾 Commandes</a>
-          <a href="/admin/produits" className="bg-white border border-cream-200 text-violet-DEFAULT px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-50">🛍️ Produits</a>
+          <a href="/admin/preuves" className="bg-orange-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600">✅ Vérifier les preuves{pendingProofs ? ` (${pendingProofs})` : ""}</a>
+          <a href="/admin/commandes" className="bg-white border border-cream-200 text-orange-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-50">🧾 Commandes</a>
+          <a href="/admin/produits" className="bg-white border border-cream-200 text-orange-600 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-50">🛍️ Produits</a>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -156,7 +156,7 @@ export default async function AdminPage() {
                     <p className="text-xs text-gray-400">{e.course?.titre_fr}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-violet-DEFAULT">
+                    <p className="text-sm font-bold text-orange-600">
                       {e.currency === "DZD"
                         ? `${Number(e.amount).toLocaleString()} DA`
                         : `${Number(e.amount).toFixed(0)} €`}
@@ -185,7 +185,7 @@ export default async function AdminPage() {
                   <form action={async () => { "use server"; await promoteToFormateur(u.id); }}>
                     <button
                       type="submit"
-                      className="text-xs text-violet-DEFAULT font-semibold border border-violet-200 px-3 py-1 rounded-lg hover:bg-violet-50 transition-colors"
+                      className="text-xs text-orange-600 font-semibold border border-orange-200 px-3 py-1 rounded-lg hover:bg-orange-50 transition-colors"
                     >
                       → Formateur
                     </button>

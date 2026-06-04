@@ -50,7 +50,7 @@ export default async function StudentSessionsPage() {
             <div className="text-4xl mb-2">📅</div>Aucune session programmée pour le moment.
           </div>
         ) : upcoming.map((s) => (
-          <div key={s.id} className="bg-gradient-to-r from-violet-50 to-white rounded-2xl p-5 border border-violet-200">
+          <div key={s.id} className="bg-gradient-to-r from-violet-50 to-white rounded-2xl p-5 border border-orange-200">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="min-w-0">
                 <span className="inline-block bg-orange-DEFAULT text-white text-xs font-bold px-2.5 py-0.5 rounded-full mb-2">
@@ -62,7 +62,7 @@ export default async function StudentSessionsPage() {
               </div>
               {s.meet_url && (
                 <a href={s.meet_url} target="_blank" rel="noopener noreferrer"
-                  className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors flex-shrink-0">
+                  className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors flex-shrink-0">
                   Rejoindre →
                 </a>
               )}

@@ -54,7 +54,7 @@ export default async function RecompensesPage() {
               </div>
             ))}
           </div>
-          <Link href="/dashboard/progression" className="inline-block mt-3 text-sm text-violet-DEFAULT font-semibold hover:underline">
+          <Link href="/dashboard/progression" className="inline-block mt-3 text-sm text-orange-600 font-semibold hover:underline">
             Voir ma progression détaillée (heatmap, estimation de fin) →
           </Link>
         </div>

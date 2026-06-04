@@ -39,7 +39,7 @@ export function BadgesGrid({ badges }: { badges: BadgeItem[] }) {
               <div className="text-[11px] text-gray-400 font-dm mt-0.5 leading-snug">{b.description}</div>
               <div className="mt-1.5 flex items-center justify-center gap-1.5">
                 {b.category && (
-                  <span className="text-[10px] bg-violet-50 text-violet-DEFAULT px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-full">
                     {CAT_LABEL[b.category] ?? b.category}
                   </span>
                 )}

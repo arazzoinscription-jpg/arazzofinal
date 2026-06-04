@@ -95,9 +95,9 @@ export function TwoFactor() {
           <p className="text-sm text-gray-600 font-dm">2. Entrez le code à 6 chiffres affiché :</p>
           <div className="flex gap-2">
             <input value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" maxLength={6} placeholder="123456"
-              className="border border-gray-200 rounded-xl px-4 py-2.5 w-36 text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="border border-gray-200 rounded-xl px-4 py-2.5 w-36 text-center tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-orange-500" />
             <button onClick={verify} disabled={busy || code.length < 6}
-              className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700 disabled:opacity-50">
+              className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 disabled:opacity-50">
               {busy ? "…" : "Vérifier"}
             </button>
             <button onClick={() => setEnroll(null)} className="px-4 py-2.5 rounded-xl border border-cream-200 text-gray-500 font-semibold">Annuler</button>
@@ -105,7 +105,7 @@ export function TwoFactor() {
         </div>
       ) : (
         <button onClick={startEnroll} disabled={busy}
-          className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50">
+          className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
           {busy ? "…" : "Activer la 2FA"}
         </button>
       )}

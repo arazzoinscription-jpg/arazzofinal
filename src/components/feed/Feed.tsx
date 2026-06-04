@@ -52,7 +52,7 @@ export function Feed({ posts, me, groupId = null }: { posts: FeedPost[]; me: Cur
       <form onSubmit={submit} className="bg-white rounded-2xl border border-cream-200 shadow-soft p-5">
         <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={3}
           placeholder="Partagez une actualité, une réalisation…"
-          className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
 
         {previews.length > 0 && (
           <div className="grid grid-cols-4 gap-2 mt-3">
@@ -63,7 +63,7 @@ export function Feed({ posts, me, groupId = null }: { posts: FeedPost[]; me: Cur
         )}
 
         <div className="flex items-center justify-between mt-3">
-          <label className="cursor-pointer text-sm text-violet-DEFAULT font-semibold hover:underline">
+          <label className="cursor-pointer text-sm text-orange-600 font-semibold hover:underline">
             📷 Ajouter des images
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={onFiles} className="hidden" />
           </label>

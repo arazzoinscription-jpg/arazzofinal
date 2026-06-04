@@ -122,7 +122,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
               <a
                 key={q.id}
                 href={`/dashboard/quiz/${q.id}`}
-                className="flex items-center justify-between gap-4 bg-gradient-to-r from-violet-50 to-blush-50 border border-violet-100 rounded-2xl p-4 hover:shadow-soft transition-all group"
+                className="flex items-center justify-between gap-4 bg-gradient-to-r from-violet-50 to-blush-50 border border-orange-100 rounded-2xl p-4 hover:shadow-soft transition-all group"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-2xl flex-shrink-0">{q.type === "practical" ? "📷" : "📝"}</span>
@@ -135,7 +135,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
                     </p>
                   </div>
                 </div>
-                <span className="flex-shrink-0 bg-violet-DEFAULT text-white text-sm px-4 py-2 rounded-xl font-semibold group-hover:bg-violet-700 transition-colors">
+                <span className="flex-shrink-0 bg-orange-DEFAULT text-white text-sm px-4 py-2 rounded-xl font-semibold group-hover:bg-orange-600 transition-colors">
                   {q.type === "practical" ? "Soumettre" : "Passer le quiz"} →
                 </span>
               </a>

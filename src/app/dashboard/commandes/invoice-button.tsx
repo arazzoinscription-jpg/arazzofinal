@@ -18,7 +18,7 @@ export function InvoiceButton({ orderId, invoiceId }: { orderId?: string; invoic
 
   return (
     <button onClick={open} disabled={isPending}
-      className="text-sm font-semibold text-violet-DEFAULT hover:underline disabled:opacity-50">
+      className="text-sm font-semibold text-orange-600 hover:underline disabled:opacity-50">
       {isPending ? "…" : "📄 Facture"}
     </button>
   );

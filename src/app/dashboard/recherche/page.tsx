@@ -46,13 +46,13 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
                 const m = KIND_META[r.kind] ?? { icon: "•", label: r.kind };
                 const clickable = r.link && r.link !== "#";
                 const inner = (
-                  <div className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-3 hover:shadow-lg hover:border-violet-200 transition-all">
+                  <div className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-3 hover:shadow-lg hover:border-orange-200 transition-all">
                     <span className="text-xl flex-shrink-0">{m.icon}</span>
                     <div className="min-w-0 flex-1">
                       <div className="font-semibold text-gray-900 font-dm truncate">{r.label}</div>
                       <div className="text-xs text-gray-400 font-dm">{m.label}</div>
                     </div>
-                    {clickable && <span className="text-violet-DEFAULT flex-shrink-0">→</span>}
+                    {clickable && <span className="text-orange-600 flex-shrink-0">→</span>}
                   </div>
                 );
                 return clickable ? <Link key={r.kind + r.id} href={r.link}>{inner}</Link> : <div key={r.kind + r.id}>{inner}</div>;

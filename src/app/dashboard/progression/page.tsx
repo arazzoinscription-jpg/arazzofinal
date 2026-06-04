@@ -86,7 +86,7 @@ export default async function ProgressionPage() {
     const iso = d.toISOString().slice(0, 10);
     cells.push({ date: iso, count: activity.get(iso) ?? 0 });
   }
-  const level = (n: number) => (n === 0 ? "bg-cream-200" : n < 2 ? "bg-violet-200" : n < 4 ? "bg-violet-400" : "bg-violet-DEFAULT");
+  const level = (n: number) => (n === 0 ? "bg-cream-200" : n < 2 ? "bg-violet-200" : n < 4 ? "bg-violet-400" : "bg-orange-DEFAULT");
 
   // ── Rythme + estimation ──
   const pace = activeDays > 0 ? totalDone / activeDays : 0; // leçons / jour actif
@@ -113,7 +113,7 @@ export default async function ProgressionPage() {
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-cream-200 shadow-soft">
             <div className="text-2xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold font-playfair text-violet-DEFAULT">{s.value}</div>
+            <div className="text-2xl font-bold font-playfair text-orange-600">{s.value}</div>
             <div className="text-xs text-gray-500 font-dm mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -123,7 +123,7 @@ export default async function ProgressionPage() {
       <div className="bg-white rounded-2xl p-6 border border-cream-200 shadow-soft mb-8">
         <div className="flex items-center justify-between mb-2">
           <span className="font-semibold text-gray-900 font-dm">Avancement global</span>
-          <span className="font-bold text-violet-DEFAULT">{globalPct}%</span>
+          <span className="font-bold text-orange-600">{globalPct}%</span>
         </div>
         <div className="h-3 bg-cream-200 rounded-full overflow-hidden mb-4">
           <div className="h-full bg-gradient-to-r from-violet-500 via-blush-400 to-orange-DEFAULT rounded-full transition-all" style={{ width: `${globalPct}%` }} />
@@ -131,7 +131,7 @@ export default async function ProgressionPage() {
         {etaDate ? (
           <p className="text-sm text-gray-600 font-dm">
             À votre rythme actuel (~{pace.toFixed(1)} leçon/jour actif), il vous reste <strong>{remaining} leçons</strong> —
-            fin estimée vers <strong className="text-violet-DEFAULT">{etaDate}</strong>.
+            fin estimée vers <strong className="text-orange-600">{etaDate}</strong>.
           </p>
         ) : (
           <p className="text-sm text-gray-400 font-dm">Complétez quelques leçons pour estimer votre date de fin.</p>
@@ -153,7 +153,7 @@ export default async function ProgressionPage() {
           <span className="w-3 h-3 rounded-sm bg-cream-200 inline-block" />
           <span className="w-3 h-3 rounded-sm bg-violet-200 inline-block" />
           <span className="w-3 h-3 rounded-sm bg-violet-400 inline-block" />
-          <span className="w-3 h-3 rounded-sm bg-violet-DEFAULT inline-block" />
+          <span className="w-3 h-3 rounded-sm bg-orange-DEFAULT inline-block" />
           Plus
         </div>
       </div>
@@ -168,13 +168,13 @@ export default async function ProgressionPage() {
             const pct = r.total > 0 ? Math.round((r.done / r.total) * 100) : 0;
             return (
               <div key={r.id} className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-violet-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-xl">
+                <div className="w-12 h-12 rounded-xl bg-orange-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-xl">
                   {r.thumbnail ? <img src={r.thumbnail} alt="" className="w-full h-full object-cover" /> : "🧵"}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3 mb-1">
                     <span className="font-medium text-gray-900 font-dm truncate">{r.titre}</span>
-                    <span className="text-sm font-bold text-violet-DEFAULT flex-shrink-0">{pct}%</span>
+                    <span className="text-sm font-bold text-orange-600 flex-shrink-0">{pct}%</span>
                   </div>
                   <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-violet-500 to-orange-DEFAULT rounded-full" style={{ width: `${pct}%` }} />

@@ -54,21 +54,21 @@ export function UploadForm({ courses }: { courses: { id: string; titre_fr: strin
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre *</label>
         <input value={titre} onChange={(e) => setTitre(e.target.value)} required
           placeholder="Patron de base — taille 38"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
           <select value={type} onChange={(e) => setType(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
             {TYPES.map((t) => <option key={t.v} value={t.v}>{t.label}</option>)}
           </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Formation</label>
           <select value={courseId} onChange={(e) => setCourseId(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
             <option value="">Générale (toutes)</option>
             {courses.map((c) => <option key={c.id} value={c.id}>{c.titre_fr}</option>)}
           </select>
@@ -78,13 +78,13 @@ export function UploadForm({ courses }: { courses: { id: string; titre_fr: strin
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Fichier * (max 50 Mo)</label>
         <input ref={fileRef} type="file" required
-          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-violet-50 file:text-violet-DEFAULT file:font-semibold hover:file:bg-violet-100" />
+          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-50 file:text-orange-600 file:font-semibold hover:file:bg-orange-100" />
       </div>
 
       {msg && <p className={`text-sm px-4 py-2.5 rounded-xl ${msg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{msg.text}</p>}
 
       <button type="submit" disabled={loading}
-        className="bg-violet-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50">
+        className="bg-orange-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
         {loading ? "Envoi…" : "Téléverser"}
       </button>
     </form>

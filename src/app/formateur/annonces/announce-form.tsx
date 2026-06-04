@@ -33,21 +33,21 @@ export function AnnounceForm({ courses }: { courses: { id: string; titre_fr: str
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre *</label>
         <input value={form.titre} onChange={(e) => setForm({ ...form, titre: e.target.value })} required
           placeholder="Nouvelle session live cette semaine !"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Message *</label>
         <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} required rows={4}
           placeholder="Votre message aux étudiantes…"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Destinataires</label>
           <select value={form.course_id} onChange={(e) => setForm({ ...form, course_id: e.target.value })}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
             <option value="">Toutes les étudiantes</option>
             {courses.map((c) => <option key={c.id} value={c.id}>Inscrites à : {c.titre_fr}</option>)}
           </select>

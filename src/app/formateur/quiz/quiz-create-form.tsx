@@ -31,7 +31,7 @@ export function QuizCreateForm({ lessons }: { lessons: { id: string; label: stri
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Leçon associée *</label>
         <select value={form.lesson_id} onChange={(e) => setForm({ ...form, lesson_id: e.target.value })} required
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
           <option value="">— Choisir une leçon —</option>
           {lessons.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
@@ -39,7 +39,7 @@ export function QuizCreateForm({ lessons }: { lessons: { id: string; label: stri
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre *</label>
         <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required placeholder="Quiz : les bases du patron"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div>
@@ -65,7 +65,7 @@ export function QuizCreateForm({ lessons }: { lessons: { id: string; label: stri
         </div>
       </div>
       {msg && <p className="text-sm text-red-600">{msg.text}</p>}
-      <button type="submit" disabled={isPending} className="bg-violet-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-violet-700 disabled:opacity-50">
+      <button type="submit" disabled={isPending} className="bg-orange-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 disabled:opacity-50">
         {isPending ? "Création…" : "Créer et ajouter des questions →"}
       </button>
     </form>

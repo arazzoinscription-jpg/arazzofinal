@@ -38,7 +38,7 @@ export function WeeklyGoal({ goal, done }: { goal: number; done: number }) {
               strokeDasharray={C} strokeDashoffset={offset} className="transition-[stroke-dashoffset] duration-700" />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-playfair text-xl font-bold text-violet-DEFAULT">{done}/{goal}</span>
+            <span className="font-playfair text-xl font-bold text-orange-600">{done}/{goal}</span>
             <span className="text-[10px] text-gray-400 font-dm">leçons</span>
           </div>
         </div>
@@ -58,13 +58,13 @@ export function WeeklyGoal({ goal, done }: { goal: number; done: number }) {
                 onChange={(e) => setValue(Number(e.target.value))}
                 className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm" />
               <button onClick={save} disabled={isPending}
-                className="text-sm bg-violet-DEFAULT text-white px-3 py-1 rounded-lg font-semibold disabled:opacity-50">
+                className="text-sm bg-orange-DEFAULT text-white px-3 py-1 rounded-lg font-semibold disabled:opacity-50">
                 {isPending ? "…" : "OK"}
               </button>
               <button onClick={() => setEditing(false)} className="text-sm text-gray-400">Annuler</button>
             </div>
           ) : (
-            <button onClick={() => setEditing(true)} className="mt-3 text-sm text-violet-DEFAULT font-semibold hover:underline">
+            <button onClick={() => setEditing(true)} className="mt-3 text-sm text-orange-600 font-semibold hover:underline">
               Modifier l'objectif
             </button>
           )}

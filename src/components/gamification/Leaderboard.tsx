@@ -35,7 +35,7 @@ export function Leaderboard({ rows, currentUserId }: { rows: LeaderboardEntry[];
           {podium.map((p) => (
             <div key={p.studentId} className="flex flex-col items-center w-24">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold mb-1 ${
-                p.studentId === currentUserId ? "bg-orange-DEFAULT text-white ring-2 ring-orange-200" : "bg-violet-100 text-violet-DEFAULT"
+                p.studentId === currentUserId ? "bg-orange-DEFAULT text-white ring-2 ring-orange-200" : "bg-orange-100 text-orange-600"
               }`}>
                 {initials(p.nom)}
               </div>
@@ -52,14 +52,14 @@ export function Leaderboard({ rows, currentUserId }: { rows: LeaderboardEntry[];
       {/* Reste du top 10 */}
       <div className="divide-y divide-cream-100">
         {rest.map((r) => (
-          <div key={r.studentId} className={`flex items-center gap-3 px-2 py-2.5 rounded-lg ${r.studentId === currentUserId ? "bg-violet-50" : ""}`}>
+          <div key={r.studentId} className={`flex items-center gap-3 px-2 py-2.5 rounded-lg ${r.studentId === currentUserId ? "bg-orange-50" : ""}`}>
             <span className="w-6 text-center text-gray-400 font-bold font-dm">{r.rang}</span>
-            <div className="w-8 h-8 rounded-full bg-violet-100 text-violet-DEFAULT flex items-center justify-center text-sm font-bold">{initials(r.nom)}</div>
+            <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-sm font-bold">{initials(r.nom)}</div>
             <span className="flex-1 font-medium text-gray-900 font-dm truncate">
               {r.nom}{r.studentId === currentUserId ? " (vous)" : ""}
             </span>
             <span className="text-xs text-gray-400 font-dm capitalize hidden sm:inline">{r.niveau}</span>
-            <span className="font-bold text-violet-DEFAULT font-dm">{r.xp} XP</span>
+            <span className="font-bold text-orange-600 font-dm">{r.xp} XP</span>
           </div>
         ))}
       </div>

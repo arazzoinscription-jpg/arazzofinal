@@ -107,7 +107,7 @@ export default async function AnalyticsPage() {
           <h1 className="font-playfair text-3xl font-bold text-gray-900">Statistiques avancées</h1>
           <p className="text-gray-500 mt-1 font-dm">Vue complète de l'engagement de vos étudiantes.</p>
         </div>
-        <Link href="/formateur/etudiantes-inactives" className="bg-white border border-cream-200 text-violet-DEFAULT font-semibold px-4 py-2 rounded-xl hover:bg-violet-50 transition-colors text-sm">
+        <Link href="/formateur/etudiantes-inactives" className="bg-white border border-cream-200 text-orange-600 font-semibold px-4 py-2 rounded-xl hover:bg-orange-50 transition-colors text-sm">
           😴 Voir les inactives →
         </Link>
       </div>
@@ -123,7 +123,7 @@ export default async function AnalyticsPage() {
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-cream-200 shadow-soft">
             <div className="text-2xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold font-playfair text-violet-DEFAULT">{s.value}</div>
+            <div className="text-2xl font-bold font-playfair text-orange-600">{s.value}</div>
             <div className="text-xs text-gray-500 font-dm mt-0.5">{s.label}</div>
           </div>
         ))}

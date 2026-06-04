@@ -68,7 +68,7 @@ export function DashboardNav({ role }: { role: string }) {
                   href={l.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                     active
-                      ? "bg-white text-violet-800 shadow-sm"
+                      ? "bg-orange-DEFAULT text-white shadow-sm"
                       : "text-white/75 hover:bg-white/10 hover:text-white"
                   }`}
                 >

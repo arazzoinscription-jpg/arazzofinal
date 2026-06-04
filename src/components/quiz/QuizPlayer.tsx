@@ -123,11 +123,11 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
         <div className="mt-6 flex gap-3">
           {!result.passed && (result.attemptsLeft ?? 0) > 0 && (
             <button onClick={() => { setPhase("playing"); setIdx(0); setAnswers({}); setResult(null); setTimeLeft(timeLimitSeconds); startRef.current = Date.now(); }}
-              className="flex-1 bg-violet-DEFAULT text-white py-3 rounded-xl font-bold hover:bg-violet-700 transition-colors">
+              className="flex-1 bg-orange-DEFAULT text-white py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors">
               Réessayer ({result.attemptsLeft} restante{(result.attemptsLeft ?? 0) > 1 ? "s" : ""})
             </button>
           )}
-          <button onClick={() => router.back()} className="flex-1 border-2 border-violet-DEFAULT text-violet-DEFAULT py-3 rounded-xl font-bold hover:bg-violet-50 transition-colors">
+          <button onClick={() => router.back()} className="flex-1 border-2 border-violet-DEFAULT text-orange-600 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors">
             Retour au cours
           </button>
         </div>
@@ -145,7 +145,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm text-gray-500 font-dm">Question {idx + 1} / {total}</span>
         {timeLeft != null && (
-          <span className={`text-sm font-bold font-dm ${timeLeft < 15 ? "text-red-500" : "text-violet-DEFAULT"}`}>⏱ {fmtTime(timeLeft)}</span>
+          <span className={`text-sm font-bold font-dm ${timeLeft < 15 ? "text-red-500" : "text-orange-600"}`}>⏱ {fmtTime(timeLeft)}</span>
         )}
       </div>
       <div className="h-2 bg-cream-200 rounded-full overflow-hidden mb-6">
@@ -162,7 +162,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
             {(q.options ?? []).map((opt) => (
               <button key={opt} onClick={() => setAnswer(opt)}
                 className={`w-full text-left px-4 py-3 rounded-xl border-2 font-dm transition-all ${
-                  answers[q.id] === opt ? "border-violet-DEFAULT bg-violet-50 text-violet-DEFAULT font-semibold" : "border-cream-200 hover:border-violet-200"
+                  answers[q.id] === opt ? "border-violet-DEFAULT bg-orange-50 text-orange-600 font-semibold" : "border-cream-200 hover:border-orange-200"
                 }`}>
                 {opt}
               </button>
@@ -175,7 +175,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
             {["Vrai", "Faux"].map((opt) => (
               <button key={opt} onClick={() => setAnswer(opt)}
                 className={`py-4 rounded-xl border-2 font-bold font-dm transition-all ${
-                  answers[q.id] === opt ? "border-violet-DEFAULT bg-violet-50 text-violet-DEFAULT" : "border-cream-200 hover:border-violet-200"
+                  answers[q.id] === opt ? "border-violet-DEFAULT bg-orange-50 text-orange-600" : "border-cream-200 hover:border-orange-200"
                 }`}>
                 {opt === "Vrai" ? "✓ Vrai" : "✗ Faux"}
               </button>
@@ -201,7 +201,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
           ← Précédent
         </button>
         <button onClick={next} disabled={!answered || phase === "submitting"}
-          className="flex-1 bg-violet-DEFAULT text-white py-3 rounded-xl font-bold hover:bg-violet-700 transition-colors disabled:opacity-50">
+          className="flex-1 bg-orange-DEFAULT text-white py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors disabled:opacity-50">
           {phase === "submitting" ? "Validation…" : idx === total - 1 ? "Terminer le quiz" : "Suivant →"}
         </button>
       </div>

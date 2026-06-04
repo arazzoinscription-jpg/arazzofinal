@@ -31,7 +31,7 @@ export function CouponForm() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Code *</label>
           <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} required placeholder="RAMADAN25"
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 uppercase focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 uppercase focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -61,7 +61,7 @@ export function CouponForm() {
         </div>
       </div>
       {msg && <p className={`text-sm px-4 py-2.5 rounded-xl ${msg.ok ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>{msg.text}</p>}
-      <button type="submit" disabled={isPending} className="bg-violet-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-violet-700 disabled:opacity-50">
+      <button type="submit" disabled={isPending} className="bg-orange-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 disabled:opacity-50">
         {isPending ? "Création…" : "Créer le coupon"}
       </button>
     </form>

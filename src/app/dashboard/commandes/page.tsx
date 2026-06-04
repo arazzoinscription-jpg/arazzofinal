@@ -11,7 +11,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   payment_pending: { label: "Paiement en attente", cls: "bg-yellow-100 text-yellow-700" },
   payment_review: { label: "Vérification preuve", cls: "bg-blue-100 text-blue-700" },
   confirmed: { label: "Confirmée", cls: "bg-green-100 text-green-700" },
-  shipped: { label: "Expédiée", cls: "bg-violet-100 text-violet-700" },
+  shipped: { label: "Expédiée", cls: "bg-orange-100 text-orange-600" },
   delivered: { label: "Livrée", cls: "bg-green-100 text-green-700" },
   cancelled: { label: "Annulée", cls: "bg-red-100 text-red-700" },
   refunded: { label: "Remboursée", cls: "bg-gray-100 text-gray-600" },
@@ -63,12 +63,12 @@ export default async function MesCommandesPage() {
                 </div>
 
                 <div className="flex items-center justify-between border-t border-cream-100 pt-3 mt-3">
-                  <span className="font-bold text-violet-DEFAULT font-playfair">{fmt(o.total)}</span>
+                  <span className="font-bold text-orange-600 font-playfair">{fmt(o.total)}</span>
                   <div className="flex items-center gap-4">
                     {CONFIRMED.includes(o.status) && (
                       invoice ? <InvoiceButton invoiceId={invoice.id} /> : <InvoiceButton orderId={o.id} />
                     )}
-                    <Link href={`/confirmation/${o.id}`} className="text-sm font-semibold text-gray-600 hover:text-violet-DEFAULT hover:underline">Détail →</Link>
+                    <Link href={`/confirmation/${o.id}`} className="text-sm font-semibold text-gray-600 hover:text-orange-600 hover:underline">Détail →</Link>
                   </div>
                 </div>
               </div>

@@ -80,37 +80,37 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre (français) *</label>
           <input value={form.titre_fr} onChange={(e) => set("titre_fr", e.target.value)} required
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre (arabe)</label>
           <input value={form.titre_ar} onChange={(e) => set("titre_ar", e.target.value)} dir="rtl"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 text-right" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 text-right" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
           <textarea value={form.description_fr} onChange={(e) => set("description_fr", e.target.value)} required rows={5}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (arabe)</label>
           <textarea value={form.description_ar} onChange={(e) => set("description_ar", e.target.value)} dir="rtl" rows={4}
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none text-right" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none text-right" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Prix (DA) *</label>
             <input type="number" min={0} value={form.prix_dzd} onChange={(e) => set("prix_dzd", e.target.value)} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Prix (€) *</label>
             <input type="number" min={0} value={form.prix_eur} onChange={(e) => set("prix_eur", e.target.value)} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
         </div>
 
@@ -118,7 +118,7 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Niveau</label>
             <select value={form.niveau} onChange={(e) => set("niveau", e.target.value as EditableCourse["niveau"])}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white">
               <option value="debutant">Débutant</option>
               <option value="intermediaire">Intermédiaire</option>
               <option value="avance">Avancé</option>
@@ -127,14 +127,14 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Durée totale</label>
             <input value={form.duree} onChange={(e) => set("duree", e.target.value)} placeholder="Ex: 8h30"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">URL miniature</label>
           <input value={form.thumbnail} onChange={(e) => set("thumbnail", e.target.value)} placeholder="https://…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
 
         {/* Statut publié / brouillon */}

@@ -96,7 +96,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
       {/* ── Carte Profil ── */}
       <form onSubmit={saveProfile} className="bg-white rounded-2xl border border-cream-200 shadow-soft p-7">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-violet-DEFAULT flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+          <div className="w-16 h-16 rounded-full bg-orange-DEFAULT flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
             {form.avatar_url ? (
               <img src={form.avatar_url} alt="" className="w-full h-full object-cover" />
             ) : (
@@ -105,7 +105,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
           </div>
           <div>
             <h2 className="font-playfair text-xl font-bold text-gray-900">Informations</h2>
-            <span className="inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-violet-50 text-violet-DEFAULT">
+            <span className="inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-600">
               {roleLabel[form.role] ?? form.role}
             </span>
           </div>
@@ -118,7 +118,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               value={form.nom}
               onChange={(e) => setForm({ ...form, nom: e.target.value })}
               required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -139,7 +139,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
                 value={form.ville}
                 onChange={(e) => setForm({ ...form, ville: e.target.value })}
                 placeholder="Alger"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             <div>
@@ -147,7 +147,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               <select
                 value={form.pays}
                 onChange={(e) => setForm({ ...form, pays: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
               >
                 {PAYS.map((p) => <option key={p.code} value={p.code}>{p.label}</option>)}
               </select>
@@ -160,7 +160,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               value={form.avatar_url}
               onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
               placeholder="https://…"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -174,7 +174,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         <button
           type="submit"
           disabled={savingP}
-          className="mt-6 bg-violet-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50"
+          className="mt-6 bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
         >
           {savingP ? "Enregistrement…" : "Enregistrer les modifications"}
         </button>
@@ -193,7 +193,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
               placeholder="••••••••"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <div>
@@ -203,7 +203,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               value={pwd2}
               onChange={(e) => setPwd2(e.target.value)}
               placeholder="••••••••"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>

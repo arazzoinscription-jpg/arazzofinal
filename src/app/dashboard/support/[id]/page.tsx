@@ -31,7 +31,7 @@ export default async function TicketDetailPage({ params }: { params: { id: strin
 
   return (
     <div className="max-w-2xl">
-      <Link href="/dashboard/support" className="text-sm text-violet-DEFAULT hover:underline font-dm">← Mes tickets</Link>
+      <Link href="/dashboard/support" className="text-sm text-orange-600 hover:underline font-dm">← Mes tickets</Link>
       <h1 className="font-playfair text-2xl font-bold text-gray-900 mt-2 mb-6">{ticket.sujet}</h1>
       <TicketThread ticketId={ticket.id} statut={ticket.statut} messages={messages} isStaff={false} />
     </div>

@@ -32,7 +32,7 @@ export default async function StaffTicketDetail({ params }: { params: { id: stri
 
   return (
     <div className="max-w-2xl">
-      <Link href="/formateur/tickets" className="text-sm text-violet-DEFAULT hover:underline font-dm">← Tous les tickets</Link>
+      <Link href="/formateur/tickets" className="text-sm text-orange-600 hover:underline font-dm">← Tous les tickets</Link>
       <h1 className="font-playfair text-2xl font-bold text-gray-900 mt-2">{ticket.sujet}</h1>
       <p className="text-sm text-gray-400 font-dm mb-6">
         De {(ticket.user as any)?.nom ?? "—"} · {(ticket.user as any)?.email} · priorité {ticket.priorite}

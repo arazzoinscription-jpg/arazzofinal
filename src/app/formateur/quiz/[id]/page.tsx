@@ -35,7 +35,7 @@ export default async function QuizEditorPage({ params }: { params: { id: string 
 
   return (
     <div className="max-w-3xl">
-      <Link href="/formateur/quiz" className="text-sm text-violet-DEFAULT font-semibold hover:underline">← Tous les quiz</Link>
+      <Link href="/formateur/quiz" className="text-sm text-orange-600 font-semibold hover:underline">← Tous les quiz</Link>
 
       <div className="my-4">
         <h1 className="font-playfair text-3xl font-bold text-gray-900">{quiz.title}</h1>
@@ -57,7 +57,7 @@ export default async function QuizEditorPage({ params }: { params: { id: string 
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs bg-violet-50 text-violet-DEFAULT px-2 py-0.5 rounded-full">{TYPE_LABEL[q.type] ?? q.type}</span>
+                  <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">{TYPE_LABEL[q.type] ?? q.type}</span>
                   <span className="text-xs text-gray-400 font-dm">{q.points} pt</span>
                 </div>
                 <p className="font-medium text-gray-900 font-dm">{i + 1}. {q.question}</p>

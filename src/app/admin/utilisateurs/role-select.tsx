@@ -24,8 +24,8 @@ export function RoleSelect({ userId, role }: { userId: string; role: string }) {
   return (
     <div>
       <select value={val} onChange={(e) => change(e.target.value)} disabled={isPending}
-        className={`text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 ${
-          val === "admin" ? "border-orange-300 text-orange-700" : val === "formateur" ? "border-violet-300 text-violet-DEFAULT" : "border-gray-200 text-gray-600"
+        className={`text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+          val === "admin" ? "border-orange-300 text-orange-700" : val === "formateur" ? "border-violet-300 text-orange-600" : "border-gray-200 text-gray-600"
         }`}>
         <option value="eleve">Élève</option>
         <option value="formateur">Formateur</option>

@@ -31,7 +31,7 @@ export default async function StaffTicketsPage() {
       <div className="grid grid-cols-4 gap-3 mb-6">
         {Object.entries(STATUS).map(([k, v]) => (
           <div key={k} className="bg-white rounded-2xl p-4 border border-cream-200 text-center">
-            <div className="text-2xl font-bold font-playfair text-violet-DEFAULT">{counts[k] ?? 0}</div>
+            <div className="text-2xl font-bold font-playfair text-orange-600">{counts[k] ?? 0}</div>
             <div className="text-xs text-gray-500 font-dm">{v.label}</div>
           </div>
         ))}
@@ -42,7 +42,7 @@ export default async function StaffTicketsPage() {
           <p className="text-gray-400 font-dm text-sm">Aucun ticket.</p>
         ) : tickets.map((t) => (
           <Link key={t.id} href={`/formateur/tickets/${t.id}`}
-            className="block bg-white rounded-2xl p-4 border border-cream-200 hover:shadow-lg hover:border-violet-200 transition-all">
+            className="block bg-white rounded-2xl p-4 border border-cream-200 hover:shadow-lg hover:border-orange-200 transition-all">
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-gray-900 font-dm truncate">{t.sujet}</span>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${STATUS[t.statut]?.cls}`}>{STATUS[t.statut]?.label}</span>

@@ -40,7 +40,7 @@ export default async function FormateurAnnoncesPage() {
               </span>
             </div>
             <p className="text-sm text-gray-600 font-dm mt-1">{a.body}</p>
-            <span className="inline-block mt-2 text-xs bg-violet-50 text-violet-DEFAULT px-2.5 py-0.5 rounded-full font-dm">
+            <span className="inline-block mt-2 text-xs bg-orange-50 text-orange-600 px-2.5 py-0.5 rounded-full font-dm">
               {(a.course as any)?.titre_fr ? `Inscrites : ${(a.course as any).titre_fr}` : "Toutes les étudiantes"}
             </span>
           </div>

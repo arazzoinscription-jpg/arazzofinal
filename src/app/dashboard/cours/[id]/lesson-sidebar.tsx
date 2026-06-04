@@ -38,15 +38,15 @@ export function LessonSidebar({
                       className={clsx(
                         "flex items-center gap-3 px-4 py-3 text-sm transition-colors",
                         isActive
-                          ? "bg-violet-50 text-violet-DEFAULT font-semibold"
+                          ? "bg-orange-50 text-orange-600 font-semibold"
                           : "text-gray-600 hover:bg-cream-50"
                       )}
                     >
                       <span className="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center text-xs">
                         {isDone ? (
-                          <span className="text-violet-DEFAULT">✓</span>
+                          <span className="text-orange-600">✓</span>
                         ) : isActive ? (
-                          <span className="w-2 h-2 rounded-full bg-violet-DEFAULT block" />
+                          <span className="w-2 h-2 rounded-full bg-orange-DEFAULT block" />
                         ) : null}
                       </span>
                       <span className="line-clamp-2">{lesson.titre}</span>

@@ -46,7 +46,7 @@ export default async function FormateurRessourcesPage() {
                 {(r.course as any)?.titre_fr ?? "Générale"} · {r.taille_ko ? `${(r.taille_ko / 1024).toFixed(1)} Mo` : "—"} · ⬇ {r.download_count} téléchargements
               </div>
             </div>
-            <a href={`/api/resources/${r.id}/download`} className="text-violet-DEFAULT hover:underline text-sm font-semibold flex-shrink-0">Ouvrir</a>
+            <a href={`/api/resources/${r.id}/download`} className="text-orange-600 hover:underline text-sm font-semibold flex-shrink-0">Ouvrir</a>
             <DeleteResourceButton id={r.id} />
           </div>
         ))}

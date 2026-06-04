@@ -106,7 +106,7 @@ export default async function AdminStudentsPage({
       {/* Recherche + filtre par cours */}
       <form className="flex flex-wrap gap-3 mb-6">
         <input name="q" defaultValue={searchParams.q ?? ""} placeholder="Rechercher nom ou email…"
-          className="flex-1 min-w-56 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          className="flex-1 min-w-56 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         <select name="course" defaultValue={courseFilter}
           className="border border-cream-200 rounded-xl px-4 py-2.5 bg-white max-w-xs">
           <option value="">Tous les cours</option>
@@ -114,7 +114,7 @@ export default async function AdminStudentsPage({
             <option key={c.id} value={c.id}>{c.titre_fr}</option>
           ))}
         </select>
-        <button className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700">Filtrer</button>
+        <button className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600">Filtrer</button>
       </form>
 
       <div className="bg-white rounded-2xl border border-cream-200 overflow-x-auto">

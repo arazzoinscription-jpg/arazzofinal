@@ -40,10 +40,10 @@ export default async function FormateurQuizPage() {
           <p className="text-gray-400 text-sm font-dm">Aucun quiz pour le moment.</p>
         ) : quizzes.map((q) => (
           <Link key={q.id} href={`/formateur/quiz/${q.id}`}
-            className="block bg-white rounded-2xl p-4 border border-cream-200 hover:shadow-lg hover:border-violet-200 transition-all">
+            className="block bg-white rounded-2xl p-4 border border-cream-200 hover:shadow-lg hover:border-orange-200 transition-all">
             <div className="flex items-center justify-between gap-3">
               <span className="font-semibold text-gray-900 font-dm">{q.title}</span>
-              <span className="text-xs bg-violet-50 text-violet-DEFAULT px-2.5 py-0.5 rounded-full flex-shrink-0">{TYPE_LABEL[q.type] ?? q.type}</span>
+              <span className="text-xs bg-orange-50 text-orange-600 px-2.5 py-0.5 rounded-full flex-shrink-0">{TYPE_LABEL[q.type] ?? q.type}</span>
             </div>
             <p className="text-xs text-gray-400 font-dm mt-1">
               {(q.lesson as any)?.titre?.slice(0, 50) ?? "—"} · {(q.quiz_questions as any[])?.length ?? 0} questions · score min {q.min_score}%

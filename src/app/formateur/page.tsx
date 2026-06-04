@@ -50,7 +50,7 @@ export default async function FormateurDashboard() {
         <div className="flex items-center gap-3">
           <Link
             href="/formateur/packs/nouveau"
-            className="border-2 border-violet-DEFAULT text-violet-DEFAULT px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-50 transition-colors"
+            className="border-2 border-violet-DEFAULT text-orange-600 px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors"
           >
             📦 Nouveau pack
           </Link>
@@ -81,7 +81,7 @@ export default async function FormateurDashboard() {
           >
             <span className="text-3xl">{s.icon}</span>
             <div>
-              <div className={`font-bold font-playfair text-violet-DEFAULT ${s.isText ? "text-lg" : "text-3xl"}`}>
+              <div className={`font-bold font-playfair text-orange-600 ${s.isText ? "text-lg" : "text-3xl"}`}>
                 {s.value}
               </div>
               <div className="text-sm text-gray-500">{s.label}</div>
@@ -136,7 +136,7 @@ export default async function FormateurDashboard() {
                   <tr key={course.id} className="hover:bg-cream-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-xl overflow-hidden flex-shrink-0">
                           {course.thumbnail ? (
                             <img src={course.thumbnail} alt="" className="w-full h-full object-cover" />
                           ) : "🧵"}
@@ -174,13 +174,13 @@ export default async function FormateurDashboard() {
                       <div className="flex flex-col gap-1.5">
                         <a
                           href={`/formateur/cours/${course.id}/edit`}
-                          className="text-violet-DEFAULT font-semibold text-sm hover:underline"
+                          className="text-orange-600 font-semibold text-sm hover:underline"
                         >
                           Modifier
                         </a>
                         <a
                           href={`/formateur/cours/${course.id}/inscrits`}
-                          className="text-gray-500 text-sm hover:text-violet-DEFAULT hover:underline"
+                          className="text-gray-500 text-sm hover:text-orange-600 hover:underline"
                         >
                           Voir les inscrits
                         </a>

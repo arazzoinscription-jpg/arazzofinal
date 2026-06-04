@@ -35,7 +35,7 @@ export default async function AdminCouponsPage() {
               <tr><td colSpan={5} className="text-center py-10 text-gray-400">Aucun coupon.</td></tr>
             ) : coupons.map((c) => (
               <tr key={c.id} className="hover:bg-cream-50 font-dm">
-                <td className="px-5 py-3 font-mono font-semibold text-violet-DEFAULT">{c.code}</td>
+                <td className="px-5 py-3 font-mono font-semibold text-orange-600">{c.code}</td>
                 <td className="px-5 py-3 text-gray-700">{c.type === "percent" ? `${c.value}%` : `${Number(c.value).toLocaleString("fr-DZ")} DA`}</td>
                 <td className="px-5 py-3 text-gray-500">{c.used_count}{c.max_uses ? ` / ${c.max_uses}` : " / ∞"}</td>
                 <td className="px-5 py-3 text-gray-400">{c.expires_at ? new Date(c.expires_at).toLocaleDateString("fr-FR") : "—"}</td>

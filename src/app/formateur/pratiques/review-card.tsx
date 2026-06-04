@@ -59,7 +59,7 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
         onChange={(e) => setFeedback(e.target.value)}
         rows={2}
         placeholder="Retour pour l'élève (obligatoire si refus)…"
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none mb-2"
+        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none mb-2"
       />
 
       {err && <p className="text-sm text-red-500 mb-2">{err}</p>}

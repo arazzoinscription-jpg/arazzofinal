@@ -46,20 +46,20 @@ export function GroupCreateForm() {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom du groupe *</label>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Promo Caftan 2026"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
           placeholder="À quoi sert ce groupe ?"
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Photo de couverture (optionnel)</label>
         <input ref={fileRef} type="file" accept="image/*" onChange={onCover}
-          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-violet-50 file:text-violet-DEFAULT file:font-semibold hover:file:bg-violet-100" />
+          className="w-full text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-50 file:text-orange-600 file:font-semibold hover:file:bg-orange-100" />
         {preview && <img src={preview} alt="" className="mt-2 w-full h-32 object-cover rounded-xl border border-cream-200" />}
       </div>
 

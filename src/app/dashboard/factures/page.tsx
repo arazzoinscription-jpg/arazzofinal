@@ -45,7 +45,7 @@ export default async function MesFacturesPage() {
                   <td className="px-5 py-3 font-semibold text-gray-900">{inv.invoice_number}</td>
                   <td className="px-5 py-3 text-gray-600">{(inv.order as any)?.order_number ?? "—"}</td>
                   <td className="px-5 py-3 text-gray-500">{new Date(inv.issued_at).toLocaleDateString("fr-FR")}</td>
-                  <td className="px-5 py-3 font-semibold text-violet-DEFAULT">{fmt(inv.amount)}</td>
+                  <td className="px-5 py-3 font-semibold text-orange-600">{fmt(inv.amount)}</td>
                   <td className="px-5 py-3"><InvoiceButton invoiceId={inv.id} /></td>
                 </tr>
               ))}

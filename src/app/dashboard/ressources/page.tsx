@@ -52,8 +52,8 @@ export default async function StudentRessourcesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {items.map((r) => (
                   <a key={r.id} href={`/api/resources/${r.id}/download`}
-                    className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-3 hover:shadow-lg hover:border-violet-200 transition-all group">
-                    <div className="w-12 h-12 rounded-xl bg-violet-50 flex items-center justify-center text-xl flex-shrink-0">
+                    className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-3 hover:shadow-lg hover:border-orange-200 transition-all group">
+                    <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-xl flex-shrink-0">
                       {ICON[r.type] ?? "📎"}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -62,7 +62,7 @@ export default async function StudentRessourcesPage() {
                         {r.type.toUpperCase()} · {r.taille_ko ? `${(r.taille_ko / 1024).toFixed(1)} Mo` : "—"}
                       </div>
                     </div>
-                    <span className="text-violet-DEFAULT group-hover:translate-y-0.5 transition-transform flex-shrink-0">⬇</span>
+                    <span className="text-orange-600 group-hover:translate-y-0.5 transition-transform flex-shrink-0">⬇</span>
                   </a>
                 ))}
               </div>

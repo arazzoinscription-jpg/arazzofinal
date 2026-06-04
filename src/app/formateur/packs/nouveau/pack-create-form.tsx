@@ -71,39 +71,39 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre du pack (français) *</label>
           <input value={form.titre_fr} onChange={(e) => setForm({ ...form, titre_fr: e.target.value })} required
             placeholder="Ex: Pack Couture Complète"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre (arabe)</label>
           <input value={form.titre_ar} onChange={(e) => setForm({ ...form, titre_ar: e.target.value })} dir="rtl"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 text-right" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 text-right" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
           <textarea value={form.description_fr} onChange={(e) => setForm({ ...form, description_fr: e.target.value })} rows={4}
             placeholder="Décrivez ce que contient le pack…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Prix du pack (DA) *</label>
             <input type="number" min={0} value={form.prix_dzd} onChange={(e) => setForm({ ...form, prix_dzd: e.target.value })} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Prix du pack (€) *</label>
             <input type="number" min={0} value={form.prix_eur} onChange={(e) => setForm({ ...form, prix_eur: e.target.value })} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
           </div>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">URL miniature</label>
           <input value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} placeholder="https://…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>
       </div>
 
@@ -121,7 +121,7 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
             {courses.map((c) => (
               <label key={c.id}
                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                  selected.has(c.id) ? "border-violet-DEFAULT bg-violet-50" : "border-cream-200 hover:bg-cream-50"
+                  selected.has(c.id) ? "border-violet-DEFAULT bg-orange-50" : "border-cream-200 hover:bg-cream-50"
                 }`}>
                 <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} className="accent-violet-600 w-4 h-4" />
                 <span className="flex-1 font-dm text-gray-800">{c.titre_fr}</span>
@@ -145,7 +145,7 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
 
       <div className="flex gap-4">
         <button type="button" onClick={(e) => submit(e, false)} disabled={loading}
-          className="flex-1 border-2 border-violet-DEFAULT text-violet-DEFAULT py-3.5 rounded-xl font-semibold hover:bg-violet-50 transition-colors disabled:opacity-50">
+          className="flex-1 border-2 border-violet-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50">
           Enregistrer en brouillon
         </button>
         <button type="button" onClick={(e) => submit(e, true)} disabled={loading}

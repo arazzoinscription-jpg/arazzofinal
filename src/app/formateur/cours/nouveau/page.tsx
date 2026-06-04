@@ -126,7 +126,7 @@ export default function NewCoursePage() {
               onChange={(e) => setForm({ ...form, titre_fr: e.target.value })}
               required
               placeholder="Ex: Caftan Marocain Moderne"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
 
@@ -139,7 +139,7 @@ export default function NewCoursePage() {
               onChange={(e) => setForm({ ...form, titre_ar: e.target.value })}
               placeholder="القفطان المغربي الحديث"
               dir="rtl"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 text-right"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 text-right"
             />
           </div>
 
@@ -153,7 +153,7 @@ export default function NewCoursePage() {
               required
               rows={5}
               placeholder="Décrivez votre cours en détail…"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
             />
           </div>
 
@@ -168,7 +168,7 @@ export default function NewCoursePage() {
                 onChange={(e) => setForm({ ...form, prix_dzd: e.target.value })}
                 required
                 placeholder="2500"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
             <div>
@@ -181,7 +181,7 @@ export default function NewCoursePage() {
                 onChange={(e) => setForm({ ...form, prix_eur: e.target.value })}
                 required
                 placeholder="25"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function NewCoursePage() {
               <select
                 value={form.niveau}
                 onChange={(e) => setForm({ ...form, niveau: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
               >
                 <option value="debutant">Débutant</option>
                 <option value="intermediaire">Intermédiaire</option>
@@ -205,7 +205,7 @@ export default function NewCoursePage() {
                 value={form.duree}
                 onChange={(e) => setForm({ ...form, duree: e.target.value })}
                 placeholder="Ex: 8h30"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function NewCoursePage() {
               value={form.thumbnail}
               onChange={(e) => setForm({ ...form, thumbnail: e.target.value })}
               placeholder="https://storage.bunnycdn.com/…"
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -228,7 +228,7 @@ export default function NewCoursePage() {
             <button
               type="button"
               onClick={addChapter}
-              className="text-sm text-violet-DEFAULT font-semibold hover:underline"
+              className="text-sm text-orange-600 font-semibold hover:underline"
             >
               + Ajouter un chapitre
             </button>
@@ -301,7 +301,7 @@ export default function NewCoursePage() {
                 <button
                   type="button"
                   onClick={() => addLesson(ci)}
-                  className="ml-4 text-sm text-gray-400 hover:text-violet-DEFAULT transition-colors"
+                  className="ml-4 text-sm text-gray-400 hover:text-orange-600 transition-colors"
                 >
                   + Ajouter une leçon
                 </button>
@@ -319,7 +319,7 @@ export default function NewCoursePage() {
             type="button"
             onClick={(e) => handleSubmit(e, false)}
             disabled={loading}
-            className="flex-1 border-2 border-violet-DEFAULT text-violet-DEFAULT py-3.5 rounded-xl font-semibold hover:bg-violet-50 transition-colors disabled:opacity-50"
+            className="flex-1 border-2 border-violet-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50"
           >
             Enregistrer en brouillon
           </button>

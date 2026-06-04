@@ -35,7 +35,7 @@ export default async function AdminPaiementsPage() {
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-5 border border-cream-200">
             <div className="text-2xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold font-playfair text-violet-DEFAULT">{s.value}</div>
+            <div className="text-2xl font-bold font-playfair text-orange-600">{s.value}</div>
             <div className="text-xs text-gray-500 font-dm">{s.label}</div>
           </div>
         ))}
@@ -67,7 +67,7 @@ export default async function AdminPaiementsPage() {
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2">
                     <a href={`/api/invoices/${e.id}`} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-violet-DEFAULT hover:underline">📄 Reçu</a>
+                      className="text-xs text-orange-600 hover:underline">📄 Reçu</a>
                     <RefundButton enrollmentId={e.id} />
                   </div>
                 </td>
