@@ -125,6 +125,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Rangée A : héro continuer + niveau */}
+      <Reveal animation="up">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Continuer l'apprentissage */}
         <div className="lg:col-span-2 bg-gradient-to-br from-orange-500 to-orange-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
@@ -167,8 +168,10 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+      </Reveal>
 
       {/* Rangée B : activité + agenda/objectif */}
+      <Reveal animation="up" delay={80}>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-sm border border-cream-200">
           <div className="flex items-center justify-between mb-2">
@@ -215,8 +218,10 @@ export default async function DashboardPage() {
           </div>
         </div>
       </div>
+      </Reveal>
 
       {/* Badges */}
+      <Reveal animation="up" delay={120}>
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-cream-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-bold text-lg text-gray-900 font-dm">Mes badges <span className="text-gray-400 font-normal text-sm">({earnedCodes.size}/{allBadges?.length ?? 0})</span></h3>
@@ -235,6 +240,7 @@ export default async function DashboardPage() {
           })}
         </div>
       </div>
+      </Reveal>
 
       {/* Mes formations */}
       <div>
