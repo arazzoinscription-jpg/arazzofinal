@@ -42,7 +42,7 @@ export function DashboardPreview() {
                         key={item}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-1 text-sm ${
                           i === 0
-                            ? "bg-violet-DEFAULT text-white"
+                            ? "bg-orange-DEFAULT text-white"
                             : "text-gray-400 hover:text-white"
                         }`}
                       >
@@ -80,7 +80,7 @@ export function DashboardPreview() {
                         <span className="text-sm font-semibold text-gray-700">
                           {c.title}
                         </span>
-                        <span className="text-xs text-violet-DEFAULT font-bold">
+                        <span className="text-xs text-orange-600 font-bold">
                           {c.progress}%
                         </span>
                       </div>

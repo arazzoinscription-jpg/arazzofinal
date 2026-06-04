@@ -11,7 +11,7 @@ export function HeroSection() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* halos doux */}
         <div className="absolute -top-40 -right-32 w-[640px] h-[640px] rounded-full bg-blush-300/30 blur-3xl animate-float-slow" style={{ ["--r" as any]: "0deg" }} />
-        <div className="absolute top-1/4 -left-24 w-96 h-96 rounded-full bg-violet-DEFAULT/10 blur-3xl animate-float" />
+        <div className="absolute top-1/4 -left-24 w-96 h-96 rounded-full bg-orange-DEFAULT/10 blur-3xl animate-float" />
         <div className="absolute -bottom-24 right-1/4 w-80 h-80 rounded-full bg-orange-DEFAULT/10 blur-3xl animate-float-slow" />
 
         {/* arcs de couture pointillés */}
@@ -35,7 +35,7 @@ export function HeroSection() {
                 <span className="absolute inline-flex h-full w-full rounded-full bg-orange-DEFAULT opacity-60 animate-ping" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-DEFAULT" />
               </span>
-              <span className="text-violet-700 text-sm font-semibold font-dm tracking-wide">
+              <span className="text-orange-600 text-sm font-semibold font-dm tracking-wide">
                 ✦ L'académie en ligne du Maghreb
               </span>
             </div>
@@ -59,9 +59,9 @@ export function HeroSection() {
             </p>
 
             <p className="fade-up-2 text-gray-600 text-lg leading-relaxed mb-9 max-w-xl font-dm">
-              Apprenez la <strong className="text-violet-DEFAULT font-semibold">couture</strong>, le{" "}
-              <strong className="text-violet-DEFAULT font-semibold">modélisme</strong> et le{" "}
-              <strong className="text-violet-DEFAULT font-semibold">patronage</strong> avec des
+              Apprenez la <strong className="text-orange-600 font-semibold">couture</strong>, le{" "}
+              <strong className="text-orange-600 font-semibold">modélisme</strong> et le{" "}
+              <strong className="text-orange-600 font-semibold">patronage</strong> avec des
               formatrices d'Alger, Casablanca et Tunis. Patrons numériques inclus,
               certifié par Arazzo.
             </p>
@@ -92,7 +92,7 @@ export function HeroSection() {
                 <span className="relative z-10 ml-2 inline-block group-hover:translate-x-1 transition-transform">→</span>
               </Link>
               <Link href="/devenir-formateur"
-                className="glass border-2 border-violet-DEFAULT/30 text-violet-DEFAULT px-8 py-4 rounded-2xl font-bold text-lg hover:bg-violet-DEFAULT hover:text-white hover:border-violet-DEFAULT transition-all font-dm"
+                className="glass border-2 border-orange-DEFAULT/30 text-orange-600 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-orange-DEFAULT hover:text-white hover:border-orange-DEFAULT transition-all font-dm"
               >
                 Devenir formateur
               </Link>
@@ -148,7 +148,7 @@ export function HeroSection() {
               <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden">
                 <div className="h-full w-2/3 bg-gradient-to-r from-violet-500 via-blush-400 to-orange-DEFAULT rounded-full" />
               </div>
-              <p className="text-[10px] text-right text-violet-DEFAULT font-bold mt-1 font-dm">67% terminé</p>
+              <p className="text-[10px] text-right text-orange-600 font-bold mt-1 font-dm">67% terminé</p>
             </div>
 
             {/* Card certif */}
@@ -156,7 +156,7 @@ export function HeroSection() {
               <span className="text-2xl">🎓</span>
               <div>
                 <p className="text-[10px] text-gray-400 font-dm">Obtenu !</p>
-                <p className="text-xs font-bold text-violet-DEFAULT font-dm">Certificat PDF</p>
+                <p className="text-xs font-bold text-orange-600 font-dm">Certificat PDF</p>
               </div>
             </div>
           </div>

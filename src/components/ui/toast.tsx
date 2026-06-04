@@ -19,7 +19,7 @@ export function toast(message: string, type: ToastType = "info") {
 const STYLES: Record<ToastType, string> = {
   success: "bg-green-600 text-white",
   error: "bg-red-600 text-white",
-  info: "bg-violet-DEFAULT text-white",
+  info: "bg-orange-DEFAULT text-white",
 };
 const ICONS: Record<ToastType, string> = { success: "✓", error: "✕", info: "ℹ" };
 

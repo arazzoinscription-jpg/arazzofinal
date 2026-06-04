@@ -51,7 +51,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
         {image ? <img src={image} alt={product.title} className="w-full h-full object-cover" /> : "🧵"}
       </div>
       <div className="p-4 flex flex-col flex-1">
-        <span className="text-[11px] font-semibold text-violet-DEFAULT bg-violet-50 px-2 py-0.5 rounded-full w-fit mb-2">
+        <span className="text-[11px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit mb-2">
           {TYPE_LABEL[product.type] ?? product.type}
         </span>
         <h3 className="font-semibold text-gray-900 font-dm line-clamp-2">{product.title}</h3>
@@ -60,7 +60,7 @@ export function ProductCard({ product }: { product: ShopProduct }) {
         )}
 
         <div className="mt-3 flex items-center gap-2">
-          <span className="font-bold text-violet-DEFAULT font-playfair text-lg">
+          <span className="font-bold text-orange-600 font-playfair text-lg">
             {Number(product.price).toLocaleString("fr-DZ")} DA
           </span>
           {product.compare_price != null && product.compare_price > product.price && (

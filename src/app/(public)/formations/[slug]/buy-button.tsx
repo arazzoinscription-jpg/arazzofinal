@@ -72,7 +72,7 @@ export function BuyButton({
   if (state.isEnrolled) {
     return (
       <a href={firstLessonId ? `/dashboard/cours/${firstLessonId}` : "/dashboard"}
-        className="block w-full bg-violet-DEFAULT text-white py-3.5 rounded-xl font-bold text-center hover:bg-violet-700 transition-colors">
+        className="block w-full bg-orange-DEFAULT text-white py-3.5 rounded-xl font-bold text-center hover:bg-orange-600 transition-colors">
         ▶ Accéder au cours
       </a>
     );
@@ -95,8 +95,8 @@ export function BuyButton({
       {/* Coupon */}
       <div className="flex gap-2">
         <input value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} placeholder="Code promo"
-          className="flex-1 border border-cream-200 rounded-xl px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-violet-500" />
-        <button onClick={applyCoupon} className="text-sm font-semibold text-violet-DEFAULT border border-violet-200 px-3 rounded-xl hover:bg-violet-50">Appliquer</button>
+          className="flex-1 border border-cream-200 rounded-xl px-3 py-2 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        <button onClick={applyCoupon} className="text-sm font-semibold text-orange-600 border border-orange-200 px-3 rounded-xl hover:bg-orange-50">Appliquer</button>
       </div>
       {couponMsg && <p className={`text-xs ${applied ? "text-green-600" : "text-red-500"}`}>{couponMsg}</p>}
 
@@ -107,8 +107,8 @@ export function BuyButton({
         {applied && <span className="line-through opacity-70 text-sm">{prixDzd.toLocaleString("fr-DZ")}</span>}
       </button>
       <button onClick={() => handleBuy("eur")} disabled={!!pay}
-        className="w-full border-2 border-violet-DEFAULT text-violet-DEFAULT py-3.5 rounded-xl font-bold hover:bg-violet-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-        {pay === "eur" && <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-DEFAULT border-t-transparent" />}
+        className="w-full border-2 border-orange-DEFAULT text-orange-600 py-3.5 rounded-xl font-bold hover:bg-orange-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+        {pay === "eur" && <span className="h-4 w-4 animate-spin rounded-full border-2 border-orange-DEFAULT border-t-transparent" />}
         🌍 Payer {eur}€ (Stripe)
       </button>
     </div>

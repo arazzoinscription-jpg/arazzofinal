@@ -37,7 +37,7 @@ export function CartClient({ items, subtotal }: { items: CartLineDetailed[]; sub
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-gray-900 font-dm line-clamp-1">{it.title}</h3>
-              <p className="text-sm text-violet-DEFAULT font-semibold">{Number(it.price).toLocaleString("fr-DZ")} DA</p>
+              <p className="text-sm text-orange-600 font-semibold">{Number(it.price).toLocaleString("fr-DZ")} DA</p>
               <div className="flex items-center gap-3 mt-2">
                 <div className="flex items-center border border-cream-200 rounded-lg overflow-hidden">
                   <button onClick={() => setQty(it.productId, it.quantity - 1)} disabled={isPending}
@@ -64,7 +64,7 @@ export function CartClient({ items, subtotal }: { items: CartLineDetailed[]; sub
           <span className="text-gray-500">Sous-total</span>
           <span className="font-semibold">{Number(subtotal).toLocaleString("fr-DZ")} DA</span>
         </div>
-        <div className="flex justify-between font-bold text-lg font-playfair text-violet-DEFAULT border-t border-cream-100 pt-3 mt-2">
+        <div className="flex justify-between font-bold text-lg font-playfair text-orange-600 border-t border-cream-100 pt-3 mt-2">
           <span>Total</span>
           <span>{Number(subtotal).toLocaleString("fr-DZ")} DA</span>
         </div>
@@ -72,7 +72,7 @@ export function CartClient({ items, subtotal }: { items: CartLineDetailed[]; sub
           className="mt-5 block text-center bg-orange-DEFAULT text-white py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
           Passer la commande →
         </Link>
-        <Link href="/boutique" className="mt-2 block text-center text-sm text-gray-500 hover:text-violet-DEFAULT">
+        <Link href="/boutique" className="mt-2 block text-center text-sm text-gray-500 hover:text-orange-600">
           Continuer mes achats
         </Link>
       </div>

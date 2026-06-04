@@ -245,7 +245,7 @@ export default function NewCoursePage() {
                     setChapters(updated);
                   }}
                   placeholder="Titre du chapitre"
-                  className="w-full font-semibold text-gray-800 border-0 border-b border-cream-200 pb-2 mb-3 focus:outline-none focus:border-violet-DEFAULT bg-transparent"
+                  className="w-full font-semibold text-gray-800 border-0 border-b border-cream-200 pb-2 mb-3 focus:outline-none focus:border-orange-DEFAULT bg-transparent"
                 />
 
                 {ch.lessons.map((l, li) => (
@@ -319,7 +319,7 @@ export default function NewCoursePage() {
             type="button"
             onClick={(e) => handleSubmit(e, false)}
             disabled={loading}
-            className="flex-1 border-2 border-violet-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50"
+            className="flex-1 border-2 border-orange-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50"
           >
             Enregistrer en brouillon
           </button>

@@ -74,7 +74,7 @@ export default function RegisterPage() {
           <Link href="/" className="inline-flex items-center gap-2">
             <span className="text-orange-DEFAULT text-3xl">✂️</span>
             <div>
-              <div className="font-playfair font-bold text-violet-DEFAULT text-2xl">ARAZZO</div>
+              <div className="font-playfair font-bold text-orange-600 text-2xl">ARAZZO</div>
               <div className="font-playfair italic text-orange-DEFAULT text-sm -mt-1">Formation</div>
             </div>
           </Link>
@@ -99,7 +99,7 @@ export default function RegisterPage() {
                 onChange={(e) => setForm({ ...form, nom: e.target.value })}
                 required
                 placeholder="Amina Benali"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
               />
             </div>
 
@@ -113,7 +113,7 @@ export default function RegisterPage() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
                 placeholder="vous@exemple.com"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
               />
             </div>
 
@@ -128,7 +128,7 @@ export default function RegisterPage() {
                 required
                 minLength={8}
                 placeholder="Minimum 8 caractères"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
               />
             </div>
 
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                   value={form.ville}
                   onChange={(e) => setForm({ ...form, ville: e.target.value })}
                   placeholder="Alger"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                 />
               </div>
               <div>
@@ -152,7 +152,7 @@ export default function RegisterPage() {
                 <select
                   value={form.pays}
                   onChange={(e) => setForm({ ...form, pays: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all bg-white"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all bg-white"
                 >
                   {pays.map((p) => (
                     <option key={p.code} value={p.code}>
@@ -180,7 +180,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Déjà un compte ?{" "}
-            <Link href="/login" className="text-violet-DEFAULT font-semibold hover:underline">
+            <Link href="/login" className="text-orange-600 font-semibold hover:underline">
               Se connecter
             </Link>
           </p>

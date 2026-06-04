@@ -30,7 +30,7 @@ export default async function CertificateVerifyPage({
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
           <span className="text-orange-DEFAULT text-3xl">✂️</span>
           <div>
-            <div className="font-playfair font-bold text-violet-DEFAULT text-2xl">ARAZZO</div>
+            <div className="font-playfair font-bold text-orange-600 text-2xl">ARAZZO</div>
             <div className="font-playfair italic text-orange-DEFAULT text-sm -mt-1">Formation</div>
           </div>
         </Link>
@@ -55,7 +55,7 @@ export default async function CertificateVerifyPage({
                     href={`/api/certificates/${cert!.uuid_public}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-block bg-violet-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-violet-700 transition-colors"
+                    className="inline-block bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
                   >
                     📄 Voir le certificat PDF
                   </a>
@@ -74,7 +74,7 @@ export default async function CertificateVerifyPage({
             </div>
           )}
           <div className="bg-cream-50 px-6 py-4 text-center text-xs text-gray-400 font-dm">
-            Vérification officielle · <span className="text-violet-DEFAULT">arazzo.formation</span>
+            Vérification officielle · <span className="text-orange-600">arazzo.formation</span>
           </div>
         </div>
       </div>

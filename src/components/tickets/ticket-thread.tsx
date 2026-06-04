@@ -60,7 +60,7 @@ export function TicketThread({
       <div className="space-y-3 mb-5">
         {messages.map((m) => (
           <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.mine ? "bg-violet-DEFAULT text-white" : "bg-white border border-cream-200"}`}>
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.mine ? "bg-orange-DEFAULT text-white" : "bg-white border border-cream-200"}`}>
               <div className={`text-xs mb-0.5 ${m.mine ? "text-violet-200" : "text-gray-400"}`}>
                 {m.authorName}{m.staff && " · Équipe"} · {new Date(m.created_at).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
               </div>
@@ -76,9 +76,9 @@ export function TicketThread({
       ) : (
         <form onSubmit={send} className="flex gap-2">
           <input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Votre réponse…"
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
           <button type="submit" disabled={isPending}
-            className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50">
+            className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
             {isPending ? "…" : "Envoyer"}
           </button>
         </form>

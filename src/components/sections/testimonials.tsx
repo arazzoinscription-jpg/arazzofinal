@@ -7,7 +7,7 @@ const testimonials = [
     name: "Amina B.", city: "Alger", flag: "🇩🇿",
     text: "Grâce à Arazzo Formation, j'ai appris le modélisme depuis chez moi. Les vidéos sont claires, les patrons PDF sont incroyables. J'ai lancé ma boutique !",
     course: "Niveau 1 — Bases & Quotidien",
-    initial: "A", color: "bg-violet-DEFAULT text-white",
+    initial: "A", color: "bg-orange-DEFAULT text-white",
   },
   {
     name: "Kenza M.", city: "Casablanca", flag: "🇲🇦",
@@ -93,7 +93,7 @@ export function TestimonialsSection() {
                   <div>
                     <div className="font-semibold text-gray-900 font-dm">{t.name}</div>
                     <div className="text-xs text-gray-500 font-dm">
-                      {t.flag} {t.city} · <span className="text-violet-DEFAULT font-medium">{t.course}</span>
+                      {t.flag} {t.city} · <span className="text-orange-600 font-medium">{t.course}</span>
                     </div>
                   </div>
                 </div>

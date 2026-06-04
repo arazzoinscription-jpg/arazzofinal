@@ -33,7 +33,7 @@ const demoCourses = [
 const niveauStyle: Record<string, string> = {
   "Débutant":      "bg-emerald-100 text-emerald-700",
   "Intermédiaire": "bg-orange-100  text-orange-700",
-  "Avancé":        "bg-violet-100  text-violet-700",
+  "Avancé":        "bg-orange-100  text-orange-600",
 };
 
 export function CoursesSection({ courses }: { courses?: any[] }) {
@@ -57,7 +57,7 @@ export function CoursesSection({ courses }: { courses?: any[] }) {
             </p>
           </div>
           <Link href="/formations"
-            className="hidden md:inline-flex items-center gap-2 border-2 border-violet-DEFAULT text-violet-DEFAULT font-semibold px-5 py-2.5 rounded-xl hover:bg-violet-DEFAULT hover:text-white transition-all font-dm shrink-0"
+            className="hidden md:inline-flex items-center gap-2 border-2 border-orange-DEFAULT text-orange-600 font-semibold px-5 py-2.5 rounded-xl hover:bg-orange-DEFAULT hover:text-white transition-all font-dm shrink-0"
           >
             Tout le catalogue →
           </Link>
@@ -94,14 +94,14 @@ export function CoursesSection({ courses }: { courses?: any[] }) {
                   {/* Play icon on hover */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-xl">
-                      <span className="text-violet-DEFAULT text-xl ml-1">▶</span>
+                      <span className="text-orange-600 text-xl ml-1">▶</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Content */}
                 <div className="p-5">
-                  <h3 className="font-playfair font-bold text-gray-900 text-[17px] mb-1 line-clamp-2 group-hover:text-violet-DEFAULT transition-colors">
+                  <h3 className="font-playfair font-bold text-gray-900 text-[17px] mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors">
                     {course.titre_fr}
                   </h3>
                   {course.titre_ar && (
@@ -122,7 +122,7 @@ export function CoursesSection({ courses }: { courses?: any[] }) {
                         {Number(course.prix_dzd).toLocaleString("fr-DZ")} DA
                       </span>
                     </div>
-                    <span className="bg-violet-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-xl group-hover:bg-orange-DEFAULT transition-colors font-dm">
+                    <span className="bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-xl group-hover:bg-orange-DEFAULT transition-colors font-dm">
                       Voir →
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export function CoursesSection({ courses }: { courses?: any[] }) {
         </div>
 
         <div className="text-center mt-10 md:hidden">
-          <Link href="/formations" className="inline-flex items-center gap-2 text-violet-DEFAULT font-semibold hover:underline font-dm">
+          <Link href="/formations" className="inline-flex items-center gap-2 text-orange-600 font-semibold hover:underline font-dm">
             Voir tout le catalogue →
           </Link>
         </div>

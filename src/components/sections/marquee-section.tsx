@@ -27,7 +27,7 @@ const items = [
 
 export function MarqueeSection() {
   return (
-    <section className="bg-violet-DEFAULT py-5 overflow-hidden">
+    <section className="bg-orange-DEFAULT py-5 overflow-hidden">
       <div className="relative flex">
         <div
           className="flex gap-8 items-center animate-marquee whitespace-nowrap"

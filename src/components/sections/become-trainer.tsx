@@ -43,7 +43,7 @@ export function BecomeTrainerSection() {
             <div className="relative hidden lg:flex items-center justify-center p-12">
               {/* Stats cards */}
               <div className="absolute top-10 right-10 bg-white rounded-2xl p-5 shadow-xl">
-                <div className="text-3xl font-bold font-playfair text-violet-DEFAULT">
+                <div className="text-3xl font-bold font-playfair text-orange-600">
                   127
                 </div>
                 <div className="text-sm text-gray-500">Formations publiées</div>

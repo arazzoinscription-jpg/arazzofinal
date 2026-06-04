@@ -39,7 +39,7 @@ export function CtaSection() {
                 Créer mon compte
               </Link>
               <Link href="/devenir-formateur"
-                className="bg-white/10 border-2 border-white/40 text-white px-9 py-4 rounded-2xl font-bold text-lg hover:bg-white hover:text-violet-DEFAULT transition-all font-dm"
+                className="bg-white/10 border-2 border-white/40 text-white px-9 py-4 rounded-2xl font-bold text-lg hover:bg-white hover:text-orange-600 transition-all font-dm"
               >
                 Contacter l'équipe
               </Link>

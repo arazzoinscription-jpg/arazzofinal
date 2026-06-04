@@ -62,7 +62,7 @@ export default function LoginPage() {
           <Link href="/" className="inline-flex items-center gap-2">
             <span className="text-orange-DEFAULT text-3xl">✂️</span>
             <div>
-              <div className="font-playfair font-bold text-violet-DEFAULT text-2xl">ARAZZO</div>
+              <div className="font-playfair font-bold text-orange-600 text-2xl">ARAZZO</div>
               <div className="font-playfair italic text-orange-DEFAULT text-sm -mt-1">Formation</div>
             </div>
           </Link>
@@ -95,7 +95,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   placeholder="vous@exemple.com"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                 />
               </div>
 
@@ -109,7 +109,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
                 />
               </div>
 
@@ -122,7 +122,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-violet-DEFAULT text-white py-3.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50"
+                className="w-full bg-orange-DEFAULT text-white py-3.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
               >
                 {loading ? "Connexion…" : "Se connecter"}
               </button>
@@ -137,7 +137,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={handleMagicLink}
                 disabled={loading}
-                className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold hover:border-violet-DEFAULT hover:text-violet-DEFAULT transition-colors disabled:opacity-50"
+                className="w-full border-2 border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold hover:border-orange-DEFAULT hover:text-orange-600 transition-colors disabled:opacity-50"
               >
                 🔗 Connexion par lien magique
               </button>
@@ -146,7 +146,7 @@ export default function LoginPage() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Pas encore de compte ?{" "}
-            <Link href="/register" className="text-violet-DEFAULT font-semibold hover:underline">
+            <Link href="/register" className="text-orange-600 font-semibold hover:underline">
               S'inscrire
             </Link>
           </p>

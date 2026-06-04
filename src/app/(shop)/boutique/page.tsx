@@ -38,7 +38,7 @@ export default async function BoutiquePage({ searchParams }: { searchParams: { t
         {FILTERS.map((f) => (
           <Link key={f.value} href={f.value ? `/boutique?type=${f.value}` : "/boutique"}
             className={`px-4 py-1.5 rounded-full text-sm font-semibold font-dm transition-colors ${
-              type === f.value ? "bg-violet-DEFAULT text-white" : "bg-white text-gray-600 border border-cream-200 hover:bg-cream-50"
+              type === f.value ? "bg-orange-DEFAULT text-white" : "bg-white text-gray-600 border border-cream-200 hover:bg-cream-50"
             }`}>
             {f.label}
           </Link>

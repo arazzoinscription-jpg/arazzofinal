@@ -70,7 +70,7 @@ export function CourseCard({
             </div>
           )}
           {niveau && (
-            <span className="absolute top-3 left-3 bg-violet-DEFAULT text-white text-xs font-semibold px-3 py-1 rounded-full">
+            <span className="absolute top-3 left-3 bg-orange-DEFAULT text-white text-xs font-semibold px-3 py-1 rounded-full">
               {niveauLabel[niveau] ?? niveau}
             </span>
           )}
@@ -99,7 +99,7 @@ export function CourseCard({
               </span>
               <span className="text-sm text-gray-400 ml-2">/ {prixEur}€</span>
             </div>
-            <span className="text-violet-DEFAULT font-semibold text-sm group-hover:underline">
+            <span className="text-orange-600 font-semibold text-sm group-hover:underline">
               Voir →
             </span>
           </div>

@@ -163,7 +163,7 @@ export default async function CourseDetailPage({
                     {(course.reviews as any[]).slice(0, 5).map((review: any, i: number) => (
                       <div key={i} className="border-b border-cream-200 pb-4 last:border-0">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-sm font-bold text-violet-DEFAULT">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-600">
                             {review.user?.nom?.[0] ?? "?"}
                           </div>
                           <div>
@@ -213,19 +213,19 @@ export default async function CourseDetailPage({
 
                   <ul className="mt-5 space-y-2 text-sm text-gray-600">
                     <li className="flex items-center gap-2">
-                      <span className="text-violet-DEFAULT">✓</span>
+                      <span className="text-orange-600">✓</span>
                       Accès à vie
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-violet-DEFAULT">✓</span>
+                      <span className="text-orange-600">✓</span>
                       Certificat de réussite
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-violet-DEFAULT">✓</span>
+                      <span className="text-orange-600">✓</span>
                       Patrons PDF inclus
                     </li>
                     <li className="flex items-center gap-2">
-                      <span className="text-violet-DEFAULT">✓</span>
+                      <span className="text-orange-600">✓</span>
                       {totalLessons} leçons vidéo HD
                     </li>
                   </ul>

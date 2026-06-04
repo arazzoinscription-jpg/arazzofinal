@@ -22,7 +22,7 @@ export function SearchBar({ initial = "", autoFocus = false, compact = false }: 
         value={q}
         onChange={(e) => setQ(e.target.value)}
         placeholder="Rechercher une formation, leçon, ressource…"
-        className={`w-full bg-white border border-cream-200 rounded-xl pl-10 pr-4 ${compact ? "py-2 text-sm" : "py-3"} focus:outline-none focus:ring-2 focus:ring-violet-500 font-dm`}
+        className={`w-full bg-white border border-cream-200 rounded-xl pl-10 pr-4 ${compact ? "py-2 text-sm" : "py-3"} focus:outline-none focus:ring-2 focus:ring-orange-500 font-dm`}
       />
     </form>
   );

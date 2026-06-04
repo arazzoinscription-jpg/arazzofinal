@@ -94,7 +94,7 @@ export function NotificationBell({ userId }: { userId: string }) {
           <div className="px-4 py-3 border-b border-cream-100 flex items-center justify-between">
             <span className="font-semibold text-gray-900 font-dm">Notifications</span>
             {unread > 0 && (
-              <button onClick={markAllRead} className="text-xs text-violet-DEFAULT font-semibold hover:underline">
+              <button onClick={markAllRead} className="text-xs text-orange-600 font-semibold hover:underline">
                 Tout marquer lu
               </button>
             )}
@@ -108,7 +108,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             ) : (
               notifs.map((n) => {
                 const inner = (
-                  <div className={`px-4 py-3 flex gap-3 hover:bg-cream-50 transition-colors ${!n.read_at ? "bg-violet-50/40" : ""}`}>
+                  <div className={`px-4 py-3 flex gap-3 hover:bg-cream-50 transition-colors ${!n.read_at ? "bg-orange-50/40" : ""}`}>
                     <span className="text-lg flex-shrink-0">{ICONS[n.type] ?? "🔔"}</span>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-gray-900 font-dm leading-snug">{n.title}</p>

@@ -50,7 +50,7 @@ export default async function FormateurDashboard() {
         <div className="flex items-center gap-3">
           <Link
             href="/formateur/packs/nouveau"
-            className="border-2 border-violet-DEFAULT text-orange-600 px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors"
+            className="border-2 border-orange-DEFAULT text-orange-600 px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors"
           >
             📦 Nouveau pack
           </Link>

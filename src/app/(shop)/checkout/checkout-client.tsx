@@ -102,8 +102,8 @@ export function CheckoutClient({
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <span className={`w-7 h-7 rounded-full flex items-center justify-center font-bold ${
-                step >= s ? "bg-violet-DEFAULT text-white" : "bg-cream-200 text-gray-400"}`}>{s}</span>
-              {s < 3 && <span className={`w-8 h-0.5 ${step > s ? "bg-violet-DEFAULT" : "bg-cream-200"}`} />}
+                step >= s ? "bg-orange-DEFAULT text-white" : "bg-cream-200 text-gray-400"}`}>{s}</span>
+              {s < 3 && <span className={`w-8 h-0.5 ${step > s ? "bg-orange-DEFAULT" : "bg-cream-200"}`} />}
             </div>
           ))}
           <span className="ml-2 text-gray-500">
@@ -126,7 +126,7 @@ export function CheckoutClient({
               <Field label="Pays" value={customer.country} onChange={(v) => set("country", v)} />
             </div>
             <button onClick={() => step1Valid() ? setStep(2) : toast("Remplissez nom, téléphone et email", "error")}
-              className="w-full bg-violet-DEFAULT text-white py-3 rounded-xl font-semibold hover:bg-violet-700 transition-colors">
+              className="w-full bg-orange-DEFAULT text-white py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
               Continuer →
             </button>
           </div>
@@ -151,7 +151,7 @@ export function CheckoutClient({
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setStep(1)} className="flex-1 border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-semibold hover:bg-cream-50">← Modifier</button>
-              <button onClick={() => setStep(3)} className="flex-1 bg-violet-DEFAULT text-white py-3 rounded-xl font-semibold hover:bg-violet-700">Choisir le paiement →</button>
+              <button onClick={() => setStep(3)} className="flex-1 bg-orange-DEFAULT text-white py-3 rounded-xl font-semibold hover:bg-orange-600">Choisir le paiement →</button>
             </div>
           </div>
         )}
@@ -164,7 +164,7 @@ export function CheckoutClient({
               {TABS.map((t) => (
                 <button key={t.id} onClick={() => setMethod(t.id)}
                   className={`py-2 rounded-xl text-sm font-semibold font-dm border transition-colors ${
-                    method === t.id ? "bg-violet-50 border-violet-DEFAULT text-violet-DEFAULT" : "border-cream-200 text-gray-500 hover:bg-cream-50"}`}>
+                    method === t.id ? "bg-orange-50 border-orange-DEFAULT text-orange-600" : "border-cream-200 text-gray-500 hover:bg-cream-50"}`}>
                   <span className="block text-lg">{t.icon}</span>{t.label}
                 </button>
               ))}
@@ -191,7 +191,7 @@ export function CheckoutClient({
                   onDrop={(e) => { e.preventDefault(); setDragOver(false); pickFile(e.dataTransfer.files?.[0] ?? null); }}
                   onClick={() => fileRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors ${
-                    dragOver ? "border-violet-DEFAULT bg-violet-50" : "border-cream-300 hover:bg-cream-50"}`}>
+                    dragOver ? "border-orange-DEFAULT bg-orange-50" : "border-cream-300 hover:bg-cream-50"}`}>
                   <input ref={fileRef} type="file" accept="image/jpeg,image/png,application/pdf" className="hidden"
                     onChange={(e) => pickFile(e.target.files?.[0] ?? null)} />
                   {proofFile ? (
@@ -251,7 +251,7 @@ export function CheckoutClient({
           <span className="text-gray-500">{items.reduce((s, i) => s + i.quantity, 0)} article(s)</span>
           <span className="font-semibold">{fmt(subtotal)}</span>
         </div>
-        <div className="flex justify-between font-bold text-lg font-playfair text-violet-DEFAULT border-t border-cream-100 pt-3 mt-2">
+        <div className="flex justify-between font-bold text-lg font-playfair text-orange-600 border-t border-cream-100 pt-3 mt-2">
           <span>À payer</span><span>{fmt(subtotal)}</span>
         </div>
       </div>
@@ -264,7 +264,7 @@ function Field({ label, value, onChange, type = "text" }: { label: string; value
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500" />
+        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
     </div>
   );
 }

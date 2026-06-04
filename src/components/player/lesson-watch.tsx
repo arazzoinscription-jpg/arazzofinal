@@ -148,7 +148,7 @@ export function LessonWatch({
         <div className="mt-4">
           <div className="flex items-center justify-between text-sm mb-1.5">
             <span className="text-gray-500 font-dm">Visionnage</span>
-            <span className={`font-bold ${pct >= minPct ? "text-green-600" : "text-violet-DEFAULT"}`}>
+            <span className={`font-bold ${pct >= minPct ? "text-green-600" : "text-orange-600"}`}>
               {Math.round(pct)}% {pct >= minPct && "✓"}
             </span>
           </div>
@@ -175,7 +175,7 @@ export function LessonWatch({
             done
               ? "bg-green-100 text-green-700 border border-green-300"
               : canComplete
-              ? "bg-violet-DEFAULT text-white hover:bg-violet-700"
+              ? "bg-orange-DEFAULT text-white hover:bg-orange-600"
               : "bg-gray-100 text-gray-400 cursor-not-allowed"
           }`}
         >

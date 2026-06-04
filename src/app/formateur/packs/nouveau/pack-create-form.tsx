@@ -121,7 +121,7 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
             {courses.map((c) => (
               <label key={c.id}
                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                  selected.has(c.id) ? "border-violet-DEFAULT bg-orange-50" : "border-cream-200 hover:bg-cream-50"
+                  selected.has(c.id) ? "border-orange-DEFAULT bg-orange-50" : "border-cream-200 hover:bg-cream-50"
                 }`}>
                 <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} className="accent-violet-600 w-4 h-4" />
                 <span className="flex-1 font-dm text-gray-800">{c.titre_fr}</span>
@@ -145,7 +145,7 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
 
       <div className="flex gap-4">
         <button type="button" onClick={(e) => submit(e, false)} disabled={loading}
-          className="flex-1 border-2 border-violet-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50">
+          className="flex-1 border-2 border-orange-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50">
           Enregistrer en brouillon
         </button>
         <button type="button" onClick={(e) => submit(e, true)} disabled={loading}

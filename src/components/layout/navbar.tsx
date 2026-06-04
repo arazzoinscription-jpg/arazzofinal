@@ -60,7 +60,7 @@ export function Navbar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className={`font-dm font-medium transition-colors hover:text-violet-DEFAULT ${
+                className={`font-dm font-medium transition-colors hover:text-orange-600 ${
                   scrolled ? "text-gray-700" : "text-gray-800"
                 }`}
               >
@@ -74,7 +74,7 @@ export function Navbar() {
             {/* Lang toggle */}
             <button
               onClick={() => setLang(lang === "fr" ? "ar" : "fr")}
-              className="text-sm font-semibold text-violet-DEFAULT border-2 border-violet-DEFAULT rounded-lg px-3 py-1.5 hover:bg-violet-DEFAULT hover:text-white transition-all"
+              className="text-sm font-semibold text-orange-600 border-2 border-orange-DEFAULT rounded-lg px-3 py-1.5 hover:bg-orange-DEFAULT hover:text-white transition-all"
             >
               {lang === "fr" ? "عربي" : "FR"}
             </button>
@@ -82,7 +82,7 @@ export function Navbar() {
             {user ? (
               <Link
                 href="/dashboard"
-                className="bg-violet-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-700 transition-colors text-sm shadow-md"
+                className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors text-sm shadow-md"
               >
                 {lang === "fr" ? "Mon espace" : "مساحتي"}
               </Link>
@@ -90,7 +90,7 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="text-violet-DEFAULT font-semibold text-sm hover:underline"
+                  className="text-orange-600 font-semibold text-sm hover:underline"
                 >
                   {lang === "fr" ? "Connexion" : "دخول"}
                 </Link>
@@ -110,9 +110,9 @@ export function Navbar() {
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Menu"
           >
-            <span className={`block w-6 h-0.5 bg-violet-DEFAULT transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`}/>
-            <span className={`block w-6 h-0.5 bg-violet-DEFAULT transition-all ${menuOpen ? "opacity-0" : ""}`}/>
-            <span className={`block w-6 h-0.5 bg-violet-DEFAULT transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`}/>
+            <span className={`block w-6 h-0.5 bg-orange-DEFAULT transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`}/>
+            <span className={`block w-6 h-0.5 bg-orange-DEFAULT transition-all ${menuOpen ? "opacity-0" : ""}`}/>
+            <span className={`block w-6 h-0.5 bg-orange-DEFAULT transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`}/>
           </button>
         </div>
 
@@ -131,7 +131,7 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="flex gap-3 mt-3 pt-3">
-                <Link href="/login"    className="flex-1 text-center border-2 border-violet-DEFAULT text-violet-DEFAULT py-2.5 rounded-xl font-semibold text-sm">Connexion</Link>
+                <Link href="/login"    className="flex-1 text-center border-2 border-orange-DEFAULT text-orange-600 py-2.5 rounded-xl font-semibold text-sm">Connexion</Link>
                 <Link href="/register" className="flex-1 text-center bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold text-sm">S'inscrire</Link>
               </div>
             </div>

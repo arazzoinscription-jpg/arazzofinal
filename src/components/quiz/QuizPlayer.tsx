@@ -127,7 +127,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
               Réessayer ({result.attemptsLeft} restante{(result.attemptsLeft ?? 0) > 1 ? "s" : ""})
             </button>
           )}
-          <button onClick={() => router.back()} className="flex-1 border-2 border-violet-DEFAULT text-orange-600 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors">
+          <button onClick={() => router.back()} className="flex-1 border-2 border-orange-DEFAULT text-orange-600 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors">
             Retour au cours
           </button>
         </div>
@@ -162,7 +162,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
             {(q.options ?? []).map((opt) => (
               <button key={opt} onClick={() => setAnswer(opt)}
                 className={`w-full text-left px-4 py-3 rounded-xl border-2 font-dm transition-all ${
-                  answers[q.id] === opt ? "border-violet-DEFAULT bg-orange-50 text-orange-600 font-semibold" : "border-cream-200 hover:border-orange-200"
+                  answers[q.id] === opt ? "border-orange-DEFAULT bg-orange-50 text-orange-600 font-semibold" : "border-cream-200 hover:border-orange-200"
                 }`}>
                 {opt}
               </button>
@@ -175,7 +175,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
             {["Vrai", "Faux"].map((opt) => (
               <button key={opt} onClick={() => setAnswer(opt)}
                 className={`py-4 rounded-xl border-2 font-bold font-dm transition-all ${
-                  answers[q.id] === opt ? "border-violet-DEFAULT bg-orange-50 text-orange-600" : "border-cream-200 hover:border-orange-200"
+                  answers[q.id] === opt ? "border-orange-DEFAULT bg-orange-50 text-orange-600" : "border-cream-200 hover:border-orange-200"
                 }`}>
                 {opt === "Vrai" ? "✓ Vrai" : "✗ Faux"}
               </button>
@@ -186,7 +186,7 @@ export function QuizPlayer({ quizId, title, minScore, timeLimitSeconds, maxAttem
         {q.type === "number" && (
           <input type="number" value={answers[q.id] ?? ""} onChange={(e) => setAnswer(e.target.value)}
             placeholder="Votre réponse chiffrée"
-            className="w-full border-2 border-cream-200 rounded-xl px-4 py-3 font-dm focus:outline-none focus:border-violet-DEFAULT" />
+            className="w-full border-2 border-cream-200 rounded-xl px-4 py-3 font-dm focus:outline-none focus:border-orange-DEFAULT" />
         )}
 
         {q.type === "photo" && (

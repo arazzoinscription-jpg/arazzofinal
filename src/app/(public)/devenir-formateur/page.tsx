@@ -78,7 +78,7 @@ export default function DevenirFormateurPage() {
                     type="text"
                     required
                     placeholder="Amina Benali"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
                 <div>
@@ -87,7 +87,7 @@ export default function DevenirFormateurPage() {
                     type="email"
                     required
                     placeholder="amina@exemple.com"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   />
                 </div>
               </div>
@@ -95,7 +95,7 @@ export default function DevenirFormateurPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Pays *</label>
-                  <select className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+                  <select className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white">
                     {["🇩🇿 Algérie", "🇲🇦 Maroc", "🇹🇳 Tunisie", "🇫🇷 France", "🇧🇪 Belgique", "🌍 Autre"].map(p => (
                       <option key={p}>{p}</option>
                     ))}
@@ -103,7 +103,7 @@ export default function DevenirFormateurPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Spécialité *</label>
-                  <select className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white">
+                  <select className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white">
                     {["Couture traditionnelle", "Caftan", "Modélisme", "Broderie", "Djellaba", "Patronage", "Autre"].map(s => (
                       <option key={s}>{s}</option>
                     ))}
@@ -119,7 +119,7 @@ export default function DevenirFormateurPage() {
                   required
                   rows={4}
                   placeholder="Parlez-nous de votre parcours, votre expérience en couture et pourquoi vous souhaitez enseigner…"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                 />
               </div>
 
@@ -130,7 +130,7 @@ export default function DevenirFormateurPage() {
                 <input
                   type="url"
                   placeholder="Instagram, YouTube, TikTok…"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
 
