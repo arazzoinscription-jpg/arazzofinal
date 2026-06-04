@@ -35,11 +35,12 @@ export function HeroSection() {
         <source src="/videos/hero-couture.mp4" type="video/mp4" />
       </video>
 
-      {/* ── Voile dégradé aux couleurs du logo (lisibilité + ambiance féminine) ── */}
-      <div className="absolute inset-0 bg-gradient-to-r from-violet-950/90 via-violet-900/65 to-orange-900/25" />
-      <div className="absolute inset-0 bg-gradient-to-t from-violet-950/80 via-transparent to-violet-950/40" />
-      {/* halo orange doux */}
-      <div className="absolute -bottom-32 right-0 w-[40rem] h-[40rem] rounded-full bg-orange-500/20 blur-3xl pointer-events-none" />
+      {/* ── Voile dégradé orange-dominant (couleurs du logo) — lisibilité + chaleur ── */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#3a1402]/92 via-orange-900/70 to-violet-900/35" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#3a1402]/85 via-transparent to-orange-950/35" />
+      {/* halos : orange dominant, touche violette */}
+      <div className="absolute -bottom-32 right-0 w-[40rem] h-[40rem] rounded-full bg-orange-500/30 blur-3xl pointer-events-none" />
+      <div className="absolute -top-24 -left-20 w-[30rem] h-[30rem] rounded-full bg-violet-600/15 blur-3xl pointer-events-none" />
 
       {/* ── Contenu ── */}
       <motion.div
@@ -60,7 +61,7 @@ export function HeroSection() {
           <motion.h1 variants={item}
             className="font-playfair text-[2.9rem] sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] mb-5">
             Le fil de{" "}
-            <span className="relative inline-block italic bg-gradient-to-r from-orange-300 to-orange-500 bg-clip-text text-transparent">
+            <span className="relative inline-block italic bg-gradient-to-r from-amber-200 to-orange-400 bg-clip-text text-transparent">
               votre talent
               <svg className="absolute -bottom-3 left-0 w-full" height="12" viewBox="0 0 300 12" fill="none">
                 <path d="M3 8 Q75 2 150 7 Q225 12 297 4" stroke="#F4801F" strokeWidth="3.5" strokeLinecap="round" fill="none" strokeDasharray="2 7" />
