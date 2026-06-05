@@ -51,23 +51,26 @@ export default async function DashboardPage() {
   const others = courses.filter((c) => c.id !== hero?.id).slice(0, 3);
   const prenom = profile?.nom?.split(" ")[0] ?? "";
 
-  // XP du jour (transactions du jour si dispo, sinon estimation via leçons du jour)
   const todayKey = new Date().toISOString().slice(0, 10);
   const lessonsToday = (progressRecords ?? []).filter((p) => p.completed_at?.slice(0, 10) === todayKey).length;
   const xpToday = lessonsToday * 20;
 
+  // Styles réutilisés (clair / sombre)
+  const card = "bg-white border border-cream-200 shadow-sm dark:bg-white/[0.04] dark:border-white/10 dark:shadow-none";
+  const muted = "text-gray-500 dark:text-white/50";
+
   return (
-    <div className="-mx-6 lg:-mx-8 -mt-6 lg:-mt-8 -mb-6 lg:-mb-8 px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-[#0d0a1c] text-white">
+    <div className="-mx-6 lg:-mx-8 -mt-6 lg:-mt-8 -mb-6 lg:-mb-8 px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-cream-DEFAULT text-gray-900 dark:bg-[#0d0a1c] dark:text-white">
       {/* En-tête */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="font-playfair text-3xl font-bold">Bonjour, {prenom} 👋</h1>
-          <p className="text-white/50 font-dm text-sm mt-1 capitalize">
+          <p className={`${muted} font-dm text-sm mt-1 capitalize`}>
             {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <div className="hidden sm:flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-2">
-          <Trophy size={18} className="text-orange-300" />
+        <div className={`hidden sm:flex items-center gap-2 rounded-2xl px-4 py-2 ${card}`}>
+          <Trophy size={18} className="text-orange-500 dark:text-orange-300" />
           <span className="text-sm font-semibold capitalize">{profile?.level_label ?? "apprentie"}</span>
         </div>
       </div>
@@ -75,38 +78,38 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ── Colonne gauche ── */}
         <div className="space-y-4">
-          {/* Carte série (façon météo) */}
-          <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-6">
+          {/* Carte série */}
+          <div className={`rounded-3xl p-6 ${card}`}>
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-end gap-2">
                   <span className="font-playfair text-5xl font-bold">{streak}</span>
-                  <span className="text-white/50 mb-2 font-dm">jours</span>
+                  <span className={`${muted} mb-2 font-dm`}>jours</span>
                 </div>
-                <p className="text-white/60 font-dm mt-1">Série en cours</p>
+                <p className={`${muted} font-dm mt-1`}>Série en cours</p>
               </div>
-              <span className="w-14 h-14 rounded-2xl bg-orange-500/20 flex items-center justify-center text-orange-300">
+              <span className="w-14 h-14 rounded-2xl bg-orange-500/15 dark:bg-orange-500/20 flex items-center justify-center text-orange-500 dark:text-orange-300">
                 <Flame size={26} />
               </span>
             </div>
-            <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-3 gap-2 text-center">
-              <div><div className="text-lg font-bold">{lessonsDone}</div><div className="text-[11px] text-white/40 font-dm">Leçons</div></div>
-              <div><div className="text-lg font-bold">{xpTotal}</div><div className="text-[11px] text-white/40 font-dm">XP total</div></div>
-              <div><div className="text-lg font-bold">{courses.length}</div><div className="text-[11px] text-white/40 font-dm">Cours</div></div>
+            <div className="mt-5 pt-4 border-t border-cream-200 dark:border-white/10 grid grid-cols-3 gap-2 text-center">
+              <div><div className="text-lg font-bold">{lessonsDone}</div><div className={`text-[11px] ${muted} font-dm`}>Leçons</div></div>
+              <div><div className="text-lg font-bold">{xpTotal}</div><div className={`text-[11px] ${muted} font-dm`}>XP total</div></div>
+              <div><div className="text-lg font-bold">{courses.length}</div><div className={`text-[11px] ${muted} font-dm`}>Cours</div></div>
             </div>
           </div>
 
-          {/* Carte activité (façon power consumption) */}
-          <div className="bg-white/[0.04] border border-white/10 rounded-3xl p-6">
+          {/* Carte activité */}
+          <div className={`rounded-3xl p-6 ${card}`}>
             <h3 className="font-bold text-lg">Activité d'apprentissage</h3>
-            <p className="text-white/50 text-sm font-dm mb-4">Votre progression XP</p>
+            <p className={`${muted} text-sm font-dm mb-4`}>Votre progression XP</p>
             <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-violet-700">
+              <div className="rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-violet-700 text-white">
                 <Zap size={18} className="mb-3" />
                 <div className="font-playfair text-2xl font-bold">{xpToday}</div>
                 <div className="text-[11px] text-white/70 font-dm mt-0.5">AUJOURD'HUI</div>
               </div>
-              <div className="rounded-2xl p-4 bg-gradient-to-br from-orange-400 to-orange-600">
+              <div className="rounded-2xl p-4 bg-gradient-to-br from-orange-400 to-orange-600 text-white">
                 <Sparkles size={18} className="mb-3" />
                 <div className="font-playfair text-2xl font-bold">{profile?.xp_this_month ?? 0}</div>
                 <div className="text-[11px] text-white/80 font-dm mt-0.5">CE MOIS</div>
@@ -115,40 +118,36 @@ export default async function DashboardPage() {
             <div className="space-y-3">
               {courses.slice(0, 3).map((c) => (
                 <div key={c.id} className="flex items-center gap-3">
-                  <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-orange-300 flex-shrink-0"><BookOpen size={16} /></span>
+                  <span className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-white/10 flex items-center justify-center text-orange-500 dark:text-orange-300 flex-shrink-0"><BookOpen size={16} /></span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{c.titre}</p>
-                    <div className="h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                    <div className="h-1 bg-cream-200 dark:bg-white/10 rounded-full mt-1 overflow-hidden">
                       <div className="h-full bg-orange-DEFAULT rounded-full" style={{ width: `${c.pct}%` }} />
                     </div>
                   </div>
-                  <span className="text-xs text-white/50 font-dm">{c.pct}%</span>
+                  <span className={`text-xs ${muted} font-dm`}>{c.pct}%</span>
                 </div>
               ))}
-              {courses.length === 0 && <p className="text-sm text-white/40 font-dm">Aucun cours pour l'instant.</p>}
+              {courses.length === 0 && <p className={`text-sm ${muted} font-dm`}>Aucun cours pour l'instant.</p>}
             </div>
           </div>
         </div>
 
-        {/* ── Colonne droite (héro + cartes) ── */}
+        {/* ── Colonne droite ── */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Héro : reprendre le cours (façon featured + player) */}
-          <div className="relative rounded-3xl overflow-hidden border border-white/10 h-[22rem]">
+          {/* Héro (image + lecteur) — texte blanc dans les deux thèmes (sur photo) */}
+          <div className="relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-[22rem] text-white">
             <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/40 to-transparent" />
-
             {hero ? (
               <>
-                {/* chips haut */}
-                <div className="absolute top-4 left-4 flex items-center gap-2">
+                <div className="absolute top-4 left-4">
                   <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">● EN COURS</span>
                 </div>
                 <div className="absolute top-4 right-4 flex items-center gap-2 text-xs font-semibold">
                   <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{hero.done}/{hero.total} leçons</span>
                   <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{hero.pct}%</span>
                 </div>
-
-                {/* barre lecteur en bas */}
                 <div className="absolute bottom-4 left-4 right-4">
                   <p className="text-white/60 text-xs font-dm mb-1">Reprendre votre formation</p>
                   <h2 className="font-playfair text-2xl font-bold mb-3 line-clamp-1">{hero.titre}</h2>
@@ -174,11 +173,11 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* Cartes cours (façon devices) */}
+          {/* Cartes cours */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {others.length > 0 ? others.map((c, i) => (
               <a key={c.id} href={`/dashboard/cours/${c.firstLesson ?? c.id}`}
-                className="group relative rounded-3xl overflow-hidden border border-white/10 h-44">
+                className="group relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-44 text-white">
                 <img src={c.thumbnail || FALLBACKS[(i + 1) % FALLBACKS.length]} alt=""
                   className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/30 to-transparent" />
@@ -191,29 +190,29 @@ export default async function DashboardPage() {
                 </div>
               </a>
             )) : (
-              <div className="sm:col-span-3 bg-white/[0.04] border border-white/10 rounded-3xl p-6 text-center text-white/40 font-dm">
+              <div className={`sm:col-span-3 rounded-3xl p-6 text-center font-dm ${card} ${muted}`}>
                 Vos prochaines formations apparaîtront ici.
               </div>
             )}
           </div>
 
-          {/* Bandeaux raccourcis */}
+          {/* Raccourcis */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a href="/dashboard/sessions" className="flex items-center gap-3 bg-white/[0.04] border border-white/10 rounded-3xl p-5 hover:bg-white/[0.07] transition-colors">
-              <span className="w-11 h-11 rounded-2xl bg-violet-500/20 text-violet-300 flex items-center justify-center"><Calendar size={20} /></span>
+            <a href="/dashboard/sessions" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
+              <span className="w-11 h-11 rounded-2xl bg-violet-500/15 dark:bg-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center"><Calendar size={20} /></span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">Prochaine session live</p>
-                <p className="text-xs text-white/50 font-dm truncate">{nextSession?.titre ?? "Aucune programmée"}</p>
+                <p className={`text-xs ${muted} font-dm truncate`}>{nextSession?.titre ?? "Aucune programmée"}</p>
               </div>
-              <ArrowUpRight size={18} className="text-white/30" />
+              <ArrowUpRight size={18} className="text-gray-300 dark:text-white/30" />
             </a>
-            <a href="/dashboard/recompenses" className="flex items-center gap-3 bg-white/[0.04] border border-white/10 rounded-3xl p-5 hover:bg-white/[0.07] transition-colors">
-              <span className="w-11 h-11 rounded-2xl bg-orange-500/20 text-orange-300 flex items-center justify-center"><CheckCircle2 size={20} /></span>
+            <a href="/dashboard/recompenses" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
+              <span className="w-11 h-11 rounded-2xl bg-orange-500/15 dark:bg-orange-500/20 text-orange-500 dark:text-orange-300 flex items-center justify-center"><CheckCircle2 size={20} /></span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">Mes récompenses & badges</p>
-                <p className="text-xs text-white/50 font-dm">Objectif : {profile?.weekly_goal ?? 3} leçons / semaine</p>
+                <p className={`text-xs ${muted} font-dm`}>Objectif : {profile?.weekly_goal ?? 3} leçons / semaine</p>
               </div>
-              <ArrowUpRight size={18} className="text-white/30" />
+              <ArrowUpRight size={18} className="text-gray-300 dark:text-white/30" />
             </a>
           </div>
         </div>

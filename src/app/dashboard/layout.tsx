@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { SearchBar } from "@/components/search/search-bar";
 import { Toaster } from "@/components/ui/toast";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DashboardNav } from "./dashboard-nav";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", admin: "Administratrice" };
@@ -30,7 +31,7 @@ export default async function DashboardLayout({
   const prenom = (profile?.nom ?? "").split(" ")[0] || "vous";
 
   return (
-    <div className="min-h-screen bg-cream-DEFAULT flex">
+    <div className="min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
       {/* ── Sidebar ── */}
       <aside className="w-64 flex flex-col fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-violet-800 to-violet-900 shadow-xl">
         {/* Logo */}
@@ -80,14 +81,15 @@ export default async function DashboardLayout({
       {/* ── Contenu ── */}
       <main className="flex-1 ml-64 min-w-0">
         {/* Barre supérieure */}
-        <div className="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b border-cream-200 px-6 lg:px-8 py-3 flex items-center gap-4">
+        <div className="sticky top-0 z-20 bg-white/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md border-b border-cream-200 dark:border-white/10 px-6 lg:px-8 py-3 flex items-center gap-4">
           <div className="hidden sm:block">
-            <p className="text-xs text-gray-400 font-dm leading-none">Bonjour 👋</p>
-            <p className="text-sm font-semibold text-violet-800 font-dm capitalize">{prenom}</p>
+            <p className="text-xs text-gray-400 dark:text-white/40 font-dm leading-none">Bonjour 👋</p>
+            <p className="text-sm font-semibold text-violet-800 dark:text-orange-300 font-dm capitalize">{prenom}</p>
           </div>
           <div className="flex-1 max-w-md">
             <SearchBar compact />
           </div>
+          <ThemeToggle />
           <NotificationBell userId={user.id} />
         </div>
         <div className="p-6 lg:p-8">{children}</div>
