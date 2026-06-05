@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraduationCap, ShieldCheck } from "lucide-react";
 import { SECTIONS, activeSectionKey } from "./nav-data";
+import { DICT, type Lang } from "./dash-i18n";
 
 /** Sidebar verticale : grandes sections (le détail va dans le menu horizontal). */
-export function DashboardNav({ role }: { role: string }) {
+export function DashboardNav({ role, lang = "fr" }: { role: string; lang?: Lang }) {
   const pathname = usePathname();
   const active = activeSectionKey(pathname);
+  const t = DICT[lang];
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
-      <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">Navigation</p>
+      <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{t.navigation}</p>
 
       {SECTIONS.map((s) => {
         const Icon = s.icon;
@@ -26,22 +28,22 @@ export function DashboardNav({ role }: { role: string }) {
             }`}
           >
             <Icon size={19} />
-            <span className="truncate">{s.label}</span>
+            <span className="truncate">{s.label[lang]}</span>
           </Link>
         );
       })}
 
       {(role === "formateur" || role === "admin") && (
         <div className="pt-4 mt-3 border-t border-white/10 space-y-1.5">
-          <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">Espace pro</p>
+          <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{t.pro}</p>
           <Link href="/formateur"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
-            <GraduationCap size={19} /> Espace formateur
+            <GraduationCap size={19} /> {t.trainer}
           </Link>
           {role === "admin" && (
             <Link href="/admin"
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
-              <ShieldCheck size={19} /> Administration
+              <ShieldCheck size={19} /> {t.admin}
             </Link>
           )}
         </div>

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SECTIONS, activeSectionKey } from "./nav-data";
+import type { Lang } from "./dash-i18n";
 
 /** Menu horizontal : onglets des sous-pages de la section active. */
-export function DashboardSubnav() {
+export function DashboardSubnav({ lang = "fr" }: { lang?: Lang }) {
   const pathname = usePathname();
   const key = activeSectionKey(pathname);
   const section = SECTIONS.find((s) => s.key === key);
@@ -28,7 +29,7 @@ export function DashboardSubnav() {
               }`}
             >
               <Icon size={16} />
-              {it.label}
+              {it.label[lang]}
             </Link>
           );
         })}

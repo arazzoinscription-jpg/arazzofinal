@@ -1,10 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { DICT, normLang } from "./dash-i18n";
 import {
   Flame, Sparkles, BookOpen, CheckCircle2, Play, ArrowUpRight, Trophy, Zap, Calendar,
 } from "lucide-react";
 
 export const metadata = { title: "Mon espace — Arazzo Formation" };
 export const dynamic = "force-dynamic";
+
+const LOCALE: Record<string, string> = { fr: "fr-FR", ar: "ar", en: "en-US" };
 
 const FALLBACKS = ["/images/mannequin-couture.jpg", "/images/mannequin-dessin.jpg", "/images/mannequin-mode.jpg"];
 
@@ -55,6 +59,9 @@ export default async function DashboardPage() {
   const lessonsToday = (progressRecords ?? []).filter((p) => p.completed_at?.slice(0, 10) === todayKey).length;
   const xpToday = lessonsToday * 20;
 
+  const lang = normLang((await cookies()).get("lang")?.value);
+  const t = DICT[lang];
+
   // Styles réutilisés (clair / sombre)
   const card = "bg-white border border-cream-200 shadow-sm dark:bg-white/[0.04] dark:border-white/10 dark:shadow-none";
   const muted = "text-gray-500 dark:text-white/50";
@@ -64,9 +71,9 @@ export default async function DashboardPage() {
       {/* En-tête */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-playfair text-3xl font-bold">Bonjour, {prenom} 👋</h1>
+          <h1 className="font-playfair text-3xl font-bold">{t.greeting}, {prenom} 👋</h1>
           <p className={`${muted} font-dm text-sm mt-1 capitalize`}>
-            {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+            {new Date().toLocaleDateString(LOCALE[lang], { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
         <div className={`hidden sm:flex items-center gap-2 rounded-2xl px-4 py-2 ${card}`}>
@@ -84,35 +91,35 @@ export default async function DashboardPage() {
               <div>
                 <div className="flex items-end gap-2">
                   <span className="font-playfair text-5xl font-bold">{streak}</span>
-                  <span className={`${muted} mb-2 font-dm`}>jours</span>
+                  <span className={`${muted} mb-2 font-dm`}>{t.streakDays}</span>
                 </div>
-                <p className={`${muted} font-dm mt-1`}>Série en cours</p>
+                <p className={`${muted} font-dm mt-1`}>{t.streakNow}</p>
               </div>
               <span className="w-14 h-14 rounded-2xl bg-orange-500/15 dark:bg-orange-500/20 flex items-center justify-center text-orange-500 dark:text-orange-300">
                 <Flame size={26} />
               </span>
             </div>
             <div className="mt-5 pt-4 border-t border-cream-200 dark:border-white/10 grid grid-cols-3 gap-2 text-center">
-              <div><div className="text-lg font-bold">{lessonsDone}</div><div className={`text-[11px] ${muted} font-dm`}>Leçons</div></div>
-              <div><div className="text-lg font-bold">{xpTotal}</div><div className={`text-[11px] ${muted} font-dm`}>XP total</div></div>
-              <div><div className="text-lg font-bold">{courses.length}</div><div className={`text-[11px] ${muted} font-dm`}>Cours</div></div>
+              <div><div className="text-lg font-bold">{lessonsDone}</div><div className={`text-[11px] ${muted} font-dm`}>{t.lessons}</div></div>
+              <div><div className="text-lg font-bold">{xpTotal}</div><div className={`text-[11px] ${muted} font-dm`}>{t.xpTotal}</div></div>
+              <div><div className="text-lg font-bold">{courses.length}</div><div className={`text-[11px] ${muted} font-dm`}>{t.courses}</div></div>
             </div>
           </div>
 
           {/* Carte activité */}
           <div className={`rounded-3xl p-6 ${card}`}>
-            <h3 className="font-bold text-lg">Activité d'apprentissage</h3>
-            <p className={`${muted} text-sm font-dm mb-4`}>Votre progression XP</p>
+            <h3 className="font-bold text-lg">{t.activity}</h3>
+            <p className={`${muted} text-sm font-dm mb-4`}>{t.activitySub}</p>
             <div className="grid grid-cols-2 gap-3 mb-5">
               <div className="rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-violet-700 text-white">
                 <Zap size={18} className="mb-3" />
                 <div className="font-playfair text-2xl font-bold">{xpToday}</div>
-                <div className="text-[11px] text-white/70 font-dm mt-0.5">AUJOURD'HUI</div>
+                <div className="text-[11px] text-white/70 font-dm mt-0.5">{t.today}</div>
               </div>
               <div className="rounded-2xl p-4 bg-gradient-to-br from-orange-400 to-orange-600 text-white">
                 <Sparkles size={18} className="mb-3" />
                 <div className="font-playfair text-2xl font-bold">{profile?.xp_this_month ?? 0}</div>
-                <div className="text-[11px] text-white/80 font-dm mt-0.5">CE MOIS</div>
+                <div className="text-[11px] text-white/80 font-dm mt-0.5">{t.thisMonth}</div>
               </div>
             </div>
             <div className="space-y-3">
@@ -141,15 +148,15 @@ export default async function DashboardPage() {
             <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/40 to-transparent" />
             {hero ? (
               <>
-                <div className="absolute top-4 left-4">
-                  <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">● EN COURS</span>
+                <div className="absolute top-4 start-4">
+                  <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">● {t.inProgress}</span>
                 </div>
-                <div className="absolute top-4 right-4 flex items-center gap-2 text-xs font-semibold">
-                  <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{hero.done}/{hero.total} leçons</span>
+                <div className="absolute top-4 end-4 flex items-center gap-2 text-xs font-semibold">
+                  <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{t.ofLessons(hero.done, hero.total)}</span>
                   <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{hero.pct}%</span>
                 </div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white/60 text-xs font-dm mb-1">Reprendre votre formation</p>
+                <div className="absolute bottom-4 start-4 end-4">
+                  <p className="text-white/60 text-xs font-dm mb-1">{t.resume}</p>
                   <h2 className="font-playfair text-2xl font-bold mb-3 line-clamp-1">{hero.titre}</h2>
                   <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md rounded-2xl p-2.5">
                     <a href={`/dashboard/cours/${hero.firstLesson ?? hero.id}`}
@@ -167,8 +174,8 @@ export default async function DashboardPage() {
               </>
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-                <p className="text-white/70 font-dm mb-4">Vous n'avez pas encore de formation.</p>
-                <a href="/formations" className="bg-orange-DEFAULT px-6 py-3 rounded-xl font-semibold hover:bg-orange-600">Explorer le catalogue</a>
+                <p className="text-white/70 font-dm mb-4">{t.noCourse}</p>
+                <a href="/formations" className="bg-orange-DEFAULT px-6 py-3 rounded-xl font-semibold hover:bg-orange-600">{t.explore}</a>
               </div>
             )}
           </div>
@@ -184,14 +191,14 @@ export default async function DashboardPage() {
                 <span className="absolute top-3 right-3 w-10 h-10 rounded-full bg-orange-DEFAULT group-hover:bg-orange-600 flex items-center justify-center transition-colors">
                   <Play size={15} className="text-white fill-white ml-0.5" />
                 </span>
-                <div className="absolute bottom-0 left-0 right-0 p-4">
+                <div className="absolute bottom-0 start-0 end-0 p-4">
                   <h3 className="font-semibold line-clamp-1">{c.titre}</h3>
-                  <p className="text-xs text-white/50 font-dm mt-0.5">{c.pct}% terminé</p>
+                  <p className="text-xs text-white/50 font-dm mt-0.5">{c.pct}% {t.completed}</p>
                 </div>
               </a>
             )) : (
               <div className={`sm:col-span-3 rounded-3xl p-6 text-center font-dm ${card} ${muted}`}>
-                Vos prochaines formations apparaîtront ici.
+                {t.soonHere}
               </div>
             )}
           </div>
@@ -201,16 +208,16 @@ export default async function DashboardPage() {
             <a href="/dashboard/sessions" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
               <span className="w-11 h-11 rounded-2xl bg-violet-500/15 dark:bg-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center"><Calendar size={20} /></span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">Prochaine session live</p>
-                <p className={`text-xs ${muted} font-dm truncate`}>{nextSession?.titre ?? "Aucune programmée"}</p>
+                <p className="font-semibold text-sm">{t.nextSession}</p>
+                <p className={`text-xs ${muted} font-dm truncate`}>{nextSession?.titre ?? t.noSession}</p>
               </div>
               <ArrowUpRight size={18} className="text-gray-300 dark:text-white/30" />
             </a>
             <a href="/dashboard/recompenses" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
               <span className="w-11 h-11 rounded-2xl bg-orange-500/15 dark:bg-orange-500/20 text-orange-500 dark:text-orange-300 flex items-center justify-center"><CheckCircle2 size={20} /></span>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">Mes récompenses & badges</p>
-                <p className={`text-xs ${muted} font-dm`}>Objectif : {profile?.weekly_goal ?? 3} leçons / semaine</p>
+                <p className="font-semibold text-sm">{t.rewards}</p>
+                <p className={`text-xs ${muted} font-dm`}>{t.weeklyGoal(profile?.weekly_goal ?? 3)}</p>
               </div>
               <ArrowUpRight size={18} className="text-gray-300 dark:text-white/30" />
             </a>
