@@ -176,3 +176,7 @@ h1, h2, h3 {
     radial-gradient(at 80% 85%, rgba(224, 120, 64, 0.14) 0px, transparent 50%),
     radial-gradient(at 10% 90%, rgba(233, 184, 205, 0.22) 0px, transparent 50%);
 }
+
+/* Masque la scrollbar du menu horizontal */
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}

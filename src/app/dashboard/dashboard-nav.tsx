@@ -2,100 +2,48 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GraduationCap, ShieldCheck } from "lucide-react";
+import { SECTIONS, activeSectionKey } from "./nav-data";
 
-interface NavItem { href: string; icon: string; label: string; }
-interface NavGroup { title: string; items: NavItem[]; }
-
-const GROUPS: NavGroup[] = [
-  {
-    title: "Apprentissage",
-    items: [
-      { href: "/dashboard", icon: "📚", label: "Mes cours" },
-      { href: "/dashboard/progression", icon: "📈", label: "Ma progression" },
-      { href: "/dashboard/recompenses", icon: "🏅", label: "Récompenses" },
-      { href: "/dashboard/sessions", icon: "🎥", label: "Sessions live" },
-      { href: "/dashboard/ressources", icon: "📂", label: "Ressources" },
-      { href: "/dashboard/certificats", icon: "🎓", label: "Certificats" },
-    ],
-  },
-  {
-    title: "Boutique",
-    items: [
-      { href: "/boutique", icon: "🛍️", label: "Boutique" },
-      { href: "/dashboard/commandes", icon: "📦", label: "Mes commandes" },
-      { href: "/dashboard/factures", icon: "🧾", label: "Mes factures" },
-      { href: "/dashboard/patrons", icon: "📄", label: "Mes patrons" },
-    ],
-  },
-  {
-    title: "Communauté",
-    items: [
-      { href: "/dashboard/actualites", icon: "📰", label: "Actualités" },
-      { href: "/dashboard/groupes", icon: "👥", label: "Mes groupes" },
-      { href: "/dashboard/annonces", icon: "📢", label: "Annonces" },
-      { href: "/dashboard/support", icon: "🎫", label: "Support" },
-    ],
-  },
-  {
-    title: "Mon compte",
-    items: [
-      { href: "/dashboard/profil", icon: "👤", label: "Mon profil" },
-      { href: "/dashboard/securite", icon: "🔐", label: "Sécurité" },
-      { href: "/dashboard/preferences", icon: "🔔", label: "Préférences email" },
-    ],
-  },
-];
-
-function isActive(pathname: string, href: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(href + "/");
-}
-
+/** Sidebar verticale : grandes sections (le détail va dans le menu horizontal). */
 export function DashboardNav({ role }: { role: string }) {
   const pathname = usePathname();
+  const active = activeSectionKey(pathname);
 
   return (
-    <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
-      {GROUPS.map((group) => (
-        <div key={group.title}>
-          <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{group.title}</p>
-          <div className="space-y-0.5">
-            {group.items.map((l) => {
-              const active = isActive(pathname, l.href);
-              return (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-orange-DEFAULT text-white shadow-sm"
-                      : "text-white/75 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <span className="text-base">{l.icon}</span>
-                  <span className="truncate">{l.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+    <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
+      <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">Navigation</p>
+
+      {SECTIONS.map((s) => {
+        const Icon = s.icon;
+        const on = active === s.key;
+        return (
+          <Link
+            key={s.key}
+            href={s.home}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+              on ? "bg-orange-DEFAULT text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Icon size={19} />
+            <span className="truncate">{s.label}</span>
+          </Link>
+        );
+      })}
 
       {(role === "formateur" || role === "admin") && (
-        <div>
+        <div className="pt-4 mt-3 border-t border-white/10 space-y-1.5">
           <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">Espace pro</p>
-          <div className="space-y-0.5">
-            <Link href="/formateur"
-              className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
-              <span className="text-base">🎓</span> Espace formateur
+          <Link href="/formateur"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
+            <GraduationCap size={19} /> Espace formateur
+          </Link>
+          {role === "admin" && (
+            <Link href="/admin"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
+              <ShieldCheck size={19} /> Administration
             </Link>
-            {role === "admin" && (
-              <Link href="/admin"
-                className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
-                <span className="text-base">⚙️</span> Administration
-              </Link>
-            )}
-          </div>
+          )}
         </div>
       )}
     </nav>
