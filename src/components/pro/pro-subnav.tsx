@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { proActiveKey, proActiveItem, type ProSection, type Lang } from "./pro-data";
+import { proActiveKey, proActiveItem, SECTION_SETS, type ProVariant, type Lang } from "./pro-data";
 
 /** Menu horizontal : onglets des sous-pages de la section active. */
 export function ProSubnav({
-  sections, lang = "fr",
+  variant, lang = "fr",
 }: {
-  sections: ProSection[]; lang?: Lang;
+  variant: ProVariant; lang?: Lang;
 }) {
   const pathname = usePathname();
+  const sections = SECTION_SETS[variant];
   const key = proActiveKey(sections, pathname);
   const section = sections.find((s) => s.key === key);
   if (!section || section.items.length === 0) return null;

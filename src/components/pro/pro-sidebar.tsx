@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserRound } from "lucide-react";
-import { proActiveKey, PRO_UI, type ProSection, type Lang } from "./pro-data";
+import { proActiveKey, PRO_UI, SECTION_SETS, type ProVariant, type Lang } from "./pro-data";
 
 /** Menu vertical : grandes sections de l'espace pro (le détail va dans le menu horizontal). */
 export function ProSidebar({
-  sections, lang = "fr",
+  variant, lang = "fr",
 }: {
-  sections: ProSection[]; lang?: Lang;
+  variant: ProVariant; lang?: Lang;
 }) {
   const pathname = usePathname();
+  const sections = SECTION_SETS[variant];
   const active = proActiveKey(sections, pathname);
   const ui = PRO_UI[lang];
 

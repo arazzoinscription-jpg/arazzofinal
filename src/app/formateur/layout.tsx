@@ -8,7 +8,7 @@ import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
 import { ProSidebar } from "@/components/pro/pro-sidebar";
 import { ProSubnav } from "@/components/pro/pro-subnav";
-import { FORMATEUR_SECTIONS, PRO_UI } from "@/components/pro/pro-data";
+import { PRO_UI } from "@/components/pro/pro-data";
 
 export default async function FormateurLayout({
   children,
@@ -65,7 +65,7 @@ export default async function FormateurLayout({
           </div>
         </div>
 
-        <ProSidebar sections={FORMATEUR_SECTIONS} lang={lang} />
+        <ProSidebar variant="formateur" lang={lang} />
 
         <div className="p-3 border-t border-white/10">
           <form action="/api/auth/signout" method="POST">
@@ -87,7 +87,7 @@ export default async function FormateurLayout({
             <LangSwitcher current={lang} />
             <ThemeToggle />
           </div>
-          <ProSubnav sections={FORMATEUR_SECTIONS} lang={lang} />
+          <ProSubnav variant="formateur" lang={lang} />
         </div>
         <div className="p-6 lg:p-8">{children}</div>
       </main>

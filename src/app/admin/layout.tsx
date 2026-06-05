@@ -9,7 +9,7 @@ import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
 import { ProSidebar } from "@/components/pro/pro-sidebar";
 import { ProSubnav } from "@/components/pro/pro-subnav";
-import { ADMIN_SECTIONS, PRO_UI } from "@/components/pro/pro-data";
+import { PRO_UI } from "@/components/pro/pro-data";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -51,7 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
 
-        <ProSidebar sections={ADMIN_SECTIONS} lang={lang} />
+        <ProSidebar variant="admin" lang={lang} />
 
         <div className="p-3 border-t border-white/10">
           <form action="/api/auth/signout" method="POST">
@@ -73,7 +73,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <LangSwitcher current={lang} />
             <ThemeToggle />
           </div>
-          <ProSubnav sections={ADMIN_SECTIONS} lang={lang} />
+          <ProSubnav variant="admin" lang={lang} />
         </div>
         {children}
         <Toaster />

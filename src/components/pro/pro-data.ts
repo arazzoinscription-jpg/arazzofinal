@@ -101,6 +101,12 @@ export const ADMIN_SECTIONS: ProSection[] = [
   },
 ];
 
+export type ProVariant = "formateur" | "admin";
+export const SECTION_SETS: Record<ProVariant, ProSection[]> = {
+  formateur: FORMATEUR_SECTIONS,
+  admin: ADMIN_SECTIONS,
+};
+
 /** Section active d'après l'URL (la plus spécifique). */
 export function proActiveKey(sections: ProSection[], pathname: string): string {
   const home = sections.find((s) => s.key === "home");
