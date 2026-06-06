@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { SECTIONS, activeSectionKey } from "./nav-data";
 import type { Lang } from "./dash-i18n";
+
+const MotionLink = motion.create(Link);
 
 /** Menu horizontal : onglets des sous-pages de la section active. */
 export function DashboardSubnav({ lang = "fr" }: { lang?: Lang }) {
@@ -19,9 +22,12 @@ export function DashboardSubnav({ lang = "fr" }: { lang?: Lang }) {
           const Icon = it.icon;
           const on = pathname === it.href || pathname.startsWith(it.href + "/");
           return (
-            <Link
+            <MotionLink
               key={it.href}
               href={it.href}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ duration: 0.2 }}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                 on
                   ? "bg-orange-DEFAULT text-white shadow-sm"
@@ -30,7 +36,7 @@ export function DashboardSubnav({ lang = "fr" }: { lang?: Lang }) {
             >
               <Icon size={16} />
               {it.label[lang]}
-            </Link>
+            </MotionLink>
           );
         })}
       </div>
