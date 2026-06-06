@@ -47,6 +47,10 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     ],
   },
   {
+    key: "shop", icon: ShoppingBag, home: "/formateur/boutique", items: [],
+    label: { fr: "Mise en vente", ar: "العرض للبيع", en: "Sell" },
+  },
+  {
     key: "live", icon: Video, home: "/formateur/sessions", items: [],
     label: { fr: "Sessions live", ar: "حصص مباشرة", en: "Live sessions" },
   },
