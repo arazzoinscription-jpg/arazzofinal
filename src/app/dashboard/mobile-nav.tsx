@@ -54,7 +54,7 @@ export function MobileNav({
             >
               <X size={18} />
             </button>
-            <SidebarInner nom={nom} avatarUrl={avatarUrl} role={role} roleLabel={roleLabel} lang={lang} />
+            <SidebarInner nom={nom} avatarUrl={avatarUrl} role={role} roleLabel={roleLabel} lang={lang} full />
           </aside>
         </div>
       )}

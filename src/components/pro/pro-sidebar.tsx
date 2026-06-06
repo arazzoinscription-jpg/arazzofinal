@@ -27,11 +27,11 @@ export function ProSidebar({
           <Link
             key={s.key}
             href={s.home}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium transition-colors ${
               on ? "bg-orange-DEFAULT text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
             }`}
           >
-            <Icon size={19} />
+            <Icon size={20} className="flex-shrink-0" />
             <span className="truncate">{s.label[lang]}</span>
           </Link>
         );
@@ -40,9 +40,9 @@ export function ProSidebar({
       <div className="pt-4 mt-3 border-t border-white/10">
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+          className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
         >
-          <UserRound size={19} /> <span className="truncate">{ui.studentSpace}</span>
+          <UserRound size={20} className="flex-shrink-0" /> <span className="truncate">{ui.studentSpace}</span>
         </Link>
       </div>
     </nav>

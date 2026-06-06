@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { DashboardNav } from "./dashboard-nav";
+import { DashboardNavFull } from "./dashboard-nav-full";
 import { DICT, type Lang } from "./dash-i18n";
 
 /** Corps de la sidebar (logo + carte user + nav + déconnexion), partagé desktop & drawer mobile. */
 export function SidebarInner({
-  nom, avatarUrl, role, roleLabel, lang,
+  nom, avatarUrl, role, roleLabel, lang, full = false,
 }: {
   nom: string | null;
   avatarUrl: string | null;
   role: string;
   roleLabel: string;
   lang: Lang;
+  /** Affiche le menu complet (sections + sous-liens) — pour le drawer mobile. */
+  full?: boolean;
 }) {
   const t = DICT[lang];
   return (
@@ -46,8 +49,8 @@ export function SidebarInner({
         </div>
       </div>
 
-      {/* Navigation groupée */}
-      <DashboardNav role={role} lang={lang} />
+      {/* Navigation */}
+      {full ? <DashboardNavFull role={role} lang={lang} /> : <DashboardNav role={role} lang={lang} />}
 
       {/* Déconnexion */}
       <div className="p-3 border-t border-white/10">

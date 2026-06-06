@@ -8,6 +8,7 @@ import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
 import { ProSidebar } from "@/components/pro/pro-sidebar";
 import { ProSubnav } from "@/components/pro/pro-subnav";
+import { ProMobileNav } from "@/components/pro/pro-mobile-nav";
 import { PRO_UI } from "@/components/pro/pro-data";
 
 export default async function FormateurLayout({
@@ -37,8 +38,8 @@ export default async function FormateurLayout({
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
-      {/* ── Menu vertical ── */}
-      <aside className="w-64 flex flex-col fixed inset-y-0 start-0 z-30 bg-gradient-to-b from-violet-800 to-violet-900 shadow-xl">
+      {/* ── Menu vertical (desktop) ── */}
+      <aside className="hidden lg:flex w-64 flex-col fixed inset-y-0 start-0 z-30 bg-gradient-to-b from-violet-800 to-violet-900 shadow-xl">
         <div className="px-5 py-5 border-b border-white/10">
           <Link href="/" className="flex items-center gap-2.5">
             <span className="w-9 h-9 rounded-xl bg-orange-DEFAULT/90 flex items-center justify-center text-white text-lg">✂️</span>
@@ -80,16 +81,24 @@ export default async function FormateurLayout({
       </aside>
 
       {/* ── Contenu ── */}
-      <main className="flex-1 ms-64 min-w-0">
+      <main className="flex-1 lg:ms-64 min-w-0">
         <div className="sticky top-0 z-20 bg-white/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md border-b border-cream-200 dark:border-white/10">
-          <div className="px-6 lg:px-8 py-3 flex items-center gap-4">
+          <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
+            <ProMobileNav
+              variant="formateur"
+              nom={profile?.nom ?? null}
+              avatarUrl={profile?.avatar_url ?? null}
+              roleLabel={profile?.role === "admin" ? ui.roleAdmin : ui.roleFormateur}
+              lang={lang}
+              brand={ui.formateurSpace}
+            />
             <div className="flex-1" />
             <LangSwitcher current={lang} />
             <ThemeToggle />
           </div>
           <ProSubnav variant="formateur" lang={lang} />
         </div>
-        <div className="p-6 lg:p-8">{children}</div>
+        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
   );
