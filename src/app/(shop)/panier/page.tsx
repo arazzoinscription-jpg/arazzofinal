@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCart } from "@/app/actions/cart";
+import { getAppliedPromo } from "@/app/actions/promo";
 import { CartClient } from "./cart-client";
 
 export const metadata = { title: "Mon panier — Arazzo" };
@@ -7,6 +8,9 @@ export const dynamic = "force-dynamic";
 
 export default async function PanierPage() {
   const { items, subtotal } = await getCart();
+  const promo = await getAppliedPromo();
+  const discount = promo?.discount ?? 0;
+  const total = Math.max(0, subtotal - discount);
 
   return (
     <div>
@@ -22,7 +26,7 @@ export default async function PanierPage() {
           </Link>
         </div>
       ) : (
-        <CartClient items={items} subtotal={subtotal} />
+        <CartClient items={items} subtotal={subtotal} discount={discount} total={total} appliedCode={promo?.code ?? null} />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCart } from "@/app/actions/cart";
+import { getAppliedPromo } from "@/app/actions/promo";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutClient } from "./checkout-client";
 
@@ -13,6 +14,10 @@ export default async function CheckoutPage() {
 
   const { items, subtotal } = await getCart();
   if (items.length === 0) redirect("/panier");
+
+  const promo = await getAppliedPromo();
+  const discount = promo?.discount ?? 0;
+  const total = Math.max(0, subtotal - discount);
 
   // Pré-remplissage depuis le profil
   const { data: profile } = await supabase
@@ -39,7 +44,7 @@ export default async function CheckoutPage() {
   return (
     <div>
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-6">Finaliser ma commande</h1>
-      <CheckoutClient items={items} subtotal={subtotal} defaultCustomer={defaultCustomer} ccpConfig={ccpConfig} />
+      <CheckoutClient items={items} subtotal={subtotal} discount={discount} total={total} appliedCode={promo?.code ?? null} defaultCustomer={defaultCustomer} ccpConfig={ccpConfig} />
     </div>
   );
 }

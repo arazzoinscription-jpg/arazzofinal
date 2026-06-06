@@ -22,9 +22,13 @@ type Method = "ccp" | "paypal" | "cod" | "transfer";
 const fmt = (n: number) => `${Number(n).toLocaleString("fr-DZ")} DA`;
 
 export function CheckoutClient({
-  items, subtotal, defaultCustomer, ccpConfig,
-}: { items: CartLineDetailed[]; subtotal: number; defaultCustomer: DefaultCustomer; ccpConfig: CCPConfig | null }) {
+  items, subtotal, discount = 0, total, appliedCode = null, defaultCustomer, ccpConfig,
+}: {
+  items: CartLineDetailed[]; subtotal: number; discount?: number; total?: number; appliedCode?: string | null;
+  defaultCustomer: DefaultCustomer; ccpConfig: CCPConfig | null;
+}) {
   const router = useRouter();
+  const grandTotal = total ?? subtotal - discount;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [customer, setCustomer] = useState<DefaultCustomer>(defaultCustomer);
   const [method, setMethod] = useState<Method>("ccp");
@@ -251,8 +255,14 @@ export function CheckoutClient({
           <span className="text-gray-500">{items.reduce((s, i) => s + i.quantity, 0)} article(s)</span>
           <span className="font-semibold">{fmt(subtotal)}</span>
         </div>
+        {discount > 0 && (
+          <div className="flex justify-between text-sm font-dm mb-2 text-green-700">
+            <span>Remise{appliedCode ? ` (${appliedCode})` : ""}</span>
+            <span className="font-semibold">−{fmt(discount)}</span>
+          </div>
+        )}
         <div className="flex justify-between font-bold text-lg font-playfair text-orange-600 border-t border-cream-100 pt-3 mt-2">
-          <span>À payer</span><span>{fmt(subtotal)}</span>
+          <span>À payer</span><span>{fmt(grandTotal)}</span>
         </div>
       </div>
     </div>

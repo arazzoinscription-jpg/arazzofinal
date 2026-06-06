@@ -1,8 +1,11 @@
 "use server";
 
 import { z } from "zod";
+import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { validateCoupon } from "@/lib/coupons";
 import { sendOrderReceived } from "./emails";
 
 // ── Schémas ──────────────────────────────────────────────────────────────
@@ -80,8 +83,16 @@ export async function createOrder(
     lines.push({ product_id: p.id, title: p.title, price, quantity: qty, course_id: p.course_id });
   }
 
-  const discount = 0;
-  const total = subtotal - discount;
+  // Code promo (revalidé côté serveur sur le sous-total réel)
+  let discount = 0;
+  let couponId: string | null = null;
+  const promoCode = (await cookies()).get("promo")?.value;
+  if (promoCode) {
+    const admin = createAdminClient();
+    const r = await validateCoupon(admin, promoCode, subtotal);
+    if (r.valid) { discount = r.discount ?? 0; couponId = r.couponId ?? null; }
+  }
+  const total = Math.max(0, subtotal - discount);
   const c = custParsed.data;
 
   // Création de la commande (order_number rempli par trigger)
@@ -126,6 +137,16 @@ export async function createOrder(
 
   // Vide le panier DB de l'utilisateur
   await supabase.from("cart_items").delete().eq("user_id", user.id);
+
+  // Incrémente l'usage du coupon + retire le code appliqué
+  if (couponId) {
+    try {
+      const admin = createAdminClient();
+      const { data: cur } = await admin.from("coupons").select("used_count").eq("id", couponId).single();
+      await admin.from("coupons").update({ used_count: (cur?.used_count ?? 0) + 1 }).eq("id", couponId);
+    } catch { /* ignore */ }
+  }
+  try { (await cookies()).delete("promo"); } catch { /* ignore */ }
 
   // Email « commande reçue » (best-effort, ne bloque pas la commande)
   try { await sendOrderReceived(order.id); } catch { /* ignore */ }
