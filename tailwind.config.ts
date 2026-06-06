@@ -10,33 +10,33 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Violet du logo Arazzo (scissors + « Patronnage »)
+        // Violet électrique du logo Arazzo (ciseaux + « FORMATION ») — #5B16F9
         violet: {
-          DEFAULT: "#6D28D9",
-          50: "#F4EEFD",
-          100: "#E6D8FB",
-          200: "#CDB1F7",
-          300: "#B088F1",
-          400: "#8F5BEA",
-          500: "#6D28D9",
-          600: "#5B21B6",
-          700: "#491A92",
-          800: "#37146E",
-          900: "#260D4B",
+          DEFAULT: "#5B16F9",
+          50: "#F1ECFE",
+          100: "#E3D6FE",
+          200: "#C6AEFD",
+          300: "#A37FFB",
+          400: "#7E47FA",
+          500: "#5B16F9",
+          600: "#490FD6",
+          700: "#380BAB",
+          800: "#2A0880",
+          900: "#1C0659",
         },
-        // Orange du logo Arazzo (« RAZZO »)
+        // Orange vif du logo Arazzo (« RAZZO » + mannequin) — #FE7223
         orange: {
-          DEFAULT: "#F4801F",
-          50: "#FEF3E8",
-          100: "#FCE0C5",
-          200: "#F9C088",
-          300: "#F7A24E",
-          400: "#F58E30",
-          500: "#F4801F",
-          600: "#D9620E",
-          700: "#A8490B",
-          800: "#723109",
-          900: "#421C05",
+          DEFAULT: "#FE7223",
+          50: "#FFF2E8",
+          100: "#FFDFC7",
+          200: "#FEBE8C",
+          300: "#FE9D52",
+          400: "#FE8537",
+          500: "#FE7223",
+          600: "#E5590E",
+          700: "#B5470B",
+          800: "#823308",
+          900: "#4D1E04",
         },
         cream: {
           DEFAULT: "#F5F0EB",

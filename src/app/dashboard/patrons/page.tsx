@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { patronImage } from "@/lib/patron-images";
 
 export const metadata = { title: "Mes patrons — Arazzo Formation" };
 
@@ -48,17 +49,11 @@ export default async function PatronsPage() {
                 className="bg-white rounded-2xl border border-cream-200 overflow-hidden hover:shadow-lg transition-all"
               >
                 <div className="aspect-[3/4] bg-cream-100 relative overflow-hidden">
-                  {patron?.preview_url ? (
-                    <img
-                      src={patron.preview_url}
-                      alt={patron.titre}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-7xl">
-                      📄
-                    </div>
-                  )}
+                  <img
+                    src={patron?.preview_url || patronImage(patron?.id)}
+                    alt={patron?.titre}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="p-5">
                   <h3 className="font-semibold text-gray-900 mb-2">
