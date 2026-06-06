@@ -67,7 +67,7 @@ export default async function DashboardPage() {
   const muted = "text-gray-500 dark:text-white/50";
 
   return (
-    <div className="-mx-6 lg:-mx-8 -mt-6 lg:-mt-8 -mb-6 lg:-mb-8 px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-cream-DEFAULT text-gray-900 dark:bg-[#0d0a1c] dark:text-white">
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 -mb-4 sm:-mb-6 lg:-mb-8 px-4 sm:px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-cream-DEFAULT text-gray-900 dark:bg-[#0d0a1c] dark:text-white">
       {/* En-tête */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>

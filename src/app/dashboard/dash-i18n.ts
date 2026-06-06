@@ -37,6 +37,8 @@ type Dict = {
   weeklyGoal: (n: number) => string;
   soonHere: string;
   completed: string;
+  logout: string;
+  menu: string;
 };
 
 export const DICT: Record<Lang, Dict> = {
@@ -67,6 +69,8 @@ export const DICT: Record<Lang, Dict> = {
     weeklyGoal: (n) => `Objectif : ${n} leçons / semaine`,
     soonHere: "Vos prochaines formations apparaîtront ici.",
     completed: "terminé",
+    logout: "Déconnexion",
+    menu: "Menu",
   },
   ar: {
     greeting: "مرحباً",
@@ -95,6 +99,8 @@ export const DICT: Record<Lang, Dict> = {
     weeklyGoal: (n) => `الهدف: ${n} دروس / أسبوع`,
     soonHere: "ستظهر تكويناتك القادمة هنا.",
     completed: "مكتمل",
+    logout: "تسجيل الخروج",
+    menu: "القائمة",
   },
   en: {
     greeting: "Hello",
@@ -123,5 +129,7 @@ export const DICT: Record<Lang, Dict> = {
     weeklyGoal: (n) => `Goal: ${n} lessons / week`,
     soonHere: "Your next courses will appear here.",
     completed: "completed",
+    logout: "Sign out",
+    menu: "Menu",
   },
 };
