@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { DICT, normLang } from "./dash-i18n";
+import { RoleRequestCTA } from "./role-request/cta";
 import {
   Flame, Sparkles, BookOpen, CheckCircle2, Play, ArrowUpRight, Trophy, Zap, Calendar,
 } from "lucide-react";
@@ -17,8 +18,17 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
-    .from("users").select("nom, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
+    .from("users").select("nom, role, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
     .eq("id", user!.id).single();
+
+  // Demandes de rôle (élève → formatrice / patronniste)
+  const { data: roleReqs } = await supabase
+    .from("role_requests")
+    .select("requested_role, statut, created_at")
+    .eq("user_id", user!.id)
+    .order("created_at", { ascending: false });
+  const latestStatus = (r: "formateur" | "patronniste"): "none" | "en_attente" | "approuve" | "refuse" =>
+    (roleReqs?.find((x) => x.requested_role === r)?.statut as "en_attente" | "approuve" | "refuse" | undefined) ?? "none";
 
   const { data: enrollments } = await supabase
     .from("enrollments")
@@ -81,6 +91,15 @@ export default async function DashboardPage() {
           <span className="text-sm font-semibold capitalize">{profile?.level_label ?? "apprentie"}</span>
         </div>
       </div>
+
+      {(profile?.role ?? "eleve") === "eleve" && (
+        <div className="mb-6">
+          <RoleRequestCTA
+            formateurStatus={latestStatus("formateur")}
+            patronnisteStatus={latestStatus("patronniste")}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ── Colonne gauche ── */}

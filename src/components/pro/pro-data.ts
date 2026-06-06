@@ -72,6 +72,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
     items: [
       { href: "/admin/utilisateurs", icon: Users, label: { fr: "Utilisateurs", ar: "المستخدمون", en: "Users" } },
       { href: "/admin/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
+      { href: "/admin/demandes", icon: BadgeCheck, label: { fr: "Demandes de rôle", ar: "طلبات الأدوار", en: "Role requests" } },
     ],
   },
   {
