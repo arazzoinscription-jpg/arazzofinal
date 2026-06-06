@@ -1,7 +1,13 @@
+"use client";
+
+import { useRef } from "react";
 import Link from "next/link";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 import { Scissors, PencilRuler, Ruler, Gem, Hand, MonitorSmartphone, Megaphone, Route, ArrowUpRight } from "lucide-react";
+
+const MotionLink = motion.create(Link);
 
 const CATEGORIES = [
   { Icon: Scissors, fr: "Couture & Modélisme", ar: "خياطة / موديلزم", chip: "bg-orange-50 text-orange-600" },
@@ -14,6 +20,38 @@ const CATEGORIES = [
   { Icon: Route, fr: "Parcours structurés", ar: "مسارات", chip: "bg-violet-50 text-violet-700" },
 ];
 
+function Grid() {
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+
+  return (
+    <div ref={ref} className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      {CATEGORIES.map((c, i) => (
+        <MotionLink
+          key={c.fr}
+          href="/formations"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85 }}
+          animate={inView ? { opacity: 1, scale: 1 } : {}}
+          transition={{ delay: reduce ? 0 : i * 0.07, type: "spring", stiffness: 200, damping: 18 }}
+          whileHover={reduce ? undefined : { scale: 1.06, backgroundColor: "#6B21C8", color: "#FFFFFF" }}
+          whileTap={{ scale: 0.95 }}
+          className="group block bg-white rounded-3xl p-6 border border-cream-200 shadow-soft h-full"
+        >
+          <div className="flex items-start justify-between mb-5">
+            <span className={`w-14 h-14 rounded-2xl flex items-center justify-center ${c.chip} group-hover:scale-110 transition-transform`}>
+              <c.Icon size={26} strokeWidth={1.75} />
+            </span>
+            <ArrowUpRight size={18} className="text-gray-300 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+          </div>
+          <h3 className="font-playfair text-lg font-bold text-gray-900 leading-snug group-hover:text-white transition-colors">{c.fr}</h3>
+          <p className="text-sm text-gray-400 font-dm mt-1 group-hover:text-white/80 transition-colors" dir="rtl">{c.ar}</p>
+        </MotionLink>
+      ))}
+    </div>
+  );
+}
+
 export function CategoriesSection() {
   return (
     <section className="relative py-24 bg-white overflow-hidden">
@@ -21,23 +59,7 @@ export function CategoriesSection() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading eyebrow="Nos univers" title="Explorez toutes les" highlight="spécialités couture" />
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {CATEGORIES.map((c, i) => (
-            <Reveal key={c.fr} animation="up" delay={(i % 4) * 80}>
-              <Link href="/formations"
-                className="group block bg-white rounded-3xl p-6 border border-cream-200 shadow-soft hover:shadow-xl hover:-translate-y-1 transition-[transform,box-shadow] duration-300 h-full">
-                <div className="flex items-start justify-between mb-5">
-                  <span className={`w-14 h-14 rounded-2xl flex items-center justify-center ${c.chip} group-hover:scale-110 transition-transform`}>
-                    <c.Icon size={26} strokeWidth={1.75} />
-                  </span>
-                  <ArrowUpRight size={18} className="text-gray-300 group-hover:text-orange-DEFAULT group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                </div>
-                <h3 className="font-playfair text-lg font-bold text-gray-900 leading-snug">{c.fr}</h3>
-                <p className="text-sm text-gray-400 font-dm mt-1" dir="rtl">{c.ar}</p>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
+        <Grid />
 
         {/* Bandeau « 2 façons d'apprendre » */}
         <Reveal animation="up" delay={120}>

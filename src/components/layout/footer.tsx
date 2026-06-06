@@ -1,20 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 const columns = [
   {
     title: "Plateforme",
     links: [
-      { href: "/formations",        label: "Formations" },
-      { href: "/patrons",           label: "Patrons" },
+      { href: "/formations", label: "Formations" },
+      { href: "/patrons", label: "Patrons" },
       { href: "/devenir-formateur", label: "Devenir formateur" },
-      { href: "/tarifs",            label: "Tarifs" },
+      { href: "/tarifs", label: "Tarifs" },
     ],
   },
   {
     title: "Aide",
     links: [
-      { href: "/aide",    label: "Centre d'aide" },
+      { href: "/aide", label: "Centre d'aide" },
       { href: "/contact", label: "Contact" },
       { href: "/a-propos", label: "À propos" },
     ],
@@ -22,21 +25,36 @@ const columns = [
   {
     title: "Légal",
     links: [
-      { href: "/cgu",             label: "CGU" },
-      { href: "/cgv",             label: "CGV" },
+      { href: "/cgu", label: "CGU" },
+      { href: "/cgv", label: "CGV" },
       { href: "/confidentialite", label: "Politique de confidentialité" },
     ],
   },
 ];
 
 const socials = [
-  { label: "Telegram",  icon: "✈" },
-  { label: "WhatsApp",  icon: "💬" },
-  { label: "YouTube",   icon: "▶" },
-  { label: "TikTok",    icon: "♪" },
+  { label: "Telegram", icon: "✈" },
+  { label: "WhatsApp", icon: "💬" },
+  { label: "YouTube", icon: "▶" },
+  { label: "TikTok", icon: "♪" },
   { label: "Instagram", icon: "📷" },
-  { label: "Facebook",  icon: "f" },
+  { label: "Facebook", icon: "f" },
 ];
+
+function FooterLink({ href, label }: { href: string; label: string }) {
+  return (
+    <motion.span initial="rest" animate="rest" whileHover="hover" className="relative inline-block">
+      <Link href={href} className="text-gray-400 hover:text-orange-DEFAULT transition-colors font-dm text-sm">
+        {label}
+      </Link>
+      <motion.span
+        variants={{ rest: { scaleX: 0 }, hover: { scaleX: 1 } }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="absolute left-0 -bottom-0.5 h-px w-full bg-orange-DEFAULT origin-left"
+      />
+    </motion.span>
+  );
+}
 
 export function Footer() {
   return (
@@ -56,11 +74,15 @@ export function Footer() {
             {/* Socials */}
             <div className="flex gap-3">
               {socials.map((s) => (
-                <a key={s.label} href="#" aria-label={s.label}
-                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-orange-DEFAULT transition-colors text-sm"
+                <motion.a
+                  key={s.label} href="#" aria-label={s.label}
+                  whileHover={{ scale: 1.2, color: "#E8650A" }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 400 }}
+                  className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm"
                 >
                   {s.icon}
-                </a>
+                </motion.a>
               ))}
             </div>
           </div>
@@ -71,11 +93,7 @@ export function Footer() {
               <h4 className="font-semibold text-white mb-4 font-dm">{col.title}</h4>
               <ul className="space-y-2.5">
                 {col.links.map((l) => (
-                  <li key={l.href}>
-                    <Link href={l.href} className="text-gray-400 hover:text-orange-DEFAULT transition-colors font-dm text-sm">
-                      {l.label}
-                    </Link>
-                  </li>
+                  <li key={l.href}><FooterLink href={l.href} label={l.label} /></li>
                 ))}
               </ul>
             </div>
