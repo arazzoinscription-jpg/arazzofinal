@@ -58,12 +58,12 @@ export default async function DashboardLayout({
               <p className="text-sm font-semibold text-violet-800 dark:text-orange-300 font-dm capitalize">{prenom}</p>
             </div>
             <div className="flex-1 min-w-0 max-w-md">
-              <SearchBar compact />
+              <div className="hidden sm:block">
+                <SearchBar compact />
+              </div>
             </div>
             <LangSwitcher current={lang} />
-            <div className="hidden sm:block">
-              <ThemeToggle />
-            </div>
+            <ThemeToggle />
             <NotificationBell userId={user.id} />
           </div>
           <DashboardSubnav lang={lang} />

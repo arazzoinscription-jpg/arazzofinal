@@ -46,7 +46,7 @@ export function MobileNav({
             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
           />
           {/* Drawer */}
-          <aside className="absolute inset-y-0 start-0 w-72 max-w-[82%] flex flex-col bg-gradient-to-b from-violet-800 to-violet-900 shadow-2xl">
+          <aside className="absolute inset-y-0 start-0 w-[86vw] max-w-[340px] flex flex-col bg-gradient-to-b from-violet-800 to-violet-900 shadow-2xl">
             <button
               onClick={() => setOpen(false)}
               aria-label="Fermer"
