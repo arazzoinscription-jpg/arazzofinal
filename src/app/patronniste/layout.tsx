@@ -10,6 +10,7 @@ import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
 import { ProSidebar } from "@/components/pro/pro-sidebar";
 import { ProSubnav } from "@/components/pro/pro-subnav";
 import { ProMobileNav } from "@/components/pro/pro-mobile-nav";
+import { PageTransition } from "@/app/dashboard/page-transition";
 import { PRO_UI } from "@/components/pro/pro-data";
 
 export default async function PatronnisteLayout({ children }: { children: React.ReactNode }) {
@@ -86,7 +87,7 @@ export default async function PatronnisteLayout({ children }: { children: React.
           </div>
           <ProSubnav variant="patronniste" lang={lang} />
         </div>
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="p-4 sm:p-6 lg:p-8"><PageTransition>{children}</PageTransition></div>
         <Toaster />
       </main>
     </div>

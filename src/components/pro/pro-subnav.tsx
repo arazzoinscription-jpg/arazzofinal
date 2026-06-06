@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { proActiveKey, proActiveItem, SECTION_SETS, type ProVariant, type Lang } from "./pro-data";
+
+const MotionLink = motion.create(Link);
 
 /** Menu horizontal : onglets des sous-pages de la section active. */
 export function ProSubnav({
@@ -25,9 +28,12 @@ export function ProSubnav({
           const Icon = it.icon;
           const on = activeHref === it.href;
           return (
-            <Link
+            <MotionLink
               key={it.href}
               href={it.href}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.96 }}
+              transition={{ duration: 0.2 }}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                 on
                   ? "bg-orange-DEFAULT text-white shadow-sm"
@@ -36,7 +42,7 @@ export function ProSubnav({
             >
               <Icon size={16} />
               {it.label[lang]}
-            </Link>
+            </MotionLink>
           );
         })}
       </div>

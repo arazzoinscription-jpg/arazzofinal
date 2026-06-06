@@ -10,6 +10,7 @@ import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
 import { ProSidebar } from "@/components/pro/pro-sidebar";
 import { ProSubnav } from "@/components/pro/pro-subnav";
 import { ProMobileNav } from "@/components/pro/pro-mobile-nav";
+import { PageTransition } from "@/app/dashboard/page-transition";
 import { PRO_UI } from "@/components/pro/pro-data";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -84,7 +85,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <ProSubnav variant="admin" lang={lang} />
         </div>
-        {children}
+        <PageTransition>{children}</PageTransition>
         <Toaster />
       </main>
     </div>

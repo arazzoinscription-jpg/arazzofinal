@@ -2,8 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { UserRound } from "lucide-react";
 import { proActiveKey, PRO_UI, SECTION_SETS, type ProVariant, type Lang } from "./pro-data";
+
+const MotionLink = motion.create(Link);
+const hover = { whileHover: { x: -4 }, transition: { duration: 0.2 } };
 
 /** Menu vertical : grandes sections de l'espace pro (le détail va dans le menu horizontal). */
 export function ProSidebar({
@@ -24,26 +28,28 @@ export function ProSidebar({
         const Icon = s.icon;
         const on = active === s.key;
         return (
-          <Link
+          <MotionLink
             key={s.key}
             href={s.home}
+            {...hover}
             className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium transition-colors ${
               on ? "bg-orange-DEFAULT text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
             }`}
           >
             <Icon size={20} className="flex-shrink-0" />
             <span className="truncate">{s.label[lang]}</span>
-          </Link>
+          </MotionLink>
         );
       })}
 
       <div className="pt-4 mt-3 border-t border-white/10">
-        <Link
+        <MotionLink
           href="/dashboard"
+          {...hover}
           className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
         >
           <UserRound size={20} className="flex-shrink-0" /> <span className="truncate">{ui.studentSpace}</span>
-        </Link>
+        </MotionLink>
       </div>
     </nav>
   );
