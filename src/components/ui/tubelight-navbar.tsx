@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,17 +20,15 @@ interface NavBarProps {
 
 export function NavBar({ items, className }: NavBarProps) {
   const [activeTab, setActiveTab] = useState(items[0].name);
-  const [isMobile, setIsMobile] = useState(false);
+  const pathname = usePathname();
 
+  // Onglet actif synchronisé avec la route courante.
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    const match = items.find(
+      (i) => i.url !== "#" && (pathname === i.url || pathname.startsWith(i.url + "/")),
+    );
+    if (match) setActiveTab(match.name);
+  }, [pathname, items]);
 
   return (
     <div
@@ -38,7 +37,7 @@ export function NavBar({ items, className }: NavBarProps) {
         className,
       )}
     >
-      <div className="flex items-center gap-3 bg-background/5 border border-border backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
+      <div className="flex items-center gap-3 bg-white/80 dark:bg-[#0d0a1c]/80 border border-cream-200 dark:border-white/10 backdrop-blur-lg py-1 px-1 rounded-full shadow-lg">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.name;
@@ -50,8 +49,8 @@ export function NavBar({ items, className }: NavBarProps) {
               onClick={() => setActiveTab(item.name)}
               className={cn(
                 "relative cursor-pointer text-sm font-semibold px-6 py-2 rounded-full transition-colors",
-                "text-foreground/80 hover:text-primary",
-                isActive && "bg-muted text-primary",
+                "text-gray-600 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
+                isActive && "bg-violet-50 dark:bg-white/10 text-[#6B21C8] dark:text-violet-200",
               )}
             >
               <span className="hidden md:inline">{item.name}</span>
@@ -61,7 +60,7 @@ export function NavBar({ items, className }: NavBarProps) {
               {isActive && (
                 <motion.div
                   layoutId="lamp"
-                  className="absolute inset-0 w-full bg-primary/5 rounded-full -z-10"
+                  className="absolute inset-0 w-full bg-[#6B21C8]/5 rounded-full -z-10"
                   initial={false}
                   transition={{
                     type: "spring",
@@ -69,10 +68,10 @@ export function NavBar({ items, className }: NavBarProps) {
                     damping: 30,
                   }}
                 >
-                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-primary rounded-t-full">
-                    <div className="absolute w-12 h-6 bg-primary/20 rounded-full blur-md -top-2 -left-2" />
-                    <div className="absolute w-8 h-6 bg-primary/20 rounded-full blur-md -top-1" />
-                    <div className="absolute w-4 h-4 bg-primary/20 rounded-full blur-sm top-0 left-2" />
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-[#6B21C8] rounded-t-full">
+                    <div className="absolute w-12 h-6 bg-[#6B21C8]/20 rounded-full blur-md -top-2 -left-2" />
+                    <div className="absolute w-8 h-6 bg-[#6B21C8]/20 rounded-full blur-md -top-1" />
+                    <div className="absolute w-4 h-4 bg-[#6B21C8]/20 rounded-full blur-sm top-0 left-2" />
                   </div>
                 </motion.div>
               )}
