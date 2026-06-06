@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { Reveal } from "@/components/ui/reveal";
 
 export const metadata = { title: "Dashboard Formateur — Arazzo Formation" };
 
@@ -74,9 +75,11 @@ export default async function FormateurDashboard() {
             icon: "💰",
             isText: true,
           },
-        ].map((s) => (
-          <div
+        ].map((s, i) => (
+          <Reveal
             key={s.label}
+            animation="up"
+            delay={i * 100}
             className="bg-white rounded-2xl p-6 border border-cream-200 flex items-center gap-4"
           >
             <span className="text-3xl">{s.icon}</span>
@@ -86,7 +89,7 @@ export default async function FormateurDashboard() {
               </div>
               <div className="text-sm text-gray-500">{s.label}</div>
             </div>
-          </div>
+          </Reveal>
         ))}
       </div>
 
@@ -96,7 +99,7 @@ export default async function FormateurDashboard() {
       </h2>
 
       {!courses?.length ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">
+        <Reveal animation="up" className="text-center py-20 bg-white rounded-2xl border border-cream-200">
           <div className="text-6xl mb-4">🎬</div>
           <p className="text-xl text-gray-400 mb-4">
             Vous n'avez pas encore créé de cours
@@ -107,9 +110,9 @@ export default async function FormateurDashboard() {
           >
             Créer mon premier cours
           </Link>
-        </div>
+        </Reveal>
       ) : (
-        <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
+        <Reveal animation="up" delay={120} className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
           <table className="w-full">
             <thead className="bg-cream-50 border-b border-cream-200">
               <tr>
@@ -191,7 +194,7 @@ export default async function FormateurDashboard() {
               })}
             </tbody>
           </table>
-        </div>
+        </Reveal>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Shapes, ShoppingBag, Ruler, PlusCircle, ArrowRight } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { Reveal } from "@/components/ui/reveal";
 
 export const metadata = { title: "Espace Patronniste — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -34,19 +35,21 @@ export default async function PatronnisteHome() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((s) => {
+        {stats.map((s, i) => {
           const Icon = s.icon;
           return (
-            <Link key={s.label} href={s.href} className={`${card} hover:shadow-lg transition-shadow group`}>
-              <div className="flex items-start justify-between">
-                <span className={`w-12 h-12 rounded-2xl flex items-center justify-center ${s.color === "orange" ? "bg-orange-500/15 text-orange-500" : "bg-violet-500/15 text-violet-600 dark:text-violet-300"}`}>
-                  <Icon size={22} />
-                </span>
-                <ArrowRight size={18} className="text-gray-300 dark:text-white/30 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <div className="mt-4 text-3xl font-bold">{s.value}</div>
-              <div className="text-sm text-gray-500 dark:text-white/50">{s.label}</div>
-            </Link>
+            <Reveal key={s.label} animation="up" delay={i * 100}>
+              <Link href={s.href} className={`${card} hover:shadow-lg transition-shadow group block`}>
+                <div className="flex items-start justify-between">
+                  <span className={`w-12 h-12 rounded-2xl flex items-center justify-center ${s.color === "orange" ? "bg-orange-500/15 text-orange-500" : "bg-violet-500/15 text-violet-600 dark:text-violet-300"}`}>
+                    <Icon size={22} />
+                  </span>
+                  <ArrowRight size={18} className="text-gray-300 dark:text-white/30 group-hover:translate-x-1 transition-transform" />
+                </div>
+                <div className="mt-4 text-3xl font-bold">{s.value}</div>
+                <div className="text-sm text-gray-500 dark:text-white/50">{s.label}</div>
+              </Link>
+            </Reveal>
           );
         })}
       </div>

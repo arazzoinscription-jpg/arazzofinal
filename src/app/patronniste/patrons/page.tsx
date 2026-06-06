@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PlusCircle, Pencil, Download } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { patronImage } from "@/lib/patron-images";
+import { Reveal } from "@/components/ui/reveal";
 import { DeletePatronButton } from "./delete-button";
 
 export const metadata = { title: "Mes patrons — Patronniste" };
@@ -32,8 +33,8 @@ export default async function PatronnistePatronsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {patrons.map((p) => (
-            <div key={p.id} className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 overflow-hidden group">
+          {patrons.map((p, i) => (
+            <Reveal key={p.id} animation="up" delay={(i % 4) * 70} className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 overflow-hidden group">
               <Link href={`/patronniste/patrons/${p.id}`} className="block aspect-[3/4] bg-cream-100 dark:bg-white/5 overflow-hidden">
                 <img src={p.preview_url || patronImage(p.id)} alt={p.titre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               </Link>
@@ -60,7 +61,7 @@ export default async function PatronnistePatronsPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Reveal>
           ))}
         </div>
       )}
