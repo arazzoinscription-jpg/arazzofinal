@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, GraduationCap, ShoppingBag, Users, UserCog,
   TrendingUp, Trophy, Video, FolderOpen, Award,
-  Package, Receipt, FileText, Store,
+  Package, Receipt, FileText, Store, Ruler,
   Newspaper, UsersRound, Megaphone, LifeBuoy,
   User, Lock, Bell,
   type LucideIcon,
@@ -39,6 +39,7 @@ export const SECTIONS: NavSection[] = [
       { href: "/dashboard/commandes", icon: Package, label: { fr: "Mes commandes", ar: "طلباتي", en: "My orders" } },
       { href: "/dashboard/factures", icon: Receipt, label: { fr: "Mes factures", ar: "فواتيري", en: "My invoices" } },
       { href: "/dashboard/patrons", icon: FileText, label: { fr: "Mes patrons", ar: "باتروناتي", en: "My patterns" } },
+      { href: "/dashboard/sur-mesure", icon: Ruler, label: { fr: "Sur mesure", ar: "حسب المقاس", en: "Made-to-measure" } },
     ],
   },
   {

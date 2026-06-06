@@ -1,0 +1,140 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Save, Loader2, ImagePlus, FileUp } from "lucide-react";
+
+export interface PatronInit {
+  id?: string;
+  titre?: string;
+  description?: string | null;
+  prix_dzd?: number | null;
+  prix_eur?: number | null;
+  tailles?: string | null;
+  tissu?: string | null;
+  taille_table?: string | null;
+  nb_pages?: number | null;
+  format?: string | null;
+  preview_url?: string | null;
+  fichier_url?: string | null;
+}
+
+const field = "w-full rounded-xl border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500";
+const label = "block text-sm font-medium text-gray-700 dark:text-white/80 mb-1.5";
+
+export function PatronForm({ init = {} }: { init?: PatronInit }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    if (init.id) fd.set("id", init.id);
+    try {
+      const res = await fetch("/api/patrons/upsert", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erreur");
+      router.push("/patronniste/patrons");
+      router.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+      setLoading(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="max-w-3xl space-y-6">
+      {error && (
+        <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
+
+      <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">Informations</h2>
+        <div>
+          <label className={label}>Titre du patron *</label>
+          <input name="titre" defaultValue={init.titre ?? ""} required className={field} placeholder="Ex. Caftan brodé" />
+        </div>
+        <div>
+          <label className={label}>Description</label>
+          <textarea name="description" defaultValue={init.description ?? ""} rows={3} className={field} placeholder="Pièces incluses, niveau, notice de montage…" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Prix (DA)</label>
+            <input name="prix_dzd" type="number" min="0" defaultValue={init.prix_dzd ?? 0} className={field} />
+          </div>
+          <div>
+            <label className={label}>Prix (€)</label>
+            <input name="prix_eur" type="number" min="0" step="0.01" defaultValue={init.prix_eur ?? 0} className={field} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">Attributs</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Tailles disponibles</label>
+            <input name="tailles" defaultValue={init.tailles ?? ""} className={field} placeholder="Ex. 34 – 52" />
+          </div>
+          <div>
+            <label className={label}>Tissus à utiliser</label>
+            <input name="tissu" defaultValue={init.tissu ?? ""} className={field} placeholder="Ex. Crêpe · satin · gabardine" />
+          </div>
+          <div>
+            <label className={label}>Nombre de pages</label>
+            <input name="nb_pages" type="number" min="0" defaultValue={init.nb_pages ?? ""} className={field} placeholder="24" />
+          </div>
+          <div>
+            <label className={label}>Format d'impression</label>
+            <input name="format" defaultValue={init.format ?? "PDF A4 + A0"} className={field} placeholder="PDF A4 + A0" />
+          </div>
+        </div>
+        <div>
+          <label className={label}>Table des mesures (placement)</label>
+          <textarea name="taille_table" defaultValue={init.taille_table ?? ""} rows={3} className={field}
+            placeholder="Décrivez la table des mesures : tour de poitrine, tour de taille, tour de hanches, hauteur… et indications de placement sur le tissu." />
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">Fichiers</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={label}><ImagePlus size={15} className="inline -mt-0.5 me-1" /> Visuel d'aperçu</label>
+            <input name="preview" type="file" accept="image/*" className={field} />
+            {init.preview_url && (
+              <img src={init.preview_url} alt="" className="mt-2 w-24 h-32 object-cover rounded-lg border border-cream-200 dark:border-white/10" />
+            )}
+          </div>
+          <div>
+            <label className={label}><FileUp size={15} className="inline -mt-0.5 me-1" /> Fichier du patron (PDF)</label>
+            <input name="pdf" type="file" accept="application/pdf,.pdf,image/*,.zip" className={field} />
+            {init.fichier_url && (
+              <a href={init.fichier_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-violet-600 dark:text-violet-300 underline">
+                Fichier actuel
+              </a>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-white/40">
+          {init.id ? "Laissez vide pour conserver les fichiers existants." : "Si aucun PDF n'est fourni, le visuel sera utilisé comme fichier téléchargeable."}
+        </p>
+      </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="inline-flex items-center gap-2 bg-orange-DEFAULT hover:bg-orange-600 disabled:opacity-60 text-white font-semibold px-6 py-3 rounded-xl transition-colors"
+      >
+        {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+        {init.id ? "Enregistrer les modifications" : "Créer le patron"}
+      </button>
+    </form>
+  );
+}

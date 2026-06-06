@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { GraduationCap, ShieldCheck } from "lucide-react";
+import { GraduationCap, ShieldCheck, Shapes } from "lucide-react";
 import { SECTIONS } from "./nav-data";
 import { DICT, type Lang } from "./dash-i18n";
 
@@ -56,13 +56,21 @@ export function DashboardNavFull({ role, lang = "fr" }: { role: string; lang?: L
         );
       })}
 
-      {(role === "formateur" || role === "admin") && (
+      {(role === "formateur" || role === "admin" || role === "patronniste") && (
         <div className="pt-3 mt-2 border-t border-white/10 space-y-1">
           <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-white/40">{t.pro}</p>
-          <Link href="/formateur"
-            className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
-            <GraduationCap size={20} className="flex-shrink-0" /> {t.trainer}
-          </Link>
+          {(role === "formateur" || role === "admin") && (
+            <Link href="/formateur"
+              className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
+              <GraduationCap size={20} className="flex-shrink-0" /> {t.trainer}
+            </Link>
+          )}
+          {(role === "patronniste" || role === "admin") && (
+            <Link href="/patronniste"
+              className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
+              <Shapes size={20} className="flex-shrink-0" /> {t.patronniste}
+            </Link>
+          )}
           {role === "admin" && (
             <Link href="/admin"
               className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">

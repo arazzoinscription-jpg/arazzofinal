@@ -15,6 +15,7 @@ type Dict = {
   pro: string;
   trainer: string;
   admin: string;
+  patronniste: string;
   // home
   level: string;
   streakDays: string;
@@ -48,6 +49,7 @@ export const DICT: Record<Lang, Dict> = {
     pro: "Espace pro",
     trainer: "Espace formateur",
     admin: "Administration",
+    patronniste: "Espace patronniste",
     level: "Niveau",
     streakDays: "jours",
     streakNow: "Série en cours",
@@ -78,6 +80,7 @@ export const DICT: Record<Lang, Dict> = {
     pro: "فضاء المهنيين",
     trainer: "فضاء المدرّب",
     admin: "الإدارة",
+    patronniste: "فضاء الباترونيست",
     level: "المستوى",
     streakDays: "أيام",
     streakNow: "سلسلة متواصلة",
@@ -108,6 +111,7 @@ export const DICT: Record<Lang, Dict> = {
     pro: "Pro space",
     trainer: "Trainer space",
     admin: "Administration",
+    patronniste: "Pattern-maker space",
     level: "Level",
     streakDays: "days",
     streakNow: "Current streak",

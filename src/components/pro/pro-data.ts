@@ -4,6 +4,7 @@ import {
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
   Settings, Mail, ScrollText,
+  Shapes, Ruler,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "@/app/dashboard/dash-i18n";
@@ -101,10 +102,35 @@ export const ADMIN_SECTIONS: ProSection[] = [
   },
 ];
 
-export type ProVariant = "formateur" | "admin";
+/* ───────────────────────── Espace PATRONNISTE ───────────────────────── */
+export const PATRONNISTE_SECTIONS: ProSection[] = [
+  {
+    key: "home", icon: LayoutDashboard, home: "/patronniste", items: [],
+    label: { fr: "Vue d'ensemble", ar: "نظرة عامة", en: "Overview" },
+  },
+  {
+    key: "patrons", icon: Shapes, home: "/patronniste/patrons",
+    label: { fr: "Mes patrons", ar: "باتروناتي", en: "My patterns" },
+    items: [
+      { href: "/patronniste/patrons", icon: FolderOpen, label: { fr: "Tous les patrons", ar: "كل الباترونات", en: "All patterns" } },
+      { href: "/patronniste/patrons/nouveau", icon: PlusCircle, label: { fr: "Nouveau patron", ar: "باترون جديد", en: "New pattern" } },
+    ],
+  },
+  {
+    key: "commandes", icon: Receipt, home: "/patronniste/commandes",
+    label: { fr: "Commandes", ar: "الطلبات", en: "Orders" },
+    items: [
+      { href: "/patronniste/commandes", icon: ShoppingBag, label: { fr: "Achats clients", ar: "مشتريات العملاء", en: "Client purchases" } },
+      { href: "/patronniste/sur-mesure", icon: Ruler, label: { fr: "Sur mesure", ar: "حسب المقاس", en: "Made-to-measure" } },
+    ],
+  },
+];
+
+export type ProVariant = "formateur" | "admin" | "patronniste";
 export const SECTION_SETS: Record<ProVariant, ProSection[]> = {
   formateur: FORMATEUR_SECTIONS,
   admin: ADMIN_SECTIONS,
+  patronniste: PATRONNISTE_SECTIONS,
 };
 
 /** Section active d'après l'URL (la plus spécifique). */
@@ -134,26 +160,26 @@ export function proActiveItem(items: ProSubItem[], pathname: string): string | n
 /* ───────────────────────── Textes UI (FR / AR / EN) ───────────────────────── */
 export const PRO_UI: Record<Lang, {
   navigation: string;
-  formateurSpace: string; adminSpace: string;
-  roleFormateur: string; roleAdmin: string;
+  formateurSpace: string; adminSpace: string; patronnisteSpace: string;
+  roleFormateur: string; roleAdmin: string; rolePatronniste: string;
   studentSpace: string; logout: string;
 }> = {
   fr: {
     navigation: "Navigation",
-    formateurSpace: "Espace Formateur", adminSpace: "Espace Admin",
-    roleFormateur: "Formatrice", roleAdmin: "Administratrice",
+    formateurSpace: "Espace Formateur", adminSpace: "Espace Admin", patronnisteSpace: "Espace Patronniste",
+    roleFormateur: "Formatrice", roleAdmin: "Administratrice", rolePatronniste: "Patronniste",
     studentSpace: "Mon espace élève", logout: "Déconnexion",
   },
   ar: {
     navigation: "التنقّل",
-    formateurSpace: "فضاء المدرّب", adminSpace: "فضاء الإدارة",
-    roleFormateur: "مدرّبة", roleAdmin: "مديرة",
+    formateurSpace: "فضاء المدرّب", adminSpace: "فضاء الإدارة", patronnisteSpace: "فضاء الباترونيست",
+    roleFormateur: "مدرّبة", roleAdmin: "مديرة", rolePatronniste: "باترونيست",
     studentSpace: "فضاء الطالبة", logout: "تسجيل الخروج",
   },
   en: {
     navigation: "Navigation",
-    formateurSpace: "Trainer space", adminSpace: "Admin space",
-    roleFormateur: "Trainer", roleAdmin: "Administrator",
+    formateurSpace: "Trainer space", adminSpace: "Admin space", patronnisteSpace: "Pattern-maker space",
+    roleFormateur: "Trainer", roleAdmin: "Administrator", rolePatronniste: "Pattern maker",
     studentSpace: "Student space", logout: "Sign out",
   },
 };
