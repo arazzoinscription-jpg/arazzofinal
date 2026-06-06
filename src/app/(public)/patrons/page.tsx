@@ -59,6 +59,28 @@ export default async function PatronsPage() {
                         par {(patron.formateur as any).nom}
                       </p>
                     )}
+
+                    {/* Attributs */}
+                    {((patron as any).tailles || (patron as any).tissu || (patron as any).nb_pages != null) && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {(patron as any).tailles && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-violet-50 text-violet-700 px-2 py-1 rounded-lg">
+                            📏 {(patron as any).tailles}
+                          </span>
+                        )}
+                        {(patron as any).tissu && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-orange-50 text-orange-700 px-2 py-1 rounded-lg line-clamp-1 max-w-full">
+                            🧵 {(patron as any).tissu}
+                          </span>
+                        )}
+                        {(patron as any).nb_pages != null && (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium bg-cream-100 text-gray-600 px-2 py-1 rounded-lg">
+                            📄 {(patron as any).nb_pages} p.
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-xl font-bold text-orange-DEFAULT">
                         {patron.prix_dzd.toLocaleString("fr-DZ")} DA
