@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DashboardSubnav } from "./dashboard-subnav";
 import { SidebarInner } from "./sidebar-inner";
 import { MobileNav } from "./mobile-nav";
+import { TopbarIcon } from "./topbar-icon";
 import { LangSwitcher } from "./lang-switcher";
 import { DICT, normLang, isRtl } from "./dash-i18n";
 
@@ -62,9 +63,9 @@ export default async function DashboardLayout({
                 <SearchBar compact />
               </div>
             </div>
-            <LangSwitcher current={lang} />
-            <ThemeToggle />
-            <NotificationBell userId={user.id} />
+            <TopbarIcon><LangSwitcher current={lang} /></TopbarIcon>
+            <TopbarIcon><ThemeToggle /></TopbarIcon>
+            <TopbarIcon><NotificationBell userId={user.id} /></TopbarIcon>
           </div>
           <DashboardSubnav lang={lang} />
         </div>

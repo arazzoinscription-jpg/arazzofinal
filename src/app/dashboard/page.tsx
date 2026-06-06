@@ -3,6 +3,9 @@ import { cookies } from "next/headers";
 import { DICT, normLang } from "./dash-i18n";
 import { RoleRequestCTA } from "./role-request/cta";
 import {
+  Reveal, StaggerGroup, StaggerItem, StaggerLink, CtaLink, AnimatedBadge, HoverTile, Counter,
+} from "./anim";
+import {
   Flame, Sparkles, BookOpen, CheckCircle2, Play, ArrowUpRight, Trophy, Zap, Calendar,
 } from "lucide-react";
 
@@ -86,10 +89,10 @@ export default async function DashboardPage() {
             {new Date().toLocaleDateString(LOCALE[lang], { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
-        <div className={`hidden sm:flex items-center gap-2 rounded-2xl px-4 py-2 ${card}`}>
+        <AnimatedBadge className={`hidden sm:flex items-center gap-2 rounded-2xl px-4 py-2 ${card}`}>
           <Trophy size={18} className="text-orange-500 dark:text-orange-300" />
           <span className="text-sm font-semibold capitalize">{profile?.level_label ?? "apprentie"}</span>
-        </div>
+        </AnimatedBadge>
       </div>
 
       {(profile?.role ?? "eleve") === "eleve" && (
@@ -103,9 +106,9 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ── Colonne gauche ── */}
-        <div className="space-y-4">
+        <StaggerGroup className="space-y-4" stagger={0.1}>
           {/* Carte série */}
-          <div className={`rounded-3xl p-6 ${card}`}>
+          <StaggerItem className={`rounded-3xl p-6 ${card}`}>
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-end gap-2">
@@ -119,27 +122,27 @@ export default async function DashboardPage() {
               </span>
             </div>
             <div className="mt-5 pt-4 border-t border-cream-200 dark:border-white/10 grid grid-cols-3 gap-2 text-center">
-              <div><div className="text-lg font-bold">{lessonsDone}</div><div className={`text-[11px] ${muted} font-dm`}>{t.lessons}</div></div>
-              <div><div className="text-lg font-bold">{xpTotal}</div><div className={`text-[11px] ${muted} font-dm`}>{t.xpTotal}</div></div>
-              <div><div className="text-lg font-bold">{courses.length}</div><div className={`text-[11px] ${muted} font-dm`}>{t.courses}</div></div>
+              <div><Counter value={lessonsDone} className="text-lg font-bold" /><div className={`text-[11px] ${muted} font-dm`}>{t.lessons}</div></div>
+              <div><Counter value={xpTotal} className="text-lg font-bold" /><div className={`text-[11px] ${muted} font-dm`}>{t.xpTotal}</div></div>
+              <div><Counter value={courses.length} className="text-lg font-bold" /><div className={`text-[11px] ${muted} font-dm`}>{t.courses}</div></div>
             </div>
-          </div>
+          </StaggerItem>
 
           {/* Carte activité */}
-          <div className={`rounded-3xl p-6 ${card}`}>
+          <StaggerItem className={`rounded-3xl p-6 ${card}`}>
             <h3 className="font-bold text-lg">{t.activity}</h3>
             <p className={`${muted} text-sm font-dm mb-4`}>{t.activitySub}</p>
             <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-violet-700 text-white">
+              <HoverTile className="rounded-2xl p-4 bg-gradient-to-br from-violet-500 to-violet-700 text-white">
                 <Zap size={18} className="mb-3" />
                 <div className="font-playfair text-2xl font-bold">{xpToday}</div>
                 <div className="text-[11px] text-white/70 font-dm mt-0.5">{t.today}</div>
-              </div>
-              <div className="rounded-2xl p-4 bg-gradient-to-br from-orange-400 to-orange-600 text-white">
+              </HoverTile>
+              <HoverTile className="rounded-2xl p-4 bg-gradient-to-br from-orange-400 to-orange-600 text-white">
                 <Sparkles size={18} className="mb-3" />
                 <div className="font-playfair text-2xl font-bold">{profile?.xp_this_month ?? 0}</div>
                 <div className="text-[11px] text-white/80 font-dm mt-0.5">{t.thisMonth}</div>
-              </div>
+              </HoverTile>
             </div>
             <div className="space-y-3">
               {courses.slice(0, 3).map((c) => (
@@ -156,13 +159,13 @@ export default async function DashboardPage() {
               ))}
               {courses.length === 0 && <p className={`text-sm ${muted} font-dm`}>Aucun cours pour l'instant.</p>}
             </div>
-          </div>
-        </div>
+          </StaggerItem>
+        </StaggerGroup>
 
         {/* ── Colonne droite ── */}
         <div className="lg:col-span-2 space-y-4">
           {/* Héro (image + lecteur) — texte blanc dans les deux thèmes (sur photo) */}
-          <div className="relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-[22rem] text-white">
+          <Reveal className="relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-[22rem] text-white" duration={0.6}>
             <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/40 to-transparent" />
             {hero ? (
@@ -194,10 +197,10 @@ export default async function DashboardPage() {
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
                 <p className="text-white/70 font-dm mb-4">{t.noCourse}</p>
-                <a href="/formations" className="bg-orange-DEFAULT px-6 py-3 rounded-xl font-semibold hover:bg-orange-600">{t.explore}</a>
+                <CtaLink href="/formations" className="bg-orange-DEFAULT px-6 py-3 rounded-xl font-semibold">{t.explore}</CtaLink>
               </div>
             )}
-          </div>
+          </Reveal>
 
           {/* Cartes cours */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -223,24 +226,24 @@ export default async function DashboardPage() {
           </div>
 
           {/* Raccourcis */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a href="/dashboard/sessions" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
+          <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4" stagger={0.15}>
+            <StaggerLink href="/dashboard/sessions" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
               <span className="w-11 h-11 rounded-2xl bg-violet-500/15 dark:bg-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center"><Calendar size={20} /></span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">{t.nextSession}</p>
                 <p className={`text-xs ${muted} font-dm truncate`}>{nextSession?.titre ?? t.noSession}</p>
               </div>
               <ArrowUpRight size={18} className="text-gray-300 dark:text-white/30" />
-            </a>
-            <a href="/dashboard/recompenses" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
+            </StaggerLink>
+            <StaggerLink href="/dashboard/recompenses" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
               <span className="w-11 h-11 rounded-2xl bg-orange-500/15 dark:bg-orange-500/20 text-orange-500 dark:text-orange-300 flex items-center justify-center"><CheckCircle2 size={20} /></span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm">{t.rewards}</p>
                 <p className={`text-xs ${muted} font-dm`}>{t.weeklyGoal(profile?.weekly_goal ?? 3)}</p>
               </div>
               <ArrowUpRight size={18} className="text-gray-300 dark:text-white/30" />
-            </a>
-          </div>
+            </StaggerLink>
+          </StaggerGroup>
         </div>
       </div>
     </div>
