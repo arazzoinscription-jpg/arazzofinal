@@ -122,6 +122,10 @@ export const PATRONNISTE_SECTIONS: ProSection[] = [
     ],
   },
   {
+    key: "shop", icon: ShoppingBag, home: "/patronniste/boutique", items: [],
+    label: { fr: "Mise en vente", ar: "العرض للبيع", en: "Sell" },
+  },
+  {
     key: "commandes", icon: Receipt, home: "/patronniste/commandes",
     label: { fr: "Commandes", ar: "الطلبات", en: "Orders" },
     items: [

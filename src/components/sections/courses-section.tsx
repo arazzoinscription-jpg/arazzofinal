@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useInView, useReducedMotion } from "framer-motion";
+import { HOME, type Lang } from "@/lib/home-i18n";
 
 const demoCourses = [
   {
@@ -35,7 +36,7 @@ const niveauStyle: Record<string, string> = {
   "Avancé": "bg-orange-100 text-orange-600",
 };
 
-function CourseCard({ course, index }: { course: any; index: number }) {
+function CourseCard({ course, index, see }: { course: any; index: number; see: string }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const inView = useInView(ref, { once: true, margin: "-60px" });
@@ -98,7 +99,7 @@ function CourseCard({ course, index }: { course: any; index: number }) {
               whileHover={{ x: 4 }} transition={{ duration: 0.2 }}
               className="bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-xl font-dm inline-block"
             >
-              Voir →
+              {see}
             </motion.span>
           </div>
         </div>
@@ -107,8 +108,9 @@ function CourseCard({ course, index }: { course: any; index: number }) {
   );
 }
 
-export function CoursesSection({ courses }: { courses?: any[] }) {
+export function CoursesSection({ courses, lang = "fr" }: { courses?: any[]; lang?: Lang }) {
   const list = courses && courses.length > 0 ? courses : demoCourses;
+  const t = HOME[lang].courses;
 
   return (
     <section className="relative py-24 bg-blush-mesh overflow-hidden">
@@ -116,29 +118,29 @@ export function CoursesSection({ courses }: { courses?: any[] }) {
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
           <div>
             <span className="inline-flex items-center gap-2 text-blush-500 font-semibold text-sm font-dm mb-3 tracking-[0.2em] uppercase">
-              <span className="w-8 h-px bg-blush-400" /> ✂ Sélection de la semaine
+              <span className="w-8 h-px bg-blush-400" /> {t.eyebrow}
             </span>
             <h2 className="font-playfair text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
-              Les cours <span className="text-gradient-rose italic">à ne pas manquer</span>
+              {t.title} <span className="text-gradient-rose italic">{t.hi}</span>
             </h2>
-            <p className="text-gray-500 mt-3 font-dm">Vidéos HD · Patrons PDF · Certificat · Paiement en DA</p>
+            <p className="text-gray-500 mt-3 font-dm">{t.subtitle}</p>
           </div>
           <Link href="/formations"
             className="hidden md:inline-flex items-center gap-2 border-2 border-orange-DEFAULT text-orange-600 font-semibold px-5 py-2.5 rounded-xl hover:bg-orange-DEFAULT hover:text-white transition-all font-dm shrink-0"
           >
-            Tout le catalogue →
+            {t.catalog}
           </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
           {list.slice(0, 6).map((course: any, i: number) => (
-            <CourseCard key={course.slug ?? i} course={course} index={i} />
+            <CourseCard key={course.slug ?? i} course={course} index={i} see={t.see} />
           ))}
         </div>
 
         <div className="text-center mt-10 md:hidden">
           <Link href="/formations" className="inline-flex items-center gap-2 text-orange-600 font-semibold hover:underline font-dm">
-            Voir tout le catalogue →
+            {t.catalogMobile}
           </Link>
         </div>
       </div>

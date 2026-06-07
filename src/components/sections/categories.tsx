@@ -5,31 +5,32 @@ import Link from "next/link";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
-import { Scissors, PencilRuler, Ruler, Gem, Hand, MonitorSmartphone, Megaphone, Route, ArrowUpRight } from "lucide-react";
+import { Scissors, PencilRuler, Ruler, Gem, Hand, MonitorSmartphone, Megaphone, Route, ArrowUpRight, type LucideIcon } from "lucide-react";
+import { HOME, type Lang } from "@/lib/home-i18n";
 
 const MotionLink = motion.create(Link);
 
-const CATEGORIES = [
-  { Icon: Scissors, fr: "Couture & Modélisme", ar: "خياطة / موديلزم", chip: "bg-orange-50 text-orange-600" },
-  { Icon: PencilRuler, fr: "Dessin & Stylisme", ar: "رسم / ستيليزم", chip: "bg-violet-50 text-violet-700" },
-  { Icon: Ruler, fr: "Patronage industriel", ar: "باتروناج صناعي", chip: "bg-blush-50 text-blush-500" },
-  { Icon: Gem, fr: "Accessoires", ar: "الأكسسوارات", chip: "bg-orange-50 text-orange-600" },
-  { Icon: Hand, fr: "Artisanat", ar: "حرف يدوية", chip: "bg-violet-50 text-violet-700" },
-  { Icon: MonitorSmartphone, fr: "Logiciels de confection", ar: "البرامج الرقمية", chip: "bg-blush-50 text-blush-500" },
-  { Icon: Megaphone, fr: "Marketing couture", ar: "التسويق الرقمي", chip: "bg-orange-50 text-orange-600" },
-  { Icon: Route, fr: "Parcours structurés", ar: "مسارات", chip: "bg-violet-50 text-violet-700" },
+const ICONS: { Icon: LucideIcon; chip: string }[] = [
+  { Icon: Scissors, chip: "bg-orange-50 text-orange-600" },
+  { Icon: PencilRuler, chip: "bg-violet-50 text-violet-700" },
+  { Icon: Ruler, chip: "bg-blush-50 text-blush-500" },
+  { Icon: Gem, chip: "bg-orange-50 text-orange-600" },
+  { Icon: Hand, chip: "bg-violet-50 text-violet-700" },
+  { Icon: MonitorSmartphone, chip: "bg-blush-50 text-blush-500" },
+  { Icon: Megaphone, chip: "bg-orange-50 text-orange-600" },
+  { Icon: Route, chip: "bg-violet-50 text-violet-700" },
 ];
 
-function Grid() {
+function Grid({ names }: { names: string[] }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
   return (
     <div ref={ref} className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-      {CATEGORIES.map((c, i) => (
+      {ICONS.map((c, i) => (
         <MotionLink
-          key={c.fr}
+          key={i}
           href="/formations"
           initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
@@ -44,33 +45,32 @@ function Grid() {
             </span>
             <ArrowUpRight size={18} className="text-gray-300 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
           </div>
-          <h3 className="font-playfair text-lg font-bold text-gray-900 leading-snug group-hover:text-white transition-colors">{c.fr}</h3>
-          <p className="text-sm text-gray-400 font-dm mt-1 group-hover:text-white/80 transition-colors" dir="rtl">{c.ar}</p>
+          <h3 className="font-playfair text-lg font-bold text-gray-900 leading-snug group-hover:text-white transition-colors">{names[i]}</h3>
         </MotionLink>
       ))}
     </div>
   );
 }
 
-export function CategoriesSection() {
+export function CategoriesSection({ lang = "fr" }: { lang?: Lang }) {
+  const t = HOME[lang].categories;
   return (
     <section className="relative py-24 bg-white overflow-hidden">
       <div className="absolute bottom-0 right-1/2 translate-x-1/2 w-[40rem] h-64 bg-blush-100/40 blur-3xl rounded-full pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading eyebrow="Nos univers" title="Explorez toutes les" highlight="spécialités couture" />
+        <SectionHeading eyebrow={t.eyebrow} title={t.title} highlight={t.hi} />
 
-        <Grid />
+        <Grid names={t.names} />
 
-        {/* Bandeau « 2 façons d'apprendre » */}
         <Reveal animation="up" delay={120}>
           <div className="mt-12 grid sm:grid-cols-2 gap-4">
             <div className="rounded-3xl p-7 bg-gradient-to-br from-orange-50 to-blush-50 border border-orange-100">
-              <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-2">Ateliers indépendants</p>
-              <p className="text-gray-700 font-dm">Apprenez une technique précise, à votre rythme, sans engagement.</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-orange-600 mb-2">{t.b1t}</p>
+              <p className="text-gray-700 font-dm">{t.b1d}</p>
             </div>
             <div className="rounded-3xl p-7 bg-gradient-to-br from-violet-50 to-orange-50 border border-violet-100">
-              <p className="text-xs font-bold uppercase tracking-wide text-violet-700 mb-2">Parcours structurés</p>
-              <p className="text-gray-700 font-dm">Progressez étape par étape, du débutant à la création de votre marque.</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-violet-700 mb-2">{t.b2t}</p>
+              <p className="text-gray-700 font-dm">{t.b2d}</p>
             </div>
           </div>
         </Reveal>

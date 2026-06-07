@@ -77,14 +77,12 @@ function Row({ item, kind }: { item: SellItem; kind: "course" | "patron" }) {
 export function SellList({ courses, patrons }: { courses: SellItem[]; patrons: SellItem[] }) {
   return (
     <div className="space-y-10">
-      <section>
-        <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white mb-4">Mes formations</h2>
-        {courses.length === 0 ? (
-          <p className="text-sm text-gray-400">Aucune formation.</p>
-        ) : (
+      {courses.length > 0 && (
+        <section>
+          <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white mb-4">Mes formations</h2>
           <div className="space-y-3">{courses.map((c) => <Row key={c.id} item={c} kind="course" />)}</div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section>
         <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white mb-4">Patrons</h2>

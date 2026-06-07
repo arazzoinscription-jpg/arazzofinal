@@ -4,11 +4,13 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/ui/reveal";
 import { Check } from "lucide-react";
+import { HOME, type Lang } from "@/lib/home-i18n";
 
 const MotionLink = motion.create(Link);
 
-export function CtaSection() {
+export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
   const reduce = useReducedMotion();
+  const t = HOME[lang].cta;
 
   return (
     <section className="py-20 bg-blush-mesh">
@@ -38,20 +40,17 @@ export function CtaSection() {
                 </span>
               </div>
               <h2 className="font-playfair text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                Prête à passer du fil au design ?
+                {t.title}
               </h2>
-              <p className="text-violet-200 text-lg mb-3 font-dm" dir="rtl">
-                هل أنتِ مستعدّة للانتقال من الخيط إلى التصميم؟
-              </p>
 
               <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-9 mt-6">
                 <span className="inline-flex items-center gap-2 text-white font-dm">
                   <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white"><Check size={14} strokeWidth={3} /></span>
-                  30 jours satisfaite ou remboursée
+                  {t.g1}
                 </span>
                 <span className="inline-flex items-center gap-2 text-white font-dm">
                   <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-white"><Check size={14} strokeWidth={3} /></span>
-                  Première leçon offerte
+                  {t.g2}
                 </span>
               </div>
 
@@ -62,13 +61,13 @@ export function CtaSection() {
                   transition={{ type: "spring", stiffness: 300 }}
                   className="bg-orange-DEFAULT text-white px-9 py-4 rounded-2xl font-bold text-lg shadow-lg font-dm"
                 >
-                  Créer mon compte
+                  {t.primary}
                 </MotionLink>
                 <MotionLink href="/devenir-formateur"
                   whileHover={{ x: 4 }} transition={{ duration: 0.2 }}
                   className="bg-white/10 border-2 border-white/40 text-white px-9 py-4 rounded-2xl font-bold text-lg hover:bg-white hover:text-orange-600 transition-colors font-dm"
                 >
-                  Contacter l'équipe
+                  {t.secondary}
                 </MotionLink>
               </div>
             </div>
