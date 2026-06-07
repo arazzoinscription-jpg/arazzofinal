@@ -340,7 +340,9 @@ export async function validatePayment(orderId: string) {
   }
 
   // 3) Compte + profil + enrôlement (centralisés dans enrollAfterPayment)
-  await enrollAfterPayment(order.id);
+  const enr = await enrollAfterPayment(order.id);
+  const targetUserId = enr.userId ?? order.customer_id;
+  const enrolledCount = enr.enrolled?.length ?? 0;
 
   // 4) Facture PDF (best-effort)
   let invoiceUrl: string | null = null;
@@ -355,7 +357,23 @@ export async function validatePayment(orderId: string) {
     await sendCourseAccess(order.id); // ignoré automatiquement s'il n'y a aucune formation
   } catch { /* l'échec d'un email ne doit pas bloquer la validation */ }
 
+  // 6) Notification dashboard pour l'élève
+  if (targetUserId) {
+    try {
+      await admin.from("notifications").insert({
+        user_id: targetUserId,
+        type: "system",
+        title: "✅ Commande confirmée",
+        body: enrolledCount > 0
+          ? "Votre paiement est validé — vos formations sont maintenant accessibles dans votre espace."
+          : "Votre paiement a été validé. Merci pour votre commande !",
+        link: enrolledCount > 0 ? "/dashboard" : "/dashboard/commandes",
+      });
+    } catch { /* ignore */ }
+  }
+
   revalidatePath("/compte/commandes");
   revalidatePath("/dashboard/commandes");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
