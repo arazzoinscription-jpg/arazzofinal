@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { EnrollForm } from "./enroll-form";
 
 export const metadata = { title: "Étudiants inscrits — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -40,6 +41,8 @@ export default async function CourseEnrolleesPage({ params }: { params: { id: st
           {rows.length} inscrit(s) à « {course.titre_fr} ».
         </p>
       </div>
+
+      <EnrollForm courseId={course.id} />
 
       {rows.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-cream-200">
