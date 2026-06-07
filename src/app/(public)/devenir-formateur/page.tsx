@@ -45,7 +45,7 @@ export default function DevenirFormateurPage() {
               {
                 icon: "🌍",
                 title: "Audience internationale",
-                text: "Touchez les Algériens, Marocains, Tunisiens et la diaspora en France, Belgique, Canada et ailleurs.",
+                text: "Touchez toute l'Algérie et la diaspora en France, Belgique, Canada et ailleurs.",
               },
             ].map((b) => (
               <div

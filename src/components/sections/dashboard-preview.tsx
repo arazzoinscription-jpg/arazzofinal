@@ -62,7 +62,7 @@ export function DashboardPreview() {
                   {/* Course progress cards */}
                   {[
                     {
-                      title: "Caftan Marocain",
+                      title: "Caftan Brodé",
                       progress: 67,
                       color: "from-violet-500 to-violet-600",
                     },
@@ -101,7 +101,7 @@ export function DashboardPreview() {
               <span className="text-3xl">🎓</span>
               <div>
                 <div className="text-xs text-gray-400">Certificat disponible</div>
-                <div className="text-sm font-bold text-gray-900">Caftan Marocain</div>
+                <div className="text-sm font-bold text-gray-900">Caftan Brodé</div>
               </div>
             </div>
           </div>

@@ -9,8 +9,8 @@ import { HOME, type Lang } from "@/lib/home-i18n";
 
 const META = [
   { name: "Amina B.", city: "Alger", flag: "🇩🇿", initial: "A", color: "bg-orange-DEFAULT text-white" },
-  { name: "Kenza M.", city: "Casablanca", flag: "🇲🇦", initial: "K", color: "bg-orange-DEFAULT text-white" },
-  { name: "Inès T.", city: "Tunis", flag: "🇹🇳", initial: "I", color: "bg-blush-300 text-violet-800" },
+  { name: "Kenza M.", city: "Oran", flag: "🇩🇿", initial: "K", color: "bg-orange-DEFAULT text-white" },
+  { name: "Inès T.", city: "Constantine", flag: "🇩🇿", initial: "I", color: "bg-blush-300 text-violet-800" },
 ];
 
 function TestimonialCard({ m, text, course, index }: { m: (typeof META)[number]; text: string; course: string; index: number }) {

@@ -51,7 +51,7 @@ const C = {
       stories: [
         { name: "Amira, Alger", text: "En 2 mois j'ai cousu ma première robe de A à Z. Aujourd'hui je vends mes créations !", result: "1ʳᵉ vente en 60 jours" },
         { name: "Souhila, Oran", text: "Les patrons inclus et les explications en arabe ont tout changé pour moi.", result: "Atelier lancé chez elle" },
-        { name: "Leila, Tunis", text: "Je débutais de zéro. Le certificat m'a donné la confiance pour me lancer.", result: "Certifiée & installée" },
+        { name: "Leila, Annaba", text: "Je débutais de zéro. Le certificat m'a donné la confiance pour me lancer.", result: "Certifiée & installée" },
       ],
     },
     included: {
@@ -92,7 +92,7 @@ const C = {
       badge: "عرض الإطلاق — أماكن محدودة",
       title: "كوني الخيّاطة التي تحلمين بها",
       highlight: "في 8 أسابيع",
-      sub: "أكمل تكوين في الخياطة والموديلزم في المغرب العربي: دروس مصوّرة في الورشة، باترونات رقمية، وشهادة معترف بها.",
+      sub: "أكمل تكوين في الخياطة والموديلزم في الجزائر: دروس مصوّرة في الورشة، باترونات رقمية، وشهادة معترف بها.",
       cta: "أبدأ تكويني",
       note: "الدفع بالدينار · وصول مدى الحياة · استرجاع خلال 30 يومًا",
       stat1: "+12 000 طالبة", stat2: "127 دورة", stat3: "4.8/5",
@@ -122,7 +122,7 @@ const C = {
       stories: [
         { name: "أميرة، الجزائر", text: "في شهرين خِطتُ أول فستان من الألف إلى الياء. اليوم أبيع إبداعاتي!", result: "أول بيع خلال 60 يومًا" },
         { name: "سهيلة، وهران", text: "الباترونات والشرح بالعربية غيّرا كل شيء بالنسبة لي.", result: "أطلقت ورشتها في البيت" },
-        { name: "ليلى، تونس", text: "بدأت من الصفر. الشهادة منحتني الثقة للانطلاق.", result: "متحصّلة على شهادة" },
+        { name: "ليلى، عنابة", text: "بدأت من الصفر. الشهادة منحتني الثقة للانطلاق.", result: "متحصّلة على شهادة" },
       ],
     },
     included: {

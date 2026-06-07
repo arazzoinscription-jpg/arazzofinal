@@ -37,8 +37,8 @@ export default function AProposPage() {
               en couture et modélisme, depuis chez elle, à son rythme.
             </p>
             <p className="text-gray-700 leading-relaxed font-dm">
-              Nous réunissons les meilleures formatrices d'Alger, Casablanca et
-              Tunis pour transmettre un savoir-faire artisanal d'exception — du
+              Nous réunissons les meilleures formatrices de toute l'Algérie
+              pour transmettre un savoir-faire artisanal d'exception — du
               premier point de couture jusqu'à la création de pièces haute couture.
             </p>
           </div>

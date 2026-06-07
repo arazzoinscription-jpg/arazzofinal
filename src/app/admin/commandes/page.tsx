@@ -1,4 +1,5 @@
 import { getOrdersAdmin } from "@/app/actions/admin/payments";
+import { OrderStatusControl } from "./status-control";
 
 export const metadata = { title: "Commandes — Admin" };
 export const dynamic = "force-dynamic";
@@ -50,11 +51,12 @@ export default async function AdminCommandesPage({ searchParams }: { searchParam
               <th className="px-5 py-3 font-medium">Total</th>
               <th className="px-5 py-3 font-medium">Statut</th>
               <th className="px-5 py-3 font-medium">Date</th>
+              <th className="px-5 py-3 font-medium">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-cream-100">
             {orders.length === 0 ? (
-              <tr><td colSpan={6} className="text-center py-10 text-gray-400">Aucune commande.</td></tr>
+              <tr><td colSpan={7} className="text-center py-10 text-gray-400">Aucune commande.</td></tr>
             ) : orders.map((o) => {
               const st = STATUS[o.status] ?? STATUS.pending;
               return (
@@ -67,6 +69,7 @@ export default async function AdminCommandesPage({ searchParams }: { searchParam
                   <td className="px-5 py-3 font-semibold text-orange-600">{fmt(o.total)}</td>
                   <td className="px-5 py-3"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${st.cls}`}>{st.label}</span></td>
                   <td className="px-5 py-3 text-gray-500 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString("fr-FR")}</td>
+                  <td className="px-5 py-3"><OrderStatusControl orderId={o.id} current={o.status} /></td>
                 </tr>
               );
             })}

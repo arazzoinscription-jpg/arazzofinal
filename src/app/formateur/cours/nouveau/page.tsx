@@ -125,7 +125,7 @@ export default function NewCoursePage() {
               value={form.titre_fr}
               onChange={(e) => setForm({ ...form, titre_fr: e.target.value })}
               required
-              placeholder="Ex: Caftan Marocain Moderne"
+              placeholder="Ex: Caftan Moderne"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
@@ -137,7 +137,7 @@ export default function NewCoursePage() {
             <input
               value={form.titre_ar}
               onChange={(e) => setForm({ ...form, titre_ar: e.target.value })}
-              placeholder="القفطان المغربي الحديث"
+              placeholder="القفطان الحديث"
               dir="rtl"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 text-right"
             />

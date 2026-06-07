@@ -69,11 +69,11 @@ export function Footer({ lang = "fr" }: { lang?: Lang }) {
         <div className="mt-12 pt-8 border-t border-white/10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-gray-400 font-dm text-sm">
           <span className="flex items-center gap-1.5">🇩🇿 Alger</span>
           <span className="text-white/20">·</span>
-          <span className="flex items-center gap-1.5">🇲🇦 Casablanca</span>
+          <span className="flex items-center gap-1.5">🇩🇿 Oran</span>
           <span className="text-white/20">·</span>
-          <span className="flex items-center gap-1.5">🇹🇳 Tunis</span>
+          <span className="flex items-center gap-1.5">🇩🇿 Constantine</span>
           <span className="text-white/20">·</span>
-          <span className="flex items-center gap-1.5">🇫🇷 Paris</span>
+          <span className="flex items-center gap-1.5">🇩🇿 Annaba</span>
         </div>
 
         <div className="mt-6 text-center text-gray-500 text-sm font-dm">

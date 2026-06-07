@@ -112,6 +112,30 @@ export async function getPaymentProofs(status?: string) {
   return { ok: true, proofs };
 }
 
+const ORDER_STATUSES = [
+  "pending", "payment_pending", "payment_review", "confirmed", "shipped", "delivered", "cancelled", "refunded",
+] as const;
+
+/** Change manuellement le statut d'une commande (admin). */
+export async function setOrderStatus(orderId: string, status: string) {
+  const idOk = z.string().uuid().safeParse(orderId);
+  const stOk = z.enum(ORDER_STATUSES).safeParse(status);
+  if (!idOk.success) return { ok: false, error: "Commande invalide." };
+  if (!stOk.success) return { ok: false, error: "Statut invalide." };
+
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { error } = await admin
+    .from("orders")
+    .update({ status: stOk.data, updated_at: new Date().toISOString() })
+    .eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/commandes");
+  return { ok: true };
+}
+
 /** Liste les commandes (filtres : statut, mode de paiement, recherche). */
 export async function getOrdersAdmin(filters?: { status?: string; paymentMethod?: string; q?: string }) {
   const { ok, admin } = await requireAdmin();
