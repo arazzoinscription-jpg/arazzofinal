@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { patronImage } from "@/lib/patron-images";
 import { SellList, type SellItem } from "@/app/formateur/boutique/sell-list";
@@ -8,10 +9,17 @@ export const metadata = { title: "Mise en vente — Patronniste" };
 export const dynamic = "force-dynamic";
 
 export default async function PatronnisteBoutiquePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user!.id).single();
+  const isAdmin = prof?.role === "admin";
+
   const admin = createAdminClient();
 
-  const { data: patrons } = await admin
+  let pq = admin
     .from("patrons").select("id, titre, prix_dzd, preview_url").order("created_at", { ascending: false });
+  if (!isAdmin) pq = pq.eq("formateur_id", user!.id);
+  const { data: patrons } = await pq;
 
   const { data: products } = await admin
     .from("products").select("id, patron_id, price, is_active");

@@ -21,9 +21,11 @@ export default async function FormateurBoutiquePage() {
   if (!isAdmin) coursesQ = coursesQ.eq("formateur_id", user!.id);
   const { data: courses } = await coursesQ;
 
-  // Patrons : tout le catalogue
-  const { data: patrons } = await admin
+  // Patrons : ceux du compte (toutes si admin)
+  let patronsQ = admin
     .from("patrons").select("id, titre, prix_dzd, preview_url").order("created_at", { ascending: false });
+  if (!isAdmin) patronsQ = patronsQ.eq("formateur_id", user!.id);
+  const { data: patrons } = await patronsQ;
 
   // Produits existants liés (pour savoir ce qui est déjà en vente)
   const { data: products } = await admin

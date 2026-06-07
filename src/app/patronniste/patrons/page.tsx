@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PlusCircle, Pencil, Download } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { patronImage } from "@/lib/patron-images";
 import { Reveal } from "@/components/ui/reveal";
@@ -9,11 +10,18 @@ export const metadata = { title: "Mes patrons — Patronniste" };
 export const dynamic = "force-dynamic";
 
 export default async function PatronnistePatronsPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user!.id).single();
+  const isAdmin = prof?.role === "admin";
+
   const admin = createAdminClient();
-  const { data: patrons } = await admin
+  let pq = admin
     .from("patrons")
     .select("id, titre, preview_url, fichier_url, prix_dzd, tailles, tissu, nb_pages")
     .order("created_at", { ascending: false });
+  if (!isAdmin) pq = pq.eq("formateur_id", user!.id);
+  const { data: patrons } = await pq;
 
   return (
     <div className="text-gray-900 dark:text-white">
