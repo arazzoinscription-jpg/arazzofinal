@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addMember, removeMember, searchStudents } from "../actions";
+import { addMember, removeMember, searchStudents, staffCourses, courseEnrollees, addCourseMembers } from "../actions";
 
 export interface Member {
   user_id: string;
@@ -27,6 +27,35 @@ export function MembersManager({ groupId, members }: { groupId: string; members:
   const [err, setErr] = useState("");
 
   const memberIds = new Set(members.map((m) => m.user_id));
+
+  // Import depuis un cours
+  const [courses, setCourses] = useState<{ id: string; titre: string }[]>([]);
+  const [courseId, setCourseId] = useState("");
+  const [enrollees, setEnrollees] = useState<SearchResult[]>([]);
+  const [loadingEnr, startEnr] = useTransition();
+
+  useEffect(() => {
+    staffCourses().then((r) => { if (r.ok) setCourses(r.courses); });
+  }, []);
+
+  function onPickCourse(id: string) {
+    setCourseId(id);
+    setEnrollees([]);
+    if (!id) return;
+    startEnr(async () => {
+      const r = await courseEnrollees(id);
+      if (r.ok) setEnrollees(r.results as SearchResult[]);
+    });
+  }
+
+  function addAll() {
+    if (!courseId) return;
+    startMutate(async () => {
+      const r = await addCourseMembers(groupId, courseId);
+      if (r.ok) router.refresh();
+      else setErr(r.error ?? "Erreur");
+    });
+  }
 
   function doSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -57,6 +86,45 @@ export function MembersManager({ groupId, members }: { groupId: string; members:
   return (
     <div className="bg-white rounded-2xl border border-cream-200 shadow-soft p-5">
       <h2 className="font-semibold text-gray-900 mb-3">Membres ({members.length})</h2>
+
+      {/* Importer les inscrits d'un cours */}
+      <div className="mb-4 rounded-xl bg-cream-50 border border-cream-200 p-3">
+        <p className="text-xs font-semibold text-gray-500 mb-2">📚 Ajouter les inscrits d'une formation</p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <select value={courseId} onChange={(e) => onPickCourse(e.target.value)}
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <option value="">— Choisir une formation —</option>
+            {courses.map((c) => <option key={c.id} value={c.id}>{c.titre}</option>)}
+          </select>
+          <button onClick={addAll} disabled={!courseId || isMutating || enrollees.length === 0}
+            className="bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors disabled:opacity-50 whitespace-nowrap">
+            Ajouter tous ({enrollees.length})
+          </button>
+        </div>
+        {loadingEnr && <p className="text-xs text-gray-400 mt-2">Chargement des inscrits…</p>}
+        {courseId && !loadingEnr && (
+          <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+            {enrollees.length === 0 ? (
+              <p className="text-xs text-gray-400">Aucun inscrit dans cette formation.</p>
+            ) : enrollees.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-2 px-2 py-1.5 rounded-lg hover:bg-white">
+                <div className="min-w-0">
+                  <div className="text-sm text-gray-800 font-dm truncate">{r.nom}</div>
+                  <div className="text-[11px] text-gray-400 truncate">{r.email}</div>
+                </div>
+                {memberIds.has(r.id) ? (
+                  <span className="text-[11px] text-green-600 font-semibold flex-shrink-0">✓ Membre</span>
+                ) : (
+                  <button onClick={() => add(r.id)} disabled={isMutating}
+                    className="text-[11px] bg-orange-50 text-orange-600 font-semibold px-2.5 py-1 rounded-lg hover:bg-orange-100 disabled:opacity-50 flex-shrink-0">
+                    + Ajouter
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Recherche */}
       <form onSubmit={doSearch} className="flex gap-2 mb-3">

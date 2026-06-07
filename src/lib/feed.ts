@@ -33,10 +33,12 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
     if (!allowed) return { me, posts: [] };
   }
 
+  const isStaff = me.role === "formateur" || me.role === "admin";
+
   let query = admin
     .from("posts")
     .select(`
-      id, content, created_at, author_id,
+      id, content, created_at, author_id, published,
       author:users(id, nom, role, avatar_url),
       post_images(image_url, expired, uploaded_at),
       likes(user_id),
@@ -46,6 +48,8 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
     .limit(100);
 
   query = groupId === null ? query.is("group_id", null) : query.eq("group_id", groupId);
+  // Les élèves ne voient que les actualités publiées ; le staff voit tout.
+  if (!isStaff) query = query.eq("published", true);
 
   const { data: rows } = await query;
 
@@ -87,6 +91,7 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
       likeCount: likes.length,
       liked: likes.some((l) => l.user_id === me.id),
       comments,
+      published: r.published ?? true,
     };
   });
 

@@ -30,6 +30,7 @@ export interface FeedPost {
   likeCount: number;
   liked: boolean;
   comments: FeedComment[];
+  published?: boolean;
 }
 
 export interface CurrentUser {

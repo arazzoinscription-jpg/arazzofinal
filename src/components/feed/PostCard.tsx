@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toggleLike, addComment, deleteComment, deletePost } from "@/app/actions/feed";
+import { toggleLike, addComment, deleteComment, deletePost, togglePostPublished } from "@/app/actions/feed";
 import { type FeedPost, type CurrentUser, type FeedComment, roleLabel } from "./types";
 
 function Avatar({ nom, url }: { nom: string; url: string | null }) {
@@ -27,9 +27,22 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [deleted, setDeleted] = useState(false);
+  const [published, setPublished] = useState(post.published ?? true);
   const [isLiking, startLike] = useTransition();
   const [isCommenting, startComment] = useTransition();
+  const [isPublishing, startPublish] = useTransition();
   const [err, setErr] = useState("");
+
+  const isStaff = me.role === "formateur" || me.role === "admin";
+
+  function onTogglePublish() {
+    const next = !published;
+    setPublished(next);
+    startPublish(async () => {
+      const res = await togglePostPublished(post.id, next);
+      if (!res.ok) { setPublished(!next); setErr(res.error ?? "Erreur"); }
+    });
+  }
 
   if (deleted) return null;
 
@@ -78,21 +91,37 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
   const canDeletePost = post.author_id === me.id || me.role === "formateur" || me.role === "admin";
 
   return (
-    <article className="bg-white rounded-2xl border border-cream-200 shadow-soft p-5">
+    <article className={`bg-white rounded-2xl border shadow-soft p-5 ${published ? "border-cream-200" : "border-dashed border-orange-300 bg-orange-50/40"}`}>
       {/* En-tête */}
       <header className="flex items-center gap-3 mb-3">
         <Avatar nom={post.author.nom} url={post.author.avatar_url} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-gray-900 font-dm truncate">{post.author.nom}</span>
             <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
               post.author.role === "formateur" ? "bg-orange-100 text-orange-600"
                 : post.author.role === "admin" ? "bg-orange-100 text-orange-700"
                 : "bg-gray-100 text-gray-500"
             }`}>{roleLabel(post.author.role)}</span>
+            {!published && (
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-orange-200 text-orange-800">Brouillon</span>
+            )}
           </div>
           <p className="text-xs text-gray-400 font-dm">{timeAgo(post.created_at)}</p>
         </div>
+        {isStaff && (
+          <button
+            onClick={onTogglePublish}
+            disabled={isPublishing}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+              published
+                ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-green-600 text-white hover:bg-green-700"
+            }`}
+          >
+            {published ? "Masquer" : "✓ Publier"}
+          </button>
+        )}
         {canDeletePost && (
           <button onClick={onDeletePost} className="text-gray-300 hover:text-red-500 text-sm">✕</button>
         )}

@@ -91,6 +91,56 @@ export async function removeMember(input: z.infer<typeof MemberSchema>) {
   return { ok: true };
 }
 
+/** Liste les cours du formateur (tous si admin) pour choisir une promotion. */
+export async function staffCourses() {
+  const { supabase, user, ok } = await requireStaff();
+  if (!ok || !user) return { ok: false, courses: [] as { id: string; titre: string }[] };
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const admin = createAdminClient();
+  let q = admin.from("courses").select("id, titre_fr")
+    .order("ordre", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
+  if (prof?.role !== "admin") q = q.eq("formateur_id", user.id);
+  const { data } = await q;
+  return { ok: true, courses: (data ?? []).map((c) => ({ id: c.id, titre: c.titre_fr ?? "Formation" })) };
+}
+
+/** Étudiants inscrits à un cours donné. */
+export async function courseEnrollees(courseId: string) {
+  const { ok } = await requireStaff();
+  if (!ok) return { ok: false, results: [] as { id: string; nom: string; email: string; avatar_url: string | null }[] };
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("enrollments").select("user:users(id, nom, email, avatar_url)").eq("course_id", courseId);
+  const results = (data ?? [])
+    .map((e: any) => ({ id: e.user?.id, nom: e.user?.nom ?? "Étudiant", email: e.user?.email ?? "", avatar_url: e.user?.avatar_url ?? null }))
+    .filter((r) => r.id);
+  return { ok: true, results };
+}
+
+/** Ajoute en une fois tous les inscrits d'un cours au groupe. */
+export async function addCourseMembers(groupId: string, courseId: string) {
+  const { supabase, user, ok } = await requireStaff();
+  if (!ok || !user) return { ok: false, error: "Accès refusé." };
+  const { data: g } = await supabase.from("groups").select("creator_id").eq("id", groupId).single();
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  if (!g || (g.creator_id !== user.id && prof?.role !== "admin")) return { ok: false, error: "Accès refusé." };
+
+  const admin = createAdminClient();
+  const { data: enr } = await admin.from("enrollments").select("user_id").eq("course_id", courseId);
+  const ids = [...new Set((enr ?? []).map((e) => e.user_id))];
+  if (ids.length === 0) return { ok: true, added: 0 };
+
+  const { data: existing } = await admin.from("group_members").select("user_id").eq("group_id", groupId);
+  const have = new Set((existing ?? []).map((m) => m.user_id));
+  const toAdd = ids.filter((id) => !have.has(id)).map((user_id) => ({ group_id: groupId, user_id }));
+  if (toAdd.length === 0) return { ok: true, added: 0 };
+
+  const { error } = await admin.from("group_members").insert(toAdd);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/formateur/groupes/${groupId}`);
+  return { ok: true, added: toAdd.length };
+}
+
 /** Recherche d'étudiants (par nom ou email) pour les ajouter à un groupe. */
 export async function searchStudents(query: string) {
   const { ok } = await requireStaff();

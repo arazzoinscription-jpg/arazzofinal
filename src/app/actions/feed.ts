@@ -83,6 +83,20 @@ export async function deletePost(postId: string) {
   return { ok: true };
 }
 
+/** Valide / masque une actualité (staff uniquement). */
+export async function togglePostPublished(postId: string, published: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  if (prof?.role !== "formateur" && prof?.role !== "admin") return { ok: false, error: "Accès refusé." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("posts").update({ published }).eq("id", postId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 /** Like / unlike. Renvoie l'état et le nouveau compteur. */
 export async function toggleLike(postId: string) {
   const supabase = await createClient();
