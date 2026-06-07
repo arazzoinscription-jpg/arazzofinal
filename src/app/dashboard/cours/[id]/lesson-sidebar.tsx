@@ -15,7 +15,7 @@ export function LessonSidebar({
   const sorted = [...chapters].sort((a, b) => a.ordre - b.ordre);
 
   return (
-    <aside className="w-72 flex-shrink-0">
+    <aside className="w-full lg:w-72 flex-shrink-0">
       <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
         <div className="p-4 border-b border-cream-100 bg-cream-50">
           <h2 className="font-semibold text-gray-900 text-sm">Programme du cours</h2>

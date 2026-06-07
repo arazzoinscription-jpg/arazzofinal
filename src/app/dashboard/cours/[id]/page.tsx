@@ -89,7 +89,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .order("created_at", { ascending: true });
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col lg:flex-row gap-6">
       {/* Lesson player */}
       <div className="flex-1 min-w-0">
         <div className="mb-4">
