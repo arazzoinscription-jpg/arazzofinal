@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOrder } from "@/app/actions/orders";
 import { InvoiceButton } from "./invoice-button";
+import { ProofUpload } from "./proof-upload";
 
 export const metadata = { title: "Merci pour votre commande — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function ConfirmationPage({ params }: { params: { orderId: 
   const st = STATUS[order.status] ?? STATUS.pending;
   const invoice = (order.invoices ?? [])[0] ?? null;
   const isProcessing = PROCESSING.includes(order.status);
+  const canSendProof = ["ccp", "transfer"].includes(order.payment_method) && PROCESSING.includes(order.status);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -83,6 +85,13 @@ export default async function ConfirmationPage({ params }: { params: { orderId: 
           </div>
         )}
       </div>
+
+      {/* Envoi de la preuve de paiement (CCP / virement) */}
+      {canSendProof && (
+        <div className="mt-6">
+          <ProofUpload orderId={order.id} />
+        </div>
+      )}
 
       <div className="flex gap-3 mt-6">
         <Link href="/dashboard/commandes" className="flex-1 text-center bg-orange-DEFAULT text-white py-3 rounded-xl font-semibold hover:bg-orange-600">Mes commandes</Link>

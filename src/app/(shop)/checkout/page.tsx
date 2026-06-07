@@ -36,7 +36,7 @@ export default async function CheckoutPage() {
   // Config CCP active
   const { data: ccpConfig } = await supabase
     .from("ccp_config")
-    .select("account_number, account_key, beneficiary_name, qr_code_url")
+    .select("account_number, account_key, beneficiary_name, qr_code_url, rip")
     .eq("is_active", true)
     .limit(1)
     .maybeSingle();

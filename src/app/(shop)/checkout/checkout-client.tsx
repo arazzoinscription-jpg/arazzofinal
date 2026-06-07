@@ -12,6 +12,7 @@ interface CCPConfig {
   account_key: string | null;
   beneficiary_name: string | null;
   qr_code_url: string | null;
+  rip: string | null;
 }
 interface DefaultCustomer {
   full_name: string; phone: string; email: string;
@@ -62,17 +63,20 @@ export function CheckoutClient({
 
   /** Crée la commande puis exécute le flux propre au mode de paiement. */
   function pay() {
-    if (method === "ccp" && !proofFile) { toast("Ajoutez la preuve de paiement", "error"); return; }
-
     startTransition(async () => {
       const res = await createOrder(cartPayload, customer, method);
       if (!res.ok || !res.orderId) { toast(res.error ?? "Erreur de commande", "error"); return; }
       const orderId = res.orderId;
 
       if (method === "ccp") {
-        const up = await submitCCPProof(orderId, proofFile!, txId || undefined);
-        if (!up.ok) { toast(up.error ?? "Envoi de la preuve échoué", "error"); return; }
-        toast("Preuve envoyée, en attente de validation", "success");
+        // La preuve est optionnelle : si fournie on l'envoie, sinon on pourra l'ajouter plus tard.
+        if (proofFile) {
+          const up = await submitCCPProof(orderId, proofFile, txId || undefined);
+          if (!up.ok) { toast(up.error ?? "Envoi de la preuve échoué", "error"); }
+          else toast("Preuve envoyée, en attente de validation", "success");
+        } else {
+          toast("Commande enregistrée — envoyez votre preuve quand vous voulez", "info");
+        }
         router.push(`/confirmation/${orderId}`);
       } else if (method === "paypal") {
         const pp = await createPayPalOrder(orderId);
@@ -181,6 +185,7 @@ export function CheckoutClient({
                   <div className="bg-cream-50 rounded-xl p-4 text-sm font-dm space-y-1">
                     <Row k="N° de compte CCP" v={ccpConfig.account_number} />
                     <Row k="Clé" v={ccpConfig.account_key} />
+                    {ccpConfig.rip && <Row k="RIP / BaridiMob" v={ccpConfig.rip} />}
                     <Row k="Bénéficiaire" v={ccpConfig.beneficiary_name} />
                     {ccpConfig.qr_code_url && <img src={ccpConfig.qr_code_url} alt="QR" className="w-32 h-32 mt-2 rounded-lg border border-cream-200" />}
                   </div>
@@ -228,7 +233,9 @@ export function CheckoutClient({
               <div className="bg-cream-50 rounded-xl p-4 text-sm font-dm space-y-1">
                 <p className="font-semibold text-gray-800 mb-1">Coordonnées bancaires</p>
                 <Row k="Bénéficiaire" v={ccpConfig?.beneficiary_name ?? "Arazzo Formation"} />
-                <Row k="RIB / Compte" v={ccpConfig?.account_number ?? "—"} />
+                <Row k="N° de compte CCP" v={ccpConfig?.account_number ?? "—"} />
+                {ccpConfig?.account_key && <Row k="Clé" v={ccpConfig.account_key} />}
+                {ccpConfig?.rip && <Row k="RIP / BaridiMob" v={ccpConfig.rip} />}
                 <p className="text-gray-500 mt-2">Effectuez le virement du montant total, puis confirmez. Votre commande sera validée après réception.</p>
               </div>
             )}
