@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PlusCircle, Pencil, Users } from "lucide-react";
+import { PlusCircle, Pencil, Users, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mes cours — Formateur" };
@@ -68,6 +68,12 @@ export default async function FormateurCoursPage() {
                   <p className="text-xs text-gray-400 mb-3">
                     {new Date(c.created_at).toLocaleDateString("fr-FR")} · {count} inscrit(s)
                   </p>
+                  {/* Inscription manuelle — bouton clair */}
+                  <Link href={`/formateur/cours/${c.id}/inscrits`}
+                    className="mb-3 w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors">
+                    <UserPlus size={15} /> Inscrire une élève
+                  </Link>
+
                   <div className="flex items-center gap-2">
                     <Link href={`/formateur/cours/${c.id}/edit`}
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:underline">
