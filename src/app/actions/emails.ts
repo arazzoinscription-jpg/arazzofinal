@@ -55,12 +55,22 @@ export async function sendOrderReceived(orderId: string) {
   if (!order?.email) return { ok: false, error: "Commande/email introuvable." };
   const items = await loadItems(orderId);
 
+  // N° de facture (si déjà générée)
+  let invoiceNumber: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data: inv } = await admin.from("invoices").select("invoice_number").eq("order_id", orderId).maybeSingle();
+    invoiceNumber = inv?.invoice_number ?? null;
+  } catch { /* ignore */ }
+
   const html = await render(createElement(OrderReceivedEmail, {
     customerName: (order.full_name ?? "").split(" ")[0] || "cliente",
     orderNumber: order.order_number ?? "",
     items: items.map((i) => ({ title: i.title, quantity: i.quantity, price: Number(i.price) })),
     total: Number(order.total),
     paymentMethod: order.payment_method ?? "ccp",
+    orderUrl: `${SITE}/confirmation/${order.id}`,
+    invoiceNumber,
   }));
 
   return sendEmail({

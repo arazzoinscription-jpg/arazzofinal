@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { validateCoupon } from "@/lib/coupons";
 import { sendOrderReceived } from "./emails";
+import { generateInvoice } from "./invoices";
 
 // ── Schémas ──────────────────────────────────────────────────────────────
 const CartItemSchema = z.object({
@@ -148,7 +149,22 @@ export async function createOrder(
   }
   try { (await cookies()).delete("promo"); } catch { /* ignore */ }
 
-  // Email « commande reçue » (best-effort, ne bloque pas la commande)
+  // Facture (proforma) générée dès la commande (best-effort)
+  try { await generateInvoice(order.id); } catch { /* ignore */ }
+
+  // Notification dashboard : commande reçue, en cours de traitement
+  try {
+    const admin = createAdminClient();
+    await admin.from("notifications").insert({
+      user_id: user.id,
+      type: "system",
+      title: `🛍️ Commande ${order.order_number ?? ""} reçue`,
+      body: "Votre demande est en cours de traitement.",
+      link: `/dashboard/commandes`,
+    });
+  } catch { /* ignore */ }
+
+  // Email « commande reçue » + facture + lien de suivi/preuve (best-effort)
   try { await sendOrderReceived(order.id); } catch { /* ignore */ }
 
   revalidatePath("/compte/commandes");
