@@ -4,6 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "@/lib/activity";
 import { LessonWatch } from "@/components/player/lesson-watch";
 import { LessonSidebar } from "./lesson-sidebar";
+import { LessonQA, type QA } from "./lesson-qa";
+import { LessonPractical, type Practical } from "./lesson-practical";
 
 export default async function LessonPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -88,6 +90,33 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .eq("lesson_id", lesson.id)
     .order("created_at", { ascending: true });
 
+  // Rôle (staff ?) + Q&R + travaux pratiques
+  const { data: meProf } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const isStaff = meProf?.role === "formateur" || meProf?.role === "admin";
+
+  const extrasAdmin = createAdminClient();
+  const { data: qRows } = await extrasAdmin
+    .from("lesson_questions")
+    .select("id, content, created_at, user_id, parent_id, author:users(nom, role)")
+    .eq("lesson_id", lesson.id)
+    .order("created_at", { ascending: true });
+  const qa: QA[] = (qRows ?? []).map((q: any) => ({
+    id: q.id, content: q.content, created_at: q.created_at, user_id: q.user_id, parent_id: q.parent_id,
+    authorName: q.author?.nom ?? "Utilisateur", authorRole: q.author?.role ?? "eleve",
+  }));
+
+  let pQuery = extrasAdmin
+    .from("lesson_practicals")
+    .select("id, user_id, photo_url, video_url, note, feedback, status, created_at, author:users(nom)")
+    .eq("lesson_id", lesson.id)
+    .order("created_at", { ascending: false });
+  if (!isStaff) pQuery = pQuery.eq("user_id", user.id);
+  const { data: pRows } = await pQuery;
+  const practicals: Practical[] = (pRows ?? []).map((p: any) => ({
+    id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, note: p.note,
+    feedback: p.feedback, status: p.status, created_at: p.created_at, authorName: p.author?.nom ?? "Élève",
+  }));
+
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Lesson player */}
@@ -142,6 +171,12 @@ export default async function LessonPage({ params }: { params: { id: string } })
             ))}
           </div>
         )}
+
+        {/* Q&R formatrice ↔ élève */}
+        <LessonQA lessonId={lesson.id} items={qa} meId={user.id} isStaff={isStaff} />
+
+        {/* Travaux pratiques (photo + vidéo) */}
+        <LessonPractical lessonId={lesson.id} meId={user.id} isStaff={isStaff} submissions={practicals} />
       </div>
 
       {/* Sidebar — chapters + lessons */}
