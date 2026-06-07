@@ -50,7 +50,8 @@ export function HeroSection({ lang = "fr" }: { lang?: Lang }) {
 
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
-      <video className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline preload="auto" aria-hidden="true" poster="/images/hero-modelisme-1.jpg">
+      <video className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline preload="auto" aria-hidden="true" poster="/images/hero-modelisme-1.jpg"
+        style={lang === "ar" ? { transform: "scaleX(-1)" } : undefined}>
         <source src="/videos/hero-couture.mp4" type="video/mp4" />
       </video>
 

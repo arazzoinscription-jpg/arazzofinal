@@ -153,9 +153,12 @@ h1, h2, h3 {
     -webkit-backdrop-filter: blur(16px);
   }
 
-  /* Ombre douce premium */
+  /* Ombre douce premium — orange en clair, violet en sombre */
   .shadow-soft {
-    box-shadow: 0 10px 40px -12px rgba(75, 59, 199, 0.18);
+    box-shadow: 0 12px 40px -12px rgba(232, 101, 35, 0.22);
+  }
+  .dark .shadow-soft {
+    box-shadow: 0 12px 44px -12px rgba(107, 33, 200, 0.38);
   }
   .shadow-glow {
     box-shadow: 0 20px 60px -20px rgba(224, 120, 64, 0.35);
