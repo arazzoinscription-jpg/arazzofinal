@@ -36,13 +36,17 @@ export function Feed({ posts, me, groupId = null }: { posts: FeedPost[]; me: Cur
     files.slice(0, 4).forEach((f) => fd.append("files", f));
 
     startTransition(async () => {
-      const res = await createPost(fd);
-      if (res.ok) {
-        setContent("");
-        setPreviews([]);
-        if (fileRef.current) fileRef.current.value = "";
-        router.refresh();
-      } else setErr(res.error ?? "Erreur");
+      try {
+        const res = await createPost(fd);
+        if (res?.ok) {
+          setContent("");
+          setPreviews([]);
+          if (fileRef.current) fileRef.current.value = "";
+          router.refresh();
+        } else setErr(res?.error ?? "Erreur");
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : "Erreur lors de la publication.");
+      }
     });
   }
 

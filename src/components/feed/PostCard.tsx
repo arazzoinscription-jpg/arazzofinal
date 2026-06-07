@@ -39,8 +39,13 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
     const next = !published;
     setPublished(next);
     startPublish(async () => {
-      const res = await togglePostPublished(post.id, next);
-      if (!res.ok) { setPublished(!next); setErr(res.error ?? "Erreur"); }
+      try {
+        const res = await togglePostPublished(post.id, next);
+        if (!res?.ok) { setPublished(!next); setErr(res?.error ?? "Erreur"); }
+      } catch (e) {
+        setPublished(!next);
+        setErr(e instanceof Error ? e.message : "Erreur");
+      }
     });
   }
 
