@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CourseEditForm, type EditableCourse } from "./course-edit-form";
+import { CourseCategoryEditor } from "../category-editor";
 
 export const metadata = { title: "Modifier le cours — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -26,6 +27,9 @@ export default async function EditCoursePage({ params }: { params: { id: string 
   // Autorisation : propriétaire OU admin
   if (course.formateur_id !== user.id && !isAdmin) redirect("/formateur");
 
+  const { data: cc } = await admin.from("course_categories").select("category_id").eq("course_id", course.id);
+  const initialCats = (cc ?? []).map((r) => r.category_id);
+
   const backHref = isAdmin ? "/admin/formations" : "/formateur";
 
   return (
@@ -35,6 +39,7 @@ export default async function EditCoursePage({ params }: { params: { id: string 
         Mettez à jour les informations de « {course.titre_fr} ».
       </p>
       <CourseEditForm course={course as EditableCourse} backHref={backHref} />
+      <CourseCategoryEditor courseId={course.id} initial={initialCats} />
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { CategoryPicker } from "@/components/courses/category-picker";
+import { setCourseCategories } from "../category-actions";
 
 function slugify(str: string) {
   return str
@@ -28,6 +30,7 @@ export default function NewCoursePage() {
     duree: "",
     thumbnail: "",
   });
+  const [catIds, setCatIds] = useState<string[]>([]);
 
   const [chapters, setChapters] = useState<
     { titre: string; lessons: { titre: string; video_url_bunny: string; duree_minutes: string; is_preview: boolean }[] }[]
@@ -77,6 +80,11 @@ export default function NewCoursePage() {
       setError(courseError?.message ?? "Erreur lors de la création");
       setLoading(false);
       return;
+    }
+
+    // Catégories du cours
+    if (catIds.length > 0) {
+      try { await setCourseCategories(course.id, catIds); } catch { /* non bloquant */ }
     }
 
     // Insert chapters and lessons
@@ -218,6 +226,12 @@ export default function NewCoursePage() {
               placeholder="https://storage.bunnycdn.com/…"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Catégories</label>
+            <p className="text-xs text-gray-400 mb-2">Cochez les catégories où ce cours doit apparaître (ex. Modélisme › Femme › Niveau 1).</p>
+            <CategoryPicker value={catIds} onChange={setCatIds} />
           </div>
         </div>
 
