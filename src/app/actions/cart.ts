@@ -101,6 +101,12 @@ export async function getCart(): Promise<CartView> {
   return { items, subtotal, count };
 }
 
+/** Nombre total d'articles dans le panier (pour le badge du menu). */
+export async function getCartCount(): Promise<number> {
+  const { count } = await getCart();
+  return count;
+}
+
 // ── Mutations ────────────────────────────────────────────────────────────
 /** Ajoute un produit au panier (cumule la quantité s'il y est déjà). */
 export async function addToCart(productId: string, quantity = 1) {

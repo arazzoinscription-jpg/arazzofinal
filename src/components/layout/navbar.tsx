@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { HOME, type Lang } from "@/lib/home-i18n";
 import { LangSwitcherPublic } from "./lang-switcher-public";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { CartIcon } from "./cart-icon";
 
 const MotionLink = motion.create(Link);
 
@@ -73,6 +74,7 @@ export function Navbar({ lang = "fr" }: { lang?: Lang }) {
 
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-3">
+            <CartIcon scrolled={scrolled} />
             <LangSwitcherPublic current={lang} scrolled={scrolled} />
             <ThemeToggle />
             {user ? (
@@ -93,12 +95,15 @@ export function Navbar({ lang = "fr" }: { lang?: Lang }) {
             )}
           </div>
 
-          {/* Mobile burger */}
-          <button className="md:hidden flex flex-col gap-1.5 p-2" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+          {/* Mobile : panier + burger */}
+          <div className="md:hidden flex items-center gap-4">
+            <CartIcon scrolled={scrolled} />
+          <button className="flex flex-col gap-1.5 p-2" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             <span className={`block w-6 h-0.5 bg-orange-DEFAULT transition-all ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
             <span className={`block w-6 h-0.5 bg-orange-DEFAULT transition-all ${menuOpen ? "opacity-0" : ""}`} />
             <span className={`block w-6 h-0.5 bg-orange-DEFAULT transition-all ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
           </button>
+          </div>
         </div>
 
         {/* Mobile menu */}

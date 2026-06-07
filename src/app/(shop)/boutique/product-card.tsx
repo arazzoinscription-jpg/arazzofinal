@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addToCart } from "@/app/actions/cart";
 import { toast } from "@/components/ui/toast";
@@ -37,8 +38,8 @@ export function ProductCard({ product }: { product: ShopProduct }) {
       if (res.ok) {
         setAdded(true);
         toast("Ajouté au panier 🛒", "success");
+        if (typeof window !== "undefined") window.dispatchEvent(new Event("cart:changed"));
         router.refresh();
-        setTimeout(() => setAdded(false), 1500);
       } else {
         toast(res.error ?? "Erreur", "error");
       }
@@ -70,10 +71,17 @@ export function ProductCard({ product }: { product: ShopProduct }) {
           )}
         </div>
 
-        <button onClick={add} disabled={isPending || outOfStock}
-          className="mt-3 w-full bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
-          {outOfStock ? "Épuisé" : isPending ? "Ajout…" : added ? "✓ Ajouté" : "Ajouter au panier"}
-        </button>
+        {added ? (
+          <Link href="/panier"
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2.5 rounded-xl font-semibold hover:bg-violet-800 transition-colors">
+            🛒 Voir le panier
+          </Link>
+        ) : (
+          <button onClick={add} disabled={isPending || outOfStock}
+            className="mt-3 w-full bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
+            {outOfStock ? "Épuisé" : isPending ? "Ajout…" : "Ajouter au panier"}
+          </button>
+        )}
       </div>
     </div>
   );
