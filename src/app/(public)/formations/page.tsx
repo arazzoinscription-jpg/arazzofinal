@@ -18,6 +18,7 @@ export default async function FormationsPage({
     .from("courses")
     .select("*, formateur:users(nom)")
     .eq("published", true)
+    .order("ordre", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (searchParams.niveau) {
