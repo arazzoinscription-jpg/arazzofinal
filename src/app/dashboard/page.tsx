@@ -35,7 +35,7 @@ export default async function DashboardPage() {
 
   const { data: enrollments } = await supabase
     .from("enrollments")
-    .select(`id, course:courses(id, titre_fr, thumbnail, chapters(lessons(id)))`)
+    .select(`id, course:courses(id, titre_fr, thumbnail, ordre, chapters(lessons(id)))`)
     .eq("user_id", user!.id).order("paid_at", { ascending: false });
 
   const { data: progressRecords } = await supabase
@@ -47,18 +47,20 @@ export default async function DashboardPage() {
     .order("starts_at", { ascending: true }).limit(1);
   const nextSession = nextSessions?.[0] as { titre?: string; starts_at?: string } | undefined;
 
-  type Course = { id: string; titre: string; thumbnail: string | null; total: number; done: number; pct: number; firstLesson: string | null };
+  type Course = { id: string; titre: string; thumbnail: string | null; ordre: number | null; total: number; done: number; pct: number; firstLesson: string | null };
   const courses: Course[] = (enrollments ?? []).map((e) => {
     const c = e.course as any;
     const lessons: { id: string }[] = c?.chapters?.flatMap((ch: any) => ch.lessons ?? []) ?? [];
     const total = lessons.length;
     const done = lessons.filter((l) => completed.has(l.id)).length;
     return {
-      id: c?.id, titre: c?.titre_fr ?? "Formation", thumbnail: c?.thumbnail ?? null,
+      id: c?.id, titre: c?.titre_fr ?? "Formation", thumbnail: c?.thumbnail ?? null, ordre: c?.ordre ?? null,
       total, done, pct: total ? Math.round((done / total) * 100) : 0,
       firstLesson: lessons.find((l) => !completed.has(l.id))?.id ?? lessons[0]?.id ?? null,
     };
   });
+  // Ordre du parcours (1 → 12), cours sans ordre à la fin
+  courses.sort((a, b) => (a.ordre ?? 9999) - (b.ordre ?? 9999));
 
   const xpTotal = profile?.xp_total ?? 0;
   const streak = profile?.current_streak ?? 0;
@@ -144,18 +146,18 @@ export default async function DashboardPage() {
                 <div className="text-[11px] text-white/80 font-dm mt-0.5">{t.thisMonth}</div>
               </HoverTile>
             </div>
-            <div className="space-y-3">
-              {courses.slice(0, 3).map((c) => (
-                <div key={c.id} className="flex items-center gap-3">
+            <div className="space-y-3 max-h-80 overflow-y-auto no-scrollbar pr-1">
+              {courses.map((c) => (
+                <a key={c.id} href={`/dashboard/cours/${c.firstLesson ?? c.id}`} className="flex items-center gap-3 group">
                   <span className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-white/10 flex items-center justify-center text-orange-500 dark:text-orange-300 flex-shrink-0"><BookOpen size={16} /></span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{c.titre}</p>
+                    <p className="text-sm font-medium truncate group-hover:text-orange-600 dark:group-hover:text-orange-300 transition-colors">{c.titre}</p>
                     <div className="h-1 bg-cream-200 dark:bg-white/10 rounded-full mt-1 overflow-hidden">
                       <div className="h-full bg-orange-DEFAULT rounded-full" style={{ width: `${c.pct}%` }} />
                     </div>
                   </div>
                   <span className={`text-xs ${muted} font-dm`}>{c.pct}%</span>
-                </div>
+                </a>
               ))}
               {courses.length === 0 && <p className={`text-sm ${muted} font-dm`}>Aucun cours pour l'instant.</p>}
             </div>

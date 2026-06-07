@@ -23,7 +23,7 @@ export default async function ProgressionPage() {
   // Inscriptions + structure
   const { data: enrollments } = await supabase
     .from("enrollments")
-    .select(`course:courses(id, titre_fr, thumbnail, chapters(lessons(id, duree_minutes)))`)
+    .select(`course:courses(id, titre_fr, thumbnail, ordre, chapters(lessons(id, duree_minutes)))`)
     .eq("user_id", user.id);
 
   const { data: progress } = await supabase
@@ -45,7 +45,7 @@ export default async function ProgressionPage() {
   });
 
   // Par cours
-  type CourseRow = { id: string; titre: string; thumbnail: string | null; total: number; done: number; time: number };
+  type CourseRow = { id: string; titre: string; thumbnail: string | null; ordre: number | null; total: number; done: number; time: number };
   const rows: CourseRow[] = [];
   let totalLessons = 0, totalDone = 0, totalTime = 0;
 
@@ -57,10 +57,11 @@ export default async function ProgressionPage() {
     const total = lessons.length;
     const done = lessons.filter((l) => completed.has(l.id)).length;
     const time = lessons.reduce((acc, l) => acc + (timeByLesson.get(l.id) ?? 0), 0);
-    rows.push({ id: c.id, titre: c.titre_fr, thumbnail: c.thumbnail, total, done, time });
+    rows.push({ id: c.id, titre: c.titre_fr, thumbnail: c.thumbnail, ordre: c.ordre ?? null, total, done, time });
     totalLessons += total; totalDone += done; totalTime += time;
   });
-  rows.sort((a, b) => (b.done / (b.total || 1)) - (a.done / (a.total || 1)));
+  // Ordre du parcours (1 → 12), les cours sans ordre à la fin
+  rows.sort((a, b) => (a.ordre ?? 9999) - (b.ordre ?? 9999));
 
   const globalPct = totalLessons > 0 ? Math.round((totalDone / totalLessons) * 100) : 0;
 
