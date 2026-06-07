@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { SidebarInner } from "./sidebar-inner";
 import { DICT, type Lang } from "./dash-i18n";
 
@@ -46,15 +46,8 @@ export function MobileNav({
             className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
           />
           {/* Drawer */}
-          <aside className="absolute inset-y-0 start-0 w-[86vw] max-w-[340px] flex flex-col bg-gradient-to-b from-violet-800 to-violet-900 shadow-2xl">
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Fermer"
-              className="absolute top-4 end-4 z-10 w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
-            >
-              <X size={18} />
-            </button>
-            <SidebarInner nom={nom} avatarUrl={avatarUrl} role={role} roleLabel={roleLabel} lang={lang} full />
+          <aside className="absolute inset-y-0 start-0 w-[86vw] max-w-[340px] h-full overflow-hidden flex flex-col bg-gradient-to-b from-violet-800 to-violet-900 shadow-2xl">
+            <SidebarInner nom={nom} avatarUrl={avatarUrl} role={role} roleLabel={roleLabel} lang={lang} full onClose={() => setOpen(false)} />
           </aside>
         </div>
       )}
