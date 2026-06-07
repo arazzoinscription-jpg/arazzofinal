@@ -6,6 +6,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { HOME, type Lang } from "@/lib/home-i18n";
 import { LangSwitcherPublic } from "./lang-switcher-public";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const MotionLink = motion.create(Link);
 
@@ -73,6 +74,7 @@ export function Navbar({ lang = "fr" }: { lang?: Lang }) {
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-3">
             <LangSwitcherPublic current={lang} scrolled={scrolled} />
+            <ThemeToggle />
             {user ? (
               <MotionLink href="/dashboard" whileHover={{ scale: 1.04, backgroundColor: "#E8650A" }} whileTap={{ scale: 0.96 }} transition={{ type: "spring", stiffness: 300 }}
                 className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md">
@@ -108,7 +110,7 @@ export function Navbar({ lang = "fr" }: { lang?: Lang }) {
                   {l.label}
                 </Link>
               ))}
-              <div className="py-2"><LangSwitcherPublic current={lang} scrolled /></div>
+              <div className="py-2 flex items-center gap-2"><LangSwitcherPublic current={lang} scrolled /><ThemeToggle /></div>
               <div className="flex gap-3 mt-1 pt-1">
                 <Link href="/login" className="flex-1 text-center border-2 border-orange-DEFAULT text-orange-600 py-2.5 rounded-xl font-semibold text-sm">{t.login}</Link>
                 <Link href="/register" className="flex-1 text-center bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold text-sm">{t.register}</Link>

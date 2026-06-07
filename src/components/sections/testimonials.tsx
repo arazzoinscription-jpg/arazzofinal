@@ -28,22 +28,22 @@ function TestimonialCard({ m, text, course, index }: { m: (typeof META)[number];
       animate={inView ? { opacity: 1, x: 0 } : {}}
       transition={{ delay: reduce ? 0 : index * 0.15, duration: 0.55 }}
       whileHover={{ scale: 1.02 }}
-      className="h-full bg-white rounded-[1.75rem] p-7 border border-cream-200 shadow-soft hover:shadow-2xl transition-shadow duration-300 flex flex-col"
+      className="h-full bg-white dark:bg-white/[0.04] rounded-[1.75rem] p-7 border border-cream-200 dark:border-white/10 shadow-soft hover:shadow-2xl transition-shadow duration-300 flex flex-col"
     >
       <motion.div variants={starWrap} initial="hidden" animate={inView ? "show" : "hidden"} className="flex gap-0.5 text-orange-DEFAULT text-xl mb-4">
         {[...Array(5)].map((_, j) => <motion.span key={j} variants={star}>★</motion.span>)}
       </motion.div>
 
-      <p className="text-gray-700 leading-relaxed mb-6 font-dm italic flex-1">&ldquo;{text}&rdquo;</p>
+      <p className="text-gray-700 dark:text-white/70 leading-relaxed mb-6 font-dm italic flex-1">&ldquo;{text}&rdquo;</p>
 
-      <div className="flex items-center gap-3 pt-4 border-t border-cream-200">
+      <div className="flex items-center gap-3 pt-4 border-t border-cream-200 dark:border-white/10">
         <motion.div whileHover={{ scale: 1.12 }} transition={{ type: "spring", stiffness: 400, damping: 12 }}
           className={`w-11 h-11 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0 ${m.color}`}>
           {m.initial}
         </motion.div>
         <div>
-          <div className="font-semibold text-gray-900 font-dm">{m.name}</div>
-          <div className="text-xs text-gray-500 font-dm">
+          <div className="font-semibold text-gray-900 dark:text-white font-dm">{m.name}</div>
+          <div className="text-xs text-gray-500 dark:text-white/50 font-dm">
             {m.flag} {m.city} · <span className="text-orange-600 font-medium">{course}</span>
           </div>
         </div>
@@ -55,8 +55,8 @@ function TestimonialCard({ m, text, course, index }: { m: (typeof META)[number];
 export function TestimonialsSection({ lang = "fr" }: { lang?: Lang }) {
   const t = HOME[lang].testimonials;
   return (
-    <section className="relative py-24 bg-white overflow-hidden">
-      <div className="absolute bottom-0 right-0 w-[600px] h-72 bg-blush-100/50 blur-3xl rounded-full pointer-events-none" />
+    <section className="relative py-24 bg-white dark:bg-[#0d0a1c] overflow-hidden">
+      <div className="absolute bottom-0 right-0 w-[600px] h-72 bg-blush-100/50 dark:bg-violet-900/20 blur-3xl rounded-full pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading eyebrow={t.eyebrow} title={t.title} highlight={t.hi} sub={t.sub} />

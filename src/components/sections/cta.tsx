@@ -13,7 +13,7 @@ export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
   const t = HOME[lang].cta;
 
   return (
-    <section className="py-20 bg-blush-mesh">
+    <section className="py-20 bg-blush-mesh dark:bg-[#0d0a1c]">
       <div className="max-w-5xl mx-auto px-4">
         <Reveal animation="zoom">
           <div className="relative bg-gradient-to-br from-violet-DEFAULT via-violet-600 to-violet-800 rounded-3xl p-10 md:p-16 overflow-hidden text-center shadow-glow">

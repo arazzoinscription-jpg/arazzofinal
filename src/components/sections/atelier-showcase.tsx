@@ -41,7 +41,7 @@ export function AtelierShowcaseSection({ lang = "fr" }: { lang?: Lang }) {
   const y = useTransform(scrollYProgress, [0, 1], [-30, 30]);
 
   return (
-    <section className="relative py-24 bg-gradient-to-b from-cream-DEFAULT to-white overflow-hidden">
+    <section className="relative py-24 bg-gradient-to-b from-cream-DEFAULT to-white dark:from-[#0d0a1c] dark:to-[#0d0a1c] overflow-hidden">
       <div className="absolute -top-20 right-0 w-[36rem] h-[36rem] rounded-full bg-orange-200/30 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 -left-20 w-[28rem] h-[28rem] rounded-full bg-violet-200/30 blur-3xl pointer-events-none" />
 
@@ -53,11 +53,11 @@ export function AtelierShowcaseSection({ lang = "fr" }: { lang?: Lang }) {
               <motion.img src="/images/mannequin-couture.jpg" alt="" style={{ y: reduce ? 0 : y }} className="absolute inset-x-0 -top-8 w-full h-[calc(26rem+4rem)] object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-violet-950/25 to-transparent" />
             </div>
-            <div className="absolute -bottom-6 -right-4 sm:right-6 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-cream-200 px-5 py-3.5 flex items-center gap-3">
-              <span className="w-11 h-11 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center"><PlayCircle size={22} /></span>
+            <div className="absolute -bottom-6 -right-4 sm:right-6 bg-white/90 dark:bg-white/10 backdrop-blur-md rounded-2xl shadow-xl border border-cream-200 dark:border-white/15 px-5 py-3.5 flex items-center gap-3">
+              <span className="w-11 h-11 rounded-xl bg-orange-50 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 flex items-center justify-center"><PlayCircle size={22} /></span>
               <div>
-                <p className="font-playfair font-bold text-gray-900 text-lg leading-none">{t.cardNum}</p>
-                <p className="text-xs text-gray-500 font-dm mt-0.5">{t.cardSub}</p>
+                <p className="font-playfair font-bold text-gray-900 dark:text-white text-lg leading-none">{t.cardNum}</p>
+                <p className="text-xs text-gray-500 dark:text-white/50 font-dm mt-0.5">{t.cardSub}</p>
               </div>
             </div>
           </Reveal>
@@ -67,10 +67,10 @@ export function AtelierShowcaseSection({ lang = "fr" }: { lang?: Lang }) {
               <span className="inline-flex items-center gap-2 text-orange-600 font-semibold font-dm text-sm tracking-wide mb-4">
                 <Sparkles size={16} /> {t.eyebrow}
               </span>
-              <h2 className="font-playfair text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-5">
-                {t.title}{" "}<span className="text-orange-600 italic">{t.hi}</span>.
+              <h2 className="font-playfair text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white leading-tight mb-5">
+                {t.title}{" "}<span className="text-orange-600 dark:text-orange-300 italic">{t.hi}</span>.
               </h2>
-              <p className="text-gray-600 text-lg leading-relaxed mb-8 font-dm max-w-xl">{t.p}</p>
+              <p className="text-gray-600 dark:text-white/60 text-lg leading-relaxed mb-8 font-dm max-w-xl">{t.p}</p>
             </Reveal>
 
             <div className="space-y-4 mb-9">
@@ -78,10 +78,10 @@ export function AtelierShowcaseSection({ lang = "fr" }: { lang?: Lang }) {
                 const Icon = FEATURE_ICONS[i];
                 return (
                   <Reveal key={f.title} animation="left" delay={i * 120} className="flex items-start gap-4">
-                    <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-100 to-orange-50 text-orange-600 flex items-center justify-center flex-shrink-0"><Icon size={20} /></span>
+                    <span className="w-11 h-11 rounded-xl bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-500/20 dark:to-orange-500/10 text-orange-600 dark:text-orange-300 flex items-center justify-center flex-shrink-0"><Icon size={20} /></span>
                     <div>
-                      <h3 className="font-semibold text-gray-900 font-dm">{f.title}</h3>
-                      <p className="text-gray-500 text-sm font-dm">{f.desc}</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white font-dm">{f.title}</h3>
+                      <p className="text-gray-500 dark:text-white/50 text-sm font-dm">{f.desc}</p>
                     </div>
                   </Reveal>
                 );

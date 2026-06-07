@@ -49,7 +49,7 @@ function CourseCard({ course, index, see }: { course: any; index: number; see: s
         animate={inView ? { opacity: 1, y: 0 } : {}}
         transition={{ delay: reduce ? 0 : index * 0.12, duration: 0.5 }}
         whileHover={reduce ? undefined : { y: -8, boxShadow: "0 16px 40px rgba(107,33,200,0.18)", transition: { duration: 0.25 } }}
-        className="h-full bg-white rounded-3xl overflow-hidden border border-cream-200 shadow-soft"
+        className="h-full bg-white dark:bg-white/[0.04] rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 shadow-soft"
       >
         <div className="relative aspect-video overflow-hidden bg-cream-100">
           <Image
@@ -77,14 +77,14 @@ function CourseCard({ course, index, see }: { course: any; index: number; see: s
         </div>
 
         <div className="p-5">
-          <h3 className="font-playfair font-bold text-gray-900 text-[17px] mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors">
+          <h3 className="font-playfair font-bold text-gray-900 dark:text-white text-[17px] mb-1 line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-300 transition-colors">
             {course.titre_fr}
           </h3>
           {course.titre_ar && (
             <p className="text-sm text-gray-400 text-right font-arabic mb-3" dir="rtl">{course.titre_ar}</p>
           )}
 
-          <div className="flex items-center justify-between pt-3 border-t border-cream-100 mt-2">
+          <div className="flex items-center justify-between pt-3 border-t border-cream-100 dark:border-white/10 mt-2">
             <div className="flex items-baseline gap-2">
               {course.prix_barre && (
                 <span className="text-sm text-gray-300 line-through font-dm">
@@ -113,17 +113,17 @@ export function CoursesSection({ courses, lang = "fr" }: { courses?: any[]; lang
   const t = HOME[lang].courses;
 
   return (
-    <section className="relative py-24 bg-blush-mesh overflow-hidden">
+    <section className="relative py-24 bg-blush-mesh dark:bg-[#0d0a1c] overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
           <div>
             <span className="inline-flex items-center gap-2 text-blush-500 font-semibold text-sm font-dm mb-3 tracking-[0.2em] uppercase">
               <span className="w-8 h-px bg-blush-400" /> {t.eyebrow}
             </span>
-            <h2 className="font-playfair text-4xl lg:text-5xl font-bold text-gray-900 leading-tight">
+            <h2 className="font-playfair text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
               {t.title} <span className="text-gradient-rose italic">{t.hi}</span>
             </h2>
-            <p className="text-gray-500 mt-3 font-dm">{t.subtitle}</p>
+            <p className="text-gray-500 dark:text-white/50 mt-3 font-dm">{t.subtitle}</p>
           </div>
           <Link href="/formations"
             className="hidden md:inline-flex items-center gap-2 border-2 border-orange-DEFAULT text-orange-600 font-semibold px-5 py-2.5 rounded-xl hover:bg-orange-DEFAULT hover:text-white transition-all font-dm shrink-0"

@@ -62,7 +62,7 @@ export function SectionHeading({
       <h2
         className={`font-playfair text-4xl lg:text-5xl font-bold transition-all duration-700 delay-200 ${
           on ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
-        } ${light ? "text-white" : "text-gray-900"}`}
+        } ${light ? "text-white" : "text-gray-900 dark:text-white"}`}
       >
         {title}{" "}
         {highlight && <span className="text-gradient-rose italic">{highlight}</span>}
@@ -72,7 +72,7 @@ export function SectionHeading({
         <p
           className={`mt-3 font-dm text-lg transition-all duration-700 delay-300 ${
             on ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
-          } ${light ? "text-violet-200" : "text-gray-500"}`}
+          } ${light ? "text-violet-200" : "text-gray-500 dark:text-white/50"}`}
         >
           {sub}
         </p>
