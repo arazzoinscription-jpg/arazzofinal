@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, ImagePlus, FileUp } from "lucide-react";
+import { Save, Loader2, ImagePlus, FileUp, Images, Video, Lightbulb } from "lucide-react";
 
 export interface PatronInit {
   id?: string;
@@ -17,12 +17,18 @@ export interface PatronInit {
   format?: string | null;
   preview_url?: string | null;
   fichier_url?: string | null;
+  video_url?: string | null;
+  conseils?: string | null;
+  course_id?: string | null;
+  images?: string[] | null;
 }
+
+export interface CourseOption { id: string; titre_fr: string | null }
 
 const field = "w-full rounded-xl border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500";
 const label = "block text-sm font-medium text-gray-700 dark:text-white/80 mb-1.5";
 
-export function PatronForm({ init = {} }: { init?: PatronInit }) {
+export function PatronForm({ init = {}, courses = [] }: { init?: PatronInit; courses?: CourseOption[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -122,9 +128,43 @@ export function PatronForm({ init = {} }: { init?: PatronInit }) {
             )}
           </div>
         </div>
+        <div>
+          <label className={label}><Images size={15} className="inline -mt-0.5 me-1" /> Galerie photos (plusieurs)</label>
+          <input name="gallery" type="file" accept="image/*" multiple className={field} />
+          {init.images && init.images.length > 0 && (
+            <div className="mt-2 flex gap-2 flex-wrap">
+              {init.images.map((src, i) => (
+                <img key={i} src={src} alt="" className="w-16 h-20 object-cover rounded-lg border border-cream-200 dark:border-white/10" />
+              ))}
+            </div>
+          )}
+        </div>
         <p className="text-xs text-gray-400 dark:text-white/40">
           {init.id ? "Laissez vide pour conserver les fichiers existants." : "Si aucun PDF n'est fourni, le visuel sera utilisé comme fichier téléchargeable."}
         </p>
+      </div>
+
+      {/* Pédagogie / fiche produit */}
+      <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">Fiche produit</h2>
+        <div>
+          <label className={label}><Video size={15} className="inline -mt-0.5 me-1" /> Vidéo démonstrative (URL YouTube / Vimeo / MP4)</label>
+          <input name="video_url" defaultValue={init.video_url ?? ""} className={field} placeholder="https://youtu.be/…" />
+        </div>
+        <div>
+          <label className={label}><Lightbulb size={15} className="inline -mt-0.5 me-1" /> Conseils de couture (comment traiter le patron)</label>
+          <textarea name="conseils" defaultValue={init.conseils ?? ""} rows={4} className={field}
+            placeholder="Type de tissu conseillé, sens du droit-fil, entoilage, ordre de montage, finitions recommandées…" />
+        </div>
+        <div>
+          <label className={label}>Formation de référence (pour apprendre à coudre ce modèle)</label>
+          <select name="course_id" defaultValue={init.course_id ?? ""} className={field}>
+            <option value="">— Aucune —</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>{c.titre_fr ?? "Formation"}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <button

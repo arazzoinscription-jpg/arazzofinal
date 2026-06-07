@@ -52,10 +52,12 @@ export async function POST(req: NextRequest) {
 
   const previewFile = form.get("preview") as File | null;
   const pdfFile = form.get("pdf") as File | null;
+  const galleryFiles = (form.getAll("gallery") as File[]).filter((f) => f && f.size > 0);
 
   if (previewFile && previewFile.size > MAX) return NextResponse.json({ error: "Visuel trop volumineux (max 50 Mo)" }, { status: 400 });
   if (pdfFile && pdfFile.size > MAX) return NextResponse.json({ error: "PDF trop volumineux (max 50 Mo)" }, { status: 400 });
 
+  const courseId = str("course_id");
   const row: Record<string, unknown> = {
     titre,
     description: str("description"),
@@ -66,11 +68,22 @@ export async function POST(req: NextRequest) {
     taille_table: str("taille_table"),
     nb_pages: num("nb_pages"),
     format: str("format"),
+    video_url: str("video_url"),
+    conseils: str("conseils"),
+    course_id: courseId,
   };
 
   try {
     if (previewFile && previewFile.size > 0) row.preview_url = await upload(previewFile);
     if (pdfFile && pdfFile.size > 0) row.fichier_url = await upload(pdfFile);
+    if (galleryFiles.length > 0) {
+      const urls: string[] = [];
+      for (const f of galleryFiles) {
+        if (f.size > MAX) return NextResponse.json({ error: "Image de galerie trop volumineuse (max 50 Mo)" }, { status: 400 });
+        urls.push(await upload(f));
+      }
+      row.images = urls;
+    }
 
     if (id) {
       const { error } = await admin.from("patrons").update(row).eq("id", id);
