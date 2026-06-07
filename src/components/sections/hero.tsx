@@ -96,7 +96,7 @@ export function HeroSection({ lang = "fr" }: { lang?: Lang }) {
 
           <motion.div variants={item} className="flex flex-wrap gap-4 mb-7">
             <MotionLink href="/formations" whileHover={{ scale: 1.04, y: -2 }} whileTap={{ scale: 0.96 }} transition={{ type: "spring", stiffness: 300 }}
-              className="group inline-flex items-center gap-2 bg-gradient-to-r from-orange-DEFAULT to-orange-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-xl font-dm">
+              className="group inline-flex items-center gap-2 bg-gradient-to-r from-orange-DEFAULT to-orange-500 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-glow font-dm">
               {t.ctaPrimary}
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </MotionLink>

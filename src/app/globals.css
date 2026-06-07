@@ -161,7 +161,10 @@ h1, h2, h3 {
     box-shadow: 0 12px 44px -12px rgba(107, 33, 200, 0.38);
   }
   .shadow-glow {
-    box-shadow: 0 20px 60px -20px rgba(224, 120, 64, 0.35);
+    box-shadow: 0 20px 60px -20px rgba(232, 101, 35, 0.40);
+  }
+  .dark .shadow-glow {
+    box-shadow: 0 20px 60px -20px rgba(107, 33, 200, 0.48);
   }
 
   /* Ligne de couture pointillée décorative */

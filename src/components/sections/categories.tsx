@@ -10,15 +10,15 @@ import { HOME, type Lang } from "@/lib/home-i18n";
 
 const MotionLink = motion.create(Link);
 
-const ICONS: { Icon: LucideIcon; chip: string }[] = [
-  { Icon: Scissors, chip: "bg-orange-50 text-orange-600" },
-  { Icon: PencilRuler, chip: "bg-violet-50 text-violet-700" },
-  { Icon: Ruler, chip: "bg-blush-50 text-blush-500" },
-  { Icon: Gem, chip: "bg-orange-50 text-orange-600" },
-  { Icon: Hand, chip: "bg-violet-50 text-violet-700" },
-  { Icon: MonitorSmartphone, chip: "bg-blush-50 text-blush-500" },
-  { Icon: Megaphone, chip: "bg-orange-50 text-orange-600" },
-  { Icon: Route, chip: "bg-violet-50 text-violet-700" },
+const ICONS: { Icon: LucideIcon; chip: string; slug: string | null }[] = [
+  { Icon: Scissors, chip: "bg-orange-50 text-orange-600", slug: "modelisme" },
+  { Icon: PencilRuler, chip: "bg-violet-50 text-violet-700", slug: "stylisme" },
+  { Icon: Ruler, chip: "bg-blush-50 text-blush-500", slug: "modelisme-industriel" },
+  { Icon: Gem, chip: "bg-orange-50 text-orange-600", slug: "accessoire" },
+  { Icon: Hand, chip: "bg-violet-50 text-violet-700", slug: "artisanat" },
+  { Icon: MonitorSmartphone, chip: "bg-blush-50 text-blush-500", slug: "patron-numerique" },
+  { Icon: Megaphone, chip: "bg-orange-50 text-orange-600", slug: "pret-a-porter" },
+  { Icon: Route, chip: "bg-violet-50 text-violet-700", slug: "haute-couture" },
 ];
 
 function Grid({ names }: { names: string[] }) {
@@ -31,7 +31,7 @@ function Grid({ names }: { names: string[] }) {
       {ICONS.map((c, i) => (
         <MotionLink
           key={i}
-          href="/formations"
+          href={c.slug ? `/formations?cat=${c.slug}` : "/formations"}
           initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85 }}
           animate={inView ? { opacity: 1, scale: 1 } : {}}
           transition={{ delay: reduce ? 0 : i * 0.07, type: "spring", stiffness: 200, damping: 18 }}

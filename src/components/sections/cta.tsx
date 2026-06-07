@@ -59,7 +59,7 @@ export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
                   whileHover={{ scale: 1.05, backgroundColor: "#E8650A" }}
                   whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", stiffness: 300 }}
-                  className="bg-orange-DEFAULT text-white px-9 py-4 rounded-2xl font-bold text-lg shadow-lg font-dm"
+                  className="bg-orange-DEFAULT text-white px-9 py-4 rounded-2xl font-bold text-lg shadow-glow font-dm"
                 >
                   {t.primary}
                 </MotionLink>

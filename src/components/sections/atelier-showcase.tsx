@@ -89,7 +89,7 @@ export function AtelierShowcaseSection({ lang = "fr" }: { lang?: Lang }) {
             </div>
 
             <Reveal animation="up" delay={120}>
-              <Link href="/formations" className="group inline-flex items-center gap-2 bg-gradient-to-r from-orange-DEFAULT to-orange-500 text-white px-7 py-3.5 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all font-dm">
+              <Link href="/formations" className="group inline-flex items-center gap-2 bg-gradient-to-r from-orange-DEFAULT to-orange-500 text-white px-7 py-3.5 rounded-2xl font-bold text-lg shadow-glow hover:-translate-y-0.5 transition-all font-dm">
                 {t.btn}
                 <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
