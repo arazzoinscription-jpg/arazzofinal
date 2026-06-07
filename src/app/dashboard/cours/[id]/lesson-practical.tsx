@@ -64,11 +64,11 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
     <div className="mt-6 bg-white dark:bg-white/[0.04] rounded-2xl border border-cream-200 dark:border-white/10 p-5">
       <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white mb-1">🪡 Travaux pratiques</h2>
       <p className="text-sm text-gray-500 dark:text-white/50 mb-4">
-        {isStaff ? "Les travaux soumis par vos élèves." : "Envoyez une photo et/ou une vidéo de votre réalisation."}
+        {isStaff ? "Soumettez un exemple, et retrouvez les travaux de vos élèves ci-dessous." : "Envoyez une photo et/ou une vidéo de votre réalisation."}
       </p>
 
-      {/* Formulaire élève (et staff peut aussi soumettre) */}
-      {!isStaff && (
+      {/* Formulaire d'envoi (visible pour tous) */}
+      {(
         <div className="rounded-xl border border-cream-200 dark:border-white/10 p-4 mb-5 space-y-3">
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-sm">
