@@ -1,29 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createPack } from "../actions";
+import { ImagePlus, Loader2, X } from "lucide-react";
+import { createPack, updatePack, uploadPackImage } from "../actions";
+import { toast } from "@/components/ui/toast";
 
 export interface PackCourseOption {
   id: string;
   titre_fr: string;
   prix_dzd: number;
+  categories?: string[];
 }
 
-/** Formulaire de création d'un pack de cours (sélection multiple de cours). */
-export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
+export interface PackInitial {
+  titre_fr: string;
+  titre_ar: string;
+  description_fr: string;
+  prix_dzd: string;
+  prix_eur: string;
+  thumbnail: string;
+  courseIds: string[];
+}
+
+/** Formulaire de création OU d'édition d'un pack de cours (sélection multiple de cours). */
+export function PackCreateForm({ courses, packId, initial }: { courses: PackCourseOption[]; packId?: string; initial?: PackInitial }) {
   const router = useRouter();
+  const isEdit = !!packId;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    titre_fr: "",
-    titre_ar: "",
-    description_fr: "",
-    prix_dzd: "",
-    prix_eur: "",
-    thumbnail: "",
+    titre_fr: initial?.titre_fr ?? "",
+    titre_ar: initial?.titre_ar ?? "",
+    description_fr: initial?.description_fr ?? "",
+    prix_dzd: initial?.prix_dzd ?? "",
+    prix_eur: initial?.prix_eur ?? "",
+    thumbnail: initial?.thumbnail ?? "",
   });
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set(initial?.courseIds ?? []));
+  const [uploading, startUpload] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function toggle(id: string) {
     setSelected((s) => {
@@ -33,10 +49,25 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
     });
   }
 
+  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("file", file);
+    startUpload(async () => {
+      const res = await uploadPackImage(fd);
+      if (res.ok) { setForm((f) => ({ ...f, thumbnail: res.url })); toast("Photo ajoutée ✓", "success"); }
+      else toast(res.error ?? "Échec de l'upload", "error");
+      if (fileRef.current) fileRef.current.value = "";
+    });
+  }
+
   // Total des cours sélectionnés (pour suggérer un prix de pack avantageux)
-  const totalDzd = courses
-    .filter((c) => selected.has(c.id))
-    .reduce((sum, c) => sum + (c.prix_dzd ?? 0), 0);
+  const selectedCourses = courses.filter((c) => selected.has(c.id));
+  const totalDzd = selectedCourses.reduce((sum, c) => sum + (c.prix_dzd ?? 0), 0);
+
+  // Catégories auto : union des catégories des cours sélectionnés.
+  const autoCategories = [...new Set(selectedCourses.flatMap((c) => c.categories ?? []))];
 
   async function submit(e: React.FormEvent, publish: boolean) {
     e.preventDefault();
@@ -45,7 +76,7 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
     setLoading(true);
     setError("");
 
-    const res = await createPack({
+    const payload = {
       titre_fr: form.titre_fr.trim(),
       titre_ar: form.titre_ar.trim() || null,
       description_fr: form.description_fr.trim() || null,
@@ -54,11 +85,14 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
       thumbnail: form.thumbnail.trim() || null,
       published: publish,
       courseIds: [...selected],
-    });
+    };
+    const res = isEdit
+      ? await updatePack({ id: packId!, ...payload })
+      : await createPack(payload);
 
     setLoading(false);
-    if (res.ok) router.push("/formateur/packs");
-    else setError(res.error ?? "Erreur lors de la création.");
+    if (res.ok) { toast(isEdit ? "Pack mis à jour ✓" : "Pack créé ✓", "success"); router.push("/formateur/packs"); }
+    else setError(res.error ?? "Erreur lors de l'enregistrement.");
   }
 
   return (
@@ -101,9 +135,24 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">URL miniature</label>
-          <input value={form.thumbnail} onChange={(e) => setForm({ ...form, thumbnail: e.target.value })} placeholder="https://…"
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Photo du pack</label>
+          <input ref={fileRef} type="file" accept="image/*" onChange={onPickPhoto} className="hidden" />
+          {form.thumbnail ? (
+            <div className="relative inline-block">
+              <img src={form.thumbnail} alt="Aperçu du pack" className="w-44 h-44 object-cover rounded-xl border border-cream-200" />
+              <button type="button" onClick={() => setForm({ ...form, thumbnail: "" })}
+                className="absolute -top-2 -end-2 bg-white border border-cream-200 rounded-full p-1 shadow hover:bg-red-50 text-gray-500 hover:text-red-500">
+                <X size={15} />
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+              className="w-44 h-44 rounded-xl border-2 border-dashed border-cream-300 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-orange-400 hover:text-orange-500 transition-colors disabled:opacity-60">
+              {uploading ? <Loader2 size={26} className="animate-spin" /> : <ImagePlus size={26} />}
+              <span className="text-xs font-semibold">{uploading ? "Envoi…" : "Ajouter une photo"}</span>
+            </button>
+          )}
+          <p className="text-xs text-gray-400 mt-1.5">JPG / PNG · max 8 Mo</p>
         </div>
       </div>
 
@@ -139,6 +188,17 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
             )}
           </p>
         )}
+
+        {autoCategories.length > 0 && (
+          <div className="mt-3 border-t border-cream-100 pt-3">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Catégories du pack (reprises des cours) :</p>
+            <div className="flex flex-wrap gap-1.5">
+              {autoCategories.map((c, i) => (
+                <span key={i} className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full">🏷️ {c}</span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl">{error}</p>}
@@ -146,11 +206,11 @@ export function PackCreateForm({ courses }: { courses: PackCourseOption[] }) {
       <div className="flex gap-4">
         <button type="button" onClick={(e) => submit(e, false)} disabled={loading}
           className="flex-1 border-2 border-orange-DEFAULT text-orange-600 py-3.5 rounded-xl font-semibold hover:bg-orange-50 transition-colors disabled:opacity-50">
-          Enregistrer en brouillon
+          {isEdit ? "Enregistrer (brouillon)" : "Enregistrer en brouillon"}
         </button>
         <button type="button" onClick={(e) => submit(e, true)} disabled={loading}
           className="flex-1 bg-orange-DEFAULT text-white py-3.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
-          {loading ? "Création…" : "Publier le pack"}
+          {loading ? "Enregistrement…" : isEdit ? "Enregistrer et publier" : "Publier le pack"}
         </button>
       </div>
     </form>

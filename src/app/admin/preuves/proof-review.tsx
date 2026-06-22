@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -46,7 +46,7 @@ export function ProofReview({ proof }: { proof: ProofRow }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-cream-200 p-5">
+    <div className="bg-white rounded-2xl border border-gray-100 p-5">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="min-w-0">
           <p className="font-semibold text-gray-900 font-dm">{proof.order?.order_number ?? "—"}</p>
@@ -59,23 +59,23 @@ export function ProofReview({ proof }: { proof: ProofRow }) {
       {proof.signedUrl ? (
         proof.file_type === "pdf" ? (
           <a href={proof.signedUrl} target="_blank" rel="noreferrer"
-            className="flex items-center justify-center gap-2 bg-cream-50 rounded-xl border border-cream-200 h-40 text-gray-500 hover:bg-cream-100">
+            className="flex items-center justify-center gap-2 bg-gray-50 rounded-xl border border-gray-100 h-40 text-gray-500 hover:bg-gray-100">
             📄 Ouvrir le PDF en grand
           </a>
         ) : (
           <a href={proof.signedUrl} target="_blank" rel="noreferrer">
-            <img src={proof.signedUrl} alt="Preuve" className="w-full max-h-72 object-contain rounded-xl border border-cream-200 bg-cream-50" />
+            <img src={proof.signedUrl} alt="Preuve" className="w-full max-h-72 object-contain rounded-xl border border-gray-100 bg-gray-50" />
           </a>
         )
       ) : <p className="text-sm text-gray-400">Fichier indisponible.</p>}
 
       {/* Montants + IA */}
       <div className="grid grid-cols-2 gap-2 text-sm font-dm mt-3">
-        <div className="bg-cream-50 rounded-lg px-3 py-2">
+        <div className="bg-gray-50 rounded-lg px-3 py-2">
           <span className="text-gray-400 text-xs block">Montant commande</span>
           <span className="font-semibold text-gray-800">{proof.order ? fmt(proof.order.total) : "—"}</span>
         </div>
-        <div className="bg-cream-50 rounded-lg px-3 py-2">
+        <div className="bg-gray-50 rounded-lg px-3 py-2">
           <span className="text-gray-400 text-xs block">Montant détecté (IA)</span>
           <span className="font-semibold text-gray-800">{proof.extracted_amount != null ? fmt(proof.extracted_amount) : "—"}</span>
         </div>
@@ -85,7 +85,7 @@ export function ProofReview({ proof }: { proof: ProofRow }) {
       )}
 
       {done ? (
-        proof.admin_note && <p className="text-sm text-gray-500 font-dm mt-3 bg-cream-50 rounded-lg p-2">Note : {proof.admin_note}</p>
+        proof.admin_note && <p className="text-sm text-gray-500 font-dm mt-3 bg-gray-50 rounded-lg p-2">Note : {proof.admin_note}</p>
       ) : (
         <>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Note (obligatoire si refus / renvoi)…"

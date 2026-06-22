@@ -1,19 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { Reveal } from "@/components/ui/reveal";
 import { Check } from "lucide-react";
 import { HOME, type Lang } from "@/lib/home-i18n";
+import { AnimatedText } from "@/components/ui/animated-text";
 
 const MotionLink = motion.create(Link);
 
 export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const t = HOME[lang].cta;
 
   return (
-    <section className="py-20 bg-blush-mesh dark:bg-[#0d0a1c]">
+    <section className="py-20 bg-transparent">
       <div className="max-w-5xl mx-auto px-4">
         <Reveal animation="zoom">
           <div className="relative bg-gradient-to-br from-violet-DEFAULT via-violet-600 to-violet-800 rounded-3xl p-10 md:p-16 overflow-hidden text-center shadow-glow">
@@ -39,9 +41,13 @@ export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
                   </motion.span>
                 </span>
               </div>
-              <h2 className="font-playfair text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-                {t.title}
-              </h2>
+              <AnimatedText
+                as="h2"
+                text={t.title}
+                textClassName="font-playfair text-4xl md:text-5xl font-bold text-white leading-tight"
+                underlineClassName="text-orange-400"
+                className="mb-4"
+              />
 
               <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mb-9 mt-6">
                 <span className="inline-flex items-center gap-2 text-white font-dm">
@@ -64,8 +70,8 @@ export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
                   {t.primary}
                 </MotionLink>
                 <MotionLink href="/devenir-formateur"
-                  whileHover={{ x: 4 }} transition={{ duration: 0.2 }}
-                  className="bg-white/10 border-2 border-white/40 text-white px-9 py-4 rounded-2xl font-bold text-lg hover:bg-white hover:text-orange-600 transition-colors font-dm"
+                  whileHover={{ y: -2 }} transition={{ type: "spring", stiffness: 300 }}
+                  className="bg-white text-violet-800 px-9 py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-cream-100 transition-colors font-dm"
                 >
                   {t.secondary}
                 </MotionLink>

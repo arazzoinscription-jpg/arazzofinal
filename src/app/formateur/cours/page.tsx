@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PlusCircle, Pencil, Users, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { aggregateEnrollments } from "@/lib/formateur-stats";
 
 export const metadata = { title: "Mes cours — Formateur" };
 export const dynamic = "force-dynamic";
@@ -11,15 +13,19 @@ export default async function FormateurCoursPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-
-  let q = supabase
+  // Espace formateur = SES propres cours + les cours importés non assignés (formateur_id NULL),
+  // que le formateur peut reprendre et éditer. La lecture passe par le client ADMIN car la RLS
+  // ne renverrait pas les cours non possédés. (La gestion globale reste dans /admin.)
+  const admin = createAdminClient();
+  const { data: courses } = await admin
     .from("courses")
-    .select("id, titre_fr, published, created_at, thumbnail, enrollments(id)")
+    .select("id, titre_fr, published, created_at, thumbnail, formateur_id")
+    .or(`formateur_id.eq.${user.id},formateur_id.is.null`)
     .order("created_at", { ascending: false });
-  if (!isAdmin) q = q.eq("formateur_id", user.id);
-  const { data: courses } = await q;
+  // Comptes d'inscrits par cours (paginé, sans la limite PostgREST de 1000 lignes).
+  const courseIds = (courses ?? []).map((c) => c.id);
+  const { byCourse } = await aggregateEnrollments(admin, courseIds);
+  const countByCourse = new Map<string, number>([...byCourse].map(([id, m]) => [id, m.count]));
 
   return (
     <div>
@@ -29,7 +35,7 @@ export default async function FormateurCoursPage() {
           <p className="text-gray-500 dark:text-white/50 mt-1 font-dm">{courses?.length ?? 0} cours.</p>
         </div>
         <Link href="/formateur/cours/nouveau"
-          className="inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
+          className="shiny-cta inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
           <PlusCircle size={18} /> Nouveau cours
         </Link>
       </div>
@@ -46,7 +52,7 @@ export default async function FormateurCoursPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {courses.map((c) => {
-            const count = (c.enrollments as { id: string }[])?.length ?? 0;
+            const count = countByCourse.get(c.id) ?? 0;
             return (
               <div key={c.id} className="bg-white dark:bg-white/[0.04] rounded-2xl border border-cream-200 dark:border-white/10 overflow-hidden">
                 <div className="aspect-video bg-cream-100 dark:bg-white/5 overflow-hidden">
@@ -59,18 +65,23 @@ export default async function FormateurCoursPage() {
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1">{c.titre_fr}</h3>
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                      c.published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                    }`}>
-                      {c.published ? "● Publié" : "○ Brouillon"}
-                    </span>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                        c.published ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      }`}>
+                        {c.published ? "● Publié" : "○ Brouillon"}
+                      </span>
+                      {c.formateur_id === null && (
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700">Importé</span>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-gray-400 mb-3">
                     {new Date(c.created_at).toLocaleDateString("fr-FR")} · {count} inscrit(s)
                   </p>
                   {/* Inscription manuelle — bouton clair */}
                   <Link href={`/formateur/cours/${c.id}/inscrits`}
-                    className="mb-3 w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors">
+                    className="shiny-cta mb-3 w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors">
                     <UserPlus size={15} /> Inscrire une élève
                   </Link>
 

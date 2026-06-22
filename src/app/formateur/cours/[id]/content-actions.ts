@@ -1,0 +1,129 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+/**
+ * Édition du contenu d'un cours (chapitres + leçons) par le formateur.
+ *
+ * Autorisation : staff (formateur/admin). Un formateur peut éditer SON cours,
+ * un cours importé (formateur_id NULL), ou n'importe quel cours s'il est admin.
+ * On passe par le client ADMIN car la RLS bloque l'écriture sur un cours non possédé
+ * (ex. cours importés) — l'autorisation est vérifiée explicitement côté serveur.
+ *
+ * Réconciliation préservant les IDs : on met à jour les chapitres/leçons existants,
+ * on insère les nouveaux et on supprime UNIQUEMENT ce que le formateur a retiré.
+ * Crucial : supprimer une leçon casse en cascade `lesson_progress` / `lesson_practicals`,
+ * donc on ne supprime jamais une leçon conservée.
+ */
+
+const LessonInput = z.object({
+  id: z.string().uuid().nullable().optional(),
+  titre: z.string().trim().min(1, "Titre de leçon requis."),
+  video_url_bunny: z.string().trim().default(""),
+  duree_minutes: z.number().int().min(0).nullable().optional(),
+  is_preview: z.boolean().default(false),
+});
+const ChapterInput = z.object({
+  id: z.string().uuid().nullable().optional(),
+  titre: z.string().trim().min(1, "Titre de chapitre requis."),
+  lessons: z.array(LessonInput),
+});
+const ContentSchema = z.object({
+  courseId: z.string().uuid(),
+  chapters: z.array(ChapterInput),
+});
+
+export type SaveCourseContentInput = z.infer<typeof ContentSchema>;
+
+/** Autorise et renvoie le client admin si OK. */
+async function authorizeCourse(courseId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const role = prof?.role;
+  if (role !== "formateur" && role !== "admin") return { ok: false as const, error: "Accès refusé." };
+
+  const admin = createAdminClient();
+  const { data: course } = await admin.from("courses").select("id, formateur_id").eq("id", courseId).single();
+  if (!course) return { ok: false as const, error: "Cours introuvable." };
+
+  const allowed = role === "admin" || course.formateur_id === user.id || course.formateur_id === null;
+  if (!allowed) return { ok: false as const, error: "Ce cours appartient à un autre formateur." };
+
+  return { ok: true as const, admin, userId: user.id };
+}
+
+export async function saveCourseContent(input: SaveCourseContentInput) {
+  const parsed = ContentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
+  const { courseId, chapters } = parsed.data;
+
+  const auth = await authorizeCourse(courseId);
+  if (!auth.ok) return auth;
+  const { admin } = auth;
+
+  // Chapitres existants
+  const { data: existingChapters } = await admin.from("chapters").select("id").eq("course_id", courseId);
+  const existingChapterIds = new Set((existingChapters ?? []).map((c) => c.id as string));
+  const keptChapterIds = new Set(chapters.map((c) => c.id).filter(Boolean) as string[]);
+
+  // Supprimer les chapitres retirés (cascade leçons)
+  const chaptersToDelete = [...existingChapterIds].filter((id) => !keptChapterIds.has(id));
+  if (chaptersToDelete.length) {
+    const { error } = await admin.from("chapters").delete().in("id", chaptersToDelete);
+    if (error) return { ok: false as const, error: error.message };
+  }
+
+  for (let ci = 0; ci < chapters.length; ci++) {
+    const ch = chapters[ci];
+    let chapterId = ch.id ?? null;
+
+    if (chapterId && existingChapterIds.has(chapterId)) {
+      const { error } = await admin.from("chapters").update({ titre: ch.titre, ordre: ci + 1 }).eq("id", chapterId);
+      if (error) return { ok: false as const, error: error.message };
+    } else {
+      const { data: created, error } = await admin
+        .from("chapters").insert({ course_id: courseId, titre: ch.titre, ordre: ci + 1 }).select("id").single();
+      if (error || !created) return { ok: false as const, error: error?.message ?? "Création du chapitre échouée." };
+      chapterId = created.id as string;
+    }
+
+    // Leçons existantes de ce chapitre
+    const { data: existingLessons } = await admin.from("lessons").select("id").eq("chapter_id", chapterId);
+    const existingLessonIds = new Set((existingLessons ?? []).map((l) => l.id as string));
+    const keptLessonIds = new Set(ch.lessons.map((l) => l.id).filter(Boolean) as string[]);
+
+    const lessonsToDelete = [...existingLessonIds].filter((id) => !keptLessonIds.has(id));
+    if (lessonsToDelete.length) {
+      const { error } = await admin.from("lessons").delete().in("id", lessonsToDelete);
+      if (error) return { ok: false as const, error: error.message };
+    }
+
+    for (let li = 0; li < ch.lessons.length; li++) {
+      const l = ch.lessons[li];
+      const payload = {
+        titre: l.titre,
+        video_url_bunny: l.video_url_bunny || null,
+        duree_minutes: l.duree_minutes ?? null,
+        ordre: li + 1,
+        is_preview: l.is_preview,
+      };
+      if (l.id && existingLessonIds.has(l.id)) {
+        const { error } = await admin.from("lessons").update(payload).eq("id", l.id);
+        if (error) return { ok: false as const, error: error.message };
+      } else {
+        const { error } = await admin.from("lessons").insert({ chapter_id: chapterId, ...payload });
+        if (error) return { ok: false as const, error: error.message };
+      }
+    }
+  }
+
+  revalidatePath(`/formateur/cours/${courseId}/edit`);
+  revalidatePath(`/dashboard/cours/${courseId}`);
+  return { ok: true as const };
+}

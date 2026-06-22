@@ -40,7 +40,7 @@ export function EmailLayout({ title, children, cta, secondary }: {
         {/* Pied */}
         <div style={{ background: COLORS.cream, padding: "18px 30px", textAlign: "center" as const }}>
           <p style={{ fontSize: 12, color: COLORS.muted, margin: 0 }}>Arazzo Formation — Couture &amp; Modélisme</p>
-          <p style={{ fontSize: 12, color: COLORS.muted, margin: "4px 0 0" }}>formation-arazzo.com</p>
+          <p style={{ fontSize: 12, color: COLORS.muted, margin: "4px 0 0" }}>formation-arazzo.store</p>
         </div>
       </div>
     </div>

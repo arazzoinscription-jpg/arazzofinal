@@ -93,32 +93,55 @@ export async function removeMember(input: z.infer<typeof MemberSchema>) {
 
 /** Liste les cours du formateur (tous si admin) pour choisir une promotion. */
 export async function staffCourses() {
-  const { supabase, user, ok } = await requireStaff();
+  const { user, ok } = await requireStaff();
   if (!ok || !user) return { ok: false, courses: [] as { id: string; titre: string }[] };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  // Espace formateur = SES propres cours uniquement.
   const admin = createAdminClient();
-  let q = admin.from("courses").select("id, titre_fr")
+  const { data } = await admin.from("courses").select("id, titre_fr")
+    .eq("formateur_id", user.id)
     .order("ordre", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
-  if (prof?.role !== "admin") q = q.eq("formateur_id", user.id);
-  const { data } = await q;
   return { ok: true, courses: (data ?? []).map((c) => ({ id: c.id, titre: c.titre_fr ?? "Formation" })) };
 }
 
-/** Étudiants inscrits à un cours donné. */
-export async function courseEnrollees(courseId: string) {
+/** Packs (course_packs) du formateur — ou tous pour l'admin. */
+export async function staffPacks() {
+  const { user, ok } = await requireStaff();
+  if (!ok || !user) return { ok: false, packs: [] as { id: string; titre: string }[] };
+  // Espace formateur = SES propres packs uniquement.
+  const admin = createAdminClient();
+  const { data } = await admin.from("course_packs").select("id, titre_fr")
+    .eq("formateur_id", user.id).order("created_at", { ascending: false });
+  return { ok: true, packs: (data ?? []).map((p) => ({ id: p.id, titre: p.titre_fr ?? "Pack" })) };
+}
+
+/** Résout un cours OU un pack en une liste d'IDs de cours. */
+async function resolveCourseIds(admin: ReturnType<typeof createAdminClient>, id: string, kind: "course" | "pack") {
+  if (kind === "pack") {
+    const { data } = await admin.from("course_pack_items").select("course_id").eq("pack_id", id);
+    return [...new Set((data ?? []).map((i) => i.course_id))];
+  }
+  return [id];
+}
+
+/** Étudiants inscrits à un cours OU à un pack (union des cours du pack). */
+export async function courseEnrollees(id: string, kind: "course" | "pack" = "course") {
   const { ok } = await requireStaff();
   if (!ok) return { ok: false, results: [] as { id: string; nom: string; email: string; avatar_url: string | null }[] };
   const admin = createAdminClient();
+  const courseIds = await resolveCourseIds(admin, id, kind);
+  if (courseIds.length === 0) return { ok: true, results: [] };
   const { data } = await admin
-    .from("enrollments").select("user:users(id, nom, email, avatar_url)").eq("course_id", courseId);
-  const results = (data ?? [])
-    .map((e: any) => ({ id: e.user?.id, nom: e.user?.nom ?? "Étudiant", email: e.user?.email ?? "", avatar_url: e.user?.avatar_url ?? null }))
-    .filter((r) => r.id);
-  return { ok: true, results };
+    .from("enrollments").select("user:users(id, nom, email, avatar_url)").in("course_id", courseIds);
+  const map = new Map<string, { id: string; nom: string; email: string; avatar_url: string | null }>();
+  for (const e of (data ?? []) as any[]) {
+    const u = e.user;
+    if (u?.id && !map.has(u.id)) map.set(u.id, { id: u.id, nom: u.nom ?? "Étudiant", email: u.email ?? "", avatar_url: u.avatar_url ?? null });
+  }
+  return { ok: true, results: [...map.values()] };
 }
 
-/** Ajoute en une fois tous les inscrits d'un cours au groupe. */
-export async function addCourseMembers(groupId: string, courseId: string) {
+/** Ajoute en une fois tous les inscrits d'un cours OU d'un pack au groupe. */
+export async function addCourseMembers(groupId: string, id: string, kind: "course" | "pack" = "course") {
   const { supabase, user, ok } = await requireStaff();
   if (!ok || !user) return { ok: false, error: "Accès refusé." };
   const { data: g } = await supabase.from("groups").select("creator_id").eq("id", groupId).single();
@@ -126,7 +149,9 @@ export async function addCourseMembers(groupId: string, courseId: string) {
   if (!g || (g.creator_id !== user.id && prof?.role !== "admin")) return { ok: false, error: "Accès refusé." };
 
   const admin = createAdminClient();
-  const { data: enr } = await admin.from("enrollments").select("user_id").eq("course_id", courseId);
+  const courseIds = await resolveCourseIds(admin, id, kind);
+  if (courseIds.length === 0) return { ok: true, added: 0 };
+  const { data: enr } = await admin.from("enrollments").select("user_id").in("course_id", courseIds);
   const ids = [...new Set((enr ?? []).map((e) => e.user_id))];
   if (ids.length === 0) return { ok: true, added: 0 };
 

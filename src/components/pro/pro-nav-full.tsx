@@ -56,14 +56,16 @@ export function ProNavFull({ variant, lang = "fr" }: { variant: ProVariant; lang
         );
       })}
 
-      <div className="pt-3 mt-2 border-t border-white/10">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          <UserRound size={20} className="flex-shrink-0" /> <span className="truncate">{ui.studentSpace}</span>
-        </Link>
-      </div>
+      {variant !== "admin" && (
+        <div className="pt-3 mt-2 border-t border-white/10">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <UserRound size={20} className="flex-shrink-0" /> <span className="truncate">{ui.studentSpace}</span>
+          </Link>
+        </div>
+      )}
     </nav>
   );
 }

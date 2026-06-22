@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,7 @@ export function CouponForm() {
   }
 
   return (
-    <form onSubmit={submit} className="bg-white rounded-2xl border border-cream-200 shadow-soft p-6 space-y-4">
+    <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 shadow-soft p-6 space-y-4">
       <h2 className="font-playfair text-xl font-bold text-gray-900">Nouveau coupon</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>

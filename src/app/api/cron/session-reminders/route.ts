@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const H = 3600 * 1000;
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization");

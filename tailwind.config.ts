@@ -74,13 +74,68 @@ const config: Config = {
           200: "#E3CCA8",
           300: "#CBA36B",
         },
+        // ── Alias plats « -DEFAULT » ────────────────────────────────────────
+        // Tailwind NE génère PAS de classe suffixée `-DEFAULT` à partir d'une
+        // couleur imbriquée (ex. `orange.DEFAULT` → `bg-orange`, jamais
+        // `bg-orange-DEFAULT`). Or tout le code utilise `bg-orange-DEFAULT`,
+        // `bg-violet-DEFAULT`, etc. → sans ces alias, ces classes ne produisent
+        // AUCUN style (boutons transparents + texte blanc invisibles).
+        "violet-DEFAULT": "#5B16F9",
+        "orange-DEFAULT": "#FE7223",
+        "cream-DEFAULT": "#F5F0EB",
+        "teal-DEFAULT": "#247390",
+        "blush-DEFAULT": "#E9B8CD",
+        "gold-DEFAULT": "#CBA36B",
+        // ── Tokens shadcn/ui (depuis les variables CSS de globals.css) ──
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
       },
       fontFamily: {
-        playfair: ["Playfair Display", "serif"],
-        dm: ["DM Sans", "sans-serif"],
+        playfair: ["var(--font-playfair)", "Playfair Display", "serif"],
+        dm: ["var(--font-dm)", "DM Sans", "sans-serif"],
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+      },
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 1s ease-out both",
       },
     },
   },

@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 
 type Anim = "up" | "left" | "right" | "zoom" | "fade";
 
@@ -32,7 +33,7 @@ export function Reveal({
   delay?: number;
   once?: boolean;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
 
   const variants: Variants = {
     hidden: reduce ? { opacity: 0 } : { opacity: 0, ...OFFSET[animation] },

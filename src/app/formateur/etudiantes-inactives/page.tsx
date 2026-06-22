@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { createAdminClient } from "@/lib/supabase/admin";
-
 export const metadata = { title: "Étudiantes inactives — Arazzo Formation" };
 export const dynamic = "force-dynamic";
 
@@ -107,36 +107,36 @@ export default async function InactivesPage() {
             <p>Aucune étudiante inactive. Bravo !</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-cream-50">
-              <tr>
-                <th className="text-left px-6 py-3 text-sm text-gray-500 font-dm">Étudiante</th>
-                <th className="text-left px-6 py-3 text-sm text-gray-500 font-dm">Inactivité</th>
-                <th className="text-left px-6 py-3 text-sm text-gray-500 font-dm">Formations</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-cream-100">
+          <Table className="w-full">
+            <TableHeader className="bg-cream-50">
+              <TableRow>
+                <TableHead className="text-left px-6 py-3 text-sm text-gray-500 font-dm">Étudiante</TableHead>
+                <TableHead className="text-left px-6 py-3 text-sm text-gray-500 font-dm">Inactivité</TableHead>
+                <TableHead className="text-left px-6 py-3 text-sm text-gray-500 font-dm">Formations</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-cream-100">
               {rows.slice(0, 100).map((r, i) => {
                 const b = badge(r.days);
                 return (
-                  <tr key={i} className="hover:bg-cream-50">
-                    <td className="px-6 py-3">
+                  <TableRow key={i} className="hover:bg-cream-50">
+                    <TableCell className="px-6 py-3">
                       <div className="font-medium text-gray-900 font-dm">{r.nom}</div>
                       <div className="text-xs text-gray-400">{r.email}</div>
-                    </td>
-                    <td className="px-6 py-3">
+                    </TableCell>
+                    <TableCell className="px-6 py-3">
                       <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${b.cls}`}>
                         {b.label}
                       </span>
-                    </td>
-                    <td className="px-6 py-3 text-sm text-gray-500 font-dm">
+                    </TableCell>
+                    <TableCell className="px-6 py-3 text-sm text-gray-500 font-dm">
                       {r.cours.slice(0, 2).join(", ")}{r.cours.length > 2 ? `  +${r.cours.length - 2}` : ""}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>

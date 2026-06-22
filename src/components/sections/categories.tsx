@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 import { Scissors, PencilRuler, Ruler, Gem, Hand, MonitorSmartphone, Megaphone, Route, ArrowUpRight, type LucideIcon } from "lucide-react";
@@ -23,7 +24,7 @@ const ICONS: { Icon: LucideIcon; chip: string; slug: string | null }[] = [
 
 function Grid({ names }: { names: string[] }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
   return (
@@ -55,7 +56,7 @@ function Grid({ names }: { names: string[] }) {
 export function CategoriesSection({ lang = "fr" }: { lang?: Lang }) {
   const t = HOME[lang].categories;
   return (
-    <section className="relative py-24 bg-white dark:bg-[#0d0a1c] overflow-hidden">
+    <section className="relative py-24 bg-transparent overflow-hidden">
       <div className="absolute bottom-0 right-1/2 translate-x-1/2 w-[40rem] h-64 bg-blush-100/40 dark:bg-violet-900/20 blur-3xl rounded-full pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading eyebrow={t.eyebrow} title={t.title} highlight={t.hi} />

@@ -33,18 +33,10 @@ export default async function CheckoutPage() {
     country: profile?.pays ?? "Algérie",
   };
 
-  // Config CCP active
-  const { data: ccpConfig } = await supabase
-    .from("ccp_config")
-    .select("account_number, account_key, beneficiary_name, qr_code_url, rip")
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
   return (
     <div>
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-6">Finaliser ma commande</h1>
-      <CheckoutClient items={items} subtotal={subtotal} discount={discount} total={total} appliedCode={promo?.code ?? null} defaultCustomer={defaultCustomer} ccpConfig={ccpConfig} />
+      <CheckoutClient items={items} subtotal={subtotal} discount={discount} total={total} appliedCode={promo?.code ?? null} defaultCustomer={defaultCustomer} />
     </div>
   );
 }

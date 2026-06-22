@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Sessions live — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -37,10 +38,7 @@ export default async function StudentSessionsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Sessions live</h1>
-        <p className="text-gray-500 mt-1 font-dm">Vos ateliers en direct et les rediffusions.</p>
-      </div>
+      <DashHeader index="15" eyebrow="Apprentissage" title="Sessions live" subtitle="Vos ateliers en direct et les rediffusions." />
 
       {/* À venir */}
       <h2 className="font-playfair text-xl font-bold text-gray-900 mb-4">🔴 À venir</h2>

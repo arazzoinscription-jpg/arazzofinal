@@ -63,33 +63,42 @@ export async function createPost(formData: FormData) {
   return { ok: true, id: post.id };
 }
 
-/** Supprime une publication (auteur ou créateur du groupe via RLS) + ses fichiers. */
+/**
+ * Supprime une publication. Droits : l'AUTEUR peut supprimer sa propre
+ * publication ; la modération (supprimer la publication de quelqu'un d'autre)
+ * est réservée à l'ADMIN.
+ */
 export async function deletePost(postId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
 
+  const admin = createAdminClient();
+  const { data: post } = await admin.from("posts").select("author_id").eq("id", postId).maybeSingle();
+  if (!post) return { ok: false, error: "Publication introuvable." };
+
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const isAdmin = prof?.role === "admin";
+  if (post.author_id !== user.id && !isAdmin) return { ok: false, error: "Accès refusé." };
+
   // Récupère les chemins de stockage avant suppression
-  const { data: imgs } = await supabase.from("post_images").select("storage_path").eq("post_id", postId);
+  const { data: imgs } = await admin.from("post_images").select("storage_path").eq("post_id", postId);
   const paths = (imgs ?? []).map((i) => i.storage_path).filter(Boolean) as string[];
 
-  const { error } = await supabase.from("posts").delete().eq("id", postId);
+  const { error } = await admin.from("posts").delete().eq("id", postId);
   if (error) return { ok: false, error: error.message };
 
-  if (paths.length > 0) {
-    const admin = createAdminClient();
-    await admin.storage.from("posts").remove(paths);
-  }
+  if (paths.length > 0) await admin.storage.from("posts").remove(paths);
   return { ok: true };
 }
 
-/** Valide / masque une actualité (staff uniquement). */
+/** Valide / masque une actualité (ADMIN uniquement). */
 export async function togglePostPublished(postId: string, published: boolean) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
   const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (prof?.role !== "formateur" && prof?.role !== "admin") return { ok: false, error: "Accès refusé." };
+  if (prof?.role !== "admin") return { ok: false, error: "Action réservée à l'administration." };
 
   const admin = createAdminClient();
   const { error } = await admin.from("posts").update({ published }).eq("id", postId);
@@ -135,12 +144,24 @@ export async function addComment(postId: string, content: string) {
   return { ok: true, comment: data };
 }
 
-/** Supprime son propre commentaire (RLS : author_id = auth.uid()). */
+/**
+ * Supprime un commentaire. L'AUTEUR supprime le sien ; la modération
+ * (supprimer le commentaire d'un autre) est réservée à l'ADMIN.
+ */
 export async function deleteComment(commentId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
-  const { error } = await supabase.from("comments").delete().eq("id", commentId);
+
+  const admin = createAdminClient();
+  const { data: comment } = await admin.from("comments").select("author_id").eq("id", commentId).maybeSingle();
+  if (!comment) return { ok: false, error: "Commentaire introuvable." };
+
+  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const isAdmin = prof?.role === "admin";
+  if (comment.author_id !== user.id && !isAdmin) return { ok: false, error: "Accès refusé." };
+
+  const { error } = await admin.from("comments").delete().eq("id", commentId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

@@ -28,12 +28,52 @@ async function requireCourseAccess(courseId: string) {
   return { ok: true as const, admin, isAdmin };
 }
 
+/** Message clair si la migration 027 (colonnes homework/atelier_required) n'est pas encore appliquée. */
+function migrationHint(error: { message?: string; code?: string } | null): string {
+  const msg = error?.message ?? "";
+  if (error?.code === "42703" || /column .* does not exist|homework|atelier_required/i.test(msg)) {
+    return "Fonction non activée : exécutez d'abord la migration 027 (colonnes homework / atelier_required) dans Supabase.";
+  }
+  return msg || "Erreur.";
+}
+
+/** Enregistre la consigne du devoir d'un cours (formateur propriétaire ou admin). */
+export async function setCourseHomework(courseId: string, homework: string) {
+  if (!z.string().uuid().safeParse(courseId).success) return { ok: false, error: "Cours invalide." };
+  const access = await requireCourseAccess(courseId);
+  if (!access.ok || !access.admin) return { ok: false, error: access.error };
+
+  const value = (homework ?? "").trim().slice(0, 4000) || null;
+  const { error } = await access.admin.from("courses").update({ homework: value }).eq("id", courseId);
+  if (error) return { ok: false, error: migrationHint(error) };
+
+  revalidatePath(`/formateur/cours/${courseId}/edit`);
+  revalidatePath(`/dashboard/cours`);
+  return { ok: true };
+}
+
+/** Marque (ou non) un cours comme requis pour débloquer l'Atelier (formateur propriétaire ou admin). */
+export async function setCourseAtelierRequired(courseId: string, required: boolean) {
+  if (!z.string().uuid().safeParse(courseId).success) return { ok: false, error: "Cours invalide." };
+  const access = await requireCourseAccess(courseId);
+  if (!access.ok || !access.admin) return { ok: false, error: access.error };
+
+  const { error } = await access.admin.from("courses").update({ atelier_required: !!required }).eq("id", courseId);
+  if (error) return { ok: false, error: migrationHint(error) };
+
+  revalidatePath(`/formateur/cours/${courseId}/edit`);
+  revalidatePath("/atelier");
+  return { ok: true };
+}
+
 const UpdateSchema = z.object({
   id: z.string().uuid(),
   titre_fr: z.string().min(2, "Le titre est requis."),
   titre_ar: z.string().nullable().optional(),
+  titre_en: z.string().nullable().optional(),
   description_fr: z.string().min(1, "La description est requise."),
   description_ar: z.string().nullable().optional(),
+  description_en: z.string().nullable().optional(),
   niveau: z.enum(["debutant", "intermediaire", "avance"]),
   duree: z.string().nullable().optional(),
   prix_dzd: z.number().int().min(0),
@@ -56,8 +96,10 @@ export async function updateCourse(input: z.infer<typeof UpdateSchema>) {
     .update({
       titre_fr: d.titre_fr,
       titre_ar: d.titre_ar || null,
+      titre_en: d.titre_en || null,
       description_fr: d.description_fr,
       description_ar: d.description_ar || null,
+      description_en: d.description_en || null,
       niveau: d.niveau,
       duree: d.duree || null,
       prix_dzd: d.prix_dzd,

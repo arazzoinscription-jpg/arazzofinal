@@ -104,7 +104,7 @@ export async function GET(
   doc.text(`Délivré le ${issuedDate}`, W / 2, 158, { align: "center" });
 
   // QR code de vérification (bas droite)
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
   const verifyUrl = cert.qr_url || `${site}/certificat/${cert.uuid_public}`;
   try {
     const qrDataUrl = await QRCode.toDataURL(verifyUrl, { margin: 1, width: 200 });

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { loadFeed } from "@/lib/feed";
 import { Feed } from "@/components/feed/Feed";
+import { CommunityFab } from "@/components/community/community-fab";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Actualités — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -11,11 +13,9 @@ export default async function ActualitesPage() {
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-6">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Actualités</h1>
-        <p className="text-gray-500 mt-1 font-dm">Le fil partagé de la communauté Arazzo.</p>
-      </div>
+      <DashHeader index="07" eyebrow="Communauté" title="Actualités" subtitle="Le fil partagé de la communauté Arazzo." />
       <Feed posts={posts} me={me} />
+      <CommunityFab role={me.role} />
     </div>
   );
 }

@@ -27,7 +27,14 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-5">Recherche</h1>
+      <div className="mb-5">
+        <div className="flex items-center gap-3 mb-2.5">
+          <span className="font-mono text-[11px] tracking-[0.28em] uppercase text-orange-600 dark:text-orange-400">N° 04</span>
+          <span className="h-px w-8 bg-violet-950/20 dark:bg-white/20" />
+          <span className="font-mono text-[11px] tracking-[0.22em] uppercase text-violet-950/45 dark:text-white/45">Recherche</span>
+        </div>
+        <h1 className="font-playfair text-3xl sm:text-4xl font-bold tracking-tight text-violet-950 dark:text-white leading-[1.05]">Recherche</h1>
+      </div>
       <SearchBar initial={q} autoFocus />
 
       <div className="mt-8">

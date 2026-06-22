@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Video, Loader2, Send, Check } from "lucide-react";
+import { ImagePlus, Video, Loader2, Send, Share2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { recordPractical, setPracticalFeedback } from "./extras-actions";
+import { recordPractical } from "./extras-actions";
+import { sharePracticalToFeed } from "@/app/actions/community";
+import { toast } from "@/components/ui/toast";
 
 export interface Practical {
   id: string;
@@ -33,12 +35,31 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [sharingId, setSharingId] = useState<string | null>(null);
+  const [shared, setShared] = useState<Set<string>>(new Set());
 
-  async function upload(file: File, prefix: string): Promise<string> {
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-    const path = `${lessonId}/${meId}/${prefix}-${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("practicals").upload(path, file, { upsert: false });
-    if (error) throw new Error(error.message);
+  async function share(id: string) {
+    setSharingId(id);
+    const res = await sharePracticalToFeed(id);
+    setSharingId(null);
+    if (res.ok) {
+      setShared((s) => new Set(s).add(id));
+      toast("Publié sur la communauté ! 🎉", "success");
+    } else if (res.error?.includes("déjà")) {
+      setShared((s) => new Set(s).add(id));
+      toast(res.error, "info");
+    } else {
+      toast(res.error ?? "Partage impossible", "error");
+    }
+  }
+
+  // Upload DIRECT vers Supabase Storage (bucket public `practicals`) côté navigateur.
+  // Évite la limite ~4,5 Mo des Server Actions sur Vercel → gère photos ET vidéos.
+  async function upload(file: File, type: "photo" | "video"): Promise<string> {
+    const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "bin";
+    const path = `${lessonId}/${meId}/${type}-${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("practicals").upload(path, file, { upsert: false, contentType: file.type || undefined });
+    if (error) throw new Error("Envoi échoué : " + error.message);
     return supabase.storage.from("practicals").getPublicUrl(path).data.publicUrl;
   }
 
@@ -113,36 +134,23 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
                   <span className="font-semibold">Retour formatrice :</span> {s.feedback}
                 </div>
               )}
-              {isStaff && <StaffFeedback id={s.id} initial={s.feedback ?? ""} />}
+
+              {/* L'élève peut partager SON travail sur le feed communauté (encouragements). */}
+              {s.user_id === meId && (s.photo_url || s.video_url) && (
+                <button
+                  onClick={() => share(s.id)}
+                  disabled={sharingId === s.id || shared.has(s.id)}
+                  className="mt-3 inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-2 border-orange-DEFAULT text-orange-600 hover:bg-orange-50 disabled:opacity-60 transition-colors">
+                  {sharingId === s.id ? <Loader2 size={15} className="animate-spin" />
+                    : shared.has(s.id) ? <Check size={15} />
+                    : <Share2 size={15} />}
+                  {shared.has(s.id) ? "Publié sur la communauté" : "Postez vos travaux sur la communauté"}
+                </button>
+              )}
             </div>
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-function StaffFeedback({ id, initial }: { id: string; initial: string }) {
-  const router = useRouter();
-  const [fb, setFb] = useState(initial);
-  const [pending, start] = useTransition();
-  function send(status: "reviewed" | "approved") {
-    start(async () => { await setPracticalFeedback(id, fb, status); router.refresh(); });
-  }
-  return (
-    <div className="mt-3 border-t border-cream-100 dark:border-white/10 pt-3">
-      <textarea value={fb} onChange={(e) => setFb(e.target.value)} rows={2} placeholder="Votre retour à l'élève…"
-        className="w-full border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500" />
-      <div className="flex gap-2 mt-2">
-        <button onClick={() => send("reviewed")} disabled={pending}
-          className="text-xs bg-violet-700 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-violet-800 disabled:opacity-50">
-          {pending ? <Loader2 size={13} className="animate-spin" /> : "Envoyer le retour"}
-        </button>
-        <button onClick={() => send("approved")} disabled={pending}
-          className="inline-flex items-center gap-1 text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50">
-          <Check size={13} /> Valider
-        </button>
-      </div>
     </div>
   );
 }

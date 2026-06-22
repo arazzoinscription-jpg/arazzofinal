@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { ClipboardList } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "@/lib/activity";
@@ -36,6 +37,13 @@ export default async function LessonPage({ params }: { params: { id: string } })
   if (!lesson) notFound();
 
   const course = (lesson.chapter as any)?.course;
+
+  // Devoir du cours (migration 027) — lecture résiliente : "" si la colonne n'existe pas encore.
+  let courseHomework = "";
+  if (course?.id) {
+    const { data: hw } = await supabase.from("courses").select("homework").eq("id", course.id).maybeSingle();
+    courseHomework = ((hw as { homework?: string | null } | null)?.homework) ?? "";
+  }
 
   // Verify enrollment
   const { data: enrollment } = await supabase
@@ -169,6 +177,18 @@ export default async function LessonPage({ params }: { params: { id: string } })
                 </span>
               </a>
             ))}
+          </div>
+        )}
+
+        {/* Devoir à faire (consigne du formateur, niveau cours) */}
+        {courseHomework && (
+          <div className="mt-6 rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-blush-50 p-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-9 h-9 rounded-xl bg-orange-DEFAULT/15 text-orange-600 flex items-center justify-center"><ClipboardList size={18} /></span>
+              <h3 className="font-playfair text-xl font-bold text-gray-900">Devoir à faire</h3>
+            </div>
+            <p className="text-sm text-gray-700 font-dm whitespace-pre-line leading-relaxed">{courseHomework}</p>
+            <p className="text-xs text-orange-700/80 font-dm mt-3">↓ Importez votre travail ci-dessous, dans « Travaux pratiques ».</p>
           </div>
         )}
 

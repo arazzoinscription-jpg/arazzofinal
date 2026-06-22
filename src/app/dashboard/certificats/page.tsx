@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Mes certificats — Arazzo Formation" };
 
@@ -22,14 +23,7 @@ export default async function CertificatsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">
-          Mes certificats
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Téléchargez vos certificats de réussite
-        </p>
-      </div>
+      <DashHeader index="12" eyebrow="Apprentissage" title="Mes certificats" subtitle="Téléchargez vos certificats de réussite." />
 
       {!certificates?.length ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">

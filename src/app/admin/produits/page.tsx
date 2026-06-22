@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+﻿import { createAdminClient } from "@/lib/supabase/admin";
 import { ProductCreateForm, ProductRow } from "./product-admin";
 
 export const metadata = { title: "Produits — Admin" };
@@ -13,7 +13,7 @@ export default async function AdminProduitsPage() {
     .limit(200);
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
+    <div className="px-4 lg:px-8 py-6">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-1">Produits</h1>
       <p className="text-gray-500 mb-6 font-dm">{products?.length ?? 0} produit(s) au catalogue.</p>
 
@@ -21,7 +21,7 @@ export default async function AdminProduitsPage() {
         <div className="lg:col-span-1"><ProductCreateForm /></div>
         <div className="lg:col-span-2 space-y-3">
           {!products?.length ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-cream-200 text-gray-400">Aucun produit.</div>
+            <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 text-gray-400">Aucun produit.</div>
           ) : products.map((p) => <ProductRow key={p.id} product={p} />)}
         </div>
       </div>

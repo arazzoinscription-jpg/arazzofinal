@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Annonces — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -22,10 +23,7 @@ export default async function StudentAnnoncesPage() {
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Annonces</h1>
-        <p className="text-gray-500 mt-1 font-dm">Les nouvelles de vos formatrices.</p>
-      </div>
+      <DashHeader index="08" eyebrow="Communauté" title="Annonces" subtitle="Les nouvelles de vos formatrices." />
 
       {visible.length === 0 ? (
         <div className="bg-white rounded-2xl p-10 border border-cream-200 text-center text-gray-400">

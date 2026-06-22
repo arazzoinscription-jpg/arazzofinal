@@ -8,8 +8,8 @@ export function Gallery({ images, alt }: { images: string[]; alt: string }) {
 
   return (
     <div>
-      <div className="aspect-[3/4] rounded-3xl overflow-hidden bg-cream-100 border border-cream-200">
-        <img src={main} alt={alt} className="w-full h-full object-cover" />
+      <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-cream-50 border border-cream-200 flex items-center justify-center">
+        <img src={main} alt={alt} className="w-full h-full object-contain" />
       </div>
       {images.length > 1 && (
         <div className="mt-3 flex gap-2 overflow-x-auto no-scrollbar">

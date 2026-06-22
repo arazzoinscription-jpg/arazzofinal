@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import playerjs, { Player } from "player.js";
+import type { Player } from "player.js";
 import { createClient } from "@/lib/supabase/client";
 
 /** Résout n'importe quel format vidéo importé → URL d'embed iframe. */
@@ -68,18 +68,25 @@ export function LessonWatch({
   useEffect(() => {
     if (!isBunny || !iframeRef.current) return;
     let player: Player | null = null;
-    try {
-      player = new playerjs.Player(iframeRef.current);
-      player.on("ready", () => {
-        if (initialPosition > 5) player!.setCurrentTime(initialPosition);
-        player!.on("timeupdate", (t: { seconds: number; duration: number }) => {
-          if (!t) return;
-          last.current = { position: t.seconds, duration: t.duration };
-          if (t.duration > 0) setPct(Math.min(100, (t.seconds / t.duration) * 100));
+    let cancelled = false;
+    // Import DYNAMIQUE : player.js touche `window` au chargement du module → ne doit
+    // JAMAIS être importé côté serveur (sinon « ReferenceError: window is not defined »
+    // au rendu SSR de la page de leçon). On le charge donc seulement ici, côté client.
+    import("player.js")
+      .then(({ default: playerjs }) => {
+        if (cancelled || !iframeRef.current) return;
+        player = new playerjs.Player(iframeRef.current);
+        player.on("ready", () => {
+          if (initialPosition > 5) player!.setCurrentTime(initialPosition);
+          player!.on("timeupdate", (t: { seconds: number; duration: number }) => {
+            if (!t) return;
+            last.current = { position: t.seconds, duration: t.duration };
+            if (t.duration > 0) setPct(Math.min(100, (t.seconds / t.duration) * 100));
+          });
+          player!.on("ended", () => { last.current.position = last.current.duration; save(true); setPct(100); });
         });
-        player!.on("ended", () => { last.current.position = last.current.duration; save(true); setPct(100); });
-      });
-    } catch { /* player non dispo */ }
+      })
+      .catch(() => { /* player non dispo */ });
 
     const interval = setInterval(() => save(false), 10000);
     const onHide = () => save(false);
@@ -87,6 +94,7 @@ export function LessonWatch({
     window.addEventListener("pagehide", onHide);
 
     return () => {
+      cancelled = true;
       save(false);
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onHide);

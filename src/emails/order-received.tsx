@@ -6,7 +6,7 @@ export interface OrderReceivedProps {
   orderNumber: string;
   items: { title: string; quantity: number; price: number }[];
   total: number;
-  paymentMethod: "ccp" | "paypal" | "cod" | "transfer";
+  paymentMethod: "ccp" | "paypal" | "cod" | "transfer" | "chargily";
   orderUrl?: string;
   invoiceNumber?: string | null;
 }
@@ -16,6 +16,7 @@ const INSTRUCTIONS: Record<string, string> = {
   paypal: "Votre paiement PayPal est en cours de traitement. Vous recevrez une confirmation dès qu'il sera validé.",
   cod: "Votre commande sera réglée à la livraison. Nous vous contacterons pour l'expédition.",
   transfer: "Effectuez le virement bancaire avec le montant total, puis confirmez. Votre commande sera validée à réception.",
+  chargily: "Votre paiement en ligne est en cours de traitement. Vous recevrez une confirmation dès qu'il sera validé.",
 };
 
 /** Email envoyé dès la réception d'une commande : résumé + facture + instructions. */

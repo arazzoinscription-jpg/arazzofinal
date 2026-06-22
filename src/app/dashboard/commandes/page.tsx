@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Package } from "lucide-react";
 import { InvoiceButton } from "./invoice-button";
+import { ProofCTA } from "./proof-cta";
+import { CancelOrderButton } from "./cancel-order";
+import { DashHeader, ATELIER_CARD } from "../dash-header";
 
 export const metadata = { title: "Mes commandes — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -18,6 +22,10 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 const fmt = (n: number) => `${Number(n).toLocaleString("fr-DZ")} DA`;
 const CONFIRMED = ["confirmed", "shipped", "delivered"];
+// Commandes pour lesquelles le client peut (encore) envoyer une preuve CCP / virement
+const AWAITING_PROOF = ["pending", "payment_pending", "payment_review"];
+// Commandes que le client peut annuler/supprimer lui-même (changement d'avis)
+const CANCELLABLE = ["pending", "payment_pending", "payment_review", "cancelled"];
 
 export default async function MesCommandesPage() {
   const supabase = await createClient();
@@ -26,19 +34,19 @@ export default async function MesCommandesPage() {
 
   const { data: orders } = await supabase
     .from("orders")
-    .select("id, order_number, status, total, payment_method, created_at, order_items(id, title, quantity), invoices(id)")
+    .select("id, order_number, status, total, payment_method, created_at, order_items(id, title, quantity), invoices(id), payment_proofs(id, status)")
     .eq("customer_id", user.id)
     .order("created_at", { ascending: false });
 
   return (
     <div>
-      <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-6">Mes commandes</h1>
+      <DashHeader index="06" eyebrow="Boutique" title="Mes commandes" subtitle="Suivez vos achats, factures et preuves de paiement." />
 
       {!orders?.length ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">
-          <div className="text-6xl mb-4">📦</div>
-          <p className="text-xl text-gray-400 mb-4">Aucune commande pour le moment</p>
-          <Link href="/boutique" className="inline-block bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600">Découvrir la boutique</Link>
+        <div className={`flex flex-col items-center text-center py-20 rounded-2xl ${ATELIER_CARD}`}>
+          <Package size={48} strokeWidth={1.5} className="mb-4 text-cream-300 dark:text-white/20" />
+          <p className="text-xl text-violet-950/55 dark:text-white/45 mb-4 font-dm">Aucune commande pour le moment</p>
+          <Link href="/boutique" className="shiny-cta inline-block bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600">Découvrir la boutique</Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -46,8 +54,13 @@ export default async function MesCommandesPage() {
             const st = STATUS[o.status] ?? STATUS.pending;
             const items = (o.order_items as any[]) ?? [];
             const invoice = ((o.invoices as any[]) ?? [])[0];
+            const proofs = (o.payment_proofs as any[]) ?? [];
+            // Une preuve « active » bloque le renvoi (en attente ou approuvée)
+            const hasActiveProof = proofs.some((p) => ["pending", "approved"].includes(p.status));
+            const canSendProof =
+              ["ccp", "transfer"].includes(o.payment_method) && AWAITING_PROOF.includes(o.status);
             return (
-              <div key={o.id} className="bg-white rounded-2xl border border-cream-200 p-5">
+              <div key={o.id} className={`rounded-2xl p-5 ${ATELIER_CARD}`}>
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <p className="font-semibold text-gray-900 font-dm">{o.order_number}</p>
@@ -65,12 +78,19 @@ export default async function MesCommandesPage() {
                 <div className="flex items-center justify-between border-t border-cream-100 pt-3 mt-3">
                   <span className="font-bold text-orange-600 font-playfair">{fmt(o.total)}</span>
                   <div className="flex items-center gap-4">
+                    {CANCELLABLE.includes(o.status) && <CancelOrderButton orderId={o.id} />}
                     {CONFIRMED.includes(o.status) && (
                       invoice ? <InvoiceButton invoiceId={invoice.id} /> : <InvoiceButton orderId={o.id} />
                     )}
                     <Link href={`/confirmation/${o.id}`} className="text-sm font-semibold text-gray-600 hover:text-orange-600 hover:underline">Détail →</Link>
                   </div>
                 </div>
+
+                {canSendProof && (
+                  <div className="border-t border-cream-100 pt-3 mt-3">
+                    <ProofCTA orderId={o.id} alreadySent={hasActiveProof} />
+                  </div>
+                )}
               </div>
             );
           })}

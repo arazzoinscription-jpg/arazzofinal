@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Loader2, Check } from "lucide-react";
-import { submitCCPProof } from "@/app/actions/payments";
+import { uploadPaymentProof } from "@/lib/upload-proof";
 import { toast } from "@/components/ui/toast";
 
 export function ProofUpload({ orderId }: { orderId: string }) {
@@ -17,9 +17,13 @@ export function ProofUpload({ orderId }: { orderId: string }) {
   function send() {
     if (!file) { toast("Choisissez votre reçu (JPG, PNG ou PDF)", "error"); return; }
     start(async () => {
-      const res = await submitCCPProof(orderId, file, txId || undefined);
-      if (res.ok) { setDone(true); toast("Preuve envoyée ✅", "success"); router.refresh(); }
-      else toast(res.error ?? "Envoi échoué", "error");
+      try {
+        const res = await uploadPaymentProof(orderId, file, txId || undefined);
+        if (res.ok) { setDone(true); toast("Preuve envoyée ✅", "success"); router.refresh(); }
+        else toast(res.error ?? "Envoi échoué", "error");
+      } catch (e) {
+        toast((e as Error)?.message || "Envoi échoué", "error");
+      }
     });
   }
 

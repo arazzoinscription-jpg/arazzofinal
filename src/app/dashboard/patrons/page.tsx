@@ -1,4 +1,5 @@
 import { Ruler, Scissors, FileText, Download } from "lucide-react";
+import { DashHeader } from "../dash-header";
 import { createClient } from "@/lib/supabase/server";
 import { patronImage } from "@/lib/patron-images";
 
@@ -18,14 +19,7 @@ export default async function PatronsPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">
-          Mes patrons
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Téléchargez vos patrons PDF achetés
-        </p>
-      </div>
+      <DashHeader index="14" eyebrow="Boutique" title="Mes patrons" subtitle="Téléchargez vos patrons PDF achetés." />
 
       {!purchases?.length ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">

@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { InvoiceButton } from "../commandes/invoice-button";
+import { Receipt } from "lucide-react";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Mes factures — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -20,12 +22,12 @@ export default async function MesFacturesPage() {
 
   return (
     <div>
-      <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-6">Mes factures</h1>
+      <DashHeader index="06" eyebrow="Boutique" title="Mes factures" subtitle="Vos factures téléchargeables." />
 
       {!invoices?.length ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">
-          <div className="text-6xl mb-4">🧾</div>
-          <p className="text-xl text-gray-400">Aucune facture pour le moment</p>
+        <div className="flex flex-col items-center text-center py-20 rounded-2xl bg-white dark:bg-white/[0.04] ring-1 ring-violet-950/[0.07] dark:ring-white/10">
+          <Receipt size={48} strokeWidth={1.5} className="mb-4 text-cream-300 dark:text-white/20" />
+          <p className="text-xl text-violet-950/55 dark:text-white/45 font-dm">Aucune facture pour le moment</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">

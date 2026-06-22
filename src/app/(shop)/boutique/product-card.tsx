@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, useInView } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
+import { ShoppingCart, Check, Eye, GraduationCap, FileDown, Scissors, Package, Loader2 } from "lucide-react";
 import { addToCart } from "@/app/actions/cart";
 import { toast } from "@/components/ui/toast";
+import { STORE, type Lang } from "@/lib/store-i18n";
+import type { LucideIcon } from "lucide-react";
 
 export interface ShopProduct {
   id: string;
@@ -16,21 +21,33 @@ export interface ShopProduct {
   images: string[];
   stock: number | null;
   slug: string;
+  creatorName?: string | null;
 }
 
-const TYPE_LABEL: Record<string, string> = {
-  course: "Formation",
-  digital_file: "Fichier numérique",
-  patron_pdf: "Patron PDF",
-  bundle: "Pack",
+const TYPE_META: Record<string, { Icon: LucideIcon; chip: string }> = {
+  course: { Icon: GraduationCap, chip: "text-violet-700 bg-violet-50 dark:text-violet-200 dark:bg-violet-500/15" },
+  digital_file: { Icon: FileDown, chip: "text-blue-700 bg-blue-50 dark:text-blue-200 dark:bg-blue-500/15" },
+  patron_pdf: { Icon: Scissors, chip: "text-orange-700 bg-orange-50 dark:text-orange-200 dark:bg-orange-500/15" },
+  bundle: { Icon: Package, chip: "text-blush-600 bg-blush-50 dark:text-blush-200 dark:bg-blush-500/15" },
 };
 
-export function ProductCard({ product }: { product: ShopProduct }) {
+const FALLBACK_EMOJI: Record<string, string> = { course: "🎓", digital_file: "📁", patron_pdf: "✂️", bundle: "📦" };
+
+export function ProductCard({ product, index = 0, lang = "fr" }: { product: ShopProduct; index?: number; lang?: Lang }) {
+  const t = STORE[lang].shop;
   const router = useRouter();
+  const ref = useRef(null);
+  const reduce = useReducedMotionSafe();
+  const inView = useInView(ref, { once: true, margin: "-40px" });
   const [isPending, startTransition] = useTransition();
   const [added, setAdded] = useState(false);
+
   const image = product.images?.[0] ?? null;
   const outOfStock = product.stock != null && product.stock <= 0;
+  const meta = TYPE_META[product.type] ?? { Icon: Package, chip: "text-gray-600 bg-gray-100" };
+  const typeLabel = (t.types as Record<string, string>)[product.type] ?? product.type;
+  const hasPromo = product.compare_price != null && product.compare_price > product.price;
+  const promoPct = hasPromo ? Math.round((1 - product.price / (product.compare_price as number)) * 100) : 0;
 
   function add() {
     startTransition(async () => {
@@ -47,42 +64,83 @@ export function ProductCard({ product }: { product: ShopProduct }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden flex flex-col hover:shadow-lg transition-shadow">
-      <div className="aspect-square bg-cream-100 flex items-center justify-center text-5xl overflow-hidden">
-        {image ? <img src={image} alt={product.title} className="w-full h-full object-cover" /> : "🧵"}
-      </div>
-      <div className="p-4 flex flex-col flex-1">
-        <span className="text-[11px] font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full w-fit mb-2">
-          {TYPE_LABEL[product.type] ?? product.type}
-        </span>
-        <h3 className="font-semibold text-gray-900 font-dm line-clamp-2">{product.title}</h3>
-        {product.description && (
-          <p className="text-sm text-gray-500 font-dm line-clamp-2 mt-1">{product.description}</p>
+    <motion.div
+      ref={ref}
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.45, delay: reduce ? 0 : (index % 4) * 0.06 }}
+      className="group bg-white dark:bg-white/[0.04] rounded-3xl border border-cream-200 dark:border-white/10 overflow-hidden flex flex-col shadow-soft hover:shadow-glow hover:-translate-y-1 transition-all duration-300"
+    >
+      {/* Visuel */}
+      <Link href={`/boutique/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gradient-to-br from-cream-100 to-blush-50 dark:from-white/5 dark:to-white/[0.02]">
+        {image ? (
+          <img src={image} alt={product.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        ) : (
+          <span className="absolute inset-0 flex items-center justify-center text-6xl opacity-70">{FALLBACK_EMOJI[product.type] ?? "🧵"}</span>
         )}
 
-        <div className="mt-3 flex items-center gap-2">
-          <span className="font-bold text-orange-600 font-playfair text-lg">
+        {/* Badges */}
+        <span className={`absolute top-3 start-3 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full backdrop-blur ${meta.chip}`}>
+          <meta.Icon size={12} /> {typeLabel}
+        </span>
+        {hasPromo && (
+          <span className="absolute top-3 end-3 text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-orange-DEFAULT text-white shadow">
+            −{promoPct}%
+          </span>
+        )}
+        {outOfStock && (
+          <span className="absolute inset-0 bg-black/45 flex items-center justify-center">
+            <span className="text-white font-bold text-sm bg-red-500/90 px-3 py-1 rounded-full">{t.soldOut}</span>
+          </span>
+        )}
+
+        {/* Voir le détail (hover) */}
+        <span className="absolute bottom-3 end-3 w-9 h-9 rounded-full bg-white/90 dark:bg-black/50 text-gray-700 dark:text-white flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
+          <Eye size={16} />
+        </span>
+      </Link>
+
+      {/* Contenu */}
+      <div className="p-4 flex flex-col flex-1">
+        <Link href={`/boutique/${product.slug}`}>
+          <h3 className="font-semibold text-gray-900 dark:text-white font-dm leading-snug line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-300 transition-colors">
+            {product.title}
+          </h3>
+        </Link>
+        {product.creatorName && (
+          <p className="text-xs text-gray-400 dark:text-white/40 font-dm mt-0.5">par {product.creatorName}</p>
+        )}
+        {product.description && (
+          <p className="text-sm text-gray-500 dark:text-white/50 font-dm line-clamp-2 mt-1">{product.description}</p>
+        )}
+
+        <div className="mt-3 flex items-baseline gap-2">
+          <span className="font-bold text-orange-600 dark:text-orange-300 font-playfair text-xl">
             {Number(product.price).toLocaleString("fr-DZ")} DA
           </span>
-          {product.compare_price != null && product.compare_price > product.price && (
-            <span className="text-sm text-gray-400 line-through">
+          {hasPromo && (
+            <span className="text-sm text-gray-400 dark:text-white/40 line-through">
               {Number(product.compare_price).toLocaleString("fr-DZ")} DA
             </span>
           )}
         </div>
 
-        {added ? (
-          <Link href="/panier"
-            className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2.5 rounded-xl font-semibold hover:bg-violet-800 transition-colors">
-            🛒 Voir le panier
-          </Link>
-        ) : (
-          <button onClick={add} disabled={isPending || outOfStock}
-            className="mt-3 w-full bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50">
-            {outOfStock ? "Épuisé" : isPending ? "Ajout…" : "Ajouter au panier"}
-          </button>
-        )}
+        <div className="mt-auto pt-4">
+          {added ? (
+            <Link href="/panier"
+              className="shiny-cta w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2.5 rounded-xl font-semibold hover:bg-violet-800 transition-colors">
+              <Check size={17} /> {t.inCart}
+            </Link>
+          ) : (
+            <button onClick={add} disabled={isPending || outOfStock}
+              className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 active:scale-[0.98] transition-all disabled:opacity-50 disabled:active:scale-100">
+              {outOfStock ? t.soldOut : isPending ? <Loader2 size={17} className="animate-spin" /> : <ShoppingCart size={17} />}
+              {!outOfStock && !isPending && t.add}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

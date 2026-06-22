@@ -17,9 +17,11 @@ export interface Course {
   id: string;
   titre_fr: string;
   titre_ar?: string;
+  titre_en?: string;
   slug: string;
   description_fr: string;
   description_ar?: string;
+  description_en?: string;
   prix_dzd: number;
   prix_eur: number;
   niveau: CourseLevel;

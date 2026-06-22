@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useInView, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { Reveal } from "@/components/ui/reveal";
 import { Scissors, Ruler, Award, Sparkles, ArrowRight, PlayCircle, type LucideIcon } from "lucide-react";
 import { HOME, type Lang } from "@/lib/home-i18n";
@@ -12,7 +13,7 @@ const GALLERY_IMG = ["/images/mannequin-couture.jpg", "/images/mannequin-dessin.
 
 function GalleryCard({ src, label, tag, index }: { src: string; label: string; tag: string; index: number }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const inView = useInView(ref, { once: true, margin: "-60px" });
   return (
     <motion.div
@@ -34,14 +35,14 @@ function GalleryCard({ src, label, tag, index }: { src: string; label: string; t
 }
 
 export function AtelierShowcaseSection({ lang = "fr" }: { lang?: Lang }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const t = HOME[lang].atelier;
   const imgRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: imgRef, offset: ["start end", "end start"] });
   const y = useTransform(scrollYProgress, [0, 1], [-30, 30]);
 
   return (
-    <section className="relative py-24 bg-gradient-to-b from-cream-DEFAULT to-white dark:from-[#0d0a1c] dark:to-[#0d0a1c] overflow-hidden">
+    <section className="relative py-24 bg-transparent overflow-hidden">
       <div className="absolute -top-20 right-0 w-[36rem] h-[36rem] rounded-full bg-orange-200/30 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 -left-20 w-[28rem] h-[28rem] rounded-full bg-violet-200/30 blur-3xl pointer-events-none" />
 

@@ -2,7 +2,8 @@
 
 import { useRef } from "react";
 import Image from "next/image";
-import { motion, useInView, useReducedMotion, type Variants } from "framer-motion";
+import { motion, useInView, type Variants } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Reveal } from "@/components/ui/reveal";
 import { HOME, type Lang } from "@/lib/home-i18n";
@@ -15,7 +16,7 @@ const META = [
 
 function TestimonialCard({ m, text, course, index }: { m: (typeof META)[number]; text: string; course: string; index: number }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
   const starWrap: Variants = { hidden: {}, show: { transition: { staggerChildren: reduce ? 0 : 0.08, delayChildren: 0.2 } } };
@@ -55,7 +56,7 @@ function TestimonialCard({ m, text, course, index }: { m: (typeof META)[number];
 export function TestimonialsSection({ lang = "fr" }: { lang?: Lang }) {
   const t = HOME[lang].testimonials;
   return (
-    <section className="relative py-24 bg-white dark:bg-[#0d0a1c] overflow-hidden">
+    <section className="relative py-24 bg-transparent overflow-hidden">
       <div className="absolute bottom-0 right-0 w-[600px] h-72 bg-blush-100/50 dark:bg-violet-900/20 blur-3xl rounded-full pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

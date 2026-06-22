@@ -14,7 +14,7 @@ export type EmailCategory =
   | "reactivation"
   | "announcements";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 
 /** Layout HTML commun (responsive, identité violet/orange). */
 function layout(opts: { title: string; body: string; cta?: { label: string; href: string } }) {

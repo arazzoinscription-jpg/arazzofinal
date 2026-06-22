@@ -16,26 +16,34 @@ export default async function FormateurBoutiquePage() {
 
   const admin = createAdminClient();
 
-  // Formations : les siennes (toutes si admin)
-  let coursesQ = admin.from("courses").select("id, titre_fr, prix_dzd, thumbnail, formateur_id").order("created_at", { ascending: false });
-  if (!isAdmin) coursesQ = coursesQ.eq("formateur_id", user!.id);
-  const { data: courses } = await coursesQ;
+  // Espace formateur = SES propres formations/patrons uniquement (la gestion globale est dans /admin).
+  const { data: courses } = await admin
+    .from("courses").select("id, titre_fr, prix_dzd, thumbnail, formateur_id")
+    .eq("formateur_id", user!.id).order("created_at", { ascending: false });
 
-  // Patrons : ceux du compte (toutes si admin)
-  let patronsQ = admin
-    .from("patrons").select("id, titre, prix_dzd, preview_url").order("created_at", { ascending: false });
-  if (!isAdmin) patronsQ = patronsQ.eq("formateur_id", user!.id);
-  const { data: patrons } = await patronsQ;
+  const { data: patrons } = await admin
+    .from("patrons").select("id, titre, prix_dzd, preview_url")
+    .eq("formateur_id", user!.id).order("created_at", { ascending: false });
+
+  // Packs du formateur
+  const { data: packs } = await admin
+    .from("course_packs").select("id, titre_fr, prix_dzd")
+    .eq("formateur_id", user!.id).order("created_at", { ascending: false });
 
   // Produits existants liés (pour savoir ce qui est déjà en vente)
   const { data: products } = await admin
-    .from("products").select("id, course_id, patron_id, price, is_active");
+    .from("products").select("id, course_id, patron_id, type, files, price, is_active");
 
   const byCourse = new Map<string, { id: string; price: number; is_active: boolean }>();
   const byPatron = new Map<string, { id: string; price: number; is_active: boolean }>();
+  const byPack = new Map<string, { id: string; price: number; is_active: boolean }>();
   for (const p of products ?? []) {
     if (p.course_id) byCourse.set(p.course_id, { id: p.id, price: Number(p.price), is_active: p.is_active });
     if (p.patron_id) byPatron.set(p.patron_id, { id: p.id, price: Number(p.price), is_active: p.is_active });
+    if (p.type === "bundle") {
+      const ref = ((p.files as string[]) ?? []).find((f) => f.startsWith("pack:"));
+      if (ref) byPack.set(ref.slice(5), { id: p.id, price: Number(p.price), is_active: p.is_active });
+    }
   }
 
   const courseItems: SellItem[] = (courses ?? []).map((c) => {
@@ -56,6 +64,15 @@ export default async function FormateurBoutiquePage() {
     };
   });
 
+  const packItems: SellItem[] = (packs ?? []).map((p) => {
+    const prod = byPack.get(p.id);
+    return {
+      id: p.id, title: p.titre_fr ?? "Pack", image: null,
+      sourcePrice: Number(p.prix_dzd ?? 0),
+      productId: prod?.id ?? null, active: prod?.is_active ?? false, currentPrice: prod?.price ?? null,
+    };
+  });
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-2">
@@ -66,10 +83,12 @@ export default async function FormateurBoutiquePage() {
         </Link>
       </div>
       <p className="text-gray-500 dark:text-white/50 mb-8">
-        Choisissez les formations et patrons à vendre, fixez le prix, et ils apparaîtront dans la boutique avec le bouton « Ajouter au panier ».
+        {isAdmin
+          ? "Choisissez les formations et patrons à vendre, fixez le prix, et ils apparaîtront dans la boutique."
+          : "Mettez vos patrons en vente. Pour les formations, publiez votre cours : la mise en vente est validée par l'administration."}
       </p>
 
-      <SellList courses={courseItems} patrons={patronItems} />
+      <SellList courses={courseItems} patrons={patronItems} packs={packItems} coursesReadonly={!isAdmin} patronsReadonly={!isAdmin} />
     </div>
   );
 }

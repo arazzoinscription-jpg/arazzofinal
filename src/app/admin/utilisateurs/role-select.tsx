@@ -15,7 +15,7 @@ export function RoleSelect({ userId, role }: { userId: string; role: string }) {
     const prev = val;
     setVal(newRole);
     startTransition(async () => {
-      const res = await changeUserRole({ userId, role: newRole as "eleve" | "formateur" | "admin" });
+      const res = await changeUserRole({ userId, role: newRole as "eleve" | "formateur" | "patronniste" | "admin" });
       if (!res.ok) { setVal(prev); setErr(res.error ?? "Erreur"); }
       else router.refresh();
     });
@@ -25,10 +25,14 @@ export function RoleSelect({ userId, role }: { userId: string; role: string }) {
     <div>
       <select value={val} onChange={(e) => change(e.target.value)} disabled={isPending}
         className={`text-sm border rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-          val === "admin" ? "border-orange-300 text-orange-700" : val === "formateur" ? "border-violet-300 text-orange-600" : "border-gray-200 text-gray-600"
+          val === "admin" ? "border-orange-300 text-orange-700"
+            : val === "formateur" ? "border-violet-300 text-orange-600"
+            : val === "patronniste" ? "border-blush-300 text-blush-600"
+            : "border-gray-200 text-gray-600"
         }`}>
         <option value="eleve">Élève</option>
         <option value="formateur">Formateur</option>
+        <option value="patronniste">Patronniste</option>
         <option value="admin">Admin</option>
       </select>
       {err && <p className="text-xs text-red-500 mt-0.5">{err}</p>}

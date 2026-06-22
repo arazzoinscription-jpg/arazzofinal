@@ -4,7 +4,7 @@ import {
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
   Settings, Mail, ScrollText,
-  Shapes, Ruler,
+  Shapes, Ruler, Clapperboard, FileText,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "@/app/dashboard/dash-i18n";
@@ -31,14 +31,20 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
       { href: "/formateur/cours/nouveau", icon: PlusCircle, label: { fr: "Nouveau cours", ar: "دورة جديدة", en: "New course" } },
       { href: "/formateur/quiz", icon: FileQuestion, label: { fr: "Quiz", ar: "اختبارات", en: "Quizzes" } },
       { href: "/formateur/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "أعمال تطبيقية", en: "Practical work" } },
+      { href: "/formateur/diplomes", icon: GraduationCap, label: { fr: "Diplômes", ar: "الشهادات", en: "Diplomas" } },
       { href: "/formateur/ressources", icon: FolderOpen, label: { fr: "Ressources", ar: "الموارد", en: "Resources" } },
       { href: "/formateur/packs", icon: Package, label: { fr: "Packs de cours", ar: "حزم الدورات", en: "Course packs" } },
     ],
   },
   {
+    key: "mes-patrons", icon: FileText, home: "/dashboard/patrons", items: [],
+    label: { fr: "Mes patrons", ar: "باتروناتي", en: "My patterns" },
+  },
+  {
     key: "community", icon: Users, home: "/formateur/groupes",
     label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
     items: [
+      { href: "/formateur/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
       { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
       { href: "/formateur/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
       { href: "/formateur/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
@@ -71,19 +77,29 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Vue d'ensemble", ar: "نظرة عامة", en: "Overview" },
   },
   {
+    key: "stats", icon: BarChart3, home: "/admin/statistiques", items: [],
+    label: { fr: "Statistiques", ar: "الإحصائيات", en: "Statistics" },
+  },
+  {
     key: "people", icon: Users, home: "/admin/utilisateurs",
     label: { fr: "Personnes", ar: "الأشخاص", en: "People" },
     items: [
       { href: "/admin/utilisateurs", icon: Users, label: { fr: "Utilisateurs", ar: "المستخدمون", en: "Users" } },
-      { href: "/admin/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
+      { href: "/admin/formateurs", icon: GraduationCap, label: { fr: "Formateurs", ar: "المدرّبون", en: "Trainers" } },
       { href: "/admin/demandes", icon: BadgeCheck, label: { fr: "Demandes de rôle", ar: "طلبات الأدوار", en: "Role requests" } },
     ],
+  },
+  {
+    key: "students", icon: GraduationCap, home: "/admin/etudiants", items: [],
+    label: { fr: "Étudiants", ar: "الطلاب", en: "Students" },
   },
   {
     key: "catalog", icon: BookOpen, home: "/admin/formations",
     label: { fr: "Catalogue", ar: "الكتالوج", en: "Catalog" },
     items: [
       { href: "/admin/formations", icon: BookOpen, label: { fr: "Formations", ar: "التكوينات", en: "Courses" } },
+      { href: "/admin/patrons", icon: Scissors, label: { fr: "Patrons", ar: "الباترونات", en: "Patterns" } },
+      { href: "/admin/sur-mesure", icon: Ruler, label: { fr: "Sur mesure", ar: "حسب المقاس", en: "Made-to-measure" } },
       { href: "/admin/produits", icon: ShoppingBag, label: { fr: "Produits", ar: "المنتجات", en: "Products" } },
     ],
   },
@@ -92,10 +108,15 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Ventes", ar: "المبيعات", en: "Sales" },
     items: [
       { href: "/admin/commandes", icon: Receipt, label: { fr: "Commandes", ar: "الطلبات", en: "Orders" } },
+      { href: "/admin/livraison", icon: Package, label: { fr: "Livraison (التوصيل)", ar: "الدفع عند الاستلام", en: "Delivery (COD)" } },
       { href: "/admin/paiements", icon: CreditCard, label: { fr: "Paiements", ar: "المدفوعات", en: "Payments" } },
       { href: "/admin/preuves", icon: BadgeCheck, label: { fr: "Preuves", ar: "الإثباتات", en: "Proofs" } },
       { href: "/admin/coupons", icon: Ticket, label: { fr: "Coupons", ar: "الكوبونات", en: "Coupons" } },
     ],
+  },
+  {
+    key: "community", icon: Clapperboard, home: "/admin/communaute", items: [],
+    label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
   },
   {
     key: "system", icon: Settings, home: "/admin/emails",
@@ -120,6 +141,10 @@ export const PATRONNISTE_SECTIONS: ProSection[] = [
       { href: "/patronniste/patrons", icon: FolderOpen, label: { fr: "Tous les patrons", ar: "كل الباترونات", en: "All patterns" } },
       { href: "/patronniste/patrons/nouveau", icon: PlusCircle, label: { fr: "Nouveau patron", ar: "باترون جديد", en: "New pattern" } },
     ],
+  },
+  {
+    key: "community", icon: Clapperboard, home: "/patronniste/communaute", items: [],
+    label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
   },
   {
     key: "shop", icon: ShoppingBag, home: "/patronniste/boutique", items: [],

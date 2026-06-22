@@ -7,6 +7,7 @@ import { StreakWidget } from "@/components/gamification/StreakWidget";
 import { WeeklyGoal } from "@/components/gamification/WeeklyGoal";
 import { BadgesGrid } from "@/components/gamification/BadgesGrid";
 import { Leaderboard } from "@/components/gamification/Leaderboard";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Récompenses — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -25,10 +26,7 @@ export default async function RecompensesPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div>
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Mes récompenses</h1>
-        <p className="text-gray-500 mt-1 font-dm">Niveau, série, badges et classement du mois.</p>
-      </div>
+      <DashHeader index="16" eyebrow="Apprentissage" title="Mes récompenses" subtitle="Niveau, série, badges et classement du mois." />
 
       {/* Niveau + XP */}
       <XPBar level={stats.level} nextLevel={stats.nextLevel} xpTotal={stats.xpTotal}

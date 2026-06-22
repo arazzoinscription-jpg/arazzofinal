@@ -33,7 +33,7 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
   const [isPublishing, startPublish] = useTransition();
   const [err, setErr] = useState("");
 
-  const isStaff = me.role === "formateur" || me.role === "admin";
+  const isAdmin = me.role === "admin";
 
   function onTogglePublish() {
     const next = !published;
@@ -93,7 +93,7 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
     });
   }
 
-  const canDeletePost = post.author_id === me.id || me.role === "formateur" || me.role === "admin";
+  const canDeletePost = post.author_id === me.id || isAdmin;
 
   return (
     <article className={`bg-white rounded-2xl border shadow-soft p-5 ${published ? "border-cream-200" : "border-dashed border-orange-300 bg-orange-50/40"}`}>
@@ -114,7 +114,7 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
           </div>
           <p className="text-xs text-gray-400 font-dm">{timeAgo(post.created_at)}</p>
         </div>
-        {isStaff && (
+        {isAdmin && (
           <button
             onClick={onTogglePublish}
             disabled={isPublishing}
@@ -174,7 +174,7 @@ export function PostCard({ post, me }: { post: FeedPost; me: CurrentUser }) {
               <div className="flex-1 min-w-0 bg-cream-50 rounded-xl px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-semibold text-gray-800 font-dm">{c.author.nom}</span>
-                  {c.author_id === me.id && (
+                  {(c.author_id === me.id || isAdmin) && (
                     <button onClick={() => onDeleteComment(c.id)} className="text-xs text-gray-300 hover:text-red-500">Supprimer</button>
                   )}
                 </div>

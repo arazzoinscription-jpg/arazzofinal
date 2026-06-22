@@ -1,4 +1,6 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+﻿import { createAdminClient } from "@/lib/supabase/admin";
+import { StudentsBulkTable } from "./students-bulk-table";
+import { AdminEnrollForm } from "./admin-enroll-form";
 
 export const metadata = { title: "Étudiants inscrits — Admin" };
 export const dynamic = "force-dynamic";
@@ -8,6 +10,8 @@ const DAY = 1000 * 60 * 60 * 24;
 interface CourseEnrollment {
   titre: string;
   paidAt: string;
+  formateurNom: string | null;
+  formateurEmail: string | null;
 }
 interface StudentRow {
   id: string;
@@ -36,7 +40,7 @@ export default async function AdminStudentsPage({
   // Inscriptions + étudiant + cours
   const { data: enrolls } = await admin
     .from("enrollments")
-    .select("paid_at, course_id, course:courses(titre_fr), student:users(id, nom, email, role, created_at)")
+    .select("paid_at, course_id, course:courses(titre_fr, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
     .order("paid_at", { ascending: false })
     .limit(5000);
 
@@ -66,8 +70,20 @@ export default async function AdminStudentsPage({
       courses: [],
       active: false,
     };
-    const titre = (e.course as { titre_fr?: string } | null)?.titre_fr;
-    if (titre) row.courses.push({ titre, paidAt: e.paid_at });
+    const courseObj = e.course as {
+      titre_fr?: string;
+      formateur?: { nom?: string; email?: string } | { nom?: string; email?: string }[] | null;
+    } | null;
+    const titre = courseObj?.titre_fr;
+    // PostgREST renvoie l'embed to-one comme objet, mais le typage peut l'inférer comme tableau
+    const formateur = Array.isArray(courseObj?.formateur) ? courseObj?.formateur[0] : courseObj?.formateur;
+    if (titre)
+      row.courses.push({
+        titre,
+        paidAt: e.paid_at,
+        formateurNom: formateur?.nom ?? null,
+        formateurEmail: formateur?.email ?? null,
+      });
     byStudent.set(s.id, row);
   });
 
@@ -98,17 +114,32 @@ export default async function AdminStudentsPage({
   const fmt = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
+  // Données sérialisées pour le tableau client (sélection multiple + actions groupées)
+  const tableRows = rows.map((r) => ({
+    id: r.id,
+    nom: r.nom,
+    email: r.email,
+    createdAtText: fmt(r.createdAt),
+    courses: r.courses.map((c) => ({
+      titre: c.titre,
+      dateText: fmt(c.paidAt),
+      formateurNom: c.formateurNom,
+      formateurEmail: c.formateurEmail,
+    })),
+    active: r.active,
+  }));
+
   return (
-    <div className="max-w-6xl mx-auto p-8">
+    <div className="px-4 lg:px-8 py-6">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-1">Étudiants inscrits</h1>
-      <p className="text-gray-500 mb-6 font-dm">{rows.length} étudiant(s) affiché(s).</p>
+      <p className="text-gray-500 mb-6 font-dm">{rows.length} étudiant(s) affiché(s). Cochez pour bloquer, mettre en veille ou supprimer en lot.</p>
 
       {/* Recherche + filtre par cours */}
       <form className="flex flex-wrap gap-3 mb-6">
         <input name="q" defaultValue={searchParams.q ?? ""} placeholder="Rechercher nom ou email…"
-          className="flex-1 min-w-56 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+          className="flex-1 min-w-56 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         <select name="course" defaultValue={courseFilter}
-          className="border border-cream-200 rounded-xl px-4 py-2.5 bg-white max-w-xs">
+          className="border border-gray-100 rounded-xl px-4 py-2.5 bg-white max-w-xs">
           <option value="">Tous les cours</option>
           {(allCourses ?? []).map((c) => (
             <option key={c.id} value={c.id}>{c.titre_fr}</option>
@@ -117,48 +148,10 @@ export default async function AdminStudentsPage({
         <button className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600">Filtrer</button>
       </form>
 
-      <div className="bg-white rounded-2xl border border-cream-200 overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-cream-50">
-            <tr className="text-left text-gray-500 font-dm">
-              <th className="px-5 py-3 font-medium">Étudiant</th>
-              <th className="px-5 py-3 font-medium">Inscrit le</th>
-              <th className="px-5 py-3 font-medium">Cours suivis</th>
-              <th className="px-5 py-3 font-medium">Statut</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-cream-100">
-            {rows.length === 0 ? (
-              <tr><td colSpan={4} className="text-center py-10 text-gray-400">Aucun étudiant.</td></tr>
-            ) : rows.map((r) => (
-              <tr key={r.id} className="hover:bg-cream-50 font-dm align-top">
-                <td className="px-5 py-3">
-                  <div className="font-medium text-gray-900">{r.nom}</div>
-                  <div className="text-xs text-gray-400">{r.email}</div>
-                </td>
-                <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{fmt(r.createdAt)}</td>
-                <td className="px-5 py-3">
-                  <ul className="space-y-1">
-                    {r.courses.map((c, i) => (
-                      <li key={i} className="text-gray-600">
-                        <span className="text-gray-800">{c.titre}</span>
-                        <span className="text-xs text-gray-400"> · {fmt(c.paidAt)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </td>
-                <td className="px-5 py-3">
-                  <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                    r.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                  }`}>
-                    {r.active ? "● Actif" : "○ Inactif"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Inscription manuelle (admin) */}
+      <AdminEnrollForm courses={(allCourses ?? []).map((c) => ({ id: c.id, titre_fr: c.titre_fr }))} />
+
+      <StudentsBulkTable rows={tableRows} />
     </div>
   );
 }

@@ -136,6 +136,55 @@ export async function setOrderStatus(orderId: string, status: string) {
   return { ok: true };
 }
 
+/** Statuts pour lesquels le client peut encore annuler/supprimer lui-même (avant traitement). */
+const CANCELLABLE_BY_CUSTOMER = ["pending", "payment_pending", "payment_review", "cancelled"];
+
+/**
+ * Supprime définitivement une commande (admin).
+ * La suppression en cascade (FK ON DELETE CASCADE) retire aussi les lignes,
+ * paiements et preuves liés. Les inscriptions éventuelles sont conservées.
+ */
+export async function deleteOrderAdmin(orderId: string) {
+  const idOk = z.string().uuid().safeParse(orderId);
+  if (!idOk.success) return { ok: false, error: "Commande invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { error } = await admin.from("orders").delete().eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/admin/commandes");
+  return { ok: true };
+}
+
+/**
+ * Le client supprime sa propre commande en cas de changement d'avis.
+ * Autorisé uniquement tant qu'elle n'est pas confirmée/expédiée/livrée.
+ */
+export async function cancelMyOrder(orderId: string) {
+  const idOk = z.string().uuid().safeParse(orderId);
+  if (!idOk.success) return { ok: false, error: "Commande invalide." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Veuillez vous connecter." };
+
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders").select("id, customer_id, status").eq("id", idOk.data).maybeSingle();
+  if (!order) return { ok: false, error: "Commande introuvable." };
+  if (order.customer_id !== user.id) return { ok: false, error: "Cette commande ne vous appartient pas." };
+  if (!CANCELLABLE_BY_CUSTOMER.includes(order.status)) {
+    return { ok: false, error: "Cette commande est déjà en cours de traitement. Contactez le support pour l'annuler." };
+  }
+
+  const { error } = await admin.from("orders").delete().eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/dashboard/commandes");
+  return { ok: true };
+}
+
 /** Liste les commandes (filtres : statut, mode de paiement, recherche). */
 export async function getOrdersAdmin(filters?: { status?: string; paymentMethod?: string; q?: string }) {
   const { ok, admin } = await requireAdmin();

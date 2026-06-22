@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ export function ProductCreateForm() {
   const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <form onSubmit={submit} className="bg-white rounded-2xl border border-cream-200 p-5 space-y-4">
+    <form onSubmit={submit} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
       <h2 className="font-semibold text-gray-900">Nouveau produit</h2>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre *</label>
@@ -114,7 +114,7 @@ export function ProductRow({ product }: { product: { id: string; title: string; 
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-cream-200 p-4 flex items-center justify-between gap-3">
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
         <p className="font-semibold text-gray-900 font-dm truncate">{product.title}</p>
         <p className="text-xs text-gray-400 font-dm">

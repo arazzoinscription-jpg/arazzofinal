@@ -48,10 +48,12 @@ export default async function PatronnisteBoutiquePage() {
         </Link>
       </div>
       <p className="text-gray-500 dark:text-white/50 mb-8">
-        Choisissez les patrons à vendre, fixez le prix, et ils apparaîtront dans la boutique en ligne avec le bouton « Ajouter au panier ».
+        {isAdmin
+          ? "Choisissez les patrons à vendre, fixez le prix, et ils apparaîtront dans la boutique."
+          : "Publiez vos patrons ici. Leur mise en vente est validée par l'administration."}
       </p>
 
-      <SellList courses={[]} patrons={patronItems} />
+      <SellList courses={[]} patrons={patronItems} patronsReadonly={!isAdmin} />
     </div>
   );
 }

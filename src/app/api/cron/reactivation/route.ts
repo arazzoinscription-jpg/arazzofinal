@@ -6,7 +6,7 @@ import { tplReactivation } from "@/lib/email-templates";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const DAY = 1000 * 60 * 60 * 24;
 
 type Stage = "reminder_7" | "motivation_14" | "direct_30" | "notify_teacher_60";

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { CategoryPicker } from "@/components/courses/category-picker";
+import { LessonVideoUploader } from "@/components/courses/lesson-video-uploader";
 import { setCourseCategories } from "../category-actions";
 
 function slugify(str: string) {
@@ -22,8 +23,10 @@ export default function NewCoursePage() {
   const [form, setForm] = useState({
     titre_fr: "",
     titre_ar: "",
+    titre_en: "",
     description_fr: "",
     description_ar: "",
+    description_en: "",
     prix_dzd: "",
     prix_eur: "",
     niveau: "debutant",
@@ -62,9 +65,11 @@ export default function NewCoursePage() {
       .insert({
         titre_fr: form.titre_fr,
         titre_ar: form.titre_ar || null,
+        titre_en: form.titre_en || null,
         slug,
         description_fr: form.description_fr,
         description_ar: form.description_ar || null,
+        description_en: form.description_en || null,
         prix_dzd: Number(form.prix_dzd),
         prix_eur: Number(form.prix_eur),
         niveau: form.niveau,
@@ -153,6 +158,18 @@ export default function NewCoursePage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Titre (anglais)
+            </label>
+            <input
+              value={form.titre_en}
+              onChange={(e) => setForm({ ...form, titre_en: e.target.value })}
+              placeholder="Modern Caftan"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Description *
             </label>
             <textarea
@@ -161,6 +178,19 @@ export default function NewCoursePage() {
               required
               rows={5}
               placeholder="Décrivez votre cours en détail…"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Description (anglais)
+            </label>
+            <textarea
+              value={form.description_en}
+              onChange={(e) => setForm({ ...form, description_en: e.target.value })}
+              rows={4}
+              placeholder="Describe your course in English…"
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
             />
           </div>
@@ -287,6 +317,15 @@ export default function NewCoursePage() {
                         className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                       />
                     </div>
+                    <LessonVideoUploader
+                      title={l.titre}
+                      currentUrl={l.video_url_bunny}
+                      onUploaded={(embedUrl) => {
+                        const updated = [...chapters];
+                        updated[ci].lessons[li].video_url_bunny = embedUrl;
+                        setChapters(updated);
+                      }}
+                    />
                     <input
                       value={l.video_url_bunny}
                       onChange={(e) => {
@@ -294,7 +333,7 @@ export default function NewCoursePage() {
                         updated[ci].lessons[li].video_url_bunny = e.target.value;
                         setChapters(updated);
                       }}
-                      placeholder="URL vidéo Bunny.net"
+                      placeholder="… ou collez une URL vidéo Bunny.net"
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                     />
                     <label className="flex items-center gap-2 text-sm text-gray-600">

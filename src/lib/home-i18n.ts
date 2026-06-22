@@ -10,7 +10,7 @@ export const normLang = (v?: string | null): Lang =>
   v === "ar" || v === "en" || v === "fr" ? v : "fr";
 
 export interface HomeDict {
-  nav: { formations: string; boutique: string; patrons: string; offre: string; apropos: string; space: string; login: string; register: string };
+  nav: { formations: string; boutique: string; patrons: string; offre: string; apropos: string; space: string; login: string; register: string; admin: string };
   hero: {
     badge: string; t1: string; hi: string; t2: string; subtitle: string;
     statActives: string; statCourses: string; statRating: string;
@@ -44,7 +44,7 @@ export interface HomeDict {
 
 export const HOME: Record<Lang, HomeDict> = {
   fr: {
-    nav: { formations: "Formations", boutique: "Boutique", patrons: "Patrons", offre: "Offre", apropos: "À propos", space: "Mon espace", login: "Connexion", register: "S'inscrire" },
+    nav: { formations: "Formations", boutique: "Boutique", patrons: "Patrons", offre: "Offre", apropos: "À propos", space: "Mon espace", login: "Connexion", register: "S'inscrire", admin: "Admin" },
     hero: {
       badge: "L'académie en ligne de couture d'Algérie",
       t1: "Le fil de", hi: "votre talent", t2: "du patron au métier.",
@@ -120,7 +120,7 @@ export const HOME: Record<Lang, HomeDict> = {
   },
 
   ar: {
-    nav: { formations: "الدورات", boutique: "المتجر", patrons: "الباترونات", offre: "العرض", apropos: "من نحن", space: "مساحتي", login: "دخول", register: "تسجيل" },
+    nav: { formations: "الدورات", boutique: "المتجر", patrons: "الباترونات", offre: "العرض", apropos: "من نحن", space: "مساحتي", login: "دخول", register: "تسجيل", admin: "الإدارة" },
     hero: {
       badge: "أكاديمية الخياطة عبر الإنترنت في الجزائر",
       t1: "خيط", hi: "موهبتك", t2: "من الباترون إلى الحرفة.",
@@ -196,7 +196,7 @@ export const HOME: Record<Lang, HomeDict> = {
   },
 
   en: {
-    nav: { formations: "Courses", boutique: "Shop", patrons: "Patterns", offre: "Offer", apropos: "About", space: "My space", login: "Log in", register: "Sign up" },
+    nav: { formations: "Courses", boutique: "Shop", patrons: "Patterns", offre: "Offer", apropos: "About", space: "My space", login: "Log in", register: "Sign up", admin: "Admin" },
     hero: {
       badge: "Algeria's online sewing academy",
       t1: "The thread of", hi: "your talent", t2: "from pattern to profession.",

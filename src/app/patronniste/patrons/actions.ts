@@ -25,6 +25,28 @@ export async function deletePatron(id: string) {
   return { ok: true };
 }
 
+/**
+ * Un patronniste prend en charge une commande sur mesure (« Je la fais »).
+ * Atomique : la mise à jour ne réussit que si la commande n'a PAS encore de
+ * responsable (`patronniste_id IS NULL`) → premier arrivé, premier servi.
+ */
+export async function claimCustomOrder(id: string) {
+  const user = await guard();
+  if (!user) return { ok: false, error: "Accès refusé" };
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("patron_custom_orders")
+    .update({ patronniste_id: user.id, statut: "en_cours", claimed_at: new Date().toISOString() })
+    .eq("id", id)
+    .is("patronniste_id", null)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  if (!data || data.length === 0) return { ok: false, error: "Déjà prise par une autre patronniste." };
+  revalidatePath("/patronniste/sur-mesure");
+  revalidatePath("/admin/sur-mesure");
+  return { ok: true };
+}
+
 export async function updateCustomOrderStatus(id: string, statut: string) {
   const user = await guard();
   if (!user) return { ok: false, error: "Accès refusé" };

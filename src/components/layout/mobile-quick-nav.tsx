@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, GraduationCap, Store, FileText } from "lucide-react";
+import { Home, GraduationCap, Store, FileText, Clapperboard } from "lucide-react";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 
 /** Barre flottante « tubelight » — navigation rapide mobile (masquée sur desktop). */
@@ -10,7 +10,8 @@ export function MobileQuickNav() {
     { name: "Formations", url: "/formations", icon: GraduationCap },
     { name: "Boutique", url: "/boutique", icon: Store },
     { name: "Patrons", url: "/patrons", icon: FileText },
+    { name: "Communauté", url: "/communaute", icon: Clapperboard },
   ];
 
-  return <NavBar items={items} className="sm:hidden" />;
+  return <NavBar items={items} lampId="quicknav-mobile" className="sm:hidden" />;
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addMember, removeMember, searchStudents, staffCourses, courseEnrollees, addCourseMembers } from "../actions";
+import { addMember, removeMember, searchStudents, staffCourses, staffPacks, courseEnrollees, addCourseMembers } from "../actions";
 
 export interface Member {
   user_id: string;
@@ -28,30 +28,41 @@ export function MembersManager({ groupId, members }: { groupId: string; members:
 
   const memberIds = new Set(members.map((m) => m.user_id));
 
-  // Import depuis un cours
+  // Import depuis une formation OU un pack — valeur encodée "course:ID" / "pack:ID"
   const [courses, setCourses] = useState<{ id: string; titre: string }[]>([]);
-  const [courseId, setCourseId] = useState("");
+  const [packs, setPacks] = useState<{ id: string; titre: string }[]>([]);
+  const [pick, setPick] = useState("");
   const [enrollees, setEnrollees] = useState<SearchResult[]>([]);
   const [loadingEnr, startEnr] = useTransition();
 
   useEffect(() => {
     staffCourses().then((r) => { if (r.ok) setCourses(r.courses); });
+    staffPacks().then((r) => { if (r.ok) setPacks(r.packs); });
   }, []);
 
-  function onPickCourse(id: string) {
-    setCourseId(id);
+  function parsePick(v: string): { id: string; kind: "course" | "pack" } | null {
+    const i = v.indexOf(":");
+    if (i < 0) return null;
+    const kind = v.slice(0, i) as "course" | "pack";
+    return { id: v.slice(i + 1), kind };
+  }
+
+  function onPickCourse(v: string) {
+    setPick(v);
     setEnrollees([]);
-    if (!id) return;
+    const p = parsePick(v);
+    if (!p) return;
     startEnr(async () => {
-      const r = await courseEnrollees(id);
+      const r = await courseEnrollees(p.id, p.kind);
       if (r.ok) setEnrollees(r.results as SearchResult[]);
     });
   }
 
   function addAll() {
-    if (!courseId) return;
+    const p = parsePick(pick);
+    if (!p) return;
     startMutate(async () => {
-      const r = await addCourseMembers(groupId, courseId);
+      const r = await addCourseMembers(groupId, p.id, p.kind);
       if (r.ok) router.refresh();
       else setErr(r.error ?? "Erreur");
     });
@@ -89,20 +100,29 @@ export function MembersManager({ groupId, members }: { groupId: string; members:
 
       {/* Importer les inscrits d'un cours */}
       <div className="mb-4 rounded-xl bg-cream-50 border border-cream-200 p-3">
-        <p className="text-xs font-semibold text-gray-500 mb-2">📚 Ajouter les inscrits d'une formation</p>
+        <p className="text-xs font-semibold text-gray-500 mb-2">📚 Ajouter les inscrits d'une formation ou d'un pack</p>
         <div className="flex flex-col sm:flex-row gap-2">
-          <select value={courseId} onChange={(e) => onPickCourse(e.target.value)}
+          <select value={pick} onChange={(e) => onPickCourse(e.target.value)}
             className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
-            <option value="">— Choisir une formation —</option>
-            {courses.map((c) => <option key={c.id} value={c.id}>{c.titre}</option>)}
+            <option value="">— Choisir une formation ou un pack —</option>
+            {courses.length > 0 && (
+              <optgroup label="🎓 Formations">
+                {courses.map((c) => <option key={c.id} value={`course:${c.id}`}>{c.titre}</option>)}
+              </optgroup>
+            )}
+            {packs.length > 0 && (
+              <optgroup label="📦 Packs">
+                {packs.map((p) => <option key={p.id} value={`pack:${p.id}`}>{p.titre}</option>)}
+              </optgroup>
+            )}
           </select>
-          <button onClick={addAll} disabled={!courseId || isMutating || enrollees.length === 0}
-            className="bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors disabled:opacity-50 whitespace-nowrap">
+          <button onClick={addAll} disabled={!pick || isMutating || enrollees.length === 0}
+            className="shiny-cta bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 transition-colors disabled:opacity-50 whitespace-nowrap">
             Ajouter tous ({enrollees.length})
           </button>
         </div>
         {loadingEnr && <p className="text-xs text-gray-400 mt-2">Chargement des inscrits…</p>}
-        {courseId && !loadingEnr && (
+        {pick && !loadingEnr && (
           <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
             {enrollees.length === 0 ? (
               <p className="text-xs text-gray-400">Aucun inscrit dans cette formation.</p>

@@ -52,7 +52,7 @@ function InvoiceDocument({ d }: { d: InvoiceData }) {
         <View style={s.header}>
           <Text style={s.brand}>ARAZZO</Text>
           <Text style={s.brandSub}>Formation & Boutique — Couture & Modelisme</Text>
-          <Text style={s.brandSub}>formation-arazzo.com</Text>
+          <Text style={s.brandSub}>formation-arazzo.store</Text>
         </View>
 
         <View style={s.body}>
@@ -109,7 +109,7 @@ function InvoiceDocument({ d }: { d: InvoiceData }) {
 
         {/* Pied */}
         <View style={s.footer} fixed>
-          <Text style={s.footerText}>Merci pour votre achat sur Arazzo — formation-arazzo.com</Text>
+          <Text style={s.footerText}>Merci pour votre achat sur Arazzo — formation-arazzo.store</Text>
         </View>
       </Page>
     </Document>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { SectionHeading } from "@/components/ui/section-heading";
 import { Clapperboard, Ruler, GraduationCap, type LucideIcon } from "lucide-react";
 import { HOME, type Lang } from "@/lib/home-i18n";
@@ -14,7 +15,7 @@ const META: { num: string; Icon: LucideIcon; tint: string }[] = [
 
 function PillarCard({ num, Icon, tint, title, desc, index }: { num: string; Icon: LucideIcon; tint: string; title: string; desc: string; index: number }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const inView = useInView(ref, { once: true, margin: "-60px" });
 
   return (
@@ -42,7 +43,7 @@ function PillarCard({ num, Icon, tint, title, desc, index }: { num: string; Icon
 export function ApproachSection({ lang = "fr" }: { lang?: Lang }) {
   const t = HOME[lang].approach;
   return (
-    <section className="relative py-24 bg-white dark:bg-[#0d0a1c] overflow-hidden">
+    <section className="relative py-24 bg-transparent overflow-hidden">
       <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-72 bg-blush-100/40 dark:bg-violet-900/20 blur-3xl rounded-full pointer-events-none" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading eyebrow={t.eyebrow} title={t.title} highlight={t.hi} />

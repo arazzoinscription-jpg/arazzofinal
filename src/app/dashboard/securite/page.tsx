@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { TwoFactor } from "./two-factor";
 import { LogoutOthers } from "./logout-others";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Sécurité — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -25,10 +26,7 @@ export default async function SecuritePage() {
 
   return (
     <div className="max-w-2xl space-y-8">
-      <div>
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Sécurité</h1>
-        <p className="text-gray-500 mt-1 font-dm">Gérez la protection de votre compte.</p>
-      </div>
+      <DashHeader index="10" eyebrow="Mon compte" title="Sécurité" subtitle="Gérez la protection de votre compte." />
 
       {/* 2FA */}
       <TwoFactor />

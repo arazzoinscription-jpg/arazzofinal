@@ -9,8 +9,10 @@ export interface EditableCourse {
   id: string;
   titre_fr: string;
   titre_ar: string | null;
+  titre_en: string | null;
   description_fr: string | null;
   description_ar: string | null;
+  description_en: string | null;
   niveau: "debutant" | "intermediaire" | "avance";
   duree: string | null;
   prix_dzd: number;
@@ -28,8 +30,10 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
   const [form, setForm] = useState({
     titre_fr: course.titre_fr ?? "",
     titre_ar: course.titre_ar ?? "",
+    titre_en: course.titre_en ?? "",
     description_fr: course.description_fr ?? "",
     description_ar: course.description_ar ?? "",
+    description_en: course.description_en ?? "",
     niveau: course.niveau ?? "debutant",
     duree: course.duree ?? "",
     prix_dzd: String(course.prix_dzd ?? ""),
@@ -53,8 +57,10 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
       id: course.id,
       titre_fr: form.titre_fr.trim(),
       titre_ar: form.titre_ar.trim() || null,
+      titre_en: form.titre_en.trim() || null,
       description_fr: form.description_fr.trim(),
       description_ar: form.description_ar.trim() || null,
+      description_en: form.description_en.trim() || null,
       niveau: form.niveau as EditableCourse["niveau"],
       duree: form.duree.trim() || null,
       prix_dzd: Number(form.prix_dzd) || 0,
@@ -90,6 +96,12 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
         </div>
 
         <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Titre (anglais)</label>
+          <input value={form.titre_en} onChange={(e) => set("titre_en", e.target.value)} placeholder="English title"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Description *</label>
           <textarea value={form.description_fr} onChange={(e) => set("description_fr", e.target.value)} required rows={5}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
@@ -99,6 +111,12 @@ export function CourseEditForm({ course, backHref }: { course: EditableCourse; b
           <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (arabe)</label>
           <textarea value={form.description_ar} onChange={(e) => set("description_ar", e.target.value)} dir="rtl" rows={4}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none text-right" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (anglais)</label>
+          <textarea value={form.description_en} onChange={(e) => set("description_en", e.target.value)} rows={4}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

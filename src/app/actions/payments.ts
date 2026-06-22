@@ -7,9 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateInvoice } from "./invoices";
 import { enrollAfterPayment } from "@/lib/enrollment";
-import { sendPaymentApproved, sendCourseAccess } from "./emails";
+import { sendPaymentApproved, sendCourseAccess, sendPatronAccess } from "./emails";
+import { createChargilyCheckout } from "@/lib/chargily";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://arazzo-bice.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const MAX_PROOF_SIZE = 10 * 1024 * 1024; // 10 Mo
 const PROOFS_BUCKET = "proofs";
 
@@ -117,6 +118,106 @@ export async function submitCCPProof(orderId: string, file: File, transactionId?
   await admin.from("orders").update({ status: "payment_review" }).eq("id", order.id);
 
   revalidatePath("/compte/commandes");
+  return { ok: true };
+}
+
+/**
+ * Crée une URL d'upload SIGNÉE pour déposer une preuve directement depuis le
+ * navigateur vers Supabase Storage (bucket privé 'proofs').
+ * ➜ Évite la limite de 4,5 Mo des fonctions serverless Vercel : le fichier ne
+ *   transite jamais par notre serveur, seulement par Supabase.
+ * Le chemin est imposé côté serveur : {orderId}/{uuid}.ext (commande de l'utilisateur).
+ */
+export async function createProofUploadUrl(orderId: string, ext: string) {
+  const idParsed = z.string().uuid().safeParse(orderId);
+  if (!idParsed.success) return { ok: false as const, error: "Commande invalide." };
+
+  const cleanExt = (ext || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
+  if (!["jpg", "jpeg", "png", "pdf"].includes(cleanExt)) {
+    return { ok: false as const, error: "Format non supporté (JPG, PNG ou PDF uniquement)." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders").select("id, customer_id").eq("id", idParsed.data).maybeSingle();
+  if (!order) return { ok: false as const, error: "Commande introuvable." };
+  if (order.customer_id !== user.id) return { ok: false as const, error: "Accès refusé." };
+
+  const path = `${order.id}/${randomUUID()}.${cleanExt}`;
+  const { data, error } = await admin.storage.from(PROOFS_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) return { ok: false as const, error: "Préparation de l'envoi impossible." };
+
+  return { ok: true as const, path: data.path, token: data.token };
+}
+
+/**
+ * Enregistre une preuve DÉJÀ uploadée (via URL signée) : crée le paiement +
+ * la preuve (statut pending) et passe la commande en 'payment_review'.
+ */
+export async function recordCCPProof(
+  orderId: string, path: string, fileType: string, fileSize: number, transactionId?: string,
+) {
+  const idParsed = z.string().uuid().safeParse(orderId);
+  if (!idParsed.success) return { ok: false, error: "Commande invalide." };
+  const ftParsed = z.enum(["jpg", "png", "pdf"]).safeParse(fileType);
+  if (!ftParsed.success) return { ok: false, error: "Format non supporté." };
+  if (typeof path !== "string" || !path.startsWith(idParsed.data + "/")) {
+    return { ok: false, error: "Chemin de fichier invalide." };
+  }
+  if (fileSize > MAX_PROOF_SIZE) return { ok: false, error: "Fichier trop lourd (max 10 Mo)." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders").select("id, customer_id, total").eq("id", idParsed.data).maybeSingle();
+  if (!order) return { ok: false, error: "Commande introuvable." };
+  if (order.customer_id !== user.id) return { ok: false, error: "Accès refusé." };
+
+  // Rate limiting : 3 preuves / heure
+  const cutoff = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { data: myOrders } = await admin.from("orders").select("id").eq("customer_id", user.id);
+  const myOrderIds = (myOrders ?? []).map((o) => o.id);
+  if (myOrderIds.length > 0) {
+    const { count } = await admin
+      .from("payment_proofs").select("*", { count: "exact", head: true })
+      .in("order_id", myOrderIds).gte("created_at", cutoff);
+    if ((count ?? 0) >= 3) return { ok: false, error: "Trop de tentatives. Réessayez dans une heure." };
+  }
+
+  // Paiement (créé ou réutilisé) au statut 'submitted'
+  let paymentId: string;
+  const { data: existingPay } = await admin
+    .from("order_payments").select("id").eq("order_id", order.id).eq("method", "ccp").maybeSingle();
+  if (existingPay) {
+    paymentId = existingPay.id;
+    await admin.from("order_payments")
+      .update({ status: "submitted", transaction_id: transactionId ?? null }).eq("id", existingPay.id);
+  } else {
+    const { data: pay, error: payErr } = await admin
+      .from("order_payments")
+      .insert({ order_id: order.id, method: "ccp", status: "submitted", amount: order.total, transaction_id: transactionId ?? null })
+      .select("id").single();
+    if (payErr || !pay) return { ok: false, error: "Création du paiement impossible." };
+    paymentId = pay.id;
+  }
+
+  const { error: proofErr } = await admin.from("payment_proofs").insert({
+    payment_id: paymentId, order_id: order.id, file_url: path, file_type: ftParsed.data,
+    file_size: fileSize, status: "pending",
+  });
+  if (proofErr) return { ok: false, error: proofErr.message };
+
+  await admin.from("orders").update({ status: "payment_review" }).eq("id", order.id);
+
+  revalidatePath("/compte/commandes");
+  revalidatePath("/dashboard/commandes");
   return { ok: true };
 }
 
@@ -288,6 +389,60 @@ export async function confirmCODOrder(orderId: string) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
+// Chargily Pay (DZD — paiement en ligne par carte / Edahabia / CIB)
+// ════════════════════════════════════════════════════════════════════════
+
+/**
+ * Crée un checkout Chargily pour une commande et renvoie l'URL de paiement
+ * hébergée. La confirmation se fait via le webhook `/api/webhooks/chargily`
+ * (metadata `order_id`), qui appelle `finalizeOrderConfirmation`.
+ */
+export async function createChargilyOrder(orderId: string) {
+  const parsed = z.string().uuid().safeParse(orderId);
+  if (!parsed.success) return { ok: false, error: "Commande invalide." };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders").select("id, customer_id, total, order_number").eq("id", parsed.data).maybeSingle();
+  if (!order) return { ok: false, error: "Commande introuvable." };
+  if (order.customer_id !== user.id) return { ok: false, error: "Accès refusé." };
+
+  if (!process.env.CHARGILY_API_KEY) return { ok: false, error: "Paiement en ligne non configuré." };
+
+  let checkout: { id: string; checkout_url: string };
+  try {
+    checkout = await createChargilyCheckout({
+      amount: Math.round(Number(order.total)),
+      currency: "dzd",
+      description: `Commande ${order.order_number ?? order.id}`,
+      webhookEndpoint: `${SITE}/api/webhooks/chargily`,
+      backUrl: `${SITE}/confirmation/${order.id}`,
+      metadata: { order_id: order.id },
+    });
+  } catch {
+    return { ok: false, error: "Service de paiement indisponible. Réessayez plus tard." };
+  }
+
+  // Paiement en attente (créé ou réutilisé)
+  const { data: existing } = await admin
+    .from("order_payments").select("id").eq("order_id", order.id).eq("method", "chargily").maybeSingle();
+  if (existing) {
+    await admin.from("order_payments").update({ status: "pending", transaction_id: checkout.id }).eq("id", existing.id);
+  } else {
+    await admin.from("order_payments").insert({
+      order_id: order.id, method: "chargily", status: "pending", amount: order.total, transaction_id: checkout.id,
+    });
+  }
+  await admin.from("orders").update({ status: "payment_pending" }).eq("id", order.id);
+
+  return { ok: true, checkoutUrl: checkout.checkout_url };
+}
+
+// ════════════════════════════════════════════════════════════════════════
 // VALIDATION CENTRALE (après tout paiement approuvé)
 // ════════════════════════════════════════════════════════════════════════
 
@@ -308,6 +463,20 @@ export async function validatePayment(orderId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
+
+  return finalizeOrderConfirmation(parsed.data);
+}
+
+/**
+ * Cœur de confirmation de commande — **admin, sans session utilisateur**.
+ * Appelé par `validatePayment` (côté client, après vérif user) ET par les
+ * webhooks de paiement (server-to-server, signature déjà vérifiée).
+ * Exige qu'un `order_payments.status = 'approved'` existe (anti-bypass).
+ * Idempotent.
+ */
+export async function finalizeOrderConfirmation(orderId: string) {
+  const parsed = z.string().uuid().safeParse(orderId);
+  if (!parsed.success) return { ok: false, error: "Commande invalide." };
 
   const admin = createAdminClient();
 
@@ -355,6 +524,7 @@ export async function validatePayment(orderId: string) {
   try {
     await sendPaymentApproved(order.id, invoiceUrl);
     await sendCourseAccess(order.id); // ignoré automatiquement s'il n'y a aucune formation
+    await sendPatronAccess(order.id); // email + lien si la commande contient un patron PDF
   } catch { /* l'échec d'un email ne doit pas bloquer la validation */ }
 
   // 6) Notification dashboard pour l'élève

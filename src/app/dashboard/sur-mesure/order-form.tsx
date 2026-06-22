@@ -2,8 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ruler, Loader2, Check } from "lucide-react";
-import { placeCustomOrder, MESURE_FIELDS } from "./actions";
+import { Ruler, Loader2, Check, ImagePlus, Film, X } from "lucide-react";
+import { placeCustomOrder } from "./actions";
+import { MESURE_FIELDS } from "./constants";
+import { createClient } from "@/lib/supabase/client";
 
 const field = "w-full rounded-xl border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500";
 const label = "block text-sm font-medium text-gray-700 dark:text-white/80 mb-1.5";
@@ -12,16 +14,41 @@ export function CustomOrderForm() {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [busyMedia, setBusyMedia] = useState<"photo" | "video" | null>(null);
   const router = useRouter();
+
+  // Upload DIRECT navigateur → Supabase Storage (bucket public `practicals`, dossier sur-mesure/).
+  // Évite la limite ~4,5 Mo des Server Actions → gère photo ET vidéo de n'importe quelle taille.
+  async function uploadMedia(file: File, kind: "photo" | "video") {
+    setError(null);
+    setBusyMedia(kind);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setError("Veuillez vous connecter."); return; }
+      const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "bin";
+      const path = `sur-mesure/${user.id}/${kind}-${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("practicals").upload(path, file, { upsert: false, contentType: file.type || undefined });
+      if (upErr) { setError("Envoi échoué : " + upErr.message); return; }
+      const url = supabase.storage.from("practicals").getPublicUrl(path).data.publicUrl;
+      if (kind === "photo") setPhotoUrl(url); else setVideoUrl(url);
+    } finally {
+      setBusyMedia(null);
+    }
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
+    fd.set("photo_url", photoUrl);
+    fd.set("video_url", videoUrl);
     const formEl = e.currentTarget;
     start(async () => {
       const res = await placeCustomOrder(fd);
-      if (res.ok) { setDone(true); formEl.reset(); router.refresh(); setTimeout(() => setDone(false), 4000); }
+      if (res.ok) { setDone(true); formEl.reset(); setPhotoUrl(""); setVideoUrl(""); router.refresh(); setTimeout(() => setDone(false), 4000); }
       else setError(res.error || "Erreur");
     });
   }
@@ -48,6 +75,46 @@ export function CustomOrderForm() {
         <div className="sm:col-span-2">
           <label className={label}>Tissu souhaité</label>
           <input name="tissu" className={field} placeholder="Ex. Satin duchesse bordeaux" />
+        </div>
+      </div>
+
+      {/* Photo + vidéo du modèle souhaité */}
+      <div>
+        <p className={label}>Photo & vidéo du modèle (recommandé)</p>
+        <p className="text-xs text-gray-500 dark:text-white/50 mb-2.5">Joignez une photo et/ou une courte vidéo du modèle pour aider le patronniste.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Photo */}
+          <div className="rounded-xl border border-cream-200 dark:border-white/15 p-3">
+            {photoUrl ? (
+              <div className="relative">
+                <img src={photoUrl} alt="Modèle" className="w-full h-40 object-cover rounded-lg" />
+                <button type="button" onClick={() => setPhotoUrl("")} className="absolute -top-2 -end-2 bg-white border border-cream-200 rounded-full p-1 shadow text-gray-500 hover:text-red-500"><X size={14} /></button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-1.5 h-40 cursor-pointer text-gray-400 hover:text-orange-500 transition-colors">
+                {busyMedia === "photo" ? <Loader2 size={24} className="animate-spin" /> : <ImagePlus size={24} />}
+                <span className="text-xs font-semibold">{busyMedia === "photo" ? "Envoi…" : "Ajouter une photo"}</span>
+                <input type="file" accept="image/*" className="hidden" disabled={busyMedia !== null}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(f, "photo"); e.currentTarget.value = ""; }} />
+              </label>
+            )}
+          </div>
+          {/* Vidéo */}
+          <div className="rounded-xl border border-cream-200 dark:border-white/15 p-3">
+            {videoUrl ? (
+              <div className="relative">
+                <video src={videoUrl} controls className="w-full h-40 object-cover rounded-lg bg-black" />
+                <button type="button" onClick={() => setVideoUrl("")} className="absolute -top-2 -end-2 bg-white border border-cream-200 rounded-full p-1 shadow text-gray-500 hover:text-red-500"><X size={14} /></button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center gap-1.5 h-40 cursor-pointer text-gray-400 hover:text-orange-500 transition-colors">
+                {busyMedia === "video" ? <Loader2 size={24} className="animate-spin" /> : <Film size={24} />}
+                <span className="text-xs font-semibold">{busyMedia === "video" ? "Envoi…" : "Ajouter une vidéo"}</span>
+                <input type="file" accept="video/*" className="hidden" disabled={busyMedia !== null}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(f, "video"); e.currentTarget.value = ""; }} />
+              </label>
+            )}
+          </div>
         </div>
       </div>
 

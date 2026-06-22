@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2, ImagePlus, FileUp, Images, Video, Lightbulb } from "lucide-react";
+import { Save, Loader2, FileUp, Images, Video, Lightbulb } from "lucide-react";
+import { FicheGenerator } from "./fiche-generator";
 
 export interface PatronInit {
   id?: string;
@@ -21,6 +22,8 @@ export interface PatronInit {
   conseils?: string | null;
   course_id?: string | null;
   images?: string[] | null;
+  numero?: string | null;
+  dessin_technique_url?: string | null;
 }
 
 export interface CourseOption { id: string; titre_fr: string | null }
@@ -28,10 +31,11 @@ export interface CourseOption { id: string; titre_fr: string | null }
 const field = "w-full rounded-xl border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500";
 const label = "block text-sm font-medium text-gray-700 dark:text-white/80 mb-1.5";
 
-export function PatronForm({ init = {}, courses = [] }: { init?: PatronInit; courses?: CourseOption[] }) {
+export function PatronForm({ init = {}, courses = [], nextNumero }: { init?: PatronInit; courses?: CourseOption[]; nextNumero?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -52,7 +56,7 @@ export function PatronForm({ init = {}, courses = [] }: { init?: PatronInit; cou
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-3xl space-y-6">
+    <form ref={formRef} onSubmit={onSubmit} className="max-w-3xl space-y-6">
       {error && (
         <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 px-4 py-3 text-sm">
           {error}
@@ -61,9 +65,16 @@ export function PatronForm({ init = {}, courses = [] }: { init?: PatronInit; cou
 
       <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
         <h2 className="font-semibold text-gray-900 dark:text-white">Informations</h2>
-        <div>
-          <label className={label}>Titre du patron *</label>
-          <input name="titre" defaultValue={init.titre ?? ""} required className={field} placeholder="Ex. Caftan brodé" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="sm:col-span-2">
+            <label className={label}>Titre du patron *</label>
+            <input name="titre" defaultValue={init.titre ?? ""} required className={field} placeholder="Ex. Jupe portefeuille" />
+          </div>
+          <div>
+            <label className={label}>N° de modèle</label>
+            <input name="numero" defaultValue={init.numero ?? nextNumero ?? ""} className={field} placeholder="Ex. 1001" />
+            {!init.id && nextNumero && <p className="text-[11px] text-gray-400 dark:text-white/40 mt-1">Auto · modifiable</p>}
+          </div>
         </div>
         <div>
           <label className={label}>Description</label>
@@ -108,28 +119,22 @@ export function PatronForm({ init = {}, courses = [] }: { init?: PatronInit; cou
         </div>
       </div>
 
+      {/* L'outil de fiche patronage : photo réelle → dessin IA → fiche (= visuel produit) */}
+      <FicheGenerator formRef={formRef} initialDessinUrl={init.dessin_technique_url} initialPhotoUrl={init.images?.[0] ?? null} />
+
       <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900 dark:text-white">Fichiers</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className={label}><ImagePlus size={15} className="inline -mt-0.5 me-1" /> Visuel d'aperçu</label>
-            <input name="preview" type="file" accept="image/*" className={field} />
-            {init.preview_url && (
-              <img src={init.preview_url} alt="" className="mt-2 w-24 h-32 object-cover rounded-lg border border-cream-200 dark:border-white/10" />
-            )}
-          </div>
-          <div>
-            <label className={label}><FileUp size={15} className="inline -mt-0.5 me-1" /> Fichier du patron (PDF)</label>
-            <input name="pdf" type="file" accept="application/pdf,.pdf,image/*,.zip" className={field} />
-            {init.fichier_url && (
-              <a href={init.fichier_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-violet-600 dark:text-violet-300 underline">
-                Fichier actuel
-              </a>
-            )}
-          </div>
+        <h2 className="font-semibold text-gray-900 dark:text-white">Fichiers & vente</h2>
+        <div>
+          <label className={label}><FileUp size={15} className="inline -mt-0.5 me-1" /> Fichier du patron (PDF)</label>
+          <input name="pdf" type="file" accept="application/pdf,.pdf,image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" className={field} />
+          {init.fichier_url && (
+            <a href={init.fichier_url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-violet-600 dark:text-violet-300 underline">
+              Fichier actuel
+            </a>
+          )}
         </div>
         <div>
-          <label className={label}><Images size={15} className="inline -mt-0.5 me-1" /> Galerie photos (plusieurs)</label>
+          <label className={label}><Images size={15} className="inline -mt-0.5 me-1" /> Photos supplémentaires (optionnel)</label>
           <input name="gallery" type="file" accept="image/*" multiple className={field} />
           {init.images && init.images.length > 0 && (
             <div className="mt-2 flex gap-2 flex-wrap">
@@ -139,14 +144,6 @@ export function PatronForm({ init = {}, courses = [] }: { init?: PatronInit; cou
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-400 dark:text-white/40">
-          {init.id ? "Laissez vide pour conserver les fichiers existants." : "Si aucun PDF n'est fourni, le visuel sera utilisé comme fichier téléchargeable."}
-        </p>
-      </div>
-
-      {/* Pédagogie / fiche produit */}
-      <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900 dark:text-white">Fiche produit</h2>
         <div>
           <label className={label}><Video size={15} className="inline -mt-0.5 me-1" /> Vidéo démonstrative (URL YouTube / Vimeo / MP4)</label>
           <input name="video_url" defaultValue={init.video_url ?? ""} className={field} placeholder="https://youtu.be/…" />

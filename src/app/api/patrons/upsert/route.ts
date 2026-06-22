@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inspectUploadBuffer, buildStoragePath } from "@/lib/security/fileValidation";
+
+const IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp"];
+const DOC_MIMES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -37,24 +41,27 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Upload helper
-  async function upload(file: File): Promise<string> {
-    const safe = file.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${randomUUID()}-${safe}`;
-    const buf = Buffer.from(await file.arrayBuffer());
+  // Upload helper sécurisé : valide le contenu (magic bytes + anti-spoofing + inspection),
+  // ignore le nom d'origine, et écrit dans userId/uuid.ext (pas de path traversal).
+  async function upload(file: File, allowed: string[]): Promise<string> {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const check = inspectUploadBuffer(buf, allowed);
+    if (!check.ok) throw new Error(check.error || "Fichier refusé.");
+    const path = buildStoragePath(user!.id, "patron", `${randomUUID()}${check.ext}`);
     const { error } = await admin.storage.from("patrons").upload(path, buf, {
-      contentType: file.type || "application/octet-stream",
+      contentType: check.mime,
       upsert: false,
     });
     if (error) throw new Error("Upload échoué : " + error.message);
     return admin.storage.from("patrons").getPublicUrl(path).data.publicUrl;
   }
 
-  const previewFile = form.get("preview") as File | null;
+  // fiche = fiche patronage composée → SEUL visuel produit (carte + page produit).
+  // La photo réelle (`photo_reelle`) n'est PAS publiée seule : elle sert uniquement
+  // à générer le dessin IA et est déjà intégrée dans la fiche → on l'ignore ici.
   const pdfFile = form.get("pdf") as File | null;
   const galleryFiles = (form.getAll("gallery") as File[]).filter((f) => f && f.size > 0);
 
-  if (previewFile && previewFile.size > MAX) return NextResponse.json({ error: "Visuel trop volumineux (max 50 Mo)" }, { status: 400 });
   if (pdfFile && pdfFile.size > MAX) return NextResponse.json({ error: "PDF trop volumineux (max 50 Mo)" }, { status: 400 });
 
   const courseId = str("course_id");
@@ -71,19 +78,35 @@ export async function POST(req: NextRequest) {
     video_url: str("video_url"),
     conseils: str("conseils"),
     course_id: courseId,
+    numero: str("numero"),
   };
 
+  // Dessin technique : URL IA déjà uploadée (champ caché). Un fichier `dessin`
+  // téléversé manuellement (remplacement) écrase cette valeur plus bas.
+  const dessinUrl = str("dessin_technique_url");
+  if (dessinUrl && /^https?:\/\//.test(dessinUrl)) row.dessin_technique_url = dessinUrl;
+
+  const dessinFile = form.get("dessin") as File | null;
+  const ficheFile = form.get("fiche") as File | null;
+
   try {
-    if (previewFile && previewFile.size > 0) row.preview_url = await upload(previewFile);
-    if (pdfFile && pdfFile.size > 0) row.fichier_url = await upload(pdfFile);
-    if (galleryFiles.length > 0) {
-      const urls: string[] = [];
-      for (const f of galleryFiles) {
-        if (f.size > MAX) return NextResponse.json({ error: "Image de galerie trop volumineuse (max 50 Mo)" }, { status: 400 });
-        urls.push(await upload(f));
-      }
-      row.images = urls;
+    if (pdfFile && pdfFile.size > 0) row.fichier_url = await upload(pdfFile, DOC_MIMES);
+    if (dessinFile && dessinFile.size > 0) row.dessin_technique_url = await upload(dessinFile, IMAGE_MIMES);
+
+    // La fiche composée = SEUL visuel produit : preview_url (carte) + fiche_url.
+    if (ficheFile && ficheFile.size > 0) {
+      const ficheUrl = await upload(ficheFile, IMAGE_MIMES);
+      row.fiche_url = ficheUrl;
+      row.preview_url = ficheUrl;
     }
+
+    // Photos supplémentaires (optionnelles, explicitement ajoutées par le patronniste).
+    const imgs: string[] = [];
+    for (const f of galleryFiles) {
+      if (f.size > MAX) return NextResponse.json({ error: "Image de galerie trop volumineuse (max 50 Mo)" }, { status: 400 });
+      imgs.push(await upload(f, IMAGE_MIMES));
+    }
+    if (imgs.length > 0) row.images = imgs;
 
     if (id) {
       const { error } = await admin.from("patrons").update(row).eq("id", id);

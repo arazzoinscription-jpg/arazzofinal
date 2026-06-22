@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { CommunityFab } from "@/components/community/community-fab";
+import { DashHeader } from "../dash-header";
 
 export const metadata = { title: "Mes groupes — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -14,6 +16,8 @@ export default async function StudentGroupesPage() {
   // Groupes dont l'étudiant est membre (client admin : la RLS users_read_own
   // empêche de lire le nom du créateur via le client utilisateur)
   const admin = createAdminClient();
+  const { data: prof } = await admin.from("users").select("role").eq("id", user.id).maybeSingle();
+  const role = prof?.role ?? "eleve";
   const { data: rows } = await admin
     .from("group_members")
     .select("group:groups(id, name, description, cover_image_url, creator:users(nom))")
@@ -26,10 +30,7 @@ export default async function StudentGroupesPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Mes groupes</h1>
-        <p className="text-gray-500 mt-1 font-dm">Les espaces privés auxquels vous participez.</p>
-      </div>
+      <DashHeader index="08" eyebrow="Communauté" title="Mes groupes" subtitle="Les espaces privés auxquels vous participez." />
 
       {groups.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">
@@ -53,6 +54,7 @@ export default async function StudentGroupesPage() {
           ))}
         </div>
       )}
+      <CommunityFab role={role} />
     </div>
   );
 }

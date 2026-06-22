@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,7 @@ export function OrderStatusControl({ orderId, current }: { orderId: string; curr
         defaultValue={current}
         disabled={pending}
         onChange={(e) => apply(e.target.value)}
-        className="rounded-lg border border-cream-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-60"
+        className="rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-60"
       >
         {OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>

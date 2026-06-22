@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
 import { ACTION_LABELS } from "@/lib/activity";
+import { DashHeader, ATELIER_CARD } from "../dash-header";
 
 export const metadata = { title: "Mon profil — Arazzo Formation" };
 
@@ -28,12 +29,8 @@ export default async function ProfilPage() {
 
   return (
     <div className="max-w-2xl">
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Mon profil</h1>
-        <p className="text-gray-500 mt-1 font-dm">
-          Gérez vos informations personnelles et votre mot de passe
-        </p>
-      </div>
+      <DashHeader index="09" eyebrow="Mon compte" title="Mon profil"
+        subtitle="Gérez vos informations personnelles et votre mot de passe." />
 
       <ProfileForm
         initial={{
@@ -47,8 +44,8 @@ export default async function ProfilPage() {
       />
 
       {/* Activité récente */}
-      <div className="bg-white rounded-2xl border border-cream-200 shadow-soft p-6 mt-8">
-        <h2 className="font-playfair text-xl font-bold text-gray-900 mb-4">Mon activité récente</h2>
+      <div className={`rounded-2xl p-6 mt-8 ${ATELIER_CARD}`}>
+        <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white mb-4">Mon activité récente</h2>
         {!activity?.length ? (
           <p className="text-gray-400 text-sm font-dm">Aucune activité enregistrée pour le moment.</p>
         ) : (

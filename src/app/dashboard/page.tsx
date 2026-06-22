@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { DICT, normLang } from "./dash-i18n";
 import { RoleRequestCTA } from "./role-request/cta";
+import { BuyerHome } from "./buyer-home";
+import { CommunityGlobe } from "./community-globe";
 import {
   Reveal, StaggerGroup, StaggerItem, StaggerLink, CtaLink, AnimatedBadge, HoverTile, Counter,
 } from "./anim";
@@ -23,6 +25,12 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase
     .from("users").select("nom, role, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
     .eq("id", user!.id).single();
+
+  // Espace acheteur de patrons : compte créé en mode "patrons", encore simple élève.
+  const accountType = (user!.user_metadata?.account_type as string) ?? "formations";
+  if (accountType === "patrons" && (profile?.role ?? "eleve") === "eleve") {
+    return <BuyerHome prenom={profile?.nom?.split(" ")[0] ?? ""} />;
+  }
 
   // Demandes de rôle (élève → formatrice / patronniste)
   const { data: roleReqs } = await supabase
@@ -77,17 +85,30 @@ export default async function DashboardPage() {
   const lang = normLang((await cookies()).get("lang")?.value);
   const t = DICT[lang];
 
-  // Styles réutilisés (clair / sombre)
-  const card = "bg-white border border-cream-200 shadow-sm dark:bg-white/[0.04] dark:border-white/10 dark:shadow-none";
-  const muted = "text-gray-500 dark:text-white/50";
+  // Styles réutilisés — surface « atelier » (clair / sombre)
+  const card = "bg-white dark:bg-white/[0.04] ring-1 ring-violet-950/[0.07] dark:ring-white/10 shadow-[0_14px_34px_-22px_rgba(43,18,69,0.32)] dark:shadow-none";
+  const muted = "text-violet-950/55 dark:text-white/50";
 
   return (
-    <div className="-mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 -mb-4 sm:-mb-6 lg:-mb-8 px-4 sm:px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-cream-DEFAULT text-gray-900 dark:bg-[#0d0a1c] dark:text-white">
-      {/* En-tête */}
-      <div className="flex items-center justify-between gap-4 mb-6">
+    <div className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 -mb-4 sm:-mb-6 lg:-mb-8 px-4 sm:px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-cream-DEFAULT text-violet-950 dark:bg-[#0d0a1c] dark:text-white">
+      {/* Texture papier à patron */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-0 opacity-70 dark:opacity-100"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(91,22,249,0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(91,22,249,0.035) 1px, transparent 1px)",
+          backgroundSize: "27px 27px",
+        }} />
+
+      {/* En-tête éditorial */}
+      <div className="relative flex items-end justify-between gap-4 mb-7">
         <div>
-          <h1 className="font-playfair text-3xl font-bold">{t.greeting}, {prenom} 👋</h1>
-          <p className={`${muted} font-dm text-sm mt-1 capitalize`}>
+          <div className="flex items-center gap-3 mb-2.5">
+            <span className="font-mono text-[11px] tracking-[0.28em] uppercase text-orange-600 dark:text-orange-400">N° 00</span>
+            <span className="h-px w-8 bg-violet-950/20 dark:bg-white/20" />
+            <span className="font-mono text-[11px] tracking-[0.22em] uppercase text-violet-950/45 dark:text-white/45">Arazzo · Atelier</span>
+          </div>
+          <h1 className="font-playfair text-3xl sm:text-4xl font-bold tracking-tight leading-[1.05]">{t.greeting}, {prenom}</h1>
+          <p className={`${muted} font-mono text-[11px] uppercase tracking-[0.16em] mt-2.5 capitalize`}>
             {new Date().toLocaleDateString(LOCALE[lang], { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
@@ -95,6 +116,11 @@ export default async function DashboardPage() {
           <Trophy size={18} className="text-orange-500 dark:text-orange-300" />
           <span className="text-sm font-semibold capitalize">{profile?.level_label ?? "apprentie"}</span>
         </AnimatedBadge>
+      </div>
+
+      {/* Panneau communauté (globe 3D interactif) */}
+      <div className="relative">
+        <CommunityGlobe prenom={prenom} />
       </div>
 
       {(profile?.role ?? "eleve") === "eleve" && (
@@ -106,7 +132,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ── Colonne gauche ── */}
         <StaggerGroup className="space-y-4" stagger={0.1}>
           {/* Carte série */}

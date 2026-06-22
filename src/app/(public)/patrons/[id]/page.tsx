@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { patronImage } from "@/lib/patron-images";
 import { Ruler, Scissors, FileText, Layers, PlayCircle, Lightbulb, ArrowRight, ArrowLeft } from "lucide-react";
 import { Gallery } from "./gallery";
-import { AddPatronToCart } from "./add-to-cart";
+import { PatronPurchase } from "./patron-purchase";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
 
   const { data: patron } = await supabase
     .from("patrons")
-    .select("id, titre, description, prix_dzd, prix_eur, preview_url, images, tailles, tissu, taille_table, nb_pages, format, video_url, conseils, course_id, formateur:users(nom)")
+    .select("id, titre, description, prix_dzd, prix_eur, preview_url, images, tailles, tissu, taille_table, nb_pages, format, video_url, conseils, course_id, numero, fiche_url, dessin_technique_url, formateur:users(nom)")
     .eq("id", id)
     .maybeSingle();
 
@@ -47,7 +47,10 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
     course = (data as CourseRef | null) ?? null;
   }
 
-  const gallery = (patron.images && patron.images.length > 0) ? patron.images : [patron.preview_url || patronImage(patron.id)];
+  // Visuel = la fiche patronage en priorité (puis photos supplémentaires éventuelles).
+  const ficheImg = patron.fiche_url || patron.preview_url;
+  const gallery = [ficheImg, ...((patron.images as string[] | null) ?? [])].filter(Boolean) as string[];
+  if (gallery.length === 0) gallery.push(patronImage(patron.id));
   const price = product?.price ?? patron.prix_dzd ?? 0;
 
   const attributs = [
@@ -99,16 +102,8 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
                 </dl>
               )}
 
-              {/* Achat */}
-              <div className="flex flex-wrap items-center gap-3">
-                {product ? (
-                  <AddPatronToCart productId={product.id} />
-                ) : (
-                  <Link href="/boutique" className="inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-7 py-3.5 rounded-2xl font-bold text-lg hover:bg-orange-600 transition-colors">
-                    Voir en boutique <ArrowRight size={18} />
-                  </Link>
-                )}
-              </div>
+              {/* Achat — 3 choix : PDF / Imprimé A0 / Placement sur mesure */}
+              <PatronPurchase patronId={patron.id} productId={product?.id ?? null} price={price} />
             </div>
           </div>
 

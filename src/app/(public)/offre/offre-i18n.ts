@@ -27,6 +27,12 @@ export interface OffreDict {
     followUs: string;
   };
   gallery: { title: string; sub: string };
+  platform: {
+    eyebrow: string; title: string; titleHi: string; sub: string;
+    spaces: { tag: string; name: string; desc: string; points: string[] }[];
+    flowTitle: string; flow: string[];
+    cta: string; note: string;
+  };
   quiz: {
     title: string; sub: string; q: (i: number, n: number) => string;
     next: string; prev: string; seeResult: string; restart: string;
@@ -48,6 +54,7 @@ export interface OffreDict {
     proofEmailLabel: string; attach: string;
     sendProof: string; errProofEmail: string; errProofFile: string; uploadFail: string; proofSuccess: string;
     alreadyTitle: string;
+    getPayInfo: string; payInfoSent: string; quickProof: string;
     currency: string;
     levelLabels: { debutant: string; intermediaire: string; avance: string };
   };
@@ -119,6 +126,47 @@ const FR: OffreDict = {
     title: "Vois les transformations",
     sub: "De débutantes qui ne savaient pas tenir des ciseaux… à des couturières qui créent de superbes modèles.",
   },
+  platform: {
+    eyebrow: "À l'intérieur de la plateforme",
+    title: "Découvre ton futur", titleHi: "atelier en ligne",
+    sub: "Voilà précisément où tu vas apprendre, t'exercer et progresser. Une plateforme claire et bien organisée, pensée pour toi.",
+    spaces: [
+      {
+        tag: "Espace élève",
+        name: "Ton tableau de bord",
+        desc: "Tous tes cours, ta progression et ta communauté réunis sur un seul écran limpide.",
+        points: ["Reprends ta leçon là où tu t'es arrêtée", "Suis ta progression, module par module", "Accède à ta communauté et à tes diplômes"],
+      },
+      {
+        tag: "La salle de cours",
+        name: "Tes leçons en vidéo HD",
+        desc: "Des cours filmés pas à pas, avec travaux pratiques et corrections personnalisées de la formatrice.",
+        points: ["Vidéos HD à ton rythme, accès illimité", "Dépose tes travaux pratiques pour correction", "Pose tes questions sous chaque leçon"],
+      },
+      {
+        tag: "La communauté",
+        name: "Un feed qui inspire",
+        desc: "Un fil vertical de créations, de teasers et de travaux d'élèves — comme tes réseaux préférés, version couture.",
+        points: ["Découvre les créations de toute la communauté", "Partage tes propres pièces", "Likes, commentaires et encouragements"],
+      },
+      {
+        tag: "Espace formatrice",
+        name: "Côté enseignante",
+        desc: "Les formatrices pilotent leurs cours, leurs élèves et leurs revenus depuis un espace dédié.",
+        points: ["Publie tes cours et tes vidéos protégées", "Suis tes élèves et leurs travaux", "Délivre les diplômes et suis tes revenus"],
+      },
+    ],
+    flowTitle: "Comment se déroule un cours",
+    flow: [
+      "Tu choisis ta formation et tu t'inscris",
+      "Tu regardes les leçons vidéo à ton rythme",
+      "Tu réalises les travaux pratiques et tu les déposes",
+      "La formatrice corrige et t'encourage",
+      "Tu obtiens ton diplôme de couture",
+    ],
+    cta: "Rejoindre la plateforme",
+    note: "Captures réelles de la plateforme Arazzo",
+  },
   quiz: {
     title: "Teste ton niveau",
     sub: "4 questions, 1 minute — on te recommande la formation idéale.",
@@ -168,6 +216,9 @@ const FR: OffreDict = {
     uploadFail: "Envoi échoué : ",
     proofSuccess: "Preuve reçue ✅ — vous recevez un email de confirmation avec le lien vers votre espace. Accès débloqué dès validation.",
     alreadyTitle: "Déjà inscrite ? Déposez votre preuve de paiement →",
+    getPayInfo: "Envoyer la facture avec coordonnées de paiement",
+    payInfoSent: "Coordonnées de paiement envoyées par email ✓",
+    quickProof: "J'ai déjà payé — envoyer ma preuve",
     currency: "DA",
     levelLabels: { debutant: "Débutante", intermediaire: "Intermédiaire", avance: "Avancée" },
   },
@@ -243,6 +294,47 @@ const AR: OffreDict = {
     title: "شوفي التحوّلات اللي صارت",
     sub: "من مبتدئات ما يعرفوش يمسكو المقص… لخياطات يصنعو موديلات رائعة.",
   },
+  platform: {
+    eyebrow: "داخل المنصّة",
+    title: "اكتشفي", titleHi: "ورشتك الأونلاين",
+    sub: "هنا بالضبط وين رح تتعلّمي، تتمرّني وتتقدّمي. منصّة واضحة ومنظّمة، مصمّمة من أجلك.",
+    spaces: [
+      {
+        tag: "فضاء المتدرّبة",
+        name: "لوحة التحكّم تاعك",
+        desc: "كل دوراتك، تقدّمك ومجتمعك في شاشة وحدة واضحة.",
+        points: ["كمّلي درسك من وين وقفتِ", "تابعي تقدّمك، وحدة بوحدة", "ادخلي لمجتمعك ولشهاداتك"],
+      },
+      {
+        tag: "قاعة الدرس",
+        name: "دروسك بالفيديو HD",
+        desc: "دروس مصوّرة خطوة بخطوة، مع تطبيقات عملية وتصحيحات شخصية من المدرّبة.",
+        points: ["فيديوهات HD على راحتك، دخول غير محدود", "حمّلي أعمالك التطبيقية للتصحيح", "اطرحي أسئلتك تحت كل درس"],
+      },
+      {
+        tag: "المجتمع",
+        name: "فيد يلهمك",
+        desc: "خيط عمودي من الإبداعات والأعمال — كيف الشبكات لي تحبّيها، نسخة خياطة.",
+        points: ["شوفي إبداعات المجتمع كامل", "شاركي قطعك الخاصة", "إعجابات، تعليقات وتشجيع"],
+      },
+      {
+        tag: "فضاء المدرّبة",
+        name: "جهة التدريس",
+        desc: "المدرّبات يديرو دوراتهم، متدرّباتهم ومداخيلهم من فضاء مخصّص.",
+        points: ["انشري دوراتك وفيديوهاتك المحميّة", "تابعي متدرّباتك وأعمالهم", "سلّمي الشهادات وتابعي مداخيلك"],
+      },
+    ],
+    flowTitle: "كيفاش يتعدّى الدرس",
+    flow: [
+      "تختاري دورتك وتسجّلي",
+      "تتفرّجي في الدروس بالفيديو على راحتك",
+      "تنجّزي التطبيقات العملية وتحمّليها",
+      "المدرّبة تصحّح وتشجّعك",
+      "تتحصّلي على شهادة الخياطة تاعك",
+    ],
+    cta: "انضمّي للمنصّة",
+    note: "لقطات حقيقية من منصّة Arazzo",
+  },
   quiz: {
     title: "اختبري مستواك",
     sub: "4 أسئلة، دقيقة وحدة — ونرشّحو لك الدورة المناسبة.",
@@ -292,6 +384,9 @@ const AR: OffreDict = {
     uploadFail: "فشل الإرسال: ",
     proofSuccess: "تم استلام الإثبات ✅ — يوصلك إيميل تأكيد فيه رابط فضائك. يتفتح الوصول بعد التحقّق.",
     alreadyTitle: "مسجّلة من قبل؟ حمّلي إثبات الدفع ←",
+    getPayInfo: "أرسلي لي معلومات الدفع عبر الإيميل",
+    payInfoSent: "تم إرسال معلومات الدفع إلى بريدك ✓",
+    quickProof: "خلّصتِ؟ أرسلي إثبات الدفع",
     currency: "دج",
     levelLabels: { debutant: "مبتدئة", intermediaire: "متوسّطة", avance: "متقدّمة" },
   },
@@ -367,6 +462,47 @@ const EN: OffreDict = {
     title: "See the transformations",
     sub: "From beginners who couldn't hold scissors… to sewers creating stunning pieces.",
   },
+  platform: {
+    eyebrow: "Inside the platform",
+    title: "Meet your future", titleHi: "online atelier",
+    sub: "Here's exactly where you'll learn, practise and grow. A clear, well-organised platform built around you.",
+    spaces: [
+      {
+        tag: "Student space",
+        name: "Your dashboard",
+        desc: "All your courses, progress and community gathered on one clean screen.",
+        points: ["Resume your lesson right where you left off", "Track your progress, module by module", "Reach your community and your diplomas"],
+      },
+      {
+        tag: "The classroom",
+        name: "Your lessons in HD video",
+        desc: "Step-by-step filmed courses, with practical work and personal feedback from the instructor.",
+        points: ["HD videos at your pace, unlimited access", "Upload your practical work for review", "Ask your questions under each lesson"],
+      },
+      {
+        tag: "The community",
+        name: "A feed that inspires",
+        desc: "A vertical feed of creations, teasers and student work — like your favourite apps, sewing edition.",
+        points: ["Discover the whole community's creations", "Share your own pieces", "Likes, comments and encouragement"],
+      },
+      {
+        tag: "Instructor space",
+        name: "The teaching side",
+        desc: "Instructors run their courses, students and earnings from a dedicated space.",
+        points: ["Publish your courses and protected videos", "Follow your students and their work", "Issue diplomas and track your revenue"],
+      },
+    ],
+    flowTitle: "How a course unfolds",
+    flow: [
+      "You choose your course and sign up",
+      "You watch the video lessons at your pace",
+      "You complete the practical work and upload it",
+      "The instructor reviews it and encourages you",
+      "You earn your sewing diploma",
+    ],
+    cta: "Join the platform",
+    note: "Real screenshots of the Arazzo platform",
+  },
   quiz: {
     title: "Test your level",
     sub: "4 questions, 1 minute — we recommend the ideal course.",
@@ -416,6 +552,9 @@ const EN: OffreDict = {
     uploadFail: "Upload failed: ",
     proofSuccess: "Proof received ✅ — you'll get a confirmation email with the link to your space. Access unlocked once validated.",
     alreadyTitle: "Already enrolled? Upload your payment proof →",
+    getPayInfo: "Email me the invoice & payment details",
+    payInfoSent: "Payment details sent to your email ✓",
+    quickProof: "Already paid? Send your proof",
     currency: "DA",
     levelLabels: { debutant: "Beginner", intermediaire: "Intermediate", avance: "Advanced" },
   },

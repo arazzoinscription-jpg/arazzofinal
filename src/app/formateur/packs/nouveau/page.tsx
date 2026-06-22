@@ -11,14 +11,20 @@ export default async function NewPackPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-
-  // Le formateur regroupe ses propres cours ; l'admin peut piocher dans tous les cours
+  // Le formateur regroupe ses propres cours + les cours importés non assignés (formateur_id NULL).
   const admin = createAdminClient();
-  let query = admin.from("courses").select("id, titre_fr, prix_dzd").order("created_at", { ascending: false });
-  if (!isAdmin) query = query.eq("formateur_id", user.id);
-  const { data: courses } = await query;
+  const { data: courses } = await admin
+    .from("courses").select("id, titre_fr, prix_dzd, course_categories(category:categories(name_fr))")
+    .or(`formateur_id.eq.${user.id},formateur_id.is.null`)
+    .order("created_at", { ascending: false });
+
+  const options: PackCourseOption[] = (courses ?? []).map((c: any) => ({
+    id: c.id,
+    titre_fr: c.titre_fr,
+    prix_dzd: c.prix_dzd,
+    categories: ((c.course_categories as any[]) ?? [])
+      .map((cc) => cc.category?.name_fr).filter(Boolean) as string[],
+  }));
 
   return (
     <div className="max-w-3xl">
@@ -26,7 +32,7 @@ export default async function NewPackPage() {
       <p className="text-gray-500 mb-8 font-dm">
         Regroupez plusieurs cours en un seul pack vendu à tarif avantageux.
       </p>
-      <PackCreateForm courses={(courses as PackCourseOption[]) ?? []} />
+      <PackCreateForm courses={options} />
     </div>
   );
 }

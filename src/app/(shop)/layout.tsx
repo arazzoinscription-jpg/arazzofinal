@@ -1,45 +1,24 @@
-import Link from "next/link";
-import { getCart } from "@/app/actions/cart";
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { Toaster } from "@/components/ui/toast";
+import { Navbar } from "@/components/layout/navbar";
+import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
+import { FlickeringBackground } from "@/components/ui/flickering-bg";
+import { normLang, isRtl } from "@/lib/store-i18n";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
-  const { count } = await getCart();
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const lang = normLang((await cookies()).get("lang")?.value);
 
   return (
-    <div className="min-h-screen bg-cream-DEFAULT">
-      {/* En-tête boutique */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-cream-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Link href="/boutique" className="font-playfair text-xl font-bold text-orange-600">
-            ✂ ARAZZO <span className="text-orange-DEFAULT">Boutique</span>
-          </Link>
+    <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] transition-colors">
+      <FlickeringBackground />
+      {/* Même menu que le reste du site (Formations, Patrons, Offre…) + panier */}
+      <Navbar lang={lang} solid />
 
-          <nav className="flex items-center gap-4 sm:gap-6 text-sm font-dm">
-            <Link href="/boutique" className="text-gray-600 hover:text-orange-600 transition-colors">Boutique</Link>
-            <Link href="/formations" className="hidden sm:inline text-gray-600 hover:text-orange-600 transition-colors">Formations</Link>
-            <Link href={user ? "/dashboard" : "/login"} className="text-gray-600 hover:text-orange-600 transition-colors">
-              {user ? "Mon espace" : "Connexion"}
-            </Link>
-
-            {/* Panier + badge */}
-            <Link href="/panier" className="relative inline-flex items-center">
-              <span className="text-2xl">🛒</span>
-              {count > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-orange-DEFAULT text-white text-[11px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center">
-                  {count}
-                </span>
-              )}
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">{children}</main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-28 sm:pb-12">{children}</main>
+      {/* Barre de navigation mobile du bas (même barre que le reste du site) */}
+      <MobileQuickNav />
       <Toaster />
     </div>
   );

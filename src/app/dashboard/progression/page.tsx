@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { BarChart3, CheckCircle2, Clock, CalendarDays, Scissors, type LucideIcon } from "lucide-react";
+import { DashHeader, ATELIER_CARD } from "../dash-header";
 
 export const metadata = { title: "Ma progression — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -97,31 +99,33 @@ export default async function ProgressionPage() {
     ? new Date(today.getTime() + etaDays * DAY).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
     : null;
 
+  const stats: { Icon: LucideIcon; label: string; value: string | number }[] = [
+    { Icon: BarChart3, label: "Progression globale", value: `${globalPct}%` },
+    { Icon: CheckCircle2, label: "Leçons complétées", value: `${totalDone}/${totalLessons}` },
+    { Icon: Clock, label: "Temps d'apprentissage", value: fmtDuration(totalTime) },
+    { Icon: CalendarDays, label: "Jours actifs", value: activeDays },
+  ];
+
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="font-playfair text-3xl font-bold text-gray-900">Ma progression</h1>
-        <p className="text-gray-500 mt-1 font-dm">Votre avancement détaillé et votre rythme d'apprentissage.</p>
-      </div>
+      <DashHeader index="05" eyebrow="Progression" title="Ma progression"
+        subtitle="Votre avancement détaillé et votre rythme d'apprentissage." />
 
       {/* Cartes synthèse */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {[
-          { icon: "📊", label: "Progression globale", value: `${globalPct}%` },
-          { icon: "✅", label: "Leçons complétées", value: `${totalDone}/${totalLessons}` },
-          { icon: "⏱", label: "Temps d'apprentissage", value: fmtDuration(totalTime) },
-          { icon: "📆", label: "Jours actifs", value: activeDays },
-        ].map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-5 border border-cream-200 shadow-soft">
-            <div className="text-2xl mb-1">{s.icon}</div>
-            <div className="text-2xl font-bold font-playfair text-orange-600">{s.value}</div>
-            <div className="text-xs text-gray-500 font-dm mt-0.5">{s.label}</div>
+        {stats.map((s) => (
+          <div key={s.label} className={`rounded-2xl p-5 ${ATELIER_CARD}`}>
+            <span className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-300 flex items-center justify-center mb-3">
+              <s.Icon size={20} />
+            </span>
+            <div className="text-2xl font-bold font-playfair text-violet-950 dark:text-white tabular-nums">{s.value}</div>
+            <div className="text-[11px] font-mono uppercase tracking-[0.14em] text-violet-950/45 dark:text-white/45 mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Barre globale + estimation */}
-      <div className="bg-white rounded-2xl p-6 border border-cream-200 shadow-soft mb-8">
+      <div className={`rounded-2xl p-6 mb-8 ${ATELIER_CARD}`}>
         <div className="flex items-center justify-between mb-2">
           <span className="font-semibold text-gray-900 font-dm">Avancement global</span>
           <span className="font-bold text-orange-600">{globalPct}%</span>
@@ -140,7 +144,7 @@ export default async function ProgressionPage() {
       </div>
 
       {/* Heatmap */}
-      <div className="bg-white rounded-2xl p-6 border border-cream-200 shadow-soft mb-8">
+      <div className={`rounded-2xl p-6 mb-8 ${ATELIER_CARD}`}>
         <h2 className="font-semibold text-gray-900 font-dm mb-4">Activité des 18 dernières semaines</h2>
         <div className="overflow-x-auto">
           <div className="grid grid-flow-col grid-rows-7 gap-1 w-max">
@@ -168,9 +172,9 @@ export default async function ProgressionPage() {
           rows.map((r) => {
             const pct = r.total > 0 ? Math.round((r.done / r.total) * 100) : 0;
             return (
-              <div key={r.id} className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-100 overflow-hidden flex-shrink-0 flex items-center justify-center text-xl">
-                  {r.thumbnail ? <img src={r.thumbnail} alt="" className="w-full h-full object-cover" /> : "🧵"}
+              <div key={r.id} className={`rounded-2xl p-4 flex items-center gap-4 ${ATELIER_CARD}`}>
+                <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-500/15 overflow-hidden flex-shrink-0 flex items-center justify-center text-orange-500">
+                  {r.thumbnail ? <img src={r.thumbnail} alt="" className="w-full h-full object-cover" /> : <Scissors size={18} />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-3 mb-1">
@@ -180,9 +184,9 @@ export default async function ProgressionPage() {
                   <div className="h-1.5 bg-cream-200 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-violet-500 to-orange-DEFAULT rounded-full" style={{ width: `${pct}%` }} />
                   </div>
-                  <div className="flex gap-4 mt-1 text-xs text-gray-400 font-dm">
+                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-400 font-dm">
                     <span>{r.done}/{r.total} leçons</span>
-                    <span>⏱ {fmtDuration(r.time)}</span>
+                    <span className="inline-flex items-center gap-1"><Clock size={12} /> {fmtDuration(r.time)}</span>
                   </div>
                 </div>
               </div>

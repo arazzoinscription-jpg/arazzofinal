@@ -22,7 +22,7 @@ export function ProSidebar({
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
-      <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{ui.navigation}</p>
+      <p className="nav-label px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{ui.navigation}</p>
 
       {sections.map((s) => {
         const Icon = s.icon;
@@ -31,26 +31,31 @@ export function ProSidebar({
           <MotionLink
             key={s.key}
             href={s.home}
+            title={s.label[lang]}
             {...hover}
-            className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium transition-colors ${
+            className={`nav-center flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium transition-colors ${
               on ? "bg-orange-DEFAULT text-white shadow-sm" : "text-white/70 hover:bg-white/10 hover:text-white"
             }`}
           >
             <Icon size={20} className="flex-shrink-0" />
-            <span className="truncate">{s.label[lang]}</span>
+            <span className="nav-label truncate">{s.label[lang]}</span>
           </MotionLink>
         );
       })}
 
-      <div className="pt-4 mt-3 border-t border-white/10">
-        <MotionLink
-          href="/dashboard"
-          {...hover}
-          className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          <UserRound size={20} className="flex-shrink-0" /> <span className="truncate">{ui.studentSpace}</span>
-        </MotionLink>
-      </div>
+      {/* Lien « espace élève » masqué dans l'espace admin (admin isolé) */}
+      {variant !== "admin" && (
+        <div className="pt-4 mt-3 border-t border-white/10">
+          <MotionLink
+            href="/dashboard"
+            {...hover}
+            title={ui.studentSpace}
+            className="nav-center flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-medium text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+          >
+            <UserRound size={20} className="flex-shrink-0" /> <span className="nav-label truncate">{ui.studentSpace}</span>
+          </MotionLink>
+        </div>
+      )}
     </nav>
   );
 }

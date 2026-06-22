@@ -1,5 +1,6 @@
-import { createAdminClient } from "@/lib/supabase/admin";
-import { RoleSelect } from "./role-select";
+﻿import { createAdminClient } from "@/lib/supabase/admin";
+import { UsersBulkTable, type UserRowLite } from "./users-bulk-table";
+type Status = "actif" | "veille" | "bloque";
 
 export const metadata = { title: "Utilisateurs — Admin" };
 export const dynamic = "force-dynamic";
@@ -16,16 +17,39 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
 
   const { count: total } = await admin.from("users").select("*", { count: "exact", head: true });
 
+  // Statut des comptes (depuis Supabase Auth : ban natif + app_metadata.status)
+  const statusById = new Map<string, Status>();
+  await Promise.all((users ?? []).map(async (u) => {
+    try {
+      const { data } = await admin.auth.admin.getUserById(u.id);
+      const m = (data.user?.app_metadata as { status?: string } | undefined)?.status;
+      const banned = (data.user as { banned_until?: string } | null)?.banned_until;
+      statusById.set(u.id, m === "veille" || m === "bloque" ? (m as Status) : banned ? "bloque" : "actif");
+    } catch { statusById.set(u.id, "actif"); }
+  }));
+
+  const rows: UserRowLite[] = (users ?? []).map((u) => ({
+    id: u.id,
+    nom: u.nom ?? u.email?.split("@")[0] ?? "—",
+    email: u.email ?? "",
+    ville: u.ville ?? null,
+    pays: u.pays ?? null,
+    points: u.total_points ?? 0,
+    role: u.role,
+    status: statusById.get(u.id) ?? "actif",
+    isAdmin: u.role === "admin",
+  }));
+
   return (
-    <div className="max-w-5xl mx-auto p-8">
+    <div className="px-4 lg:px-8 py-6">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-1">Utilisateurs</h1>
       <p className="text-gray-500 mb-6 font-dm">{total} comptes au total.</p>
 
       {/* Recherche + filtre */}
       <form className="flex flex-wrap gap-3 mb-6">
         <input name="q" defaultValue={q} placeholder="Rechercher nom ou email…"
-          className="flex-1 min-w-56 border border-cream-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
-        <select name="role" defaultValue={roleFilter} className="border border-cream-200 rounded-xl px-4 py-2.5 bg-white">
+          className="flex-1 min-w-56 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        <select name="role" defaultValue={roleFilter} className="border border-gray-100 rounded-xl px-4 py-2.5 bg-white">
           <option value="">Tous les rôles</option>
           <option value="eleve">Élèves</option>
           <option value="formateur">Formateurs</option>
@@ -34,33 +58,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
         <button className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600">Filtrer</button>
       </form>
 
-      <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-cream-50">
-            <tr className="text-left text-gray-500 font-dm">
-              <th className="px-5 py-3 font-medium">Utilisatrice</th>
-              <th className="px-5 py-3 font-medium">Localisation</th>
-              <th className="px-5 py-3 font-medium">Points</th>
-              <th className="px-5 py-3 font-medium">Rôle</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-cream-100">
-            {!users?.length ? (
-              <tr><td colSpan={4} className="text-center py-10 text-gray-400">Aucun utilisateur.</td></tr>
-            ) : users.map((u) => (
-              <tr key={u.id} className="hover:bg-cream-50 font-dm">
-                <td className="px-5 py-3">
-                  <div className="font-medium text-gray-900">{u.nom}</div>
-                  <div className="text-xs text-gray-400">{u.email}</div>
-                </td>
-                <td className="px-5 py-3 text-gray-500">{u.ville ? `${u.ville}, ${u.pays}` : u.pays ?? "—"}</td>
-                <td className="px-5 py-3 text-gray-500">{u.total_points ?? 0}</td>
-                <td className="px-5 py-3"><RoleSelect userId={u.id} role={u.role} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <UsersBulkTable rows={rows} />
     </div>
   );
 }

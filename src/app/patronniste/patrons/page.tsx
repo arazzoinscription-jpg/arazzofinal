@@ -30,7 +30,7 @@ export default async function PatronnistePatronsPage() {
           <h1 className="font-playfair text-3xl font-bold">Tous les patrons</h1>
           <p className="text-gray-500 dark:text-white/50 mt-1">{patrons?.length ?? 0} patron(s) — cliquez pour modifier.</p>
         </div>
-        <Link href="/patronniste/patrons/nouveau" className="inline-flex items-center gap-2 bg-orange-DEFAULT hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
+        <Link href="/patronniste/patrons/nouveau" className="shiny-cta inline-flex items-center gap-2 bg-orange-DEFAULT hover:bg-orange-600 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors">
           <PlusCircle size={18} /> Nouveau patron
         </Link>
       </div>

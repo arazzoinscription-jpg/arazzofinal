@@ -25,7 +25,9 @@ const CustomerSchema = z.object({
   country: z.string().optional().nullable(),
 });
 
-const PaymentMethodSchema = z.enum(["ccp", "paypal", "cod", "transfer"]);
+// Virement / CCP = mode par défaut (paiement manuel + preuve, validé par l'admin).
+// chargily/cod conservés pour compat des anciennes commandes mais plus proposés au checkout.
+const PaymentMethodSchema = z.enum(["transfer", "ccp", "chargily", "cod"]);
 
 export interface CreateOrderResult {
   ok: boolean;

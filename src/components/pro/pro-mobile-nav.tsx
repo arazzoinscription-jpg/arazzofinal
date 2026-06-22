@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, LogOut } from "lucide-react";
@@ -19,28 +20,23 @@ export function ProMobileNav({
   brand: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const ui = PRO_UI[lang];
 
+  useEffect(() => setMounted(true), []);
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Menu"
-        className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-cream-200 dark:border-white/15 text-gray-600 dark:text-white/70 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors"
-      >
-        <Menu size={20} />
-      </button>
-
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-50">
-          <div onClick={() => setOpen(false)} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+  // Rendu via PORTAIL sur <body> pour échapper au `backdrop-filter` de la
+  // barre supérieure (sinon le `fixed` est confiné et le menu n'apparaît pas).
+  const drawer = open ? createPortal(
+    (
+      <div className="lg:hidden fixed inset-0 z-[100]">
+        <div onClick={() => setOpen(false)} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
           <aside className="absolute inset-y-0 start-0 w-[86vw] max-w-[340px] flex flex-col bg-gradient-to-b from-violet-800 to-violet-900 shadow-2xl">
             <button
               onClick={() => setOpen(false)}
@@ -89,7 +85,22 @@ export function ProMobileNav({
             </div>
           </aside>
         </div>
-      )}
+    ),
+    document.body,
+  ) : null;
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Menu"
+        aria-expanded={open}
+        className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-xl border border-cream-200 dark:border-white/15 text-gray-600 dark:text-white/70 hover:bg-cream-100 dark:hover:bg-white/10 transition-colors"
+      >
+        <Menu size={20} />
+      </button>
+
+      {mounted && drawer}
     </>
   );
 }
