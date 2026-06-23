@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createAccessLink } from "@/lib/access-link";
 import { sendEmail } from "@/lib/email";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
@@ -19,13 +20,12 @@ export async function requestPasswordReset(email: string) {
     const { data: u } = await admin.from("users").select("id, nom").eq("email", clean).maybeSingle();
     if (!u) return { ok: true as const }; // ne pas révéler l'absence du compte
 
-    const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-      type: "recovery",
-      email: clean,
-      options: { redirectTo: `${SITE}/auth/reset-password` },
-    });
-    const link = linkData?.properties?.action_link;
-    if (linkErr || !link) return { ok: true as const }; // best-effort, ne pas leak l'erreur
+    // Lien branché Arazzo (formation-arazzo.store/acces/…, valable 48h) au lieu de
+    // l'URL Supabase brute. La route /acces/<token> connecte puis redirige vers la
+    // page « Créez votre mot de passe » (session active → formulaire de mot de passe).
+    const al = await createAccessLink(u.id, "/auth/reset-password");
+    const link = al.ok ? al.url : null;
+    if (!link) return { ok: true as const }; // best-effort (ex. migration 038 non appliquée)
 
     const prenom = (u.nom ?? "").split(" ")[0] || "";
     const html = `
