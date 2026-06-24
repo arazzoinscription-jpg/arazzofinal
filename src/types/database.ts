@@ -29,6 +29,7 @@ export interface Course {
   formateur_id: string;
   thumbnail?: string;
   published: boolean;
+  visible_inscription?: boolean;
   created_at: string;
   formateur?: User;
   chapters?: Chapter[];

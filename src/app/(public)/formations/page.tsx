@@ -85,7 +85,7 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
     if (ids.length) {
       const { data } = await supabase
         .from("courses").select("*, formateur:users(nom)")
-        .eq("published", true).in("id", ids)
+        .eq("published", true).eq("visible_inscription", true).in("id", ids)
         .order("ordre", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
       courses = data ?? [];
     }

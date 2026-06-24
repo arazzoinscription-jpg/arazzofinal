@@ -1,8 +1,9 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PublishToggle } from "./publish-toggle";
 import { SaleToggle } from "./sale-toggle";
+import { VisibleToggle } from "./visible-toggle";
 import { FormateurSelect } from "./formateur-select";
 export const metadata = { title: "Formations — Admin" };
 export const dynamic = "force-dynamic";
@@ -13,7 +14,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
   let query = admin
     .from("courses")
-    .select("id, titre_fr, prix_dzd, published, formateur_id, formateur:users(nom), enrollments(id)")
+    .select("id, titre_fr, prix_dzd, published, visible_inscription, formateur_id, formateur:users(nom), enrollments(id)")
     .order("created_at", { ascending: false });
   if (q) query = query.ilike("titre_fr", `%${q}%`);
   const { data: courses } = await query.limit(200);
@@ -50,13 +51,14 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
               <TableHead className="px-5 py-3 font-medium">Formateur</TableHead>
               <TableHead className="px-5 py-3 font-medium">Inscrites</TableHead>
               <TableHead className="px-5 py-3 font-medium">Publiée</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Inscription</TableHead>
               <TableHead className="px-5 py-3 font-medium">En vente</TableHead>
               <TableHead className="px-5 py-3 font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-gray-50">
             {!courses?.length ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-10 text-gray-400">Aucune formation.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-10 text-gray-400">Aucune formation.</TableCell></TableRow>
             ) : courses.map((c) => (
               <TableRow key={c.id} className="hover:bg-gray-50 font-dm">
                 <TableCell className="px-5 py-3">
@@ -68,6 +70,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                 </TableCell>
                 <TableCell className="px-5 py-3 text-gray-600">{(c.enrollments as any[])?.length ?? 0}</TableCell>
                 <TableCell className="px-5 py-3"><PublishToggle courseId={c.id} published={c.published} /></TableCell>
+                <TableCell className="px-5 py-3"><VisibleToggle courseId={c.id} visible={c.visible_inscription ?? true} /></TableCell>
                 <TableCell className="px-5 py-3"><SaleToggle courseId={c.id} onSale={onSaleByCourse.get(c.id) ?? false} published={c.published} /></TableCell>
                 <TableCell className="px-5 py-3">
                   <div className="flex items-center gap-3">

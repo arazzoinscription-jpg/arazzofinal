@@ -18,6 +18,7 @@ export default async function OffrePage() {
     .from("courses")
     .select("id, titre_fr, slug, niveau, prix_dzd, thumbnail")
     .eq("published", true)
+    .eq("visible_inscription", true)
     .order("ordre", { ascending: true });
 
   const options: CourseOption[] = (courses ?? []).map((c) => ({

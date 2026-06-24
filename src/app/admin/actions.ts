@@ -190,6 +190,19 @@ export async function toggleCoursePublish(courseId: string, published: boolean) 
   return { ok: true };
 }
 
+export async function toggleCourseVisibleInscription(courseId: string, visible: boolean) {
+  const idOk = z.string().uuid().safeParse(courseId);
+  if (!idOk.success) return { ok: false, error: "Formation invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  const { error } = await admin.from("courses").update({ visible_inscription: visible }).eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/formations");
+  revalidatePath("/offre");
+  revalidatePath("/formations");
+  return { ok: true };
+}
+
 /**
  * Met une formation EN VENTE (crée/réactive le produit boutique lié) ou la retire.
  * RÉSERVÉ À L'ADMIN : le formateur publie le cours, l'admin accorde la mise en vente.

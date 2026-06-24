@@ -27,7 +27,7 @@ export async function getCourseFiche(courseId: string) {
   const { data: c } = await admin
     .from("courses")
     .select("id, titre_fr, titre_ar, titre_en, description_fr, description_ar, description_en, niveau, duree, prix_dzd, prix_eur, slug, thumbnail, formateur:users(nom, avatar_url, ville), chapters(titre, ordre, lessons(id, titre, duree_minutes, ordre, is_preview)), reviews(note, commentaire, user:users(nom))")
-    .eq("id", courseId).eq("published", true).maybeSingle();
+    .eq("id", courseId).eq("published", true).eq("visible_inscription", true).maybeSingle();
   if (!c) return { ok: false as const, error: "Formation introuvable." };
 
   // Chapitres + leçons détaillées (titre, durée, aperçu gratuit).
@@ -119,8 +119,8 @@ export async function submitLead(input: unknown) {
 
   const admin = createAdminClient();
   const { data: course } = await admin
-    .from("courses").select("id, titre_fr, prix_dzd, published").eq("id", courseId).maybeSingle();
-  if (!course || !course.published) return { ok: false as const, error: "Formation indisponible." };
+    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription").eq("id", courseId).maybeSingle();
+  if (!course || !course.published || !course.visible_inscription) return { ok: false as const, error: "Formation indisponible." };
 
   const price = Number(course.prix_dzd) || 0;
 
@@ -169,8 +169,8 @@ export async function submitDeliveryOrder(input: unknown) {
 
   const admin = createAdminClient();
   const { data: course } = await admin
-    .from("courses").select("id, titre_fr, prix_dzd, published").eq("id", courseId).maybeSingle();
-  if (!course || !course.published) return { ok: false as const, error: "Formation indisponible." };
+    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription").eq("id", courseId).maybeSingle();
+  if (!course || !course.published || !course.visible_inscription) return { ok: false as const, error: "Formation indisponible." };
   const price = Number(course.prix_dzd) || 0;
 
   const { data: order, error: orderErr } = await admin
