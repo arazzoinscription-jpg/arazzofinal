@@ -14,10 +14,23 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
   let query = admin
     .from("courses")
-    .select("id, titre_fr, prix_dzd, published, visible_inscription, formateur_id, formateur:users(nom), enrollments(id)")
+    .select("id, titre_fr, prix_dzd, published, visible_inscription, formateur_id, formateur:users(nom)")
     .order("created_at", { ascending: false });
   if (q) query = query.ilike("titre_fr", `%${q}%`);
   const { data: courses } = await query.limit(200);
+
+  // Comptage fiable des inscriptions par cours (évite les faux positifs de l'embed PostgREST)
+  const courseIds = (courses ?? []).map((c) => c.id);
+  const enrollCounts = new Map<string, number>();
+  if (courseIds.length) {
+    const { data: enrolls } = await admin
+      .from("enrollments")
+      .select("course_id")
+      .in("course_id", courseIds);
+    for (const e of enrolls ?? []) {
+      if (e.course_id) enrollCounts.set(e.course_id, (enrollCounts.get(e.course_id) ?? 0) + 1);
+    }
+  }
 
   // Liste des formateurs (pour l'affectation)
   const { data: formateursRaw } = await admin
@@ -68,7 +81,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                 <TableCell className="px-5 py-3">
                   <FormateurSelect courseId={c.id} current={(c as any).formateur_id ?? null} formateurs={formateurs} />
                 </TableCell>
-                <TableCell className="px-5 py-3 text-gray-600">{(c.enrollments as any[])?.length ?? 0}</TableCell>
+                <TableCell className="px-5 py-3 text-gray-600">{enrollCounts.get(c.id) ?? 0}</TableCell>
                 <TableCell className="px-5 py-3"><PublishToggle courseId={c.id} published={c.published} /></TableCell>
                 <TableCell className="px-5 py-3"><VisibleToggle courseId={c.id} visible={c.visible_inscription ?? true} /></TableCell>
                 <TableCell className="px-5 py-3"><SaleToggle courseId={c.id} onSale={onSaleByCourse.get(c.id) ?? false} published={c.published} /></TableCell>
