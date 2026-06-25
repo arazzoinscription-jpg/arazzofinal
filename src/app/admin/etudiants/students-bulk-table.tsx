@@ -147,9 +147,15 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                     {r.formation === "—" ? (
                       <span className="text-gray-400">—</span>
                     ) : (
-                      <span className="inline-flex items-center rounded-full bg-orange-50 text-orange-700 px-2.5 py-1 text-xs font-semibold">
-                        {r.formation}
-                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {r.formation.split(", ").map((part, i) => (
+                          <span key={i} className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            part.startsWith("NIVEAU") ? "bg-orange-50 text-orange-700" : "bg-violet-50 text-violet-700"
+                          }`}>
+                            {part}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </TableCell>
                   <TableCell className="px-5 py-3">

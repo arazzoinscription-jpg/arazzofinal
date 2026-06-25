@@ -19,7 +19,9 @@ interface StudentRow {
   nom: string;
   email: string;
   dateInscription: string | null;
-  formation: string;
+  hasLevel1: boolean;
+  hasLevel2: boolean;
+  otherCourses: Set<string>;
   formateurNom: string | null;
   formateurEmail: string | null;
   active: boolean;
@@ -122,7 +124,9 @@ export default async function AdminStudentsPage({
       nom: s.nom ?? "—",
       email: s.email ?? "—",
       dateInscription: null,
-      formation: "",
+      hasLevel1: false,
+      hasLevel2: false,
+      otherCourses: new Set<string>(),
       formateurNom: null,
       formateurEmail: null,
       active: false,
@@ -135,19 +139,14 @@ export default async function AdminStudentsPage({
       }
     }
 
-    // Déduire les niveaux
-    const parts: string[] = row.formation ? row.formation.split(" + ") : [];
-    if (isLevel1 || (isModule && moduleNum! >= 1 && moduleNum! <= 9)) {
-      if (!parts.includes("NIVEAU 1")) parts.push("NIVEAU 1");
+    // Déduire les niveaux depuis les modules 1-12
+    if (isLevel1 || (isModule && moduleNum! >= 1 && moduleNum! <= 9)) row.hasLevel1 = true;
+    if (isLevel2 || (isModule && moduleNum! >= 10 && moduleNum! <= 12)) row.hasLevel2 = true;
+
+    // Conserver le nom des cours qui ne sont pas des modules 1-12
+    if (titre && !isLevel1 && !isLevel2 && !isModule) {
+      row.otherCourses.add(titre);
     }
-    if (isLevel2 || (isModule && moduleNum! >= 10 && moduleNum! <= 12)) {
-      if (!parts.includes("NIVEAU 2")) parts.push("NIVEAU 2");
-    }
-    // Conserver l'ordre NIVEAU 1, NIVEAU 2
-    const ordered: string[] = [];
-    if (parts.includes("NIVEAU 1")) ordered.push("NIVEAU 1");
-    if (parts.includes("NIVEAU 2")) ordered.push("NIVEAU 2");
-    row.formation = ordered.join(" + ");
 
     // Formateur : privilégier celui du cours-niveau, sinon le premier trouvé
     if ((isLevel1 || isLevel2) && formateurNom) {
@@ -181,12 +180,16 @@ export default async function AdminStudentsPage({
 
   // Recherche nom / email / formation
   if (q) {
-    rows = rows.filter(
-      (r) =>
+    rows = rows.filter((r) => {
+      const levels = [r.hasLevel1 ? "NIVEAU 1" : "", r.hasLevel2 ? "NIVEAU 2" : ""].filter(Boolean).join(", ");
+      const courses = Array.from(r.otherCourses).join(", ");
+      const formationText = [levels, courses].filter(Boolean).join(", ").toLowerCase();
+      return (
         r.nom.toLowerCase().includes(q) ||
         r.email.toLowerCase().includes(q) ||
-        r.formation.toLowerCase().includes(q)
-    );
+        formationText.includes(q)
+      );
+    });
   }
 
   // Tri par date d'inscription décroissante (plus récents en premier)
@@ -195,16 +198,22 @@ export default async function AdminStudentsPage({
   const fmt = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-  const tableRows = rows.map((r) => ({
-    id: r.id,
-    nom: r.nom,
-    email: r.email,
-    dateInscriptionText: fmt(r.dateInscription),
-    formation: r.formation || "—",
-    formateurNom: r.formateurNom,
-    formateurEmail: r.formateurEmail,
-    active: r.active,
-  }));
+  const tableRows = rows.map((r) => {
+    const formationParts: string[] = [];
+    if (r.hasLevel1) formationParts.push("NIVEAU 1");
+    if (r.hasLevel2) formationParts.push("NIVEAU 2");
+    formationParts.push(...Array.from(r.otherCourses));
+    return {
+      id: r.id,
+      nom: r.nom,
+      email: r.email,
+      dateInscriptionText: fmt(r.dateInscription),
+      formation: formationParts.join(", ") || "—",
+      formateurNom: r.formateurNom,
+      formateurEmail: r.formateurEmail,
+      active: r.active,
+    };
+  });
 
   return (
     <div className="px-4 lg:px-8 py-6">
