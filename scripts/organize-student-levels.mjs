@@ -10,10 +10,44 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync, existsSync } from "fs";
+import { resolve } from "path";
+
+function loadEnvLocal() {
+  const envPath = resolve(process.cwd(), ".env.local");
+  if (!existsSync(envPath)) return;
+  const content = readFileSync(envPath, "utf-8");
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+}
+
+loadEnvLocal();
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error("❌ Variables d'environnement manquantes : NEXT_PUBLIC_SUPABASE_URL et/ou SUPABASE_SERVICE_ROLE_KEY");
+  process.exit(1);
+}
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  supabaseUrl,
+  serviceRoleKey,
   { auth: { persistSession: false, autoRefreshToken: false } }
 );
 
@@ -25,6 +59,7 @@ const LEVELS = [
     desc_fr: "Le socle du modélisme : outils, prise de mesures, patron de base, machines, manches, jupe, pantalon, modèles maison et hijab.",
     desc_ar: "أساسيات المودلاج: الأدوات، أخذ المقاسات، الباترون الأساسي، الماكينات، الأكمام، التنورة، السروال، موديلات البيت و الحجابات.",
     moduleNums: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    tutorIds: [6630, 3185, 3145, 6618, 3177, 3167, 3173, 3179, 3175],
     prix_dzd: 8000,
     prix_eur: 53,
     niveau: "debutant",
@@ -36,6 +71,7 @@ const LEVELS = [
     desc_fr: "Vêtements classiques et tenues de soirée : pinces et découpes, manteaux et cols classiques, extraction des pièces de soirée.",
     desc_ar: "الملابس الكلاسيكية و ملابس الصواري: البانسات و القصات، المعاطف و الياقات الكلاسيكية، استخراج قطع الصواري بطريقة الباترون.",
     moduleNums: [10, 11, 12],
+    tutorIds: [6547, 5179, 5190],
     prix_dzd: 8000,
     prix_eur: 53,
     niveau: "intermediaire",
@@ -46,6 +82,25 @@ const LEVELS = [
 function parseModuleNum(title) {
   const m = String(title || "").match(/المحور\s*(\d+)/i);
   return m ? parseInt(m[1], 10) : null;
+}
+
+function parseTrailingId(slug) {
+  const m = String(slug || "").match(/-(\d+)$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function getModuleNum(title, slug, levels = LEVELS) {
+  const fromTitle = parseModuleNum(title);
+  if (fromTitle) return fromTitle;
+  const tid = parseTrailingId(slug);
+  if (!tid) return null;
+  for (const lvl of levels) {
+    if (lvl.tutorIds.includes(tid)) {
+      // Renvoie le premier numéro du groupe pour déclencher le bon niveau
+      return lvl.moduleNums[0];
+    }
+  }
+  return null;
 }
 
 async function main() {
@@ -59,7 +114,7 @@ async function main() {
 
   const moduleByNum = new Map();
   for (const c of courses || []) {
-    const num = parseModuleNum(c.titre_fr);
+    const num = getModuleNum(c.titre_fr, c.slug);
     if (num && num >= 1 && num <= 12) {
       moduleByNum.set(num, c.id);
     }
@@ -118,7 +173,7 @@ async function main() {
   const byStudent = new Map(); // userId -> { niveaux: Set<levelCourseId>, dateMin: ISO }
   for (const e of moduleEnrolls || []) {
     const course = courseById.get(e.course_id);
-    const num = parseModuleNum(course?.titre_fr);
+    const num = getModuleNum(course?.titre_fr, course?.slug);
     if (!num) continue;
 
     const levelsForModule = levelCourses.filter((lvl) => lvl.moduleNums.includes(num));

@@ -10,6 +10,10 @@ const DAY = 1000 * 60 * 60 * 24;
 const LEVEL_1_SLUG = "niveau-1-bases-vetements-quotidiens";
 const LEVEL_2_SLUG = "niveau-2-classique-soiree";
 
+// IDs TutorLMS d'origine pour chaque niveau (permet de reconnaître les modules même sans titre "المحور N")
+const LEVEL_1_MODULE_IDS = new Set([6630, 3185, 3145, 6618, 3177, 3167, 3173, 3179, 3175]);
+const LEVEL_2_MODULE_IDS = new Set([6547, 5179, 5190]);
+
 interface StudentRow {
   id: string;
   nom: string;
@@ -24,6 +28,27 @@ interface StudentRow {
 function parseModuleNum(title: string | null): number | null {
   const m = String(title || "").match(/المحور\s*(\d+)/i);
   return m ? parseInt(m[1], 10) : null;
+}
+
+function parseTrailingId(slug: string | null | undefined): number | null {
+  const m = String(slug || "").match(/-(\d+)$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function getModuleNum(title: string | null, slug: string | null | undefined): number | null {
+  const fromTitle = parseModuleNum(title);
+  if (fromTitle) return fromTitle;
+  const tid = parseTrailingId(slug);
+  if (!tid) return null;
+  if (LEVEL_1_MODULE_IDS.has(tid)) {
+    // On renvoie un numéro fictif dans la plage 1-9 pour déclencher NIVEAU 1
+    return 1;
+  }
+  if (LEVEL_2_MODULE_IDS.has(tid)) {
+    // Numéro fictif dans la plage 10-12 pour déclencher NIVEAU 2
+    return 10;
+  }
+  return null;
 }
 
 export default async function AdminStudentsPage({
@@ -46,7 +71,7 @@ export default async function AdminStudentsPage({
 
   const moduleCourseIds = (allCourses ?? [])
     .filter((c) => {
-      const num = parseModuleNum(c.titre_fr);
+      const num = getModuleNum(c.titre_fr, c.slug);
       return num && num >= 1 && num <= 12;
     })
     .map((c) => c.id);
@@ -89,7 +114,7 @@ export default async function AdminStudentsPage({
 
     const isLevel1 = slug === LEVEL_1_SLUG;
     const isLevel2 = slug === LEVEL_2_SLUG;
-    const moduleNum = parseModuleNum(titre ?? null);
+    const moduleNum = getModuleNum(titre ?? null, slug);
     const isModule = moduleNum !== null && moduleNum >= 1 && moduleNum <= 12;
 
     const row = byStudent.get(s.id) ?? {
