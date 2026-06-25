@@ -55,6 +55,7 @@ export async function manualEnroll(input: { courseId: string; email: string; nom
   // Inscription (gratuite / manuelle)
   const { error: insErr } = await admin.from("enrollments").insert({
     user_id: studentId, course_id: courseId, amount: 0, currency: "DZD",
+    formateur_id: course.formateur_id,
   });
   if (insErr) return { ok: false, error: insErr.message };
 

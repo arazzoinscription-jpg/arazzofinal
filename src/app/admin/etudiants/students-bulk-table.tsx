@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -7,18 +7,15 @@ import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail } from "lucide
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { bulkSetUserStatus, bulkDeleteUsers, bulkActivateAndInvite } from "@/app/admin/actions";
-export interface CourseLite {
-  titre: string;
-  dateText: string;
-  formateurNom: string | null;
-  formateurEmail: string | null;
-}
+
 export interface StudentRowLite {
   id: string;
   nom: string;
   email: string;
-  createdAtText: string;
-  courses: CourseLite[];
+  dateInscriptionText: string;
+  formation: string;
+  formateurNom: string | null;
+  formateurEmail: string | null;
   active: boolean;
 }
 
@@ -114,14 +111,15 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                   className="w-4 h-4 accent-orange-600" />
               </TableHead>
               <TableHead className="px-5 py-3 font-medium">Étudiant</TableHead>
-              <TableHead className="px-5 py-3 font-medium">Inscrit le</TableHead>
-              <TableHead className="px-5 py-3 font-medium">Cours suivis &amp; formateur</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Formateur</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Date inscription</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Formation</TableHead>
               <TableHead className="px-5 py-3 font-medium">Statut</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-gray-50">
             {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-10 text-gray-400">Aucun étudiant.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-10 text-gray-400">Aucun étudiant.</TableCell></TableRow>
             ) : rows.map((r) => {
               const checked = sel.has(r.id);
               return (
@@ -134,32 +132,24 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                     <div className="font-medium text-gray-900">{r.nom}</div>
                     <div className="text-xs text-gray-400">{r.email}</div>
                   </TableCell>
-                  <TableCell className="px-5 py-3 text-gray-600 whitespace-nowrap">{r.createdAtText}</TableCell>
+                  <TableCell className="px-5 py-3 text-gray-600">
+                    {r.formateurNom ? (
+                      <span>
+                        {r.formateurNom}
+                        {r.formateurEmail && <span className="text-gray-400 text-xs block">{r.formateurEmail}</span>}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 italic">non assigné</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="px-5 py-3 text-gray-600 whitespace-nowrap">{r.dateInscriptionText}</TableCell>
                   <TableCell className="px-5 py-3">
-                    {r.courses.length === 0 ? (
+                    {r.formation === "—" ? (
                       <span className="text-gray-400">—</span>
                     ) : (
-                      <ul className="space-y-2">
-                        {r.courses.map((c, i) => (
-                          <li key={i} className="border-l-2 border-orange-100 pl-2">
-                            <div className="text-gray-800 font-medium">{c.titre}</div>
-                            <div className="text-xs text-gray-400">{c.dateText}</div>
-                            <div className="text-xs mt-0.5">
-                              <span className="text-gray-400">Formateur : </span>
-                              {c.formateurNom ? (
-                                <span className="text-gray-600">
-                                  {c.formateurNom}
-                                  {c.formateurEmail && (
-                                    <span className="text-gray-400"> · {c.formateurEmail}</span>
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="text-gray-400 italic">non assigné</span>
-                              )}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                      <span className="inline-flex items-center rounded-full bg-orange-50 text-orange-700 px-2.5 py-1 text-xs font-semibold">
+                        {r.formation}
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="px-5 py-3">

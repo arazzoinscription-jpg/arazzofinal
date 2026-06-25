@@ -1,4 +1,4 @@
-﻿import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { StudentsBulkTable } from "./students-bulk-table";
 import { AdminEnrollForm } from "./admin-enroll-form";
 
@@ -7,19 +7,23 @@ export const dynamic = "force-dynamic";
 
 const DAY = 1000 * 60 * 60 * 24;
 
-interface CourseEnrollment {
-  titre: string;
-  paidAt: string;
-  formateurNom: string | null;
-  formateurEmail: string | null;
-}
+const LEVEL_1_SLUG = "niveau-1-bases-vetements-quotidiens";
+const LEVEL_2_SLUG = "niveau-2-classique-soiree";
+
 interface StudentRow {
   id: string;
   nom: string;
   email: string;
-  createdAt: string | null;
-  courses: CourseEnrollment[];
+  dateInscription: string | null;
+  formation: string;
+  formateurNom: string | null;
+  formateurEmail: string | null;
   active: boolean;
+}
+
+function parseModuleNum(title: string | null): number | null {
+  const m = String(title || "").match(/المحور\s*(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
 }
 
 export default async function AdminStudentsPage({
@@ -31,16 +35,26 @@ export default async function AdminStudentsPage({
   const q = (searchParams.q ?? "").trim().toLowerCase();
   const courseFilter = (searchParams.course ?? "").trim();
 
-  // Liste des cours pour le filtre déroulant
+  // ── 1) Cours : niveaux + modules ──────────────────────────────────────────
   const { data: allCourses } = await admin
     .from("courses")
-    .select("id, titre_fr")
+    .select("id, titre_fr, slug, formateur_id, formateur:users!courses_formateur_id_fkey(nom, email)")
     .order("titre_fr", { ascending: true });
 
-  // Inscriptions + étudiant + cours
+  const level1 = (allCourses ?? []).find((c) => c.slug === LEVEL_1_SLUG);
+  const level2 = (allCourses ?? []).find((c) => c.slug === LEVEL_2_SLUG);
+
+  const moduleCourseIds = (allCourses ?? [])
+    .filter((c) => {
+      const num = parseModuleNum(c.titre_fr);
+      return num && num >= 1 && num <= 12;
+    })
+    .map((c) => c.id);
+
+  // ── 2) Inscriptions + étudiant + cours ────────────────────────────────────
   const { data: enrolls } = await admin
     .from("enrollments")
-    .select("paid_at, course_id, course:courses(titre_fr, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
+    .select("paid_at, course_id, course:courses(titre_fr, slug, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
     .order("paid_at", { ascending: false })
     .limit(5000);
 
@@ -55,39 +69,74 @@ export default async function AdminStudentsPage({
     });
   }
 
-  // Regrouper les inscriptions par étudiant (rôle élève uniquement)
+  // ── 3) Regrouper par étudiant et déduire NIVEAU 1 / NIVEAU 2 ──────────────
   const byStudent = new Map<string, StudentRow>();
   (enrolls ?? []).forEach((e) => {
     const s = e.student as { id?: string; nom?: string; email?: string; role?: string; created_at?: string } | null;
     if (!s?.id || s.role !== "eleve") return;
     if (courseFilter && !studentsInFilteredCourse.has(s.id)) return;
 
+    const courseObj = e.course as {
+      titre_fr?: string;
+      slug?: string;
+      formateur?: { nom?: string; email?: string } | { nom?: string; email?: string }[] | null;
+    } | null;
+    const slug = courseObj?.slug;
+    const titre = courseObj?.titre_fr;
+    const formateur = Array.isArray(courseObj?.formateur) ? courseObj?.formateur[0] : courseObj?.formateur;
+    const formateurNom = formateur?.nom ?? null;
+    const formateurEmail = formateur?.email ?? null;
+
+    const isLevel1 = slug === LEVEL_1_SLUG;
+    const isLevel2 = slug === LEVEL_2_SLUG;
+    const moduleNum = parseModuleNum(titre ?? null);
+    const isModule = moduleNum !== null && moduleNum >= 1 && moduleNum <= 12;
+
     const row = byStudent.get(s.id) ?? {
       id: s.id,
       nom: s.nom ?? "—",
       email: s.email ?? "—",
-      createdAt: s.created_at ?? null,
-      courses: [],
+      dateInscription: null,
+      formation: "",
+      formateurNom: null,
+      formateurEmail: null,
       active: false,
     };
-    const courseObj = e.course as {
-      titre_fr?: string;
-      formateur?: { nom?: string; email?: string } | { nom?: string; email?: string }[] | null;
-    } | null;
-    const titre = courseObj?.titre_fr;
-    // PostgREST renvoie l'embed to-one comme objet, mais le typage peut l'inférer comme tableau
-    const formateur = Array.isArray(courseObj?.formateur) ? courseObj?.formateur[0] : courseObj?.formateur;
-    if (titre)
-      row.courses.push({
-        titre,
-        paidAt: e.paid_at,
-        formateurNom: formateur?.nom ?? null,
-        formateurEmail: formateur?.email ?? null,
-      });
+
+    // Date d'inscription = la plus ancienne date rencontrée
+    if (e.paid_at) {
+      if (!row.dateInscription || new Date(e.paid_at) < new Date(row.dateInscription)) {
+        row.dateInscription = e.paid_at;
+      }
+    }
+
+    // Déduire les niveaux
+    const parts: string[] = row.formation ? row.formation.split(" + ") : [];
+    if (isLevel1 || (isModule && moduleNum! >= 1 && moduleNum! <= 9)) {
+      if (!parts.includes("NIVEAU 1")) parts.push("NIVEAU 1");
+    }
+    if (isLevel2 || (isModule && moduleNum! >= 10 && moduleNum! <= 12)) {
+      if (!parts.includes("NIVEAU 2")) parts.push("NIVEAU 2");
+    }
+    // Conserver l'ordre NIVEAU 1, NIVEAU 2
+    const ordered: string[] = [];
+    if (parts.includes("NIVEAU 1")) ordered.push("NIVEAU 1");
+    if (parts.includes("NIVEAU 2")) ordered.push("NIVEAU 2");
+    row.formation = ordered.join(" + ");
+
+    // Formateur : privilégier celui du cours-niveau, sinon le premier trouvé
+    if ((isLevel1 || isLevel2) && formateurNom) {
+      row.formateurNom = formateurNom;
+      row.formateurEmail = formateurEmail;
+    } else if (!row.formateurNom && formateurNom) {
+      row.formateurNom = formateurNom;
+      row.formateurEmail = formateurEmail;
+    }
+
     byStudent.set(s.id, row);
   });
 
-  // Statut actif / inactif : dernière connexion < 30 jours
+  // ── 4) Statut actif / inactif : dernière connexion < 30 jours ─────────────
   const now = Date.now();
   const lastSignin = new Map<string, string | null>();
   let page = 1;
@@ -105,27 +154,30 @@ export default async function AdminStudentsPage({
     return r;
   });
 
-  // Recherche nom / email
-  if (q) rows = rows.filter((r) => r.nom.toLowerCase().includes(q) || r.email.toLowerCase().includes(q));
+  // Recherche nom / email / formation
+  if (q) {
+    rows = rows.filter(
+      (r) =>
+        r.nom.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.formation.toLowerCase().includes(q)
+    );
+  }
 
-  // Tri par date d'inscription plateforme décroissante (plus récents en premier)
-  rows.sort((a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime());
+  // Tri par date d'inscription décroissante (plus récents en premier)
+  rows.sort((a, b) => new Date(b.dateInscription ?? 0).getTime() - new Date(a.dateInscription ?? 0).getTime());
 
   const fmt = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-  // Données sérialisées pour le tableau client (sélection multiple + actions groupées)
   const tableRows = rows.map((r) => ({
     id: r.id,
     nom: r.nom,
     email: r.email,
-    createdAtText: fmt(r.createdAt),
-    courses: r.courses.map((c) => ({
-      titre: c.titre,
-      dateText: fmt(c.paidAt),
-      formateurNom: c.formateurNom,
-      formateurEmail: c.formateurEmail,
-    })),
+    dateInscriptionText: fmt(r.dateInscription),
+    formation: r.formation || "—",
+    formateurNom: r.formateurNom,
+    formateurEmail: r.formateurEmail,
     active: r.active,
   }));
 
@@ -136,7 +188,7 @@ export default async function AdminStudentsPage({
 
       {/* Recherche + filtre par cours */}
       <form className="flex flex-wrap gap-3 mb-6">
-        <input name="q" defaultValue={searchParams.q ?? ""} placeholder="Rechercher nom ou email…"
+        <input name="q" defaultValue={searchParams.q ?? ""} placeholder="Rechercher nom, email ou formation…"
           className="flex-1 min-w-56 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         <select name="course" defaultValue={courseFilter}
           className="border border-gray-100 rounded-xl px-4 py-2.5 bg-white max-w-xs">

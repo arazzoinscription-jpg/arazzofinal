@@ -62,6 +62,7 @@ export interface Enrollment {
   paid_at: string;
   amount: number;
   currency: Currency;
+  formateur_id?: string;
   course?: Course;
 }
 
