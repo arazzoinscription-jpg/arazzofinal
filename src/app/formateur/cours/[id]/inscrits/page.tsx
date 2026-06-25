@@ -28,7 +28,7 @@ export default async function CourseEnrolleesPage({ params }: { params: { id: st
   // Inscrits à ce cours, du plus récent au plus ancien
   const { data: enrolls } = await admin
     .from("enrollments")
-    .select("id, user_id, paid_at, amount, currency, student:users(nom, email)")
+    .select("id, user_id, paid_at, amount, currency, student:users!enrollments_user_id_fkey(nom, email)")
     .eq("course_id", course.id)
     .order("paid_at", { ascending: false });
 
