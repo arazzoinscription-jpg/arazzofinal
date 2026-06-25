@@ -98,9 +98,10 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .eq("lesson_id", lesson.id)
     .order("created_at", { ascending: true });
 
-  // Rôle (staff ?) + Q&R + travaux pratiques
+  // Rôle + propriété du cours (pour l'accès aux travaux pratiques)
   const { data: meProf } = await supabase.from("users").select("role").eq("id", user.id).single();
   const isStaff = meProf?.role === "formateur" || meProf?.role === "admin";
+  const canViewAllPracticals = meProf?.role === "admin" || (meProf?.role === "formateur" && course?.formateur_id === user.id);
 
   const extrasAdmin = createAdminClient();
   const { data: qRows } = await extrasAdmin
@@ -118,7 +119,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .select("id, user_id, photo_url, video_url, note, feedback, status, created_at, author:users(nom)")
     .eq("lesson_id", lesson.id)
     .order("created_at", { ascending: false });
-  if (!isStaff) pQuery = pQuery.eq("user_id", user.id);
+  if (!canViewAllPracticals) pQuery = pQuery.eq("user_id", user.id);
   const { data: pRows } = await pQuery;
   const practicals: Practical[] = (pRows ?? []).map((p: any) => ({
     id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, note: p.note,
