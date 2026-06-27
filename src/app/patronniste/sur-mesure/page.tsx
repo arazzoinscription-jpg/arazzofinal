@@ -111,7 +111,11 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
       {(o.photo_url || o.video_url) && (
         <div className="grid grid-cols-2 gap-2 mb-3">
           {o.photo_url && <img src={o.photo_url} alt="Modèle" className="w-full h-32 object-cover rounded-lg border border-cream-200 dark:border-white/10" />}
-          {o.video_url && <video src={o.video_url} controls className="w-full h-32 object-cover rounded-lg bg-black" />}
+          {o.video_url && (
+            /mediadelivery\.net|\/embed\//.test(o.video_url)
+              ? <iframe src={o.video_url} className="w-full h-32 rounded-lg bg-black" allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture" allowFullScreen title="Vidéo du modèle" />
+              : <video src={o.video_url} controls className="w-full h-32 object-cover rounded-lg bg-black" />
+          )}
         </div>
       )}
 

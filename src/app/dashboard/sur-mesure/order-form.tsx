@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Ruler, Loader2, Check, ImagePlus, Film, X } from "lucide-react";
+import { Ruler, Loader2, Check, ImagePlus, X } from "lucide-react";
 import { placeCustomOrder } from "./actions";
 import { MESURE_FIELDS } from "./constants";
 import { createClient } from "@/lib/supabase/client";
+import { SurMesureVideoUploader } from "./video-uploader";
 
 const field = "w-full rounded-xl border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500";
 const label = "block text-sm font-medium text-gray-700 dark:text-white/80 mb-1.5";
@@ -99,21 +100,9 @@ export function CustomOrderForm() {
               </label>
             )}
           </div>
-          {/* Vidéo */}
+          {/* Vidéo → Bunny Stream (TUS, gère les gros fichiers) */}
           <div className="rounded-xl border border-cream-200 dark:border-white/15 p-3">
-            {videoUrl ? (
-              <div className="relative">
-                <video src={videoUrl} controls className="w-full h-40 object-cover rounded-lg bg-black" />
-                <button type="button" onClick={() => setVideoUrl("")} className="absolute -top-2 -end-2 bg-white border border-cream-200 rounded-full p-1 shadow text-gray-500 hover:text-red-500"><X size={14} /></button>
-              </div>
-            ) : (
-              <label className="flex flex-col items-center justify-center gap-1.5 h-40 cursor-pointer text-gray-400 hover:text-orange-500 transition-colors">
-                {busyMedia === "video" ? <Loader2 size={24} className="animate-spin" /> : <Film size={24} />}
-                <span className="text-xs font-semibold">{busyMedia === "video" ? "Envoi…" : "Ajouter une vidéo"}</span>
-                <input type="file" accept="video/*" className="hidden" disabled={busyMedia !== null}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadMedia(f, "video"); e.currentTarget.value = ""; }} />
-              </label>
-            )}
+            <SurMesureVideoUploader value={videoUrl} onChange={setVideoUrl} />
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, PlusCircle, FileQuestion, Scissors, FolderOpen, Package,
-  Users, UsersRound, Newspaper, Megaphone, UserMinus, LifeBuoy,
+  Users, UsersRound, Newspaper, Megaphone, UserMinus, LifeBuoy, UserCog,
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
   Settings, Mail, ScrollText,
@@ -92,6 +92,10 @@ export const ADMIN_SECTIONS: ProSection[] = [
   {
     key: "students", icon: GraduationCap, home: "/admin/etudiants", items: [],
     label: { fr: "Étudiants", ar: "الطلاب", en: "Students" },
+  },
+  {
+    key: "gestion", icon: UserCog, home: "/admin/gestion", items: [],
+    label: { fr: "Gestion Formateurs & Étudiants", ar: "إدارة المدرّبين والطلاب", en: "Trainers & Students Management" },
   },
   {
     key: "catalog", icon: BookOpen, home: "/admin/formations",

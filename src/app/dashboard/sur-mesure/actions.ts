@@ -4,7 +4,25 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyPatronnistes } from "@/lib/sur-mesure-notify";
+import { createBunnyVideo, bunnyTusAuth, isBunnyConfigured, FEED_LIBRARY_ID } from "@/lib/bunny/stream";
 import { MESURE_FIELDS } from "./constants";
+
+/**
+ * Démarre l'upload de la vidéo du modèle vers Bunny Stream (TUS résumable côté
+ * navigateur — le fichier ne transite pas par notre serveur, donc pas de limite 4,5 Mo).
+ * Accessible à toute cliente connectée qui passe une commande sur mesure.
+ */
+export async function startSurMesureVideo(title: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Veuillez vous connecter." };
+  if (!isBunnyConfigured()) return { ok: false as const, error: "Service vidéo non configuré." };
+  const created = await createBunnyVideo(title?.slice(0, 120) || "Modèle sur mesure");
+  if (!created.ok) return { ok: false as const, error: created.error };
+  const tus = bunnyTusAuth(created.videoId);
+  const embedUrl = `https://iframe.mediadelivery.net/embed/${FEED_LIBRARY_ID}/${created.videoId}`;
+  return { ok: true as const, videoId: created.videoId, embedUrl, tus };
+}
 
 export async function placeCustomOrder(formData: FormData) {
   const supabase = await createClient();

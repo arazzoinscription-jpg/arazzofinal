@@ -314,3 +314,54 @@ export async function refundEnrollment(enrollmentId: string, reason: string) {
   revalidatePath("/admin/paiements");
   return { ok: true };
 }
+
+/** Supprime une inscription sans remboursement (réservé à l'admin). */
+export async function deleteEnrollment(enrollmentId: string) {
+  const idOk = z.string().uuid().safeParse(enrollmentId);
+  if (!idOk.success) return { ok: false, error: "Inscription invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: enr } = await admin
+    .from("enrollments")
+    .select("user_id, course_id, course:courses(titre_fr)")
+    .eq("id", idOk.data)
+    .maybeSingle();
+  if (!enr) return { ok: false, error: "Inscription introuvable." };
+
+  const { error } = await admin.from("enrollments").delete().eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+
+  const courseTitle = (enr.course as { titre_fr?: string } | null)?.titre_fr ?? "la formation";
+  await admin.from("notifications").insert({
+    user_id: enr.user_id,
+    type: "system",
+    title: "❌ Inscription annulée",
+    body: `Votre inscription à « ${courseTitle} » a été annulée par l'administration.`,
+    link: "/dashboard",
+  });
+
+  revalidatePath("/admin/gestion");
+  revalidatePath("/admin/etudiants");
+  revalidatePath("/formateur/cours");
+  return { ok: true };
+}
+
+/** Renvoie l'email d'accès à un élève (active + invite). Réservé à l'admin. */
+export async function resendStudentAccess(userId: string) {
+  const idOk = z.string().uuid().safeParse(userId);
+  if (!idOk.success) return { ok: false, error: "Utilisateur invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: u } = await admin.from("users").select("role, nom").eq("id", idOk.data).maybeSingle();
+  if (!u) return { ok: false, error: "Utilisateur introuvable." };
+  if (u.role !== "eleve") return { ok: false, error: "Cet utilisateur n'est pas un élève." };
+
+  const r = await activateAndInvite(admin, idOk.data);
+  if (!r.ok) return { ok: false, error: r.error ?? "Envoi impossible." };
+
+  revalidatePath("/admin/gestion");
+  revalidatePath("/admin/etudiants");
+  return { ok: true };
+}
