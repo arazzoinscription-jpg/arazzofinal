@@ -18,10 +18,11 @@ import { OFFRE, type Lang } from "./offre-i18n";
 import { HOME } from "@/lib/home-i18n";
 import { createClient } from "@/lib/supabase/client";
 import { submitLead, createLeadProofUploadUrl, recordLeadProof, sendPaymentInfo, getCourseFiche, submitDeliveryOrder } from "@/app/actions/rejoindre";
+import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 
 /* ── Types partagés ────────────────────────────────────────────────────── */
 export type Level = "debutant" | "intermediaire" | "avance";
-export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; }
+export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; }
 export interface PayInfo { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string; }
 
 const LEVELS: Level[] = ["debutant", "intermediaire", "avance"];
@@ -930,6 +931,7 @@ function Inscription({
   const [submitting, startSubmit] = useTransition();
   const [formErr, setFormErr] = useState("");
   const [payMethod, setPayMethod] = useState<"baridi" | "delivery">("baridi");
+  const [plan, setPlan] = useState<"full" | "installments">("full");
   const [deliveryDone, setDeliveryDone] = useState(false);
 
   // Preuve de paiement
@@ -945,7 +947,14 @@ function Inscription({
     setTimeout(() => document.getElementById("depot-preuve")?.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
   }
 
-  const total = courses.find((c) => c.id === courseId)?.prixDzd ?? 0;
+  const selectedCourse = courses.find((c) => c.id === courseId);
+  const basePrice = selectedCourse?.prixDzd ?? 0;
+  const subMonths = selectedCourse?.durationMonths ?? 0;
+  const subOn = !!selectedCourse?.subscriptionEnabled && subMonths >= 2;
+  const monthlyDzd = subOn ? monthlyAmount(basePrice, subMonths) : 0;
+  const fullDiscDzd = subOn ? fullDiscountedAmount(basePrice, subMonths) : 0;
+  // Montant dû maintenant : 1ʳᵉ tranche si abonnement, sinon prix (remisé en comptant abonnement).
+  const total = !subOn ? basePrice : plan === "installments" ? monthlyDzd : fullDiscDzd;
   const field = "w-full rounded-xl border border-cream-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm text-violet-950 dark:text-white placeholder:text-violet-950/35 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500";
 
   function submit(e: React.FormEvent) {
@@ -959,7 +968,7 @@ function Inscription({
         else setFormErr(res.error ?? t.genericError);
         return;
       }
-      const res = await submitLead({ ...form, courseId, level: recommended });
+      const res = await submitLead({ ...form, courseId, level: recommended, plan: subOn ? plan : "full" });
       if (res.ok) { setPhase("done"); setProofEmail((p) => p || form.email); }
       else setFormErr(res.error ?? t.genericError);
     });
@@ -1071,6 +1080,35 @@ function Inscription({
                 })}
               </div>
             </div>
+            {/* Méthode d'inscription — uniquement si la formation est en mode abonnement */}
+            {subOn && (
+              <div>
+                <label className="block text-sm font-medium text-gray-600 dark:text-white/70 mb-2">{t.planChoose} *</label>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setPlan("full")}
+                    className={`text-start rounded-2xl border-2 p-4 transition-all ${plan === "full" ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-700 rounded-full px-2 py-0.5 dark:bg-green-500/15 dark:text-green-300">🎁 {t.planFullBadge}</span>
+                      {plan === "full" && <CheckCircle2 size={16} className="text-orange-DEFAULT" />}
+                    </div>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.planFull}</p>
+                    <p className="font-bold text-orange-600 mt-1 text-sm">{fmt(fullDiscDzd)}</p>
+                    <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5 leading-snug">{t.planFullHint}</p>
+                  </button>
+                  <button type="button" onClick={() => setPlan("installments")}
+                    className={`text-start rounded-2xl border-2 p-4 transition-all ${plan === "installments" ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <Wallet size={18} className="text-violet-600 dark:text-violet-300" />
+                      {plan === "installments" && <CheckCircle2 size={16} className="text-orange-DEFAULT" />}
+                    </div>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.planInstallments}</p>
+                    <p className="font-bold text-orange-600 mt-1 text-sm">{fmt(monthlyDzd)} {t.planPerMonth} × {subMonths}</p>
+                    <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5 leading-snug">{t.planInstallmentsHint}</p>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-white/70 mb-1.5">{t.fullName} *</label>
               <input value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required placeholder={t.fullNamePlaceholder} className={field} />

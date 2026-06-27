@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateInvoice } from "./invoices";
 import { enrollAfterPayment } from "@/lib/enrollment";
+import { advanceSubscriptionForOrder } from "@/lib/subscriptions";
 import { sendPaymentApproved, sendCourseAccess, sendPatronAccess } from "./emails";
 import { createChargilyCheckout } from "@/lib/chargily";
 
@@ -482,7 +483,7 @@ export async function finalizeOrderConfirmation(orderId: string) {
 
   const { data: order } = await admin
     .from("orders")
-    .select("id, customer_id, status, email, full_name, total, order_items(product_id, course_id, quantity)")
+    .select("id, customer_id, status, email, full_name, total, installment_month, subscription_id, order_items(product_id, course_id, quantity)")
     .eq("id", parsed.data)
     .maybeSingle();
   if (!order) return { ok: false, error: "Commande introuvable." };
@@ -512,6 +513,21 @@ export async function finalizeOrderConfirmation(orderId: string) {
   const enr = await enrollAfterPayment(order.id);
   const targetUserId = enr.userId ?? order.customer_id;
   const enrolledCount = enr.enrolled?.length ?? 0;
+
+  // 3 bis) Abonnement par tranches : avance le palier (création à la 1ʳᵉ échéance).
+  const subCourseId = items.find((it) => it.course_id)?.course_id ?? null;
+  if (targetUserId && subCourseId && (order as { installment_month?: number | null }).installment_month != null) {
+    try {
+      await advanceSubscriptionForOrder(admin, {
+        orderId: order.id,
+        userId: targetUserId,
+        courseId: subCourseId,
+        orderTotal: Number(order.total) || 0,
+        installmentMonth: (order as { installment_month?: number | null }).installment_month ?? null,
+        subscriptionId: (order as { subscription_id?: string | null }).subscription_id ?? null,
+      });
+    } catch { /* l'échec d'avancement ne doit pas bloquer la validation */ }
+  }
 
   // 4) Facture PDF (best-effort)
   let invoiceUrl: string | null = null;

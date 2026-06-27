@@ -56,6 +56,10 @@ export interface OffreDict {
     alreadyTitle: string;
     getPayInfo: string; payInfoSent: string; quickProof: string;
     currency: string;
+    planChoose: string;
+    planFull: string; planFullBadge: string; planFullHint: string;
+    planInstallments: string; planInstallmentsHint: string;
+    planPerMonth: string; planMonths: string;
     levelLabels: { debutant: string; intermediaire: string; avance: string };
   };
   finalCta: { title: string; titleHi: string; sub: string; primary: string; secondary: string };
@@ -220,6 +224,14 @@ const FR: OffreDict = {
     payInfoSent: "Coordonnées de paiement envoyées par email ✓",
     quickProof: "J'ai déjà payé — envoyer ma preuve",
     currency: "DA",
+    planChoose: "Méthode d'inscription",
+    planFull: "Payer la totalité",
+    planFullBadge: "1 mois offert",
+    planFullHint: "Accès immédiat à toute la formation.",
+    planInstallments: "Payer par tranches",
+    planInstallmentsHint: "Le contenu s'ouvre mois par mois, au rythme des paiements. Rappel par email chaque mois.",
+    planPerMonth: "/ mois",
+    planMonths: "mois",
     levelLabels: { debutant: "Débutante", intermediaire: "Intermédiaire", avance: "Avancée" },
   },
   finalCta: {
@@ -388,6 +400,14 @@ const AR: OffreDict = {
     payInfoSent: "تم إرسال معلومات الدفع إلى بريدك ✓",
     quickProof: "خلّصتِ؟ أرسلي إثبات الدفع",
     currency: "دج",
+    planChoose: "طريقة التسجيل",
+    planFull: "الدفع كاملاً",
+    planFullBadge: "شهر مجاني",
+    planFullHint: "وصول فوري لكامل الدورة.",
+    planInstallments: "الدفع بالتقسيط",
+    planInstallmentsHint: "يُفتح المحتوى شهراً بشهر حسب الدفعات. تذكير بالبريد كل شهر.",
+    planPerMonth: "/ شهر",
+    planMonths: "أشهر",
     levelLabels: { debutant: "مبتدئة", intermediaire: "متوسّطة", avance: "متقدّمة" },
   },
   finalCta: {
@@ -556,6 +576,14 @@ const EN: OffreDict = {
     payInfoSent: "Payment details sent to your email ✓",
     quickProof: "Already paid? Send your proof",
     currency: "DA",
+    planChoose: "Enrollment method",
+    planFull: "Pay in full",
+    planFullBadge: "1 month free",
+    planFullHint: "Immediate access to the whole course.",
+    planInstallments: "Pay monthly",
+    planInstallmentsHint: "Content unlocks month by month as you pay. Email reminder each month.",
+    planPerMonth: "/ month",
+    planMonths: "months",
     levelLabels: { debutant: "Beginner", intermediaire: "Intermediate", avance: "Advanced" },
   },
   finalCta: {

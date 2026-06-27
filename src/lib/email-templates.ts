@@ -101,6 +101,28 @@ export function tplNewContent(nom: string, coursTitre: string, quoi: string) {
   };
 }
 
+// ─── 4 bis. Rappel d'échéance (abonnement par tranches) ───────────────────────
+export function tplInstallmentReminder(
+  nom: string,
+  coursTitre: string,
+  mois: number,
+  totalMois: number,
+  montant: string,
+) {
+  return {
+    category: "purchases" as EmailCategory,
+    subject: `Échéance ${mois}/${totalMois} — ${coursTitre} 📅`,
+    html: layout({
+      title: "Votre prochaine échéance",
+      body: `Bonjour ${nom},<br/><br/>C'est le moment de régler la <strong>tranche ${mois} sur ${totalMois}</strong>
+             de votre abonnement à <strong>${coursTitre}</strong> (${montant}).<br/><br/>
+             Effectuez le virement, puis déposez votre reçu depuis vos commandes. Dès validation,
+             le palier de chapitres suivant s'ouvre automatiquement. ✨`,
+      cta: { label: "Régler mon échéance", href: `${SITE}/dashboard/commandes` },
+    }),
+  };
+}
+
 // ─── 5. Réponse du professeur ─────────────────────────────────────────────────
 export function tplTeacherReply(nom: string, question: string) {
   return {

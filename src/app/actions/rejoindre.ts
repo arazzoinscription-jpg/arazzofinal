@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { createMagicLink, createPasswordSetupLink } from "@/lib/magic-link";
+import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const PROOFS_BUCKET = "proofs";
@@ -18,6 +19,7 @@ const LeadSchema = z.object({
   wilaya: z.string().trim().optional().nullable(),
   courseId: z.string().uuid("Choisissez une formation."),
   level: z.string().trim().optional().nullable(),
+  plan: z.enum(["full", "installments"]).optional(),
 });
 
 /** Fiche détaillée d'une formation (pour l'aperçu in-page sur /offre). */
@@ -114,30 +116,39 @@ export async function sendPaymentInfo(email: string) {
 export async function submitLead(input: unknown) {
   const parsed = LeadSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
-  const { full_name, email, phone, wilaya, courseId } = parsed.data;
+  const { full_name, email, phone, wilaya, courseId, plan } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
 
   const admin = createAdminClient();
   const { data: course } = await admin
-    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription").eq("id", courseId).maybeSingle();
+    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription, subscription_enabled, duration_months").eq("id", courseId).maybeSingle();
   if (!course || !course.published || !course.visible_inscription) return { ok: false as const, error: "Formation indisponible." };
 
   const price = Number(course.prix_dzd) || 0;
 
+  // Mode abonnement : la formation est éligible et l'admin a fixé une durée ≥ 2 mois.
+  const months = Number((course as { duration_months?: number | null }).duration_months) || 0;
+  const subOn = (course as { subscription_enabled?: boolean }).subscription_enabled === true && months >= 2;
+  const isInstallment = subOn && plan === "installments";
+  // Montant dû à l'inscription : 1ʳᵉ tranche (abonnement) ; prix remisé (comptant sur formation abonnement) ; sinon prix plein.
+  const total = isInstallment ? monthlyAmount(price, months) : subOn ? fullDiscountedAmount(price, months) : price;
+
   // Commande « pending » (virement) — pas d'accès tant que l'admin n'a pas validé la preuve.
+  // `installment_month=1` marque la 1ʳᵉ échéance : `finalizeOrderConfirmation` créera l'abonnement.
   const { data: order, error: orderErr } = await admin
     .from("orders")
     .insert({
       status: "pending", full_name, email: cleanEmail, phone,
       wilaya: wilaya ?? null, country: "Algérie",
-      subtotal: price, discount: 0, total: price, payment_method: "transfer",
+      subtotal: total, discount: 0, total, payment_method: "transfer",
+      installment_month: isInstallment ? 1 : null,
     })
     .select("id, order_number")
     .single();
   if (orderErr || !order) return { ok: false as const, error: orderErr?.message ?? "Inscription impossible." };
 
   const { error: itemErr } = await admin.from("order_items").insert({
-    order_id: order.id, course_id: course.id, title: course.titre_fr, price, quantity: 1,
+    order_id: order.id, course_id: course.id, title: course.titre_fr, price: total, quantity: 1,
   });
   if (itemErr) {
     await admin.from("orders").delete().eq("id", order.id);

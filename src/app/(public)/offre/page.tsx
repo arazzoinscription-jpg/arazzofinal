@@ -16,7 +16,7 @@ export default async function OffrePage() {
 
   const { data: courses } = await admin
     .from("courses")
-    .select("id, titre_fr, slug, niveau, prix_dzd, thumbnail")
+    .select("id, titre_fr, slug, niveau, prix_dzd, thumbnail, subscription_enabled, duration_months")
     .eq("published", true)
     .eq("visible_inscription", true)
     .order("ordre", { ascending: true });
@@ -28,6 +28,8 @@ export default async function OffrePage() {
     prixDzd: Number(c.prix_dzd) || 0,
     thumbnail: c.thumbnail ?? null,
     slug: c.slug ?? "",
+    subscriptionEnabled: (c as { subscription_enabled?: boolean }).subscription_enabled === true,
+    durationMonths: (c as { duration_months?: number | null }).duration_months ?? null,
   }));
 
   let pay: PayInfo | null = null;

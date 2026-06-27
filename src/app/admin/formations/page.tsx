@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { PublishToggle } from "./publish-toggle";
 import { SaleToggle } from "./sale-toggle";
 import { VisibleToggle } from "./visible-toggle";
+import { SubscriptionToggle } from "./subscription-toggle";
 import { FormateurSelect } from "./formateur-select";
 export const metadata = { title: "Formations — Admin" };
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
   let query = admin
     .from("courses")
-    .select("id, titre_fr, prix_dzd, published, visible_inscription, formateur_id, formateur:users(nom)")
+    .select("id, titre_fr, prix_dzd, published, visible_inscription, subscription_enabled, duration_months, formateur_id, formateur:users(nom)")
     .order("created_at", { ascending: false });
   if (q) query = query.ilike("titre_fr", `%${q}%`);
   const { data: courses } = await query.limit(200);
@@ -29,6 +30,15 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
       .in("course_id", courseIds);
     for (const e of enrolls ?? []) {
       if (e.course_id) enrollCounts.set(e.course_id, (enrollCounts.get(e.course_id) ?? 0) + 1);
+    }
+  }
+
+  // Comptage des chapitres par cours (aperçu de la découpe en mode abonnement)
+  const chapterCounts = new Map<string, number>();
+  if (courseIds.length) {
+    const { data: chaps } = await admin.from("chapters").select("course_id").in("course_id", courseIds);
+    for (const ch of chaps ?? []) {
+      if (ch.course_id) chapterCounts.set(ch.course_id, (chapterCounts.get(ch.course_id) ?? 0) + 1);
     }
   }
 
@@ -66,12 +76,13 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
               <TableHead className="px-5 py-3 font-medium">Publiée</TableHead>
               <TableHead className="px-5 py-3 font-medium">Inscription</TableHead>
               <TableHead className="px-5 py-3 font-medium">En vente</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Abonnement</TableHead>
               <TableHead className="px-5 py-3 font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-gray-50">
             {!courses?.length ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-10 text-gray-400">Aucune formation.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-10 text-gray-400">Aucune formation.</TableCell></TableRow>
             ) : courses.map((c) => (
               <TableRow key={c.id} className="hover:bg-gray-50 font-dm">
                 <TableCell className="px-5 py-3">
@@ -85,6 +96,14 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                 <TableCell className="px-5 py-3"><PublishToggle courseId={c.id} published={c.published} /></TableCell>
                 <TableCell className="px-5 py-3"><VisibleToggle courseId={c.id} visible={c.visible_inscription ?? true} /></TableCell>
                 <TableCell className="px-5 py-3"><SaleToggle courseId={c.id} onSale={onSaleByCourse.get(c.id) ?? false} published={c.published} /></TableCell>
+                <TableCell className="px-5 py-3">
+                  <SubscriptionToggle
+                    courseId={c.id}
+                    enabled={(c as any).subscription_enabled ?? false}
+                    durationMonths={(c as any).duration_months ?? null}
+                    chaptersCount={chapterCounts.get(c.id) ?? 0}
+                  />
+                </TableCell>
                 <TableCell className="px-5 py-3">
                   <div className="flex items-center gap-3">
                     <Link href={`/formateur/cours/${c.id}/edit`} className="text-orange-600 font-semibold hover:underline">Modifier</Link>

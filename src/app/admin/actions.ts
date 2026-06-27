@@ -203,6 +203,38 @@ export async function toggleCourseVisibleInscription(courseId: string, visible: 
   return { ok: true };
 }
 
+const SubscriptionSchema = z.object({
+  courseId: z.string().uuid("Formation invalide."),
+  enabled: z.boolean(),
+  durationMonths: z.number().int().min(2).max(24).nullable(),
+});
+
+/**
+ * Active/désactive le « mode abonnement » d'une formation (paiement par tranches
+ * + ouverture progressive des chapitres). Réservé à l'admin. Si activé, une durée
+ * en mois (≥ 2) est requise : elle sert à découper les chapitres et calculer les
+ * tranches mensuelles.
+ */
+export async function setCourseSubscription(input: z.infer<typeof SubscriptionSchema>) {
+  const parsed = SubscriptionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const { courseId, enabled, durationMonths } = parsed.data;
+  if (enabled && (!durationMonths || durationMonths < 2)) {
+    return { ok: false, error: "Indiquez une durée d'au moins 2 mois." };
+  }
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { error } = await admin
+    .from("courses")
+    .update({ subscription_enabled: enabled, duration_months: enabled ? durationMonths : null })
+    .eq("id", courseId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/formations");
+  revalidatePath("/offre");
+  return { ok: true };
+}
+
 /**
  * Met une formation EN VENTE (crée/réactive le produit boutique lié) ou la retire.
  * RÉSERVÉ À L'ADMIN : le formateur publie le cours, l'admin accorde la mise en vente.

@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCourseAccess } from "@/lib/subscriptions";
 import { logActivity } from "@/lib/activity";
 import { LessonWatch } from "@/components/player/lesson-watch";
 import { LessonSidebar } from "./lesson-sidebar";
@@ -104,6 +106,58 @@ export default async function LessonPage({ params }: { params: { id: string } })
   const canViewAllPracticals = meProf?.role === "admin" || (meProf?.role === "formateur" && course?.formateur_id === user.id);
 
   const extrasAdmin = createAdminClient();
+
+  // Drip abonnement : accès aux chapitres selon les tranches payées (staff = accès total).
+  const access = await getCourseAccess(extrasAdmin, user.id, course?.id ?? "");
+  const currentChapterId = (lesson.chapter as any)?.id as string | undefined;
+  const lockedChapterIds = new Set<string>();
+  if (access.isSubscription && !isStaff) {
+    for (const ch of ((course?.chapters as any[]) ?? [])) {
+      if (access.isChapterLocked(ch.id)) lockedChapterIds.add(ch.id);
+    }
+  }
+  const lessonLocked =
+    access.isSubscription && !isStaff && !(lesson as any).is_preview &&
+    !!currentChapterId && access.isChapterLocked(currentChapterId);
+  const lockedUnlockMonth = currentChapterId ? (access.unlockMonthByChapter[currentChapterId] ?? 0) : 0;
+
+  // Chapitre pas encore ouvert → écran de déblocage (la sidebar reste navigable).
+  if (lessonLocked) {
+    return (
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex-1 min-w-0">
+          <div className="mb-4">
+            <p className="text-sm text-gray-400 mb-1">
+              {(lesson.chapter as any)?.course?.titre_fr} · {(lesson.chapter as any)?.titre}
+            </p>
+            <h1 className="font-playfair text-2xl font-bold text-gray-900">{lesson.titre}</h1>
+          </div>
+          <div className="rounded-2xl border border-violet-200 bg-violet-50 p-8 text-center">
+            <span className="inline-flex w-14 h-14 rounded-full bg-violet-100 text-violet-600 items-center justify-center mb-3">
+              <Lock size={26} />
+            </span>
+            <h2 className="font-playfair text-xl font-bold text-gray-900">Chapitre verrouillé</h2>
+            <p className="text-sm text-gray-600 font-dm mt-2 max-w-md mx-auto">
+              Ce chapitre s'ouvre au <strong>mois {lockedUnlockMonth}</strong> de votre abonnement
+              (tranches payées : {access.unlockedMonths}/{access.totalMonths}). Réglez votre prochaine
+              échéance pour débloquer la suite de la formation.
+            </p>
+            <Link href="/dashboard/commandes" className="inline-flex items-center gap-2 mt-5 bg-orange-DEFAULT text-white px-6 py-3 rounded-2xl font-semibold hover:bg-orange-600 transition-colors">
+              Régler mon échéance →
+            </Link>
+          </div>
+        </div>
+        <LessonSidebar
+          chapters={(course?.chapters as any[]) ?? []}
+          currentLessonId={lesson.id}
+          completedLessons={completedLessons}
+          lockedChapterIds={lockedChapterIds}
+          unlockMonthByChapter={access.unlockMonthByChapter}
+        />
+      </div>
+    );
+  }
+
   const { data: qRows } = await extrasAdmin
     .from("lesson_questions")
     .select("id, content, created_at, user_id, parent_id, author:users(nom, role)")
@@ -138,6 +192,17 @@ export default async function LessonPage({ params }: { params: { id: string } })
             {lesson.titre}
           </h1>
         </div>
+
+        {access.isSubscription && access.unlockedMonths < access.totalMonths && (
+          <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-sm text-violet-800 font-dm">
+              Abonnement : <strong>{access.unlockedMonths}/{access.totalMonths}</strong> mois débloqués.
+            </span>
+            <Link href="/dashboard/commandes" className="text-sm font-semibold text-orange-600 hover:underline whitespace-nowrap">
+              Régler l'échéance →
+            </Link>
+          </div>
+        )}
 
         <LessonWatch
           lessonId={lesson.id}
@@ -205,6 +270,8 @@ export default async function LessonPage({ params }: { params: { id: string } })
         chapters={(course?.chapters as any[]) ?? []}
         currentLessonId={lesson.id}
         completedLessons={completedLessons}
+        lockedChapterIds={lockedChapterIds}
+        unlockMonthByChapter={access.unlockMonthByChapter}
       />
     </div>
   );
