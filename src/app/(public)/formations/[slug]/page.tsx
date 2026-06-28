@@ -16,9 +16,23 @@ import { EnrollRequestButton } from "@/components/enrollment/enroll-request-butt
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Slug d'URL → slug stocké. En prod, les segments de route non-ASCII (slugs arabes
+ * des modules importés de TutorLMS) arrivent parfois ENCORE percent-encodés dans
+ * params.slug → le `.eq("slug", …)` ne correspond plus → 404. On décode donc
+ * défensivement (idempotent : un slug déjà décodé, sans %, reste inchangé).
+ */
+function decodeSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const supabase = createPublicClient();
-  const { data } = await supabase.from("courses").select("titre_fr, description_fr").eq("slug", params.slug).single();
+  const { data } = await supabase.from("courses").select("titre_fr, description_fr").eq("slug", decodeSlug(params.slug)).single();
   return {
     title: data ? `${data.titre_fr} — Arazzo Formation` : "Formation",
     description: data?.description_fr,
@@ -70,7 +84,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       formateur:users(nom, avatar_url, ville),
       chapters(*, lessons(id, titre, duree_minutes, ordre, is_preview)),
       reviews(note, commentaire, created_at, user:users(nom))`)
-    .eq("slug", params.slug)
+    .eq("slug", decodeSlug(params.slug))
     .eq("published", true)
     .single();
 
