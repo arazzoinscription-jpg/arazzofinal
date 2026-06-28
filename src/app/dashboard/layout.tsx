@@ -10,6 +10,8 @@ import { AnimatedBackground } from "@/components/ui/animated-bg";
 import { DashboardSubnav } from "./dashboard-subnav";
 import { SidebarInner } from "./sidebar-inner";
 import { MobileNav } from "./mobile-nav";
+import { DashboardBottomNav } from "./bottom-nav";
+import { OnboardingTour } from "./onboarding-tour";
 import { TopbarIcon } from "./topbar-icon";
 import { PageTransition } from "./page-transition";
 import { LangSwitcher } from "./lang-switcher";
@@ -112,9 +114,13 @@ export default async function DashboardLayout({
           </div>
           <DashboardSubnav lang={lang} />
         </div>
-        <div className="p-4 sm:p-6 lg:p-8"><PageTransition>{children}</PageTransition></div>
+        <div className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"><PageTransition>{children}</PageTransition></div>
         <Toaster />
       </main>
+
+      {/* Barre mobile en bas (5 entrées) + visite guidée au 1er accès (élèves) */}
+      <DashboardBottomNav lang={lang} />
+      {role === "eleve" && <OnboardingTour lang={lang} />}
     </div>
   );
 }
