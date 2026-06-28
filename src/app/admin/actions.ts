@@ -192,6 +192,32 @@ export async function togglePackPublish(packId: string, published: boolean) {
   return { ok: true };
 }
 
+/** Active/désactive le mode abonnement (paiement par tranches) d'un pack. Admin. */
+export async function setPackSubscription(input: { packId: string; enabled: boolean; durationMonths: number | null }) {
+  const Schema = z.object({
+    packId: z.string().uuid(),
+    enabled: z.boolean(),
+    durationMonths: z.number().int().min(2).max(24).nullable(),
+  });
+  const parsed = Schema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const { packId, enabled, durationMonths } = parsed.data;
+  if (enabled && (!durationMonths || durationMonths < 2)) {
+    return { ok: false, error: "Indiquez une durée d'au moins 2 mois." };
+  }
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  const { error } = await admin
+    .from("course_packs")
+    .update({ subscription_enabled: enabled, duration_months: enabled ? durationMonths : null })
+    .eq("id", packId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/formations");
+  revalidatePath("/admin/packs");
+  revalidatePath("/offre");
+  return { ok: true };
+}
+
 export async function toggleCoursePublish(courseId: string, published: boolean) {
   const { ok, admin } = await requireAdmin();
   if (!ok || !admin) return { ok: false, error: "Accès refusé." };

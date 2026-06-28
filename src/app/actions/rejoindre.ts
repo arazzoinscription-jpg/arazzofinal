@@ -17,10 +17,11 @@ const LeadSchema = z.object({
   email: z.string().email("Email invalide."),
   phone: z.string().trim().min(6, "Téléphone requis."),
   wilaya: z.string().trim().optional().nullable(),
-  courseId: z.string().uuid("Choisissez une formation."),
+  courseId: z.string().uuid().optional(),
+  packId: z.string().uuid().optional(),
   level: z.string().trim().optional().nullable(),
   plan: z.enum(["full", "installments"]).optional(),
-});
+}).refine((d) => !!d.courseId || !!d.packId, { message: "Choisissez une formation ou un pack." });
 
 /** Fiche détaillée d'une formation (pour l'aperçu in-page sur /offre). */
 export async function getCourseFiche(courseId: string) {
@@ -116,10 +117,56 @@ export async function sendPaymentInfo(email: string) {
 export async function submitLead(input: unknown) {
   const parsed = LeadSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
-  const { full_name, email, phone, wilaya, courseId, plan } = parsed.data;
+  const { full_name, email, phone, wilaya, courseId, packId, plan } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
-
   const admin = createAdminClient();
+
+  // ── Inscription à un PACK (abonnement ou achat complet) ──────────────────
+  if (packId) {
+    const { data: pack } = await admin
+      .from("course_packs")
+      .select("id, titre_fr, prix_dzd, published, subscription_enabled, duration_months")
+      .eq("id", packId).maybeSingle();
+    if (!pack || !pack.published) return { ok: false as const, error: "Pack indisponible." };
+
+    const price = Number(pack.prix_dzd) || 0;
+    const months = Number((pack as { duration_months?: number | null }).duration_months) || 0;
+    const subOn = (pack as { subscription_enabled?: boolean }).subscription_enabled === true && months >= 2;
+    const isInstallment = subOn && plan === "installments";
+    const total = isInstallment ? monthlyAmount(price, months) : subOn ? fullDiscountedAmount(price, months) : price;
+
+    const { data: packCourses } = await admin.from("course_pack_items").select("course_id").eq("pack_id", packId);
+    const courseIds = (packCourses ?? []).map((i) => i.course_id as string).filter(Boolean);
+    if (courseIds.length === 0) return { ok: false as const, error: "Ce pack ne contient aucun cours." };
+
+    const { data: order, error: orderErr } = await admin
+      .from("orders")
+      .insert({
+        status: "pending", full_name, email: cleanEmail, phone,
+        wilaya: wilaya ?? null, country: "Algérie",
+        subtotal: total, discount: 0, total, payment_method: "transfer",
+        pack_id: packId, installment_month: isInstallment ? 1 : null,
+      })
+      .select("id")
+      .single();
+    if (orderErr || !order) return { ok: false as const, error: orderErr?.message ?? "Inscription impossible." };
+
+    // Un order_item par cours du pack → enrollAfterPayment enrôle dans tous les cours.
+    // Le prix total est porté par le 1er item (les autres à 0) pour une facture cohérente.
+    const items = courseIds.map((cid, i) => ({
+      order_id: order.id, course_id: cid, title: pack.titre_fr ?? "Pack",
+      price: i === 0 ? total : 0, quantity: 1,
+    }));
+    const { error: itemErr } = await admin.from("order_items").insert(items);
+    if (itemErr) {
+      await admin.from("orders").delete().eq("id", order.id);
+      return { ok: false as const, error: "Inscription impossible." };
+    }
+    return { ok: true as const, orderId: order.id };
+  }
+
+  if (!courseId) return { ok: false as const, error: "Choisissez une formation." };
+
   const { data: course } = await admin
     .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription, subscription_enabled, duration_months").eq("id", courseId).maybeSingle();
   if (!course || !course.published || !course.visible_inscription) return { ok: false as const, error: "Formation indisponible." };

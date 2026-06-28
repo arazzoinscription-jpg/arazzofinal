@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateInvoice } from "./invoices";
 import { enrollAfterPayment } from "@/lib/enrollment";
 import { advanceSubscriptionForOrder } from "@/lib/subscriptions";
+import { advancePackSubscriptionForOrder } from "@/lib/pack-subscriptions";
 import { sendPaymentApproved, sendCourseAccess, sendPatronAccess } from "./emails";
 import { createChargilyCheckout } from "@/lib/chargily";
 
@@ -527,6 +528,25 @@ export async function finalizeOrderConfirmation(orderId: string) {
         subscriptionId: (order as { subscription_id?: string | null }).subscription_id ?? null,
       });
     } catch { /* l'échec d'avancement ne doit pas bloquer la validation */ }
+  }
+
+  // 3 ter) Abonnement PACK par tranches : lecture résiliente de pack_id/pack_subscription_id
+  // (colonnes migration 047) via une requête séparée → ne casse pas le flux si non appliquée.
+  if (targetUserId && (order as { installment_month?: number | null }).installment_month != null) {
+    try {
+      const { data: po } = await admin.from("orders").select("pack_id, pack_subscription_id").eq("id", order.id).maybeSingle();
+      const packId = (po as { pack_id?: string | null } | null)?.pack_id ?? null;
+      if (packId) {
+        await advancePackSubscriptionForOrder(admin, {
+          orderId: order.id,
+          userId: targetUserId,
+          packId,
+          orderTotal: Number(order.total) || 0,
+          installmentMonth: (order as { installment_month?: number | null }).installment_month ?? null,
+          packSubscriptionId: (po as { pack_subscription_id?: string | null } | null)?.pack_subscription_id ?? null,
+        });
+      }
+    } catch { /* migration 047 non appliquée ou erreur → ignore */ }
   }
 
   // 4) Facture PDF (best-effort)

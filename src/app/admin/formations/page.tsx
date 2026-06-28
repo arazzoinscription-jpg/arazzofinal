@@ -9,6 +9,7 @@ import { SubscriptionToggle } from "./subscription-toggle";
 import { FormateurSelect } from "./formateur-select";
 import { PackSellButton, type PackSellState } from "@/app/formateur/packs/pack-sell-button";
 import { PackPublishToggle } from "@/app/admin/packs/pack-publish-toggle";
+import { PackSubscriptionToggle } from "./pack-subscription-toggle";
 export const metadata = { title: "Formations — Admin" };
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,34 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
     if (ref) saleByPack.set(ref.slice(5), { id: p.id, price: Number(p.price), active: !!p.is_active });
   }
   const packsOnSale = (packs ?? []).filter((p) => saleByPack.get(p.id)?.active).length;
+
+  // Abonnement pack (colonnes migration 047) — lecture résiliente (vide si non appliquée)
+  const packSubMeta = new Map<string, { enabled: boolean; months: number | null }>();
+  const packIds = (packs ?? []).map((p) => p.id);
+  if (packIds.length) {
+    const { data: ps } = await admin.from("course_packs").select("id, subscription_enabled, duration_months").in("id", packIds);
+    for (const r of ps ?? []) {
+      packSubMeta.set(r.id, {
+        enabled: (r as { subscription_enabled?: boolean }).subscription_enabled === true,
+        months: (r as { duration_months?: number | null }).duration_months ?? null,
+      });
+    }
+  }
+  // Nb de chapitres par pack (somme des chapitres de tous les cours inclus)
+  const packChapters = new Map<string, number>();
+  {
+    const allPackCourseIds = [...new Set((packs ?? []).flatMap((p) => ((p.items as { course_id: string }[]) ?? []).map((it) => it.course_id).filter(Boolean)))];
+    const chapByCourse = new Map<string, number>();
+    if (allPackCourseIds.length) {
+      const { data: chs } = await admin.from("chapters").select("course_id").in("course_id", allPackCourseIds);
+      for (const c of chs ?? []) if (c.course_id) chapByCourse.set(c.course_id, (chapByCourse.get(c.course_id) ?? 0) + 1);
+    }
+    for (const p of packs ?? []) {
+      let n = 0;
+      for (const it of (p.items as { course_id: string }[]) ?? []) n += chapByCourse.get(it.course_id) ?? 0;
+      packChapters.set(p.id, n);
+    }
+  }
 
   return (
     <div className="px-4 lg:px-8 py-6">
@@ -155,12 +184,13 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
               <TableHead className="px-5 py-3 font-medium">Cours inclus</TableHead>
               <TableHead className="px-5 py-3 font-medium">Publié</TableHead>
               <TableHead className="px-5 py-3 font-medium">En vente</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Abonnement</TableHead>
               <TableHead className="px-5 py-3 font-medium">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-gray-50">
             {!packs?.length ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-10 text-gray-400">Aucun pack. Créez-en un dans l'espace formateur.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-10 text-gray-400">Aucun pack. Créez-en un dans l'espace formateur.</TableCell></TableRow>
             ) : packs.map((p) => {
               const prod = saleByPack.get(p.id);
               const sale: PackSellState = {
@@ -179,6 +209,14 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                   <TableCell className="px-5 py-3 text-gray-600">{((p.items as any[]) ?? []).length} cours</TableCell>
                   <TableCell className="px-5 py-3"><PackPublishToggle packId={p.id} published={!!p.published} /></TableCell>
                   <TableCell className="px-5 py-3"><PackSellButton packId={p.id} sale={sale} /></TableCell>
+                  <TableCell className="px-5 py-3">
+                    <PackSubscriptionToggle
+                      packId={p.id}
+                      enabled={packSubMeta.get(p.id)?.enabled ?? false}
+                      durationMonths={packSubMeta.get(p.id)?.months ?? null}
+                      chaptersCount={packChapters.get(p.id) ?? 0}
+                    />
+                  </TableCell>
                   <TableCell className="px-5 py-3">
                     <Link href={`/formateur/packs/${p.id}/edit`} className="text-orange-600 font-semibold hover:underline">Modifier</Link>
                   </TableCell>

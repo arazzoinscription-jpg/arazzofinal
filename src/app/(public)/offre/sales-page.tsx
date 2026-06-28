@@ -23,7 +23,7 @@ import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 
 /* ── Types partagés ────────────────────────────────────────────────────── */
 export type Level = "debutant" | "intermediaire" | "avance";
-export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; }
+export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; isPack?: boolean; }
 export interface PayInfo { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string; }
 
 const LEVELS: Level[] = ["debutant", "intermediaire", "avance"];
@@ -973,14 +973,18 @@ function Inscription({
     e.preventDefault();
     setFormErr("");
     if (!courseId) { setFormErr(t.coursePlaceholder); return; }
+    const isPack = selectedCourse?.isPack === true;
     startSubmit(async () => {
-      if (payMethod === "delivery") {
+      // Les packs ne se vendent pas en livraison (COD) → toujours virement + preuve.
+      if (payMethod === "delivery" && !isPack) {
         const res = await submitDeliveryOrder({ full_name: form.full_name, email: form.email, phone: form.phone, wilaya: form.wilaya, address: form.address, courseId });
         if (res.ok) setDeliveryDone(true);
         else setFormErr(res.error ?? t.genericError);
         return;
       }
-      const res = await submitLead({ ...form, courseId, level: recommended, plan: subOn ? plan : "full" });
+      const res = isPack
+        ? await submitLead({ full_name: form.full_name, email: form.email, phone: form.phone, wilaya: form.wilaya, packId: courseId, plan: subOn ? plan : "full" })
+        : await submitLead({ ...form, courseId, level: recommended, plan: subOn ? plan : "full" });
       if (res.ok) { setPhase("done"); setProofEmail((p) => p || form.email); }
       else setFormErr(res.error ?? t.genericError);
     });
@@ -1092,6 +1096,33 @@ function Inscription({
                 })}
               </div>
             </div>
+
+            {/* Packs de formation proposés en abonnement (sélection séparée) */}
+            {courses.some((c) => c.isPack) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-600 dark:text-white/70 mb-2">
+                  📦 {lang === "ar" ? "حزم التكوين" : lang === "en" ? "Course packs" : "Packs de formation"}
+                </label>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {courses.filter((c) => c.isPack).map((c) => {
+                    const selected = courseId === c.id;
+                    return (
+                      <div key={c.id} role="button" tabIndex={0} onClick={() => setCourseId(c.id)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setCourseId(c.id); } }}
+                        className={`cursor-pointer rounded-2xl border-2 p-4 transition-all flex flex-col ${selected ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[11px] font-mono uppercase tracking-wide text-violet-600">📦 Pack</span>
+                          {selected && <CheckCircle2 size={16} className="text-orange-DEFAULT shrink-0" />}
+                        </div>
+                        <p className="font-semibold text-sm text-gray-900 dark:text-white leading-snug line-clamp-2">{c.titre}</p>
+                        <p className="font-bold text-orange-600 mt-2 text-sm">{c.prixDzd > 0 ? fmt(c.prixDzd) : ""}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Méthode d'inscription — uniquement si la formation est en mode abonnement */}
             {subOn && (
               <div>

@@ -33,6 +33,28 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
     durationMonths: (c as { duration_months?: number | null }).duration_months ?? null,
   }));
 
+  // Packs proposés en abonnement (publiés + mode abonnement). Lecture résiliente :
+  // si la migration 047 n'est pas appliquée, la requête échoue → aucun pack ajouté.
+  const { data: subPacks } = await admin
+    .from("course_packs")
+    .select("id, titre_fr, slug, prix_dzd, thumbnail, duration_months")
+    .eq("published", true)
+    .eq("subscription_enabled", true)
+    .order("created_at", { ascending: false });
+  for (const p of subPacks ?? []) {
+    options.push({
+      id: p.id,
+      titre: p.titre_fr ?? "Pack",
+      niveau: "pack",
+      prixDzd: Number(p.prix_dzd) || 0,
+      thumbnail: p.thumbnail ?? null,
+      slug: p.slug ?? "",
+      subscriptionEnabled: true,
+      durationMonths: (p as { duration_months?: number | null }).duration_months ?? null,
+      isPack: true,
+    });
+  }
+
   let pay: PayInfo | null = null;
   try {
     const { data } = await admin

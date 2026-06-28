@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { unlockMonthForIndex, monthlyAmount } from "@/lib/subscription-plan";
 import { sendEmail } from "@/lib/email";
 import { tplInstallmentReminder } from "@/lib/email-templates";
+import { getPackAccessForCourse } from "@/lib/pack-subscriptions";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -50,7 +51,9 @@ export async function getCourseAccess(admin: Admin, userId: string, courseId: st
 
   const enabled = (course as { subscription_enabled?: boolean } | null)?.subscription_enabled === true;
   const months = (course as { duration_months?: number } | null)?.duration_months ?? 0;
-  if (!enabled || months <= 1) return ALL_ACCESS;
+  // Le cours n'est pas en abonnement « solo » : il peut quand même appartenir à un
+  // pack acheté par tranches → on applique le drip du pack le cas échéant.
+  if (!enabled || months <= 1) return (await getPackAccessForCourse(admin, userId, courseId)) ?? ALL_ACCESS;
 
   const { data: sub } = await admin
     .from("course_subscriptions")
@@ -59,8 +62,8 @@ export async function getCourseAccess(admin: Admin, userId: string, courseId: st
     .eq("course_id", courseId)
     .maybeSingle();
 
-  // Pas d'abonnement = paiement comptant → accès complet.
-  if (!sub) return ALL_ACCESS;
+  // Pas d'abonnement cours = paiement comptant du cours… mais peut-être un abonnement pack.
+  if (!sub) return (await getPackAccessForCourse(admin, userId, courseId)) ?? ALL_ACCESS;
 
   const totalMonths = (sub.total_months as number) || months;
   const unlockedMonths = sub.status === "completed" ? totalMonths : (sub.installments_paid as number) || 0;
