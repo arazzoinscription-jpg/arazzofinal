@@ -3,11 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Percent, Loader2 } from "lucide-react";
-import { setCommissionRate } from "../actions";
+import { setCommissionRate, setFormateurCommissionRate } from "../actions";
 import { toast } from "@/components/ui/toast";
 
-/** Réglage du taux de commission global de la plateforme (admin). */
-export function CommissionForm({ rate }: { rate: number }) {
+/** Réglage d'un taux de commission de la plateforme (patron ou formateur). */
+export function CommissionForm({ rate, scope = "patron", hint }: { rate: number; scope?: "patron" | "formateur"; hint?: string }) {
   const router = useRouter();
   const [value, setValue] = useState(String(rate));
   const [pending, start] = useTransition();
@@ -16,11 +16,15 @@ export function CommissionForm({ rate }: { rate: number }) {
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0 || n > 100) { toast("Taux invalide (0–100)", "error"); return; }
     start(async () => {
-      const r = await setCommissionRate(n);
+      const r = scope === "formateur" ? await setFormateurCommissionRate(n) : await setCommissionRate(n);
       if (r.ok) { toast("Taux de commission mis à jour ✅", "success"); router.refresh(); }
       else toast(r.error ?? "Erreur", "error");
     });
   }
+
+  const defaultHint = scope === "formateur"
+    ? "Appliqué aux ventes de formations. Le formateur gagne le montant payé × (1 − taux)."
+    : "Appliqué à toutes les ventes (patrons + sur-mesure). Le patronniste gagne prix × (1 − taux).";
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-wrap items-center gap-3">
@@ -36,7 +40,7 @@ export function CommissionForm({ rate }: { rate: number }) {
         className="inline-flex items-center gap-1.5 bg-violet-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-violet-800 disabled:opacity-50">
         {pending ? <Loader2 size={14} className="animate-spin" /> : null} Enregistrer
       </button>
-      <span className="text-xs text-gray-400">Appliqué à toutes les ventes (patrons + sur-mesure). Le patronniste gagne prix × (1 − taux).</span>
+      <span className="text-xs text-gray-400">{hint ?? defaultHint}</span>
     </div>
   );
 }

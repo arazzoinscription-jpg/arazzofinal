@@ -65,6 +65,7 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     label: { fr: "Revenus", ar: "الإيرادات", en: "Revenue" },
     items: [
       { href: "/formateur/stats", icon: Wallet, label: { fr: "Revenus & stats", ar: "الإيرادات والإحصائيات", en: "Revenue & stats" } },
+      { href: "/formateur/gains", icon: Wallet, label: { fr: "Mes gains (commission)", ar: "أرباحي (العمولة)", en: "My earnings (commission)" } },
       { href: "/formateur/analytics", icon: BarChart3, label: { fr: "Statistiques avancées", ar: "إحصائيات متقدمة", en: "Advanced analytics" } },
     ],
   },
