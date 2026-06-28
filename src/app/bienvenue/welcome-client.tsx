@@ -61,12 +61,13 @@ export function WelcomeClient({ lang = "fr" }: { lang?: Lang }) {
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-[100dvh] w-full overflow-hidden bg-[#160a30] text-white flex flex-col">
       {/* Vidéo de fond */}
       <video
-        className="absolute inset-0 w-full h-full object-cover opacity-40"
+        className="absolute inset-0 w-full h-full object-cover opacity-45"
         autoPlay muted loop playsInline preload="metadata"
-        poster="/videos/offre-couture.jpg"
+        poster="/videos/bienvenue-montage.jpg"
       >
+        {/* Montage des captures réelles : feed vidéo puis espace élève */}
+        <source src="/videos/bienvenue-montage.mp4" type="video/mp4" />
         <source src="/videos/hero-couture-mobile.mp4" type="video/mp4" />
-        <source src="/videos/hero-couture.mp4" type="video/mp4" />
       </video>
       {/* Dégradé d'assombrissement */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#160a30]/70 via-[#160a30]/55 to-[#160a30]/95" />
