@@ -478,3 +478,17 @@ export async function dismissEnrollmentRequest(requestId: string) {
   revalidatePath("/admin/demandes-enrolement");
   return { ok: true };
 }
+
+/** Fixe le taux de commission global de la plateforme (en %, 0–100). Réservé à l'admin. */
+export async function setCommissionRate(rate: number) {
+  const r = Number(rate);
+  if (!Number.isFinite(r) || r < 0 || r > 100) return { ok: false, error: "Taux invalide (0–100)." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  const { error } = await admin
+    .from("platform_config")
+    .upsert({ id: 1, commission_rate: Math.round(r * 100) / 100, updated_at: new Date().toISOString() }, { onConflict: "id" });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/patronnistes");
+  return { ok: true };
+}

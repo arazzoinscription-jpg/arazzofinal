@@ -1,5 +1,7 @@
 import { Scissors, MapPin } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCommissionRate, netForPrice } from "@/lib/commissions";
+import { CommissionForm } from "./commission-form";
 
 export const metadata = { title: "Patronnistes — Admin" };
 export const dynamic = "force-dynamic";
@@ -32,12 +34,32 @@ export default async function AdminPatronnistesPage({ searchParams }: { searchPa
     if (id) nbOrders.set(id, (nbOrders.get(id) ?? 0) + 1);
   }
 
+  // ── Gains nets par patronniste (taux courant) : patrons vendus + sur-mesure terminés ──
+  const rate = await getCommissionRate(admin);
+  const netByPatronniste = new Map<string, number>();
+  const { data: patronsPrice } = await admin.from("patrons").select("id, formateur_id, prix_dzd");
+  const priceByPatron = new Map<string, { owner: string | null; prix: number }>();
+  for (const p of patronsPrice ?? []) priceByPatron.set(p.id, { owner: (p as any).formateur_id ?? null, prix: Number((p as any).prix_dzd) || 0 });
+  const { data: allPurchases } = await admin.from("patron_purchases").select("patron_id");
+  for (const pu of allPurchases ?? []) {
+    const info = pu.patron_id ? priceByPatron.get(pu.patron_id) : null;
+    if (info?.owner) netByPatronniste.set(info.owner, (netByPatronniste.get(info.owner) ?? 0) + netForPrice(info.prix, rate));
+  }
+  const { data: doneOrders } = await admin
+    .from("patron_custom_orders").select("patronniste_id, proposed_price_dzd").eq("statut", "completed");
+  for (const o of doneOrders ?? []) {
+    const id = (o as any).patronniste_id as string | null;
+    if (id) netByPatronniste.set(id, (netByPatronniste.get(id) ?? 0) + netForPrice(Number((o as any).proposed_price_dzd) || 0, rate));
+  }
+
   return (
     <div className="px-4 lg:px-8 py-6">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-1 flex items-center gap-2">
         <Scissors size={28} className="text-orange-600" /> Patronnistes
       </h1>
-      <p className="text-gray-500 mb-6 font-dm">{patronnistes?.length ?? 0} patronniste(s).</p>
+      <p className="text-gray-500 mb-6 font-dm">{patronnistes?.length ?? 0} patronniste(s) · commission plateforme {rate}%.</p>
+
+      <CommissionForm rate={rate} />
 
       <form className="flex gap-3 mb-6">
         <input name="q" defaultValue={q} placeholder="Rechercher un patronniste…"
@@ -68,6 +90,10 @@ export default async function AdminPatronnistesPage({ searchParams }: { searchPa
               <div className="flex gap-4 text-sm">
                 <span className="text-gray-600"><strong className="text-violet-700">{nbPatrons.get(p.id) ?? 0}</strong> patrons</span>
                 <span className="text-gray-600"><strong className="text-orange-600">{nbOrders.get(p.id) ?? 0}</strong> sur-mesure</span>
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-50">
+                <span className="text-xs text-gray-400">Gains nets</span>
+                <p className="font-bold text-green-600">{(netByPatronniste.get(p.id) ?? 0).toLocaleString("fr-DZ")} DA</p>
               </div>
             </div>
           ))}

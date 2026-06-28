@@ -163,6 +163,7 @@ export const PATRONNISTE_SECTIONS: ProSection[] = [
     items: [
       { href: "/patronniste/commandes", icon: ShoppingBag, label: { fr: "Achats clients", ar: "مشتريات العملاء", en: "Client purchases" } },
       { href: "/patronniste/sur-mesure", icon: Ruler, label: { fr: "Sur mesure", ar: "حسب المقاس", en: "Made-to-measure" } },
+      { href: "/patronniste/gains", icon: Wallet, label: { fr: "Mes gains", ar: "أرباحي", en: "My earnings" } },
     ],
   },
 ];
