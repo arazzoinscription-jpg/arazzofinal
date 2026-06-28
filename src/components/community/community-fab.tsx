@@ -43,7 +43,7 @@ export function CommunityFab({ role }: { role: Role }) {
               <span className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center"><Clapperboard size={17} /></span>
             </Link>
           )}
-          <Link href="/dashboard/actualites" onClick={() => setOpen(false)}
+          <Link href="/communaute/actualites" onClick={() => setOpen(false)}
             className="group inline-flex items-center gap-2.5 bg-white dark:bg-[#1a1330] text-violet-950 dark:text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg ring-1 ring-violet-950/10 dark:ring-white/10 hover:bg-cream-50 transition-colors">
             <span className="text-sm font-semibold">Publier une actualité</span>
             <span className="w-9 h-9 rounded-full bg-orange-DEFAULT text-white flex items-center justify-center"><Newspaper size={17} /></span>

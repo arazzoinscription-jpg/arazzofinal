@@ -58,7 +58,7 @@ export default async function CommunauteGroupesPage() {
           </div>
         )}
       </div>
-      <CommunityFab role={role} />
+      {role !== "eleve" && <CommunityFab role={role} />}
       <MobileQuickNav />
     </div>
   );

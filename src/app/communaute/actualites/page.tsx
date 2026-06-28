@@ -21,7 +21,7 @@ export default async function CommunauteActualitesPage() {
         <p className="text-white/50 font-dm text-sm mb-5">Le fil partagé de la communauté Arazzo.</p>
         <Feed posts={posts} me={me} />
       </div>
-      <CommunityFab role={me.role} />
+      {me.role !== "eleve" && <CommunityFab role={me.role} />}
       <MobileQuickNav />
     </div>
   );
