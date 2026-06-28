@@ -1,17 +1,23 @@
-import { Ruler, AlertTriangle, BadgeCheck, Clock } from "lucide-react";
+import { Ruler, AlertTriangle, BadgeCheck, Clock, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { StatusSelect } from "./status-select";
 import { ClaimButton } from "./claim-button";
+import { DeliverUploader } from "./deliver-uploader";
 
 export const metadata = { title: "Commandes sur mesure — Patronniste" };
 export const dynamic = "force-dynamic";
 
 const STATUT_BADGE: Record<string, string> = {
-  en_attente: "bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
+  awaiting_patronniste: "bg-orange-50 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300",
   en_cours: "bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
-  termine: "bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-300",
+  delivered: "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  payment_review: "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+  completed: "bg-green-50 text-green-700 dark:bg-green-500/15 dark:text-green-300",
   annule: "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-white/50",
+};
+const STATUT_LABEL: Record<string, string> = {
+  awaiting_patronniste: "disponible", en_cours: "en cours", delivered: "livré",
+  payment_review: "paiement en validation", completed: "terminé", annule: "annulé",
 };
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -22,12 +28,12 @@ export default async function SurMesurePage() {
   const admin = createAdminClient();
   const { data: orders } = await admin
     .from("patron_custom_orders")
-    .select("id, titre, tissu, taille, mesures, note, statut, created_at, photo_url, video_url, patronniste_id, claimed_at, client:users!patron_custom_orders_client_id_fkey(nom, email), responsable:users!patron_custom_orders_patronniste_id_fkey(nom)")
+    .select("id, titre, tissu, taille, mesures, note, statut, proposed_price_dzd, created_at, photo_url, video_url, patronniste_id, claimed_at, client:users!patron_custom_orders_client_id_fkey(nom, email), responsable:users!patron_custom_orders_patronniste_id_fkey(nom)")
     .order("created_at", { ascending: false })
     .limit(200);
 
   const list = orders ?? [];
-  const alerts = list.filter((o) => !o.patronniste_id && o.statut === "en_attente");
+  const alerts = list.filter((o) => !o.patronniste_id && o.statut === "awaiting_patronniste");
   const mine = list.filter((o) => o.patronniste_id === user?.id);
   const others = list.filter((o) => o.patronniste_id && o.patronniste_id !== user?.id);
 
@@ -35,8 +41,25 @@ export default async function SurMesurePage() {
     <div className="text-gray-900 dark:text-white">
       <h1 className="font-playfair text-3xl font-bold mb-1">Commandes sur mesure</h1>
       <p className="text-gray-500 dark:text-white/50 mb-6">
-        {alerts.length} en attente · {mine.length} à vous · {others.length} prises par d'autres.
+        {alerts.length} disponible(s) · {mine.length} à vous · {others.length} prises par d'autres.
       </p>
+
+      {/* Bannière d'alerte : nouvelles commandes disponibles à prendre */}
+      {alerts.length > 0 && (
+        <div className="mb-6 rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-500/10 dark:to-amber-500/10 px-5 py-4 flex items-center gap-3">
+          <span className="shrink-0 w-11 h-11 rounded-full bg-orange-DEFAULT text-white grid place-items-center animate-pulse">
+            <Bell size={20} />
+          </span>
+          <div>
+            <p className="font-bold text-orange-800 dark:text-orange-200">
+              {alerts.length} commande(s) sur mesure disponible(s) !
+            </p>
+            <p className="text-sm text-orange-700/80 dark:text-orange-300/70">
+              Première patronniste à accepter la prend. Voir « Alertes commandes » ci-dessous.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Alertes : commandes à prendre ─────────────────────────── */}
       <section className="mb-10">
@@ -97,9 +120,13 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
           <p className="text-xs text-gray-400">{client?.nom ?? "—"} · {client?.email}</p>
         </div>
         <span className={`text-[11px] font-semibold px-2 py-1 rounded-full whitespace-nowrap ${STATUT_BADGE[o.statut] ?? ""}`}>
-          {o.statut.replace("_", " ")}
+          {STATUT_LABEL[o.statut] ?? o.statut}
         </span>
       </div>
+
+      {o.proposed_price_dzd != null && (
+        <p className="text-sm font-bold text-orange-600 mb-2">{Number(o.proposed_price_dzd).toLocaleString("fr-DZ")} DA</p>
+      )}
 
       {urgent && variant === "alert" && (
         <div className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700">
@@ -146,7 +173,17 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
         {variant === "alert" ? (
           <div className="flex-1 max-w-[12rem]"><ClaimButton id={o.id} /></div>
         ) : variant === "mine" ? (
-          <StatusSelect id={o.id} current={o.statut} />
+          o.statut === "en_cours" ? (
+            <div className="flex-1 max-w-[16rem]"><DeliverUploader orderId={o.id} /></div>
+          ) : o.statut === "delivered" ? (
+            <span className="text-xs font-medium text-amber-600">Livré · en attente du paiement client</span>
+          ) : o.statut === "payment_review" ? (
+            <span className="text-xs font-medium text-blue-600">Paiement en validation</span>
+          ) : o.statut === "completed" ? (
+            <span className="text-xs font-medium text-green-600">Terminé ✅</span>
+          ) : (
+            <span className="text-xs text-gray-400">{STATUT_LABEL[o.statut] ?? o.statut}</span>
+          )
         ) : (
           <span className="text-xs font-medium text-violet-600 dark:text-violet-300">Prise par {responsable?.nom ?? "une patronniste"}</span>
         )}

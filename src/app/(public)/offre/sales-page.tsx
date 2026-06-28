@@ -10,6 +10,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, UploadCloud, Trophy, Wallet, IdCard,
   Instagram, BadgeCheck, LayoutDashboard, MonitorPlay, Smartphone, GraduationCap,
   X, Check, PlayCircle, Lock, FileText, Award, Infinity as InfinityIcon, ShieldCheck, BarChart3, MapPin,
+  CreditCard, CalendarClock,
   type LucideIcon,
 } from "lucide-react";
 import { LangSwitcherPublic } from "@/components/layout/lang-switcher-public";
@@ -132,6 +133,8 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
       <Gallery lang={lang} />
       <Platform lang={lang} />
       <TikTokCouture lang={lang} />
+      <PaymentMethodsSection lang={lang} />
+      <DiplomaSection lang={lang} />
       <Quiz lang={lang} courses={courses} onEnroll={(lvl) => enroll(lvl)} />
       {courses.length > 0 && (
         <Inscription
@@ -1492,6 +1495,121 @@ function FinalCta({ lang }: { lang: Lang }) {
               <Link href="/formations" className="inline-flex items-center justify-center gap-2 border-2 border-white/25 text-white px-8 py-4 rounded-2xl font-semibold text-lg hover:bg-white/10 transition-colors">
                 {t.secondary}
               </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/* ── Méthodes de paiement (direct vs abonnement) ───────────────────────── */
+const PAYMETHODS_T = {
+  fr: {
+    eyebrow: "Paiement", title: "Deux façons de t'inscrire", sub: "Choisis la formule qui te convient — l'accès est le même.",
+    directTitle: "Paiement direct", directDesc: "Tu règles la formation en une fois et tu accèdes immédiatement à 100 % du contenu.",
+    directPoints: ["Accès complet tout de suite", "1 mois offert sur certaines formations", "Simple et rapide"],
+    subTitle: "Paiement par abonnement", subDesc: "Tu étales le coût sur plusieurs mois ; le contenu s'ouvre au fur et à mesure de tes paiements.",
+    subPoints: ["Tu paies chaque mois", "Les chapitres s'ouvrent progressivement", "Rappel par email à chaque échéance"],
+  },
+  ar: {
+    eyebrow: "الدفع", title: "طريقتان للتسجيل", sub: "اختاري الصيغة التي تناسبك — الوصول نفسه.",
+    directTitle: "الدفع المباشر", directDesc: "تدفعين ثمن التكوين دفعة واحدة وتحصلين فوراً على 100% من المحتوى.",
+    directPoints: ["وصول كامل فوراً", "شهر مجاني على بعض التكوينات", "بسيط وسريع"],
+    subTitle: "الدفع بالتقسيط", subDesc: "توزّعين التكلفة على عدة أشهر ؛ يُفتح المحتوى تدريجياً مع دفعاتك.",
+    subPoints: ["تدفعين كل شهر", "تُفتح الفصول تدريجياً", "تذكير بالبريد عند كل دفعة"],
+  },
+  en: {
+    eyebrow: "Payment", title: "Two ways to enroll", sub: "Pick the plan that suits you — same access.",
+    directTitle: "Direct payment", directDesc: "Pay the course in one go and unlock 100% of the content right away.",
+    directPoints: ["Full access immediately", "1 month free on some courses", "Simple and fast"],
+    subTitle: "Subscription payment", subDesc: "Spread the cost over several months; content unlocks as you pay.",
+    subPoints: ["Pay every month", "Chapters open progressively", "Email reminder each due date"],
+  },
+} as const;
+
+function PaymentMethodsSection({ lang }: { lang: Lang }) {
+  const t = PAYMETHODS_T[lang];
+  const cards = [
+    { icon: CreditCard, title: t.directTitle, desc: t.directDesc, points: t.directPoints, accent: "text-orange-600" },
+    { icon: CalendarClock, title: t.subTitle, desc: t.subDesc, points: t.subPoints, accent: "text-violet-600 dark:text-violet-300" },
+  ];
+  return (
+    <Section className="py-16 sm:py-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10">
+          <p className="font-dm text-[11px] tracking-[0.25em] uppercase text-orange-600">{t.eyebrow}</p>
+          <h2 className="font-playfair text-3xl sm:text-4xl font-bold mt-1">{t.title}</h2>
+          <p className="text-gray-500 dark:text-white/50 font-dm mt-2">{t.sub}</p>
+        </div>
+        <div className="grid md:grid-cols-2 gap-5">
+          {cards.map((c) => (
+            <div key={c.title} className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-6 shadow-soft">
+              <c.icon size={28} className={c.accent} />
+              <h3 className="font-playfair text-xl font-bold mt-3">{c.title}</h3>
+              <p className="text-sm text-gray-500 dark:text-white/55 font-dm mt-1.5">{c.desc}</p>
+              <ul className="mt-4 space-y-2">
+                {c.points.map((p) => (
+                  <li key={p} className="flex items-start gap-2 text-sm text-gray-700 dark:text-white/75 font-dm">
+                    <CheckCircle2 size={16} className="text-green-500 shrink-0 mt-0.5" /> {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+/* ── Diplôme de fin de formation ───────────────────────────────────────── */
+const DIPLOMA_T = {
+  fr: {
+    eyebrow: "Reconnaissance", title: "Ton diplôme à la fin de la formation", sub: "Termine tes travaux pratiques et reçois un diplôme officiel Arazzo — livré chez toi.",
+    points: ["Diplôme nominatif signé", "Basé sur tes travaux pratiques validés", "Version PDF + exemplaire physique livré"],
+    badge: "Diplôme de couture", holder: "Décerné à",
+  },
+  ar: {
+    eyebrow: "اعتراف", title: "شهادتك في نهاية التكوين", sub: "أكملي أعمالك التطبيقية واحصلي على شهادة أرازو رسمية — تُسلَّم إلى منزلك.",
+    points: ["شهادة باسمك وموقّعة", "مبنية على أعمالك التطبيقية المعتمدة", "نسخة PDF + نسخة ورقية تُسلَّم"],
+    badge: "شهادة في الخياطة", holder: "تُمنح إلى",
+  },
+  en: {
+    eyebrow: "Recognition", title: "Your diploma at the end of the course", sub: "Complete your practical work and receive an official Arazzo diploma — delivered to your home.",
+    points: ["Named, signed diploma", "Based on your approved practical work", "PDF version + physical copy delivered"],
+    badge: "Sewing diploma", holder: "Awarded to",
+  },
+} as const;
+
+function DiplomaSection({ lang }: { lang: Lang }) {
+  const t = DIPLOMA_T[lang];
+  return (
+    <Section className="py-16 sm:py-20 bg-gradient-to-b from-transparent to-cream-100/50 dark:to-white/[0.02]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-10 items-center">
+        <div>
+          <p className="font-dm text-[11px] tracking-[0.25em] uppercase text-orange-600">{t.eyebrow}</p>
+          <h2 className="font-playfair text-3xl sm:text-4xl font-bold mt-1">{t.title}</h2>
+          <p className="text-gray-500 dark:text-white/55 font-dm mt-3">{t.sub}</p>
+          <ul className="mt-5 space-y-2.5">
+            {t.points.map((p) => (
+              <li key={p} className="flex items-start gap-2.5 text-sm text-gray-700 dark:text-white/75 font-dm">
+                <BadgeCheck size={18} className="text-violet-600 dark:text-violet-300 shrink-0 mt-0.5" /> {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+        {/* Maquette de diplôme */}
+        <div className="relative">
+          <div className="rounded-2xl border-4 border-double border-orange-300/70 bg-white dark:bg-[#1b1430] p-8 text-center shadow-glow">
+            <Award size={40} className="mx-auto text-orange-500" />
+            <p className="font-dm text-[10px] tracking-[0.3em] uppercase text-gray-400 mt-3">{t.badge}</p>
+            <p className="font-playfair text-2xl font-bold mt-1 text-violet-950 dark:text-white">Arazzo Formation</p>
+            <div className="my-4 h-px bg-gradient-to-r from-transparent via-orange-300 to-transparent" />
+            <p className="font-dm text-xs text-gray-400">{t.holder}</p>
+            <p className="font-playfair text-lg italic text-gray-700 dark:text-white/80">— ton nom —</p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-violet-600 dark:text-violet-300">
+              <GraduationCap size={18} /> <Scissors size={16} />
             </div>
           </div>
         </div>

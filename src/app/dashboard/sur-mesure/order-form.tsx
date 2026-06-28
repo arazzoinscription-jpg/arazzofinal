@@ -60,9 +60,10 @@ export function CustomOrderForm() {
         <Ruler size={20} className="text-violet-600 dark:text-violet-300" />
         <h2 className="font-semibold">Nouvelle commande sur mesure</h2>
       </div>
+      <p className="text-xs text-gray-500 dark:text-white/50 -mt-3">Décrivez votre modèle et joignez une photo. Notre équipe vous proposera un prix ; vous l'acceptez avant qu'une patronniste réalise votre patron.</p>
 
       {error && <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 px-4 py-3 text-sm">{error}</div>}
-      {done && <div className="rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-300 px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Commande envoyée au patronniste !</div>}
+      {done && <div className="rounded-xl bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/30 text-green-700 dark:text-green-300 px-4 py-3 text-sm flex items-center gap-2"><Check size={16} /> Demande envoyée ! Vous recevrez une proposition de prix.</div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="sm:col-span-3">

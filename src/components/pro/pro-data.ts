@@ -86,6 +86,8 @@ export const ADMIN_SECTIONS: ProSection[] = [
     items: [
       { href: "/admin/utilisateurs", icon: Users, label: { fr: "Utilisateurs", ar: "المستخدمون", en: "Users" } },
       { href: "/admin/formateurs", icon: GraduationCap, label: { fr: "Formateurs", ar: "المدرّبون", en: "Trainers" } },
+      { href: "/admin/patronnistes", icon: Scissors, label: { fr: "Patronnistes", ar: "صانعو الباترون", en: "Pattern makers" } },
+      { href: "/admin/acheteurs-patrons", icon: ShoppingBag, label: { fr: "Acheteurs de patrons", ar: "مشترو الباترونات", en: "Pattern buyers" } },
       { href: "/admin/demandes", icon: BadgeCheck, label: { fr: "Demandes de rôle", ar: "طلبات الأدوار", en: "Role requests" } },
       { href: "/admin/demandes-enrolement", icon: UserPlus, label: { fr: "Demandes d'enrôlement", ar: "طلبات الالتحاق", en: "Enrollment requests" } },
     ],

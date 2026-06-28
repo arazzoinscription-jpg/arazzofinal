@@ -53,6 +53,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
           <option value="">Tous les rôles</option>
           <option value="eleve">Élèves</option>
           <option value="formateur">Formateurs</option>
+          <option value="patronniste">Patronnistes</option>
           <option value="admin">Admins</option>
         </select>
         <button className="bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600">Filtrer</button>
