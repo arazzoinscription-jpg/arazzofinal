@@ -22,6 +22,7 @@ export interface ShopProduct {
   stock: number | null;
   slug: string;
   creatorName?: string | null;
+  course_id?: string | null;
 }
 
 const TYPE_META: Record<string, { Icon: LucideIcon; chip: string }> = {
@@ -127,7 +128,14 @@ export function ProductCard({ product, index = 0, lang = "fr" }: { product: Shop
         </div>
 
         <div className="mt-auto pt-4">
-          {added ? (
+          {product.type === "course" ? (
+            // Formations : pas de panier → on renvoie vers la procédure de réservation (/offre).
+            <Link
+              href={product.course_id ? `/offre?c=${product.course_id}#inscription` : "/offre#inscription"}
+              className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 active:scale-[0.98] transition-all">
+              <GraduationCap size={17} /> {t.reserve}
+            </Link>
+          ) : added ? (
             <Link href="/panier"
               className="shiny-cta w-full inline-flex items-center justify-center gap-2 bg-violet-700 text-white py-2.5 rounded-xl font-semibold hover:bg-violet-800 transition-colors">
               <Check size={17} /> {t.inCart}

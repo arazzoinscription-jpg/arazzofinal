@@ -91,7 +91,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   // Produits similaires (même type)
   const { data: relatedRaw } = await supabase
     .from("products")
-    .select("id, title, description, type, price, compare_price, images, stock, slug, is_active, course:courses(formateur:users(nom)), patron:patrons(formateur:users(nom))")
+    .select("id, title, description, type, price, compare_price, images, stock, slug, is_active, course_id, course:courses(formateur:users(nom)), patron:patrons(formateur:users(nom))")
     .eq("is_active", true)
     .eq("type", product.type)
     .neq("id", product.id)

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShoppingCart, Check, Minus, Plus, Loader2, ShieldCheck, Zap, BadgeCheck } from "lucide-react";
+import { ShoppingCart, Check, Minus, Plus, Loader2, ShieldCheck, Zap, BadgeCheck, GraduationCap } from "lucide-react";
 import { addToCart } from "@/app/actions/cart";
 import { toast } from "@/components/ui/toast";
 import { STORE, type Lang } from "@/lib/store-i18n";
@@ -18,6 +18,7 @@ export interface DetailProduct {
   images: string[];
   stock: number | null;
   slug: string;
+  course_id?: string | null;
 }
 
 const FALLBACK_EMOJI: Record<string, string> = { course: "🎓", digital_file: "📁", patron_pdf: "✂️", bundle: "📦" };
@@ -112,7 +113,17 @@ export function ProductDetail({ product, lang = "fr" }: { product: DetailProduct
           )}
         </p>
 
-        {/* Quantité + ajout */}
+        {/* Formation : réservation au lieu du panier */}
+        {product.type === "course" ? (
+          <div className="mt-6">
+            <Link
+              href={product.course_id ? `/offre?c=${product.course_id}#inscription` : "/offre#inscription"}
+              className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-3 rounded-xl font-bold hover:bg-orange-600 active:scale-[0.98] transition-all shadow-glow">
+              <GraduationCap size={18} /> {t.reserve}
+            </Link>
+          </div>
+        ) : (
+        /* Quantité + ajout */
         <div className="flex items-center gap-3 mt-6">
           {product.stock !== null && !outOfStock && (
             <div className="inline-flex items-center border border-cream-200 dark:border-white/15 rounded-xl overflow-hidden">
@@ -135,6 +146,7 @@ export function ProductDetail({ product, lang = "fr" }: { product: DetailProduct
             </button>
           )}
         </div>
+        )}
 
         {/* Réassurance */}
         <div className="grid grid-cols-3 gap-3 mt-8 pt-6 border-t border-cream-100 dark:border-white/10">

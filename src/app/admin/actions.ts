@@ -397,3 +397,84 @@ export async function resendStudentAccess(userId: string) {
   revalidatePath("/admin/etudiants");
   return { ok: true };
 }
+
+// ════════════════════════════════════════════════════════════════════════
+// Demandes d'enrôlement (migration 042) — enrôlement en masse depuis les leads
+// ════════════════════════════════════════════════════════════════════════
+
+/**
+ * Enrôle en masse les demandes sélectionnées dans LEUR formation : crée le compte
+ * (si besoin) à partir de l'email collecté, inscrit l'élève (gratuit/manuel), et
+ * passe la demande au statut « enrolled ». Réservé à l'admin.
+ */
+export async function bulkEnrollRequests(requestIds: string[]) {
+  const idsOk = z.array(z.string().uuid()).min(1).max(200).safeParse(requestIds);
+  if (!idsOk.success) return { ok: false, error: "Sélection invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: reqs } = await admin
+    .from("enrollment_requests")
+    .select("id, course_id, email, full_name, status")
+    .in("id", idsOk.data);
+  if (!reqs?.length) return { ok: false, error: "Aucune demande trouvée." };
+
+  let enrolled = 0;
+  let skipped = 0;
+  for (const r of reqs) {
+    if (r.status === "enrolled") { skipped++; continue; }
+    const email = (r.email ?? "").trim().toLowerCase();
+    if (!email || !r.course_id) { skipped++; continue; }
+
+    // Compte (créé si nécessaire)
+    let studentId: string | null = null;
+    const { data: existing } = await admin.from("users").select("id").eq("email", email).maybeSingle();
+    if (existing) studentId = existing.id;
+    else {
+      const { data: created } = await admin.auth.admin.createUser({
+        email, email_confirm: true,
+        user_metadata: { nom: r.full_name?.trim() || email.split("@")[0], account_type: "formations" },
+      });
+      studentId = created?.user?.id ?? null;
+    }
+    if (!studentId) { skipped++; continue; }
+
+    // Inscription (idempotente)
+    const { data: enr } = await admin
+      .from("enrollments").select("id").eq("user_id", studentId).eq("course_id", r.course_id).maybeSingle();
+    if (!enr) {
+      const { data: course } = await admin.from("courses").select("formateur_id, titre_fr").eq("id", r.course_id).maybeSingle();
+      const { error: insErr } = await admin.from("enrollments").insert({
+        user_id: studentId, course_id: r.course_id, amount: 0, currency: "DZD",
+        formateur_id: (course as { formateur_id?: string | null } | null)?.formateur_id ?? null,
+      });
+      if (insErr) { skipped++; continue; }
+      try {
+        await admin.from("notifications").insert({
+          user_id: studentId, type: "system", title: "🎓 Nouvelle formation accessible",
+          body: `Vous avez été inscrite à « ${(course as { titre_fr?: string } | null)?.titre_fr ?? "votre formation"} ». Bonne formation !`,
+          link: "/dashboard",
+        });
+      } catch { /* ignore */ }
+    }
+
+    await admin.from("enrollment_requests").update({ status: "enrolled" }).eq("id", r.id);
+    enrolled++;
+  }
+
+  revalidatePath("/admin/demandes-enrolement");
+  revalidatePath("/dashboard");
+  return { ok: true, enrolled, skipped };
+}
+
+/** Écarte une demande d'enrôlement (statut « dismissed »). Réservé à l'admin. */
+export async function dismissEnrollmentRequest(requestId: string) {
+  const idOk = z.string().uuid().safeParse(requestId);
+  if (!idOk.success) return { ok: false, error: "Demande invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  const { error } = await admin.from("enrollment_requests").update({ status: "dismissed" }).eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/demandes-enrolement");
+  return { ok: true };
+}

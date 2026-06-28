@@ -30,7 +30,7 @@ export interface StoreDict {
     filters: { all: string; course: string; digital_file: string; patron_pdf: string; bundle: string };
     nbProducts: (n: number) => string;
     empty: string; seeAll: string;
-    add: string; adding: string; inCart: string; soldOut: string;
+    add: string; adding: string; inCart: string; soldOut: string; reserve: string;
     types: { course: string; digital_file: string; patron_pdf: string; bundle: string };
     // fiche produit
     backToShop: string;
@@ -88,7 +88,7 @@ const FR: StoreDict = {
     nbProducts: (n) => `${n} produit${n > 1 ? "s" : ""}`,
     empty: "Aucun produit dans cette catégorie pour le moment.",
     seeAll: "Voir tous les produits",
-    add: "Ajouter au panier", adding: "Ajout…", inCart: "Voir le panier", soldOut: "Épuisé",
+    add: "Ajouter au panier", adding: "Ajout…", inCart: "Voir le panier", soldOut: "Épuisé", reserve: "Réserver ta place",
     types: { course: "Formation", digital_file: "Fichier numérique", patron_pdf: "Patron PDF", bundle: "Pack" },
     backToShop: "Retour à la boutique",
     inStock: (n) => `En stock (${n} disponible${n > 1 ? "s" : ""})`, available: "Disponible immédiatement",
@@ -144,7 +144,7 @@ const AR: StoreDict = {
     nbProducts: (n) => `${n} منتج`,
     empty: "لا توجد منتجات في هذه الفئة حاليًا.",
     seeAll: "عرض كل المنتجات",
-    add: "أضف إلى السلة", adding: "جارٍ الإضافة…", inCart: "عرض السلة", soldOut: "نفد",
+    add: "أضف إلى السلة", adding: "جارٍ الإضافة…", inCart: "عرض السلة", soldOut: "نفد", reserve: "احجزي مكانك",
     types: { course: "دورة", digital_file: "ملف رقمي", patron_pdf: "باترون PDF", bundle: "حزمة" },
     backToShop: "العودة إلى المتجر",
     inStock: (n) => `متوفّر (${n})`, available: "متوفّر فورًا",
@@ -200,7 +200,7 @@ const EN: StoreDict = {
     nbProducts: (n) => `${n} product${n > 1 ? "s" : ""}`,
     empty: "No products in this category yet.",
     seeAll: "See all products",
-    add: "Add to cart", adding: "Adding…", inCart: "View cart", soldOut: "Sold out",
+    add: "Add to cart", adding: "Adding…", inCart: "View cart", soldOut: "Sold out", reserve: "Reserve your spot",
     types: { course: "Course", digital_file: "Digital file", patron_pdf: "PDF Pattern", bundle: "Bundle" },
     backToShop: "Back to shop",
     inStock: (n) => `In stock (${n} available)`, available: "Available now",

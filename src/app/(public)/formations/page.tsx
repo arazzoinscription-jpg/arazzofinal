@@ -4,6 +4,7 @@ import { ChevronLeft, Scissors, Layers3, PackageOpen } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { CourseCard } from "@/components/ui/card";
+import { EnrollRequestButton } from "@/components/enrollment/enroll-request-button";
 import { createClient } from "@/lib/supabase/server";
 import { FormationsGuide } from "./formations-guide";
 import { CategoryShowcase } from "./category-showcase";
@@ -267,9 +268,12 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
                       : lang === "en" ? (course.titre_en || course.titre_fr)
                       : course.titre_fr;
                     return (
-                    <CourseCard key={course.id} title={cardTitle} titleAr={lang === "ar" ? undefined : course.titre_ar}
-                      thumbnail={course.thumbnail} prixDzd={course.prix_dzd} prixEur={course.prix_eur}
-                      formateur={(course.formateur as any)?.nom} niveau={course.niveau} duree={course.duree} slug={course.slug} />
+                    <div key={course.id} className="flex flex-col gap-2">
+                      <CourseCard title={cardTitle} titleAr={lang === "ar" ? undefined : course.titre_ar}
+                        thumbnail={course.thumbnail} prixDzd={course.prix_dzd} prixEur={course.prix_eur}
+                        formateur={(course.formateur as any)?.nom} niveau={course.niveau} duree={course.duree} slug={course.slug} />
+                      <EnrollRequestButton courseId={course.id} courseTitle={cardTitle} variant="card" />
+                    </div>
                     );
                   })}
                 </div>

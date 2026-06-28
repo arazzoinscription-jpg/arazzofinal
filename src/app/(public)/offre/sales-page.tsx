@@ -90,7 +90,7 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
   );
 }
 
-export function SalesPage({ lang = "fr", courses = [], pay = null }: { lang?: Lang; courses?: CourseOption[]; pay?: PayInfo | null }) {
+export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCourseId = null }: { lang?: Lang; courses?: CourseOption[]; pay?: PayInfo | null; preselectCourseId?: string | null }) {
   const t = OFFRE[lang];
 
   // État partagé Quiz → Parcours → Inscription
@@ -112,6 +112,14 @@ export function SalesPage({ lang = "fr", courses = [], pay = null }: { lang?: La
     setPhase("form");
     setTimeout(() => document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth" }), 60);
   }
+
+  // Arrivée depuis la boutique (« Réserver ta place ») : pré-sélectionne la formation + défile.
+  useEffect(() => {
+    if (preselectCourseId && courses.some((c) => c.id === preselectCourseId)) {
+      enroll(null, preselectCourseId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectCourseId]);
 
   return (
     <div className="bg-cream-DEFAULT dark:bg-[#0b0818] text-gray-900 dark:text-white overflow-x-hidden">
@@ -266,6 +274,7 @@ function Why({ lang }: { lang: Lang }) {
                 <div key={c.t} className="group relative overflow-hidden rounded-3xl sm:col-span-2 p-7 sm:p-9 bg-gradient-to-br from-violet-700 via-violet-600 to-orange-500 text-white shadow-glow flex flex-col justify-end min-h-[18rem]">
                   {/* Vidéo de fond (réalisation atelier) */}
                   <video autoPlay muted loop playsInline preload="metadata"
+                    poster="/videos/offre-couture.jpg"
                     className="absolute inset-0 w-full h-full object-cover">
                     <source src="/videos/offre-couture.mp4" type="video/mp4" />
                   </video>

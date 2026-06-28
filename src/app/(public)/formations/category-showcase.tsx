@@ -62,6 +62,7 @@ function VideoHalf({ src }: { src: string }) {
       {seen && (
         <video
           src={src}
+          poster={src.replace(/\.mp4$/, ".jpg")}
           autoPlay
           loop
           muted

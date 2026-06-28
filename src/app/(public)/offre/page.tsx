@@ -10,9 +10,10 @@ export const metadata = {
   description: "Transforme ta passion en projet rentable : couture & modélisme de zéro, depuis chez toi. Teste ton niveau, choisis ta formation et inscris-toi. FR / AR / EN.",
 };
 
-export default async function OffrePage() {
+export default async function OffrePage({ searchParams }: { searchParams: { c?: string } }) {
   const lang = normLang((await cookies()).get("lang")?.value);
   const admin = createAdminClient();
+  const preselectCourseId = typeof searchParams?.c === "string" ? searchParams.c : null;
 
   const { data: courses } = await admin
     .from("courses")
@@ -41,7 +42,7 @@ export default async function OffrePage() {
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"}>
-      <SalesPage lang={lang} courses={options} pay={pay} />
+      <SalesPage lang={lang} courses={options} pay={pay} preselectCourseId={preselectCourseId} />
     </div>
   );
 }

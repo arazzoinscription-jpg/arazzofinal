@@ -12,6 +12,7 @@ import { Reveal } from "@/components/ui/reveal";
 import { createPublicClient } from "@/lib/supabase/public";
 import { normLang, isRtl, type Lang } from "@/lib/store-i18n";
 import { BuyButton } from "./buy-button";
+import { EnrollRequestButton } from "@/components/enrollment/enroll-request-button";
 
 export const dynamic = "force-dynamic";
 
@@ -294,6 +295,10 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 accessLabel={t.access}
                 soonLabel={t.soon}
               />
+
+              <div className="mt-3">
+                <EnrollRequestButton courseId={course.id} courseTitle={title} variant="card" />
+              </div>
 
               <p className="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 font-dm mt-6 mb-3">{t.included}</p>
               <ul className="space-y-3 text-sm font-dm">
