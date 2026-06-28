@@ -41,6 +41,15 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
     .eq("published", true)
     .eq("subscription_enabled", true)
     .order("created_at", { ascending: false });
+
+  // Slug boutique (produit « bundle ») de chaque pack → lien « voir le détail ».
+  const bundleSlugByPack = new Map<string, string>();
+  const { data: bundleProds } = await admin.from("products").select("slug, files").eq("type", "bundle").eq("is_active", true);
+  for (const b of bundleProds ?? []) {
+    const ref = ((b.files as string[]) ?? []).find((f) => f.startsWith("pack:"));
+    if (ref && b.slug) bundleSlugByPack.set(ref.slice(5), b.slug as string);
+  }
+
   for (const p of subPacks ?? []) {
     options.push({
       id: p.id,
@@ -52,6 +61,7 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
       subscriptionEnabled: true,
       durationMonths: (p as { duration_months?: number | null }).duration_months ?? null,
       isPack: true,
+      detailSlug: bundleSlugByPack.get(p.id) ?? null,
     });
   }
 
