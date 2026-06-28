@@ -246,6 +246,18 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </div>
         )}
 
+        {/* Devoir à faire (consigne du formateur, niveau leçon) */}
+        {(lesson as { devoir?: string | null }).devoir && (
+          <div className="mt-6 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-blush-50 p-5">
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="w-9 h-9 rounded-xl bg-violet-DEFAULT/15 text-violet-700 flex items-center justify-center"><ClipboardList size={18} /></span>
+              <h3 className="font-playfair text-xl font-bold text-gray-900">Devoir à faire — cette leçon</h3>
+            </div>
+            <p className="text-sm text-gray-700 font-dm whitespace-pre-line leading-relaxed">{(lesson as { devoir?: string | null }).devoir}</p>
+            <p className="text-xs text-violet-700/80 font-dm mt-3">↓ Importez votre travail ci-dessous, dans « Travaux pratiques ».</p>
+          </div>
+        )}
+
         {/* Devoir à faire (consigne du formateur, niveau cours) */}
         {courseHomework && (
           <div className="mt-6 rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-blush-50 p-5">

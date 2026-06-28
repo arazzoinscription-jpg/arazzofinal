@@ -178,6 +178,25 @@ export default async function AdminStudentsPage({
     return r;
   });
 
+  // ── 4 bis) Statut du lien d'accès envoyé (access_links) par étudiant ───────
+  // none = jamais envoyé · valid = envoyé et encore valable · used = déjà utilisé · expired = expiré
+  type AccessStatus = "none" | "valid" | "used" | "expired";
+  const accessByUser = new Map<string, AccessStatus>();
+  const studentIds = rows.map((r) => r.id);
+  if (studentIds.length) {
+    const { data: links } = await admin
+      .from("access_links")
+      .select("user_id, expires_at, used_at, created_at")
+      .in("user_id", studentIds)
+      .order("created_at", { ascending: false });
+    // On ne garde que le lien le plus récent par utilisateur (déjà trié desc).
+    for (const l of links ?? []) {
+      if (accessByUser.has(l.user_id)) continue;
+      const expired = new Date(l.expires_at).getTime() < now;
+      accessByUser.set(l.user_id, expired ? "expired" : l.used_at ? "used" : "valid");
+    }
+  }
+
   // Recherche nom / email / formation
   if (q) {
     rows = rows.filter((r) => {
@@ -208,10 +227,12 @@ export default async function AdminStudentsPage({
       nom: r.nom,
       email: r.email,
       dateInscriptionText: fmt(r.dateInscription),
+      dateInscriptionIso: r.dateInscription,
       formation: formationParts.join(", ") || "—",
       formateurNom: r.formateurNom,
       formateurEmail: r.formateurEmail,
       active: r.active,
+      accessStatus: accessByUser.get(r.id) ?? "none",
     };
   });
 

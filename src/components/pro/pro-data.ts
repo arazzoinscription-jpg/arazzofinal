@@ -37,13 +37,10 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     ],
   },
   {
-    key: "mes-patrons", icon: FileText, home: "/dashboard/patrons", items: [],
-    label: { fr: "Mes patrons", ar: "باتروناتي", en: "My patterns" },
-  },
-  {
     key: "community", icon: Users, home: "/formateur/groupes",
     label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
     items: [
+      { href: "/admin/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
       { href: "/formateur/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
       { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
       { href: "/formateur/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
@@ -106,6 +103,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Catalogue", ar: "الكتالوج", en: "Catalog" },
     items: [
       { href: "/admin/formations", icon: BookOpen, label: { fr: "Formations", ar: "التكوينات", en: "Courses" } },
+      { href: "/admin/packs", icon: Package, label: { fr: "Packs de formation", ar: "حزم التكوين", en: "Course packs" } },
       { href: "/admin/patrons", icon: Scissors, label: { fr: "Patrons", ar: "الباترونات", en: "Patterns" } },
       { href: "/admin/sur-mesure", icon: Ruler, label: { fr: "Sur mesure", ar: "حسب المقاس", en: "Made-to-measure" } },
       { href: "/admin/produits", icon: ShoppingBag, label: { fr: "Produits", ar: "المنتجات", en: "Products" } },

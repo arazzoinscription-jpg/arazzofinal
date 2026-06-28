@@ -178,6 +178,20 @@ export async function assignCourseFormateur(courseId: string, formateurId: strin
   return { ok: true };
 }
 
+/** Publie / dépublie un pack de cours (catalogue admin). Réservé à l'admin. */
+export async function togglePackPublish(packId: string, published: boolean) {
+  const idOk = z.string().uuid().safeParse(packId);
+  if (!idOk.success) return { ok: false, error: "Pack invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  const { error } = await admin.from("course_packs").update({ published }).eq("id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/packs");
+  revalidatePath("/formateur/packs");
+  revalidatePath("/boutique");
+  return { ok: true };
+}
+
 export async function toggleCoursePublish(courseId: string, published: boolean) {
   const { ok, admin } = await requireAdmin();
   if (!ok || !admin) return { ok: false, error: "Accès refusé." };
@@ -377,6 +391,41 @@ export async function deleteEnrollment(enrollmentId: string) {
   revalidatePath("/admin/etudiants");
   revalidatePath("/formateur/cours");
   return { ok: true };
+}
+
+/**
+ * Annule TOUTES les inscriptions d'un élève (retire l'accès aux cours) sans
+ * supprimer son compte. Réservé à l'admin. Utilisé par le bouton « Annuler
+ * l'inscription » de la liste des étudiants inscrits.
+ */
+export async function cancelStudentEnrollments(userId: string) {
+  const idOk = z.string().uuid().safeParse(userId);
+  if (!idOk.success) return { ok: false, error: "Utilisateur invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: u } = await admin.from("users").select("role").eq("id", idOk.data).maybeSingle();
+  if (!u) return { ok: false, error: "Utilisateur introuvable." };
+  if (u.role !== "eleve") return { ok: false, error: "Cet utilisateur n'est pas un élève." };
+
+  const { data: enrs } = await admin.from("enrollments").select("id").eq("user_id", idOk.data);
+  const count = enrs?.length ?? 0;
+  if (count === 0) return { ok: true, count: 0 };
+
+  const { error } = await admin.from("enrollments").delete().eq("user_id", idOk.data);
+  if (error) return { ok: false, error: error.message };
+
+  await admin.from("notifications").insert({
+    user_id: idOk.data,
+    type: "system",
+    title: "❌ Inscription annulée",
+    body: "Toutes vos inscriptions ont été annulées par l'administration. Contactez-nous pour toute question.",
+    link: "/dashboard",
+  });
+
+  revalidatePath("/admin/etudiants");
+  revalidatePath("/admin/gestion");
+  return { ok: true, count };
 }
 
 /** Renvoie l'email d'accès à un élève (active + invite). Réservé à l'admin. */

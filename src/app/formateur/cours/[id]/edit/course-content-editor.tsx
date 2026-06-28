@@ -7,7 +7,7 @@ import { LessonVideoUploader } from "@/components/courses/lesson-video-uploader"
 import { saveCourseContent } from "../content-actions";
 import { toast } from "@/components/ui/toast";
 
-export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; duree_minutes: string; is_preview: boolean; }
+export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; devoir: string; duree_minutes: string; is_preview: boolean; }
 export interface EditChapter { id: string | null; titre: string; lessons: EditLesson[]; }
 
 function move<T>(arr: T[], from: number, to: number): T[] {
@@ -47,7 +47,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
 
   function addLesson(ci: number) {
     const next = [...chapters];
-    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", duree_minutes: "", is_preview: false }] };
+    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", devoir: "", duree_minutes: "", is_preview: false }] };
     update(next);
   }
   function removeLesson(ci: number, li: number) {
@@ -89,6 +89,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
             id: l.id,
             titre: l.titre.trim(),
             video_url_bunny: l.video_url_bunny.trim(),
+            devoir: l.devoir.trim(),
             duree_minutes: l.duree_minutes ? Number(l.duree_minutes) : null,
             is_preview: l.is_preview,
           })),
@@ -192,6 +193,16 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
                     dir="ltr"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
                   />
+                  <div>
+                    <label className="block text-xs font-semibold text-violet-700 mb-1">📋 Devoir à faire (cette leçon)</label>
+                    <textarea
+                      value={l.devoir}
+                      onChange={(e) => setLessonField(ci, li, { devoir: e.target.value })}
+                      placeholder="Décrivez ce que l'élève doit réaliser…"
+                      rows={2}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y"
+                    />
+                  </div>
                   <label className="flex items-center gap-2 text-sm text-gray-600">
                     <input type="checkbox" checked={l.is_preview}
                       onChange={(e) => setLessonField(ci, li, { is_preview: e.target.checked })} />

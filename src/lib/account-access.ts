@@ -1,9 +1,10 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { brandedSiteUrl } from "@/lib/site-url";
 
 type Admin = ReturnType<typeof createAdminClient>;
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
+const SITE = brandedSiteUrl();
 
 /**
  * Active le compte d'un·e élève (lève le ban + statut actif) et lui envoie un

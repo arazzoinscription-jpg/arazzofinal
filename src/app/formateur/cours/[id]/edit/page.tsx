@@ -42,6 +42,17 @@ export default async function EditCoursePage({ params }: { params: { id: string 
     .eq("course_id", course.id)
     .order("ordre", { ascending: true });
 
+  // Lecture résiliente du « devoir » par leçon (colonne ajoutée par la migration 046).
+  // Si la colonne n'existe pas encore, la requête échoue silencieusement → devoir vide.
+  const devoirByLesson = new Map<string, string>();
+  const allLessonIds = (chapterRows ?? []).flatMap((ch: any) => ((ch.lessons as any[]) ?? []).map((l) => l.id));
+  if (allLessonIds.length) {
+    const { data: devoirs } = await admin.from("lessons").select("id, devoir").in("id", allLessonIds);
+    for (const d of (devoirs as { id: string; devoir?: string | null }[] | null) ?? []) {
+      if (d.devoir) devoirByLesson.set(d.id, d.devoir);
+    }
+  }
+
   const initialChapters: EditChapter[] = (chapterRows ?? []).map((ch: any) => ({
     id: ch.id,
     titre: ch.titre ?? "",
@@ -51,6 +62,7 @@ export default async function EditCoursePage({ params }: { params: { id: string 
         id: l.id,
         titre: l.titre ?? "",
         video_url_bunny: l.video_url_bunny ?? "",
+        devoir: devoirByLesson.get(l.id) ?? "",
         duree_minutes: l.duree_minutes != null ? String(l.duree_minutes) : "",
         is_preview: !!l.is_preview,
       })),

@@ -4,12 +4,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, RotateCcw, Loader2 } from "lucide-react";
 import { setPracticalFeedback } from "@/app/dashboard/cours/[id]/extras-actions";
+import { toast } from "@/components/ui/toast";
 
 export interface PracticalRow {
   id: string;
   photo_url: string | null;
   video_url: string | null;
   note: string | null;
+  feedback: string | null;
   created_at: string;
   status: string;
   studentName: string;
@@ -20,20 +22,31 @@ export interface PracticalRow {
 /** Correction d'un travail pratique (lesson_practicals) : retour + valider / à retravailler. */
 export function ReviewCard({ row }: { row: PracticalRow }) {
   const router = useRouter();
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState(row.feedback ?? "");
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState("");
+  const isReviewed = row.status === "reviewed";
 
   function decide(status: "approved" | "reviewed") {
     if (status === "reviewed" && !feedback.trim()) {
-      setErr("Expliquez ce qu'il faut retravailler.");
+      setErr("Expliquez ce qu'il faut retravailler avant d'envoyer le retour.");
       return;
     }
     setErr("");
     startTransition(async () => {
       const res = await setPracticalFeedback(row.id, feedback.trim(), status);
-      if (res.ok) router.refresh();
-      else setErr(res.error ?? "Erreur");
+      if (res.ok) {
+        toast(
+          status === "approved"
+            ? "Travail validé ✅"
+            : "Retour envoyé à l'élève — à retravailler ↩️",
+          "success",
+        );
+        router.refresh();
+      } else {
+        toast(res.error ?? "Erreur", "error");
+        setErr(res.error ?? "Erreur");
+      }
     });
   }
 
@@ -48,6 +61,12 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
           {new Date(row.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
         </span>
       </div>
+
+      {isReviewed && (
+        <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-violet-50 dark:bg-violet-500/15 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300">
+          <RotateCcw size={13} /> Retour envoyé — en attente d'une nouvelle soumission
+        </div>
+      )}
 
       {row.photo_url && (
         <a href={row.photo_url} target="_blank" rel="noreferrer">
@@ -77,7 +96,7 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
         </button>
         <button onClick={() => decide("reviewed")} disabled={isPending}
           className="flex-1 inline-flex items-center justify-center gap-1.5 bg-violet-700 text-white py-2 rounded-xl font-semibold text-sm hover:bg-violet-800 transition-colors disabled:opacity-50">
-          <RotateCcw size={14} /> À retravailler
+          {isPending ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />} {isReviewed ? "Renvoyer le retour" : "À retravailler"}
         </button>
       </div>
     </div>

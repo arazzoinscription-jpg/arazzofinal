@@ -67,6 +67,7 @@ export default async function PratiquesPage() {
     photo_url: s.photo_url,
     video_url: s.video_url,
     note: s.note,
+    feedback: s.feedback,
     created_at: s.created_at,
     status: s.status,
     studentName: s.student?.nom ?? "Élève",

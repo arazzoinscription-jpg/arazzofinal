@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Toaster } from "@/components/ui/toast";
 import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
 import { ProSidebar } from "@/components/pro/pro-sidebar";
@@ -115,6 +116,7 @@ export default async function FormateurLayout({
         </div>
         <div className="p-4 sm:p-6 lg:p-8"><PageTransition>{children}</PageTransition></div>
       </main>
+      <Toaster />
     </div>
   );
 }

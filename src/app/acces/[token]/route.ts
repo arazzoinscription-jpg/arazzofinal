@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { brandedSiteUrl } from "@/lib/site-url";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
+const SITE = brandedSiteUrl();
 
 /**
  * Lien d'accès branché Arazzo : /acces/<token>.

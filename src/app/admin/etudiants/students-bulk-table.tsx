@@ -1,30 +1,69 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail } from "lucide-react";
+import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail, UserX, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { bulkSetUserStatus, bulkDeleteUsers, bulkActivateAndInvite } from "@/app/admin/actions";
+import { bulkSetUserStatus, bulkDeleteUsers, bulkActivateAndInvite, cancelStudentEnrollments } from "@/app/admin/actions";
+
+export type AccessStatus = "none" | "valid" | "used" | "expired";
 
 export interface StudentRowLite {
   id: string;
   nom: string;
   email: string;
   dateInscriptionText: string;
+  dateInscriptionIso: string | null;
   formation: string;
   formateurNom: string | null;
   formateurEmail: string | null;
   active: boolean;
+  accessStatus: AccessStatus;
 }
+
+type SortKey = "date_desc" | "date_asc" | "nom_asc" | "nom_desc";
+type ActiveFilter = "all" | "active" | "inactive";
+type AccessFilter = "all" | AccessStatus;
+
+const ACCESS_META: Record<AccessStatus, { label: string; cls: string }> = {
+  none: { label: "Non envoyé", cls: "bg-gray-100 text-gray-500" },
+  valid: { label: "Envoyé · valable", cls: "bg-blue-100 text-blue-700" },
+  used: { label: "Utilisé ✓", cls: "bg-green-100 text-green-700" },
+  expired: { label: "Expiré", cls: "bg-red-100 text-red-700" },
+};
 
 export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
   const router = useRouter();
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [pending, start] = useTransition();
 
-  const ids = rows.map((r) => r.id);
+  // ── Tri & filtres (côté client, sur les lignes déjà chargées) ──────────────
+  const [sort, setSort] = useState<SortKey>("date_desc");
+  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [accessFilter, setAccessFilter] = useState<AccessFilter>("all");
+
+  const view = useMemo(() => {
+    let r = rows.filter((row) => {
+      if (activeFilter === "active" && !row.active) return false;
+      if (activeFilter === "inactive" && row.active) return false;
+      if (accessFilter !== "all" && row.accessStatus !== accessFilter) return false;
+      return true;
+    });
+    const ts = (iso: string | null) => (iso ? new Date(iso).getTime() : 0);
+    r = [...r].sort((a, b) => {
+      switch (sort) {
+        case "nom_asc": return a.nom.localeCompare(b.nom, "fr");
+        case "nom_desc": return b.nom.localeCompare(a.nom, "fr");
+        case "date_asc": return ts(a.dateInscriptionIso) - ts(b.dateInscriptionIso);
+        default: return ts(b.dateInscriptionIso) - ts(a.dateInscriptionIso);
+      }
+    });
+    return r;
+  }, [rows, sort, activeFilter, accessFilter]);
+
+  const ids = view.map((r) => r.id);
   const allSelected = ids.length > 0 && ids.every((id) => sel.has(id));
 
   function toggle(id: string) {
@@ -70,8 +109,45 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
     });
   }
 
+  function cancelEnrollment(r: StudentRowLite) {
+    if (!confirm(`Annuler l'inscription de ${r.nom} ?\nL'élève perdra l'accès à ses cours (le compte est conservé).`)) return;
+    start(async () => {
+      const res = await cancelStudentEnrollments(r.id);
+      if (res.ok) { toast(`Inscription annulée (${res.count ?? 0} cours retiré(s)) ✅`, "success"); router.refresh(); }
+      else toast(res.error ?? "Erreur", "error");
+    });
+  }
+
+  const selCls = "border border-gray-200 rounded-xl px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500";
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      {/* Barre de tri / filtres */}
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50/60">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 me-1">
+          <ArrowUpDown size={15} /> Trier / filtrer
+        </span>
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className={selCls} aria-label="Trier">
+          <option value="date_desc">Inscription : plus récents</option>
+          <option value="date_asc">Inscription : plus anciens</option>
+          <option value="nom_asc">Nom : A → Z</option>
+          <option value="nom_desc">Nom : Z → A</option>
+        </select>
+        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value as ActiveFilter)} className={selCls} aria-label="Filtrer actif">
+          <option value="all">Tous (actifs + inactifs)</option>
+          <option value="active">Actifs seulement</option>
+          <option value="inactive">Inactifs seulement</option>
+        </select>
+        <select value={accessFilter} onChange={(e) => setAccessFilter(e.target.value as AccessFilter)} className={selCls} aria-label="Filtrer accès">
+          <option value="all">Tous les accès</option>
+          <option value="none">Accès non envoyé</option>
+          <option value="valid">Accès envoyé · valable</option>
+          <option value="used">Accès utilisé</option>
+          <option value="expired">Accès expiré</option>
+        </select>
+        <span className="ms-auto text-xs text-gray-400 font-dm">{view.length} affiché(s)</span>
+      </div>
+
       {/* Barre d'actions groupées (apparaît dès qu'une sélection existe) */}
       {sel.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-violet-50 border-b border-violet-100">
@@ -114,14 +190,17 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
               <TableHead className="px-5 py-3 font-medium">Formateur</TableHead>
               <TableHead className="px-5 py-3 font-medium">Date inscription</TableHead>
               <TableHead className="px-5 py-3 font-medium">Formation</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Accès envoyé</TableHead>
               <TableHead className="px-5 py-3 font-medium">Statut</TableHead>
+              <TableHead className="px-5 py-3 font-medium text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-gray-50">
-            {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-10 text-gray-400">Aucun étudiant.</TableCell></TableRow>
-            ) : rows.map((r) => {
+            {view.length === 0 ? (
+              <TableRow><TableCell colSpan={8} className="text-center py-10 text-gray-400">Aucun étudiant.</TableCell></TableRow>
+            ) : view.map((r) => {
               const checked = sel.has(r.id);
+              const acc = ACCESS_META[r.accessStatus];
               return (
                 <TableRow key={r.id} className={`font-dm align-top ${checked ? "bg-orange-50/50" : "hover:bg-gray-50"}`}>
                   <TableCell className="px-5 py-3">
@@ -159,11 +238,23 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                     )}
                   </TableCell>
                   <TableCell className="px-5 py-3">
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${acc.cls}`}>
+                      {acc.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="px-5 py-3">
                     <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
                       r.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                     }`}>
                       {r.active ? "● Actif" : "○ Inactif"}
                     </span>
+                  </TableCell>
+                  <TableCell className="px-5 py-3 text-right">
+                    <button onClick={() => cancelEnrollment(r)} disabled={pending}
+                      title="Annuler l'inscription (retire l'accès aux cours, garde le compte)"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50">
+                      <UserX size={14} /> Annuler
+                    </button>
                   </TableCell>
                 </TableRow>
               );

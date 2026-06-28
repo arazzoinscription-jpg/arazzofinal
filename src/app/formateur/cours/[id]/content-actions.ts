@@ -23,6 +23,7 @@ const LessonInput = z.object({
   id: z.string().uuid().nullable().optional(),
   titre: z.string().trim().min(1, "Titre de leçon requis."),
   video_url_bunny: z.string().trim().default(""),
+  devoir: z.string().trim().max(5000).default(""),
   duree_minutes: z.number().int().min(0).nullable().optional(),
   is_preview: z.boolean().default(false),
 });
@@ -113,12 +114,20 @@ export async function saveCourseContent(input: SaveCourseContentInput) {
         ordre: li + 1,
         is_preview: l.is_preview,
       };
+      let lessonId = l.id ?? null;
       if (l.id && existingLessonIds.has(l.id)) {
         const { error } = await admin.from("lessons").update(payload).eq("id", l.id);
         if (error) return { ok: false as const, error: error.message };
       } else {
-        const { error } = await admin.from("lessons").insert({ chapter_id: chapterId, ...payload });
+        const { data: created, error } = await admin
+          .from("lessons").insert({ chapter_id: chapterId, ...payload }).select("id").single();
         if (error) return { ok: false as const, error: error.message };
+        lessonId = (created as { id: string } | null)?.id ?? null;
+      }
+      // « Devoir à faire » de la leçon (colonne migration 046) — écriture résiliente :
+      // si la colonne n'existe pas encore, on ignore l'erreur (le reste du contenu est sauvé).
+      if (lessonId) {
+        await admin.from("lessons").update({ devoir: l.devoir || null }).eq("id", lessonId);
       }
     }
   }

@@ -1,8 +1,9 @@
 import "server-only";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { brandedSiteUrl } from "@/lib/site-url";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
+const SITE = brandedSiteUrl();
 const VALIDITY_MS = 48 * 60 * 60 * 1000; // 48 heures
 
 /**
