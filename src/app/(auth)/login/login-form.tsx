@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, MailCheck } from "lucide-react";
@@ -17,6 +17,7 @@ const T = {
     signIn: "Se connecter", signingIn: "Connexion…", or: "ou", magic: "Recevoir un lien magique",
     noAccount: "Pas encore de compte ?", register: "S'inscrire",
     errCreds: "Email ou mot de passe incorrect.", errEmail: "Veuillez saisir votre email.",
+    otherDevice: "Votre compte vient d'être utilisé sur un autre appareil. Pour votre sécurité, reconnectez-vous ici.",
     sentTitle: "Lien envoyé !", sentBody: "Vérifiez votre boîte mail et cliquez sur le lien pour vous connecter.",
     back: "← Revenir à la connexion", show: "Afficher le mot de passe", hide: "Masquer le mot de passe",
   },
@@ -26,6 +27,7 @@ const T = {
     signIn: "تسجيل الدخول", signingIn: "جارٍ الدخول…", or: "أو", magic: "استلام رابط سحري",
     noAccount: "ليس لديك حساب؟", register: "إنشاء حساب",
     errCreds: "البريد الإلكتروني أو كلمة المرور غير صحيحة.", errEmail: "يرجى إدخال بريدك الإلكتروني.",
+    otherDevice: "تم استخدام حسابك على جهاز آخر. لأمانك، يرجى تسجيل الدخول من جديد هنا.",
     sentTitle: "تم إرسال الرابط!", sentBody: "تحقّقي من بريدك واضغطي على الرابط لتسجيل الدخول.",
     back: "← العودة لتسجيل الدخول", show: "إظهار كلمة المرور", hide: "إخفاء كلمة المرور",
   },
@@ -35,6 +37,7 @@ const T = {
     signIn: "Sign in", signingIn: "Signing in…", or: "or", magic: "Get a magic link",
     noAccount: "No account yet?", register: "Sign up",
     errCreds: "Wrong email or password.", errEmail: "Please enter your email.",
+    otherDevice: "Your account was just used on another device. For your security, please sign in again here.",
     sentTitle: "Link sent!", sentBody: "Check your inbox and click the link to sign in.",
     back: "← Back to sign in", show: "Show password", hide: "Hide password",
   },
@@ -49,6 +52,14 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  // Message si l'élève a été déconnecté parce que son compte a été utilisé ailleurs.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "autre_appareil") {
+      setNotice(t.otherDevice);
+    }
+  }, [t.otherDevice]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -117,6 +128,12 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
         <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-orange-600 mb-2">N° 01 · Atelier</span>
         <h1 className="font-playfair text-2xl font-bold mb-1 text-center">{t.title}</h1>
         <p className="text-violet-950/55 text-sm mb-7 text-center font-dm">{t.subtitle}</p>
+
+        {notice && (
+          <div className="w-full mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 font-dm text-center">
+            {notice}
+          </div>
+        )}
 
         {magicSent ? (
           <div className="w-full text-center py-6">
