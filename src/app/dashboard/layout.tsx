@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { Scissors } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { SearchBar } from "@/components/search/search-bar";
@@ -15,7 +16,7 @@ import { OnboardingTour } from "./onboarding-tour";
 import { TopbarIcon } from "./topbar-icon";
 import { PageTransition } from "./page-transition";
 import { LangSwitcher } from "./lang-switcher";
-import { DICT, normLang, isRtl } from "./dash-i18n";
+import { normLang, isRtl } from "./dash-i18n";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
@@ -69,14 +70,12 @@ export default async function DashboardLayout({
     .single();
 
   const role = profile?.role ?? "eleve";
-  const prenom = (profile?.nom ?? "").split(" ")[0] || "vous";
   // Acheteur de patrons : navigation réduite (uniquement si encore simple élève).
   const accountType = (user.user_metadata?.account_type as string) ?? "formations";
   const buyer = accountType === "patrons" && role === "eleve";
   const roleLabel = buyer ? "Acheteur de patrons" : (ROLE_LABEL[role] ?? role);
 
   const lang = normLang((await cookies()).get("lang")?.value);
-  const t = DICT[lang];
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
@@ -88,29 +87,45 @@ export default async function DashboardLayout({
 
       {/* ── Contenu ── */}
       <main className="app-main flex-1 lg:ms-64 min-w-0">
-        {/* Barre supérieure + menu horizontal (sticky ensemble) */}
-        <div className="sticky top-0 z-20 bg-white/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md border-b border-cream-200 dark:border-white/10">
-          <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
-            {/* Hamburger (mobile) */}
-            <MobileNav nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roleLabel={roleLabel} lang={lang} buyer={buyer} />
+        {/* Barre supérieure (même identité que la barre publique) + menu horizontal */}
+        <div
+          className="sticky top-0 z-20 bg-white dark:bg-[#15102b] backdrop-blur-md border-b border-cream-200 dark:border-white/10"
+          style={{ boxShadow: "0 4px 24px rgba(107,33,200,0.12)" }}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-3 h-20">
+              {/* ── Gauche : menu mobile + logo identité (identique à la barre publique) ── */}
+              <div className="flex items-center gap-3 min-w-0">
+                <MobileNav nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roleLabel={roleLabel} lang={lang} buyer={buyer} />
+                <Link href="/" aria-label="Accueil Arazzo" className="group flex items-center gap-3 shrink-0">
+                  <span className="relative grid place-items-center">
+                    <img src="/images/arazzo-icon.png" alt="Arazzo Formation" width={44} height={44} className="h-11 w-11 rounded-xl shadow-sm" />
+                    <span className="absolute -bottom-1 -end-1 w-5 h-5 rounded-md bg-white dark:bg-[#15102b] ring-1 ring-violet-950/10 grid place-items-center">
+                      <Scissors size={11} className="text-orange-600 -rotate-12" />
+                    </span>
+                  </span>
+                  <span className="leading-none whitespace-nowrap hidden sm:block">
+                    <span className="block font-mono text-[9px] tracking-[0.32em] uppercase text-orange-600/80">N° 01 · Atelier</span>
+                    <span className="block font-playfair font-bold text-xl mt-0.5">
+                      <span className="text-orange-500">Arazzo</span>{" "}
+                      <span className="text-violet-800 dark:text-white">Formation</span>
+                    </span>
+                  </span>
+                </Link>
+              </div>
 
-            {/* Logo → accueil (mobile : la sidebar est masquée) */}
-            <Link href="/" aria-label="Accueil Arazzo" className="lg:hidden flex items-center shrink-0">
-              <img src="/images/arazzo-icon.png" alt="Arazzo Formation" className="h-9 w-9 rounded-lg shadow-sm" />
-            </Link>
-
-            <div className="hidden md:block">
-              <p className="text-xs text-gray-400 dark:text-white/40 font-dm leading-none">{t.greeting} 👋</p>
-              <p className="text-sm font-semibold text-violet-800 dark:text-orange-300 font-dm capitalize">{prenom}</p>
-            </div>
-            <div className="flex-1 min-w-0 max-w-md">
-              <div className="hidden sm:block">
+              {/* ── Centre : recherche (desktop) ── */}
+              <div className="hidden md:block flex-1 max-w-md mx-4">
                 <SearchBar compact />
               </div>
+
+              {/* ── Droite : outils de l'espace ── */}
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <TopbarIcon><LangSwitcher current={lang} /></TopbarIcon>
+                <TopbarIcon><ThemeToggle /></TopbarIcon>
+                <TopbarIcon><NotificationBell userId={user.id} /></TopbarIcon>
+              </div>
             </div>
-            <TopbarIcon><LangSwitcher current={lang} /></TopbarIcon>
-            <TopbarIcon><ThemeToggle /></TopbarIcon>
-            <TopbarIcon><NotificationBell userId={user.id} /></TopbarIcon>
           </div>
           <DashboardSubnav lang={lang} />
         </div>
