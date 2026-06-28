@@ -84,9 +84,12 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
   if (isLeaf && selected) {
     const ids = [...(byCat.get(selected.id) ?? new Set<string>())];
     if (ids.length) {
+      // La page Formations (catalogue) montre les cours PUBLIÉS (ligne « Publiée »).
+      // La case « Inscription » (visible_inscription) ne contrôle QUE la page /offre,
+      // pas l'affichage ici.
       const { data } = await supabase
         .from("courses").select("*, formateur:users(nom)")
-        .eq("published", true).eq("visible_inscription", true).in("id", ids)
+        .eq("published", true).in("id", ids)
         .order("ordre", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
       courses = data ?? [];
     }
