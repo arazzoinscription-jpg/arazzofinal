@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Package } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PublishToggle } from "./publish-toggle";
@@ -6,6 +7,8 @@ import { SaleToggle } from "./sale-toggle";
 import { VisibleToggle } from "./visible-toggle";
 import { SubscriptionToggle } from "./subscription-toggle";
 import { FormateurSelect } from "./formateur-select";
+import { PackSellButton, type PackSellState } from "@/app/formateur/packs/pack-sell-button";
+import { PackPublishToggle } from "@/app/admin/packs/pack-publish-toggle";
 export const metadata = { title: "Formations — Admin" };
 export const dynamic = "force-dynamic";
 
@@ -54,6 +57,23 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
   const pub = (courses ?? []).filter((c) => c.published).length;
   const onSaleCount = (courses ?? []).filter((c) => onSaleByCourse.get(c.id)).length;
+
+  // ── Packs de formation (catalogue global) ───────────────────────────────
+  let packsQuery = admin
+    .from("course_packs")
+    .select("id, titre_fr, prix_dzd, prix_eur, published, created_at, formateur:users(nom), items:course_pack_items(course_id)")
+    .order("created_at", { ascending: false });
+  if (q) packsQuery = packsQuery.ilike("titre_fr", `%${q}%`);
+  const { data: packs } = await packsQuery.limit(200);
+
+  // État « en vente » : produit boutique de type 'bundle' référençant le pack via files ["pack:<id>"]
+  const saleByPack = new Map<string, { id: string; price: number; active: boolean }>();
+  const { data: bundleProds } = await admin.from("products").select("id, price, is_active, files").eq("type", "bundle");
+  for (const p of bundleProds ?? []) {
+    const ref = ((p.files as string[]) ?? []).find((f) => f.startsWith("pack:"));
+    if (ref) saleByPack.set(ref.slice(5), { id: p.id, price: Number(p.price), active: !!p.is_active });
+  }
+  const packsOnSale = (packs ?? []).filter((p) => saleByPack.get(p.id)?.active).length;
 
   return (
     <div className="px-4 lg:px-8 py-6">
@@ -112,6 +132,59 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                 </TableCell>
               </TableRow>
             ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* ── Packs de formation ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 mt-12 mb-1">
+        <span className="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-orange-100 text-orange-600"><Package size={18} /></span>
+        <h2 className="font-playfair text-2xl font-bold text-gray-900">Packs de formation</h2>
+      </div>
+      <p className="text-gray-500 mb-5 font-dm">
+        {packs?.length ?? 0} pack(s) · {packsOnSale} en vente. Publiez un pack puis mettez-le en vente (achat complet).
+        <span className="text-gray-400"> L'abonnement par tranches des packs arrive prochainement.</span>
+      </p>
+
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <Table className="w-full text-sm">
+          <TableHeader className="bg-gray-50">
+            <TableRow className="text-left text-gray-500 font-dm">
+              <TableHead className="px-5 py-3 font-medium">Pack</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Formateur</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Cours inclus</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Publié</TableHead>
+              <TableHead className="px-5 py-3 font-medium">En vente</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="divide-y divide-gray-50">
+            {!packs?.length ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-10 text-gray-400">Aucun pack. Créez-en un dans l'espace formateur.</TableCell></TableRow>
+            ) : packs.map((p) => {
+              const prod = saleByPack.get(p.id);
+              const sale: PackSellState = {
+                active: !!prod?.active,
+                productId: prod?.id ?? null,
+                currentPrice: prod?.price ?? null,
+                defaultPrice: Number(p.prix_dzd) || 0,
+              };
+              return (
+                <TableRow key={p.id} className="hover:bg-gray-50 font-dm">
+                  <TableCell className="px-5 py-3">
+                    <div className="font-medium text-gray-900 truncate max-w-xs">{p.titre_fr}</div>
+                    <div className="text-xs text-gray-400">{Number(p.prix_dzd).toLocaleString("fr-DZ")} DA · {Number(p.prix_eur).toFixed(0)} €</div>
+                  </TableCell>
+                  <TableCell className="px-5 py-3 text-gray-600">{(p.formateur as { nom?: string } | null)?.nom ?? "—"}</TableCell>
+                  <TableCell className="px-5 py-3 text-gray-600">{((p.items as any[]) ?? []).length} cours</TableCell>
+                  <TableCell className="px-5 py-3"><PackPublishToggle packId={p.id} published={!!p.published} /></TableCell>
+                  <TableCell className="px-5 py-3"><PackSellButton packId={p.id} sale={sale} /></TableCell>
+                  <TableCell className="px-5 py-3">
+                    <Link href={`/formateur/packs/${p.id}/edit`} className="text-orange-600 font-semibold hover:underline">Modifier</Link>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
