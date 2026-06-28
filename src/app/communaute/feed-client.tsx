@@ -3,34 +3,24 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Rss, Newspaper, Users } from "lucide-react";
+import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send } from "lucide-react";
 import { toggleLike, addComment } from "@/app/actions/feed";
 import { getPostComments } from "@/app/actions/community";
 import { sourceLabel, type CommunityItem } from "@/lib/community-types";
+import { CommunityTabs } from "./community-tabs";
 
 interface Comment {
   id: string; content: string; created_at: string; author_id: string;
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-type Filter = "all" | "course_teaser" | "practical" | "patron_demo";
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: "all", label: "Pour toi" },
-  { id: "practical", label: "Travaux" },
-];
-
 export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
   const [commentPost, setCommentPost] = useState<string | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
 
-  const shown = filter === "all" ? items : items.filter((i) => i.sourceType === filter);
-
-  // Repart en haut de la liste filtrée à chaque changement d'onglet.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setActiveId(shown[0]?.id ?? null); }, [filter]);
+  const shown = items;
 
   // Barre du haut : Retour · logo→site · dashboard · son + onglets bascule.
   const topBar = (
@@ -47,32 +37,8 @@ export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityIt
           {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
       </div>
-      {/* Menu principal communauté */}
-      <div className="mt-1.5 flex items-center justify-center gap-6 px-3">
-        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-white">
-          <Rss size={15} /> tiktok-couture
-        </span>
-        <Link href="/dashboard/actualites" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/55 hover:text-white transition-colors">
-          <Newspaper size={15} /> Actualités
-        </Link>
-        <Link href="/dashboard/groupes" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/55 hover:text-white transition-colors">
-          <Users size={15} /> Groupes
-        </Link>
-      </div>
-      {/* Filtres du feed */}
-      <div className="mt-1.5 flex items-center justify-center gap-5 overflow-x-auto px-3">
-        {FILTERS.map((f) => (
-          <button key={f.id} onClick={() => setFilter(f.id)}
-            className={`relative whitespace-nowrap text-sm font-semibold pb-1 transition-colors ${filter === f.id ? "text-white" : "text-white/55"}`}>
-            {f.label}
-            {filter === f.id && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-white rounded-full" />}
-          </button>
-        ))}
-        <Link href="/offre"
-          className="whitespace-nowrap text-sm font-semibold pb-1 text-white/55 hover:text-white transition-colors">
-          Offre
-        </Link>
-      </div>
+      {/* Menu UNIQUE de la communauté (Pour toi · Actualité · Groups · Offre) */}
+      <div className="mt-1.5"><CommunityTabs /></div>
     </div>
   );
 
