@@ -10,7 +10,7 @@ import { AnimatedBackground } from "@/components/ui/animated-bg";
 import { DashboardSubnav } from "./dashboard-subnav";
 import { SidebarInner } from "./sidebar-inner";
 import { MobileNav } from "./mobile-nav";
-import { DashboardBottomNav } from "./bottom-nav";
+import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
 import { OnboardingTour } from "./onboarding-tour";
 import { TopbarIcon } from "./topbar-icon";
 import { PageTransition } from "./page-transition";
@@ -118,8 +118,8 @@ export default async function DashboardLayout({
         <Toaster />
       </main>
 
-      {/* Barre mobile en bas (5 entrées) + visite guidée au 1er accès (élèves) */}
-      <DashboardBottomNav lang={lang} />
+      {/* Menu flottant unique (mêmes 5 entrées que le reste du site) + visite guidée 1er accès */}
+      <MobileQuickNav />
       {role === "eleve" && <OnboardingTour lang={lang} />}
     </div>
   );
