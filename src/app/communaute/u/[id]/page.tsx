@@ -2,16 +2,17 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
-import { loadProfile, loadUserMedia, loadFollowInfo, loadStudentJourney } from "@/lib/community";
+import { loadProfile, loadUserMedia, loadFollowInfo, loadStudentJourney, loadCreatorPortfolio } from "@/lib/community";
 import { normLang } from "@/lib/store-i18n";
 import { CommunityProfileCard } from "./community-profile-card";
 import { CommunityJourney } from "./community-journey";
+import { CommunityPortfolio } from "./community-portfolio";
 import { MediaTile } from "./media-tile";
 
 export const metadata = { title: "Profil — Communauté Arazzo" };
 export const dynamic = "force-dynamic";
 
-const ROLE_LABEL: Record<string, string> = { admin: "Arazzo", formateur: "Formatrice", eleve: "Membre" };
+const ROLE_LABEL: Record<string, string> = { admin: "Arazzo", formateur: "Formatrice", patronniste: "Patronniste", eleve: "Membre" };
 
 export default async function CommunityProfilePage({ params }: { params: { id: string } }) {
   const { me, items } = await loadUserMedia(params.id);
@@ -24,7 +25,13 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
 
   const likes = items.reduce((s, i) => s + i.likeCount, 0);
   const { followers, isFollowing } = await loadFollowInfo(params.id, me.id);
-  const journey = await loadStudentJourney(params.id, lang);
+
+  // Créateur (formateur / patronniste / admin) → portfolio de ses créations.
+  // Élève → parcours d'apprentissage.
+  const role = profile?.role ?? "eleve";
+  const isCreator = role === "formateur" || role === "patronniste" || role === "admin";
+  const portfolio = isCreator ? await loadCreatorPortfolio(params.id, role) : null;
+  const journey = isCreator ? null : await loadStudentJourney(params.id, lang);
 
   return (
     <div className="min-h-[100dvh] bg-[#0b0818] text-white">
@@ -56,8 +63,10 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           lang={lang}
         />
 
-        {/* Parcours d'apprentissage (visible par les autres → « Suivre l'aventure ») */}
-        <CommunityJourney journey={journey} lang={lang} />
+        {/* Créateur → portfolio (formations / patrons) ; élève → parcours d'apprentissage */}
+        {portfolio
+          ? <CommunityPortfolio portfolio={portfolio} />
+          : journey && <CommunityJourney journey={journey} lang={lang} />}
 
         {/* Historique des publications */}
         <div className="mt-10">

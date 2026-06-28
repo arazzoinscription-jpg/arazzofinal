@@ -107,6 +107,52 @@ export async function loadProfile(userId: string) {
   return data;
 }
 
+export interface PortfolioItem { id: string; title: string; image: string | null; priceDzd: number; href: string; }
+export interface CreatorPortfolio { kind: "courses" | "patrons"; items: PortfolioItem[]; }
+
+/**
+ * Portfolio public d'un créateur : les FORMATIONS publiées d'un formateur, ou
+ * les PATRONS d'un patronniste. Utilisé sur le profil communauté à la place du
+ * « parcours d'apprentissage » réservé aux élèves.
+ */
+export async function loadCreatorPortfolio(userId: string, role: string): Promise<CreatorPortfolio | null> {
+  const admin = createAdminClient();
+
+  if (role === "formateur" || role === "admin") {
+    const { data } = await admin
+      .from("courses")
+      .select("id, titre_fr, slug, thumbnail, prix_dzd")
+      .eq("formateur_id", userId).eq("published", true)
+      .order("created_at", { ascending: false });
+    const items: PortfolioItem[] = (data ?? []).map((c) => ({
+      id: c.id as string,
+      title: (c.titre_fr as string) ?? "Formation",
+      image: (c.thumbnail as string) ?? null,
+      priceDzd: Number(c.prix_dzd) || 0,
+      href: `/formations/${(c.slug as string) ?? ""}`,
+    }));
+    return { kind: "courses", items };
+  }
+
+  if (role === "patronniste") {
+    const { data } = await admin
+      .from("patrons")
+      .select("id, titre, preview_url, prix_dzd")
+      .eq("formateur_id", userId)
+      .order("created_at", { ascending: false });
+    const items: PortfolioItem[] = (data ?? []).map((p) => ({
+      id: p.id as string,
+      title: (p.titre as string) ?? "Patron",
+      image: (p.preview_url as string) ?? null,
+      priceDzd: Number(p.prix_dzd) || 0,
+      href: `/patrons/${p.id as string}`,
+    }));
+    return { kind: "patrons", items };
+  }
+
+  return null;
+}
+
 export interface JourneyCourse {
   titre: string;
   slug: string | null;
