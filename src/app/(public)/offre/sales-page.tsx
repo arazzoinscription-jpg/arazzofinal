@@ -13,10 +13,9 @@ import {
   CreditCard, CalendarClock,
   type LucideIcon,
 } from "lucide-react";
-import { LangSwitcherPublic } from "@/components/layout/lang-switcher-public";
+import { Navbar } from "@/components/layout/navbar";
 import { AnimatedText } from "@/components/ui/animated-text";
 import { OFFRE, type Lang } from "./offre-i18n";
-import { HOME } from "@/lib/home-i18n";
 import { createClient } from "@/lib/supabase/client";
 import { submitLead, createLeadProofUploadUrl, recordLeadProof, sendPaymentInfo, getCourseFiche, submitDeliveryOrder } from "@/app/actions/rejoindre";
 import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
@@ -124,7 +123,7 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
 
   return (
     <div className="bg-cream-DEFAULT dark:bg-[#0b0818] text-gray-900 dark:text-white overflow-x-hidden">
-      <Header lang={lang} />
+      <Navbar lang={lang} solid />
       <Hero lang={lang} />
       <Why lang={lang} />
       <Paths lang={lang} courses={courses} onEnroll={(cid) => enroll(null, cid)} onFiche={setFicheId} />
@@ -153,41 +152,6 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
         © {new Date().getFullYear()} Arazzo Formation — {t.hero.eyebrow}
       </footer>
     </div>
-  );
-}
-
-/* ── En-tête ───────────────────────────────────────────────────────────── */
-function Header({ lang }: { lang: Lang }) {
-  const t = OFFRE[lang].nav;
-  const nav = HOME[lang].nav;
-  return (
-    <header className="sticky top-0 z-50 bg-cream-DEFAULT/85 dark:bg-[#0b0818]/85 backdrop-blur-md border-b border-cream-200 dark:border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-        <Link href="/" className="font-playfair text-xl font-bold">
-          <span className="text-violet-DEFAULT dark:text-violet-300">Arazzo</span>
-          <span className="text-orange-DEFAULT"> Formation</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          {/* Menu principal (identique au reste du site) */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {[
-              { href: "/formations", label: nav.formations },
-              { href: "/patrons", label: nav.patrons },
-              { href: "/boutique", label: nav.boutique },
-              { href: "/offre", label: nav.offre },
-              { href: "/a-propos", label: nav.apropos },
-            ].map((l) => (
-              <Link key={l.href} href={l.href} className="text-sm font-medium text-gray-600 dark:text-white/70 hover:text-orange-600 px-2.5 py-1">{l.label}</Link>
-            ))}
-          </nav>
-          <LangSwitcherPublic current={lang} scrolled />
-          <a href="#quiz" className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-orange-600 transition-colors">
-            <Sparkles size={15} /> {t.testLevel}
-          </a>
-        </div>
-      </div>
-    </header>
   );
 }
 
