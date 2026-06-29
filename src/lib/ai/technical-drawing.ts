@@ -26,12 +26,14 @@ const PROMPT = [
   "Transform this clothing photo into a clean TECHNICAL FASHION FLAT SKETCH",
   "(croquis technique de mode à plat), exactly like a sewing-pattern technical drawing.",
   "Strict requirements:",
-  "- Black line art on a PURE WHITE background, no color, no shading, no gradients.",
+  "- BOLD, THICK, high-contrast solid black outlines (strong confident lines, not thin or faint),",
+  "  with finer interior lines for seams and details. Crisp vector-style technical illustration.",
+  "- Pure black line art on a PURE WHITE background, no color, no shading, no gradients, no grey wash.",
   "- Front view, garment shown FLAT, with NO body, NO model, NO mannequin.",
   "- Keep the exact same garment: same silhouette, same seams, darts, pleats,",
   "  buttons, pockets, hems, wrap/asymmetric details and proportions as the photo.",
-  "- Clean, even, vector-style outlines (technical illustration look).",
-  "- Centered, with a small margin, nothing else in the image.",
+  "- The garment must FILL most of the frame (large and well centered), only a small even margin,",
+  "  perfectly upright, nothing else in the image (no text, no labels, no background objects).",
 ].join(" ");
 
 type Result =

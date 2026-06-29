@@ -188,22 +188,22 @@ export function FicheGenerator({
               <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                 <img src="/images/arazzo-icon.png" alt="" crossOrigin="anonymous" style={{ width: 38, height: 38, borderRadius: 9 }} />
                 <div style={{ lineHeight: 1.1 }}>
-                  <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 19, fontWeight: 700, color: "#FE7223" }}>Arazzo</div>
-                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.22em", color: "#5B16F9", textTransform: "uppercase", marginTop: 2 }}>Patronnage</div>
+                  <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 24, fontWeight: 700, color: "#FE7223" }}>Arazzo</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.22em", color: "#5B16F9", textTransform: "uppercase", marginTop: 2 }}>Patronnage</div>
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 9, letterSpacing: "0.2em", color: "#a89bbf", textTransform: "uppercase", fontFamily: "var(--font-mono), monospace" }}>Référence</div>
-                <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 18, fontWeight: 700, color: "#1c0659" }}>N° {data?.numero || "—"}</div>
+                <div style={{ fontSize: 11, letterSpacing: "0.2em", color: "#a89bbf", textTransform: "uppercase", fontFamily: "var(--font-mono), monospace" }}>Référence</div>
+                <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 23, fontWeight: 700, color: "#1c0659" }}>N° {data?.numero || "—"}</div>
               </div>
             </div>
 
             {/* Titre + filet ciseaux */}
             <div style={{ textAlign: "center", marginBottom: 12, flexShrink: 0 }}>
-              <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 22, fontWeight: 700, color: "#5B16F9", marginBottom: 4 }}>
+              <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 30, fontWeight: 700, color: "#5B16F9", marginBottom: 4 }}>
                 {data?.titre || "Titre du patron"}
               </div>
-              <div style={{ fontSize: 10.5, letterSpacing: "0.18em", textTransform: "uppercase", color: "#9b8fb0", fontFamily: "var(--font-mono), monospace" }}>
+              <div style={{ fontSize: 13, letterSpacing: "0.18em", textTransform: "uppercase", color: "#9b8fb0", fontFamily: "var(--font-mono), monospace" }}>
                 Patron de couture · Modèle prêt à imprimer
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 }}>
@@ -221,15 +221,15 @@ export function FicheGenerator({
                     ? <img src={dessinUrl} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                     : <span style={{ color: "#b9adc9", fontSize: 13, textAlign: "center", padding: 12 }}>Dessin technique<br />(IA ou import)</span>}
                 </div>
-                <div style={{ textAlign: "center", marginTop: 6, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "#7c3aed", fontWeight: 600, fontFamily: "var(--font-mono), monospace", flexShrink: 0 }}>Dessin technique</div>
+                <div style={{ textAlign: "center", marginTop: 6, fontSize: 13, letterSpacing: "0.16em", textTransform: "uppercase", color: "#7c3aed", fontWeight: 600, fontFamily: "var(--font-mono), monospace", flexShrink: 0 }}>Dessin technique</div>
               </div>
               <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-                <div style={{ flex: 1, minHeight: 0, borderRadius: 12, overflow: "hidden", border: "1px solid #E8DED4", background: "linear-gradient(135deg,#5B16F9,#FE7223)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 3px rgba(28,6,89,0.06)" }}>
+                <div style={{ flex: 1, minHeight: 0, borderRadius: 12, overflow: "hidden", border: "1px solid #E8DED4", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 3px rgba(28,6,89,0.06)" }}>
                   {photo
-                    ? <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    : <span style={{ fontFamily: "var(--font-playfair), serif", color: "rgba(255,255,255,0.9)", fontSize: 16 }}>Photo réelle</span>}
+                    ? <img src={photo} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    : <span style={{ fontFamily: "var(--font-playfair), serif", color: "#b9adc9", fontSize: 16 }}>Photo réelle</span>}
                 </div>
-                <div style={{ textAlign: "center", marginTop: 6, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", color: "#E5590E", fontWeight: 600, fontFamily: "var(--font-mono), monospace", flexShrink: 0 }}>Modèle réel</div>
+                <div style={{ textAlign: "center", marginTop: 6, fontSize: 13, letterSpacing: "0.16em", textTransform: "uppercase", color: "#E5590E", fontWeight: 600, fontFamily: "var(--font-mono), monospace", flexShrink: 0 }}>Modèle réel</div>
               </div>
             </div>
 
@@ -237,18 +237,18 @@ export function FicheGenerator({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, paddingTop: 12, borderTop: "1px solid #EADFCF", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", color: "#9b8fb0", fontFamily: "var(--font-mono), monospace" }}>Tailles disponibles</div>
-                  <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 16, fontWeight: 700, color: "#1c0659" }}>{data?.tailles || "—"}</div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "#9b8fb0", fontFamily: "var(--font-mono), monospace" }}>Tailles disponibles</div>
+                  <div style={{ fontFamily: "var(--font-playfair), Georgia, serif", fontSize: 22, fontWeight: 700, color: "#1c0659" }}>{data?.tailles || "—"}</div>
                 </div>
                 {data?.tailles && (
-                  <span dir="rtl" style={{ background: "#F1EAFB", color: "#5B16F9", borderRadius: 8, padding: "4px 11px", fontSize: 13, fontWeight: 600 }}>المقاسات {data.tailles}</span>
+                  <span dir="rtl" style={{ background: "#F1EAFB", color: "#5B16F9", borderRadius: 8, padding: "5px 12px", fontSize: 15, fontWeight: 600 }}>المقاسات {data.tailles}</span>
                 )}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: "#fff", background: "#E5590E", borderRadius: 6, padding: "4px 10px" }}>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#fff", background: "#E5590E", borderRadius: 6, padding: "4px 10px" }}>
                   PAPIER {data?.format || "A0.A4"}
                 </span>
-                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 11, fontWeight: 700, letterSpacing: "0.05em", color: "#fff", background: "#1c0659", borderRadius: 6, padding: "4px 10px" }}>
+                <span style={{ fontFamily: "var(--font-mono), monospace", fontSize: 13, fontWeight: 700, letterSpacing: "0.05em", color: "#fff", background: "#1c0659", borderRadius: 6, padding: "4px 10px" }}>
                   PDF
                 </span>
               </div>

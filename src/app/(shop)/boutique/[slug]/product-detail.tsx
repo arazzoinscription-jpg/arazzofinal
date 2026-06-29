@@ -59,7 +59,7 @@ export function ProductDetail({ product, lang = "fr" }: { product: DetailProduct
       <div>
         <div className="aspect-square rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 bg-gradient-to-br from-cream-100 to-blush-50 dark:from-white/5 dark:to-white/[0.02] shadow-soft flex items-center justify-center">
           {images[active] ? (
-            <img src={images[active]} alt={product.title} className="w-full h-full object-cover" />
+            <img src={images[active]} alt={product.title} className={`w-full h-full ${product.type === "patron_pdf" ? "object-contain p-2" : "object-cover"}`} />
           ) : (
             <span className="text-8xl opacity-70">{FALLBACK_EMOJI[product.type] ?? "🧵"}</span>
           )}

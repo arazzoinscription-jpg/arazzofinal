@@ -90,7 +90,9 @@ export function ProductCard({ product, index = 0, lang = "fr" }: { product: Shop
       <Link href={`/boutique/${product.slug}`} className="relative block aspect-square overflow-hidden bg-gradient-to-br from-cream-100 to-blush-50 dark:from-white/5 dark:to-white/[0.02]">
         {image ? (
           <img src={image} alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            className={`w-full h-full transition-transform duration-500 ${
+              product.type === "patron_pdf" ? "object-contain p-1.5 group-hover:scale-[1.03]" : "object-cover group-hover:scale-110"
+            }`} />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center text-6xl opacity-70">{FALLBACK_EMOJI[product.type] ?? "🧵"}</span>
         )}
