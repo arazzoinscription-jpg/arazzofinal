@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { GraduationCap, Scissors, ArrowRight, ArrowLeft, Check, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
+import { notifyAdminSignup } from "@/app/actions/admin-notify";
 import { DotMap } from "@/components/ui/dot-map";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { isRtl, type Lang } from "@/lib/store-i18n";
@@ -103,6 +104,9 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
         id: data.user.id, nom: form.nom, email: form.email, ville: form.ville, pays: form.pays, role: "eleve",
       });
     }
+
+    // Notifie l'admin par email (best-effort, ne bloque pas l'inscription).
+    await notifyAdminSignup({ nom: form.nom, email: form.email, ville: form.ville, pays: form.pays, accountType }).catch(() => {});
 
     await mergeCartOnLogin().catch(() => {});
     const redirect = new URLSearchParams(window.location.search).get("redirect");

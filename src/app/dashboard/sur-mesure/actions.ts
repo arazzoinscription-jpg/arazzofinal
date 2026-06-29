@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyPatronnistes, notifyUser, notifyAdmins } from "@/lib/sur-mesure-notify";
+import { notifyAdminEmail } from "@/lib/admin-notify";
 import { z } from "zod";
 import { createBunnyVideo, bunnyTusAuth, isBunnyConfigured, FEED_LIBRARY_ID } from "@/lib/bunny/stream";
 import { MESURE_FIELDS, buildSurMesureNote, orderType, SUR_MESURE, type SurMesureType } from "./constants";
@@ -71,6 +72,17 @@ export async function placeCustomOrder(formData: FormData) {
     body: `« ${titre} » — une cliente attend une proposition de prix${isPlacement ? " (placement)" : ""}.`,
     link: "/admin/sur-mesure",
   });
+  await notifyAdminEmail(
+    isPlacement ? "📐 Nouvelle demande de placement sur mesure" : "🧵 Nouvelle commande patron sur mesure",
+    {
+      "Prestation": isPlacement ? "Placement sur mesure" : "Patron sur mesure",
+      "Modèle": titre,
+      "Tissu": tissu, "Taille": taille,
+      "Cliente": user.email,
+      "Mesures": Object.keys(mesures).length ? `${Object.keys(mesures).length} renseignée(s)` : "—",
+    },
+    { intro: "Une cliente attend une proposition de prix.", link: "/admin/sur-mesure" },
+  );
 
   revalidatePath("/dashboard/sur-mesure");
   revalidatePath("/admin/sur-mesure");

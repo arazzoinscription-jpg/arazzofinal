@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { notifyAdminEmail } from "@/lib/admin-notify";
 
 export interface PatronRequestInput {
   patronId: string;
@@ -98,6 +99,22 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
       link: "/dashboard/commandes",
     });
   } catch { /* ignore */ }
+
+  // Notification admin par email
+  await notifyAdminEmail(
+    input.type === "impression_a0" ? "🖨️ Nouvelle commande patron (impression A0)" : "📐 Nouvelle commande patron (placement)",
+    {
+      "Type": input.type === "impression_a0" ? "Impression A0" : "Placement sur mesure",
+      "Patron": patron.titre,
+      "Détail": titre,
+      "Cliente": user.email,
+      "Coordonnées": input.type === "impression_a0"
+        ? `${(input.fullName ?? "").trim()} · ${(input.phone ?? "").trim()} · ${(input.wilaya ?? "").trim()}`
+        : `Table ${input.tableLongueur}×${input.tableLargeur} cm · laize ${input.laizeTissu} cm`,
+      "Tissu": (input.tissu ?? "").trim() || "—",
+    },
+    { intro: "Une commande de fabrication patron vient d'être passée.", link: "/patronniste/sur-mesure" },
+  );
 
   return { ok: true };
 }

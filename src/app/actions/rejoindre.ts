@@ -4,6 +4,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { notifyAdminEmail } from "@/lib/admin-notify";
 import { createMagicLink, createPasswordSetupLink } from "@/lib/magic-link";
 import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 
@@ -209,6 +210,12 @@ export async function submitLead(input: unknown) {
       await admin.from("orders").delete().eq("id", order.id);
       return { ok: false as const, error: "Inscription impossible." };
     }
+    await notifyAdminEmail("🧾 Nouvelle commande (pack) — /offre", {
+      "Pack": pack.titre_fr || "Pack",
+      "Montant": `${Number(total).toLocaleString("fr-DZ")} DA`,
+      "Formule": isInstallment ? "Paiement en tranches (1ʳᵉ échéance)" : subOn ? "Comptant (remisé)" : "Comptant",
+      "Cliente": full_name, "Email": cleanEmail, "Téléphone": phone, "Wilaya": wilaya || "—",
+    }, { intro: "Une inscription à un pack vient d'être passée (virement, en attente de validation).", link: "/admin/commandes" });
     return { ok: true as const, orderId: order.id };
   }
 
@@ -248,6 +255,14 @@ export async function submitLead(input: unknown) {
     await admin.from("orders").delete().eq("id", order.id);
     return { ok: false as const, error: "Inscription impossible." };
   }
+
+  await notifyAdminEmail("🧾 Nouvelle commande (formation) — /offre", {
+    "Formation": course.titre_fr || "Formation",
+    "N° commande": order.order_number ?? order.id,
+    "Montant": `${Number(total).toLocaleString("fr-DZ")} DA`,
+    "Formule": isInstallment ? "Paiement en tranches (1ʳᵉ échéance)" : subOn ? "Comptant (remisé)" : "Comptant",
+    "Cliente": full_name, "Email": cleanEmail, "Téléphone": phone, "Wilaya": wilaya || "—",
+  }, { intro: "Une inscription à une formation vient d'être passée (virement, en attente de validation).", link: "/admin/commandes" });
 
   return { ok: true as const, orderId: order.id };
 }
