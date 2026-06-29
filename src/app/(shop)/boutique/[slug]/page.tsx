@@ -57,7 +57,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         .select(`prix_dzd,
           items:course_pack_items(course:courses(slug, titre_fr, niveau, thumbnail, prix_dzd,
             course_categories(category:categories(name_fr)),
-            chapters(id, titre, ordre, lessons(id))))`)
+            chapters(id, titre, ordre, lessons(id, titre, ordre))))`)
         .eq("id", packId)
         .maybeSingle();
       if (pack) {
@@ -76,7 +76,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
             thumbnail: c?.thumbnail ?? null,
             chapters: chapters.length,
             lessons: chapters.reduce((s: number, ch: any) => s + ((ch.lessons as any[])?.length ?? 0), 0),
-            program: chapters.map((ch: any) => (ch.titre as string) ?? "").filter(Boolean),
+            program: chapters.map((ch: any) => ({
+              titre: (ch.titre as string) ?? "Chapitre",
+              lessons: [...((ch.lessons as any[]) ?? [])]
+                .sort((a: any, b: any) => (a.ordre ?? 0) - (b.ordre ?? 0))
+                .map((l: any) => (l.titre as string) ?? "").filter(Boolean),
+            })),
           };
         });
         packInfo = {

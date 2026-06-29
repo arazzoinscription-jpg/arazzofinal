@@ -67,6 +67,53 @@ export async function getCourseFiche(courseId: string) {
   };
 }
 
+/** Détail d'un PACK (formations incluses → chapitres → leçons) pour la popup /offre. */
+export async function getPackFiche(packId: string) {
+  if (!z.string().uuid().safeParse(packId).success) return { ok: false as const, error: "Identifiant invalide." };
+  const admin = createAdminClient();
+  const { data: pack } = await admin
+    .from("course_packs")
+    .select(`titre_fr, prix_dzd, prix_eur, duration_months,
+      items:course_pack_items(course:courses(slug, titre_fr, niveau, thumbnail,
+        chapters(titre, ordre, lessons(titre, duree_minutes, ordre))))`)
+    .eq("id", packId).eq("published", true).maybeSingle();
+  if (!pack) return { ok: false as const, error: "Pack introuvable." };
+
+  const courses = ((pack.items as any[]) ?? []).map((it) => {
+    const c = it.course;
+    const chapters = [...((c?.chapters as any[]) ?? [])]
+      .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+      .map((ch) => ({
+        titre: ch.titre ?? "Chapitre",
+        lessons: [...((ch.lessons as any[]) ?? [])]
+          .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+          .map((l) => ({ titre: l.titre ?? "Leçon", duree: l.duree_minutes ?? null })),
+      }));
+    const lessonsTotal = chapters.reduce((s, ch) => s + ch.lessons.length, 0);
+    return {
+      slug: c?.slug ?? null,
+      title: c?.titre_fr ?? "Formation",
+      niveau: c?.niveau ?? null,
+      thumbnail: c?.thumbnail ?? null,
+      chapters,
+      chaptersCount: chapters.length,
+      lessonsTotal,
+    };
+  });
+
+  return {
+    ok: true as const,
+    fiche: {
+      titre: pack.titre_fr ?? "Pack",
+      prixDzd: Number(pack.prix_dzd) || 0,
+      prixEur: Number(pack.prix_eur) || 0,
+      durationMonths: Number((pack as { duration_months?: number | null }).duration_months) || null,
+      courses,
+      lessonsTotal: courses.reduce((s, c) => s + c.lessonsTotal, 0),
+    },
+  };
+}
+
 /**
  * Envoie par email les coordonnées de paiement (CCP/RIB) + les étapes à suivre.
  * Remplace l'affichage public du RIB sur la page offre (confidentialité).

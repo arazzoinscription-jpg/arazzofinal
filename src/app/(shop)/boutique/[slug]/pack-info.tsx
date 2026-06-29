@@ -17,7 +17,7 @@ export interface PackInfo {
     thumbnail: string | null;
     lessons: number;
     chapters: number;
-    program?: string[];
+    program?: { titre: string; lessons: string[] }[];
   }[];
 }
 
@@ -99,17 +99,33 @@ export function PackInfoSection({ pack, lang = "fr" }: { pack: PackInfo; lang?: 
                   </div>
                   {c.program && c.program.length > 0 && (
                     <div className="mt-2.5">
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 mb-1">{t.program}</p>
-                      <ul className="space-y-1">
-                        {c.program.slice(0, 8).map((ch, j) => (
-                          <li key={j} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-white/60 font-dm">
-                            <Check size={12} className="text-orange-DEFAULT flex-shrink-0 mt-0.5" /> <span className="line-clamp-1">{ch}</span>
-                          </li>
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 mb-1.5">{t.program}</p>
+                      <div className="space-y-1.5">
+                        {c.program.map((ch, j) => (
+                          <details key={j} className="group rounded-lg bg-cream-50/70 dark:bg-white/[0.03] border border-cream-200 dark:border-white/10">
+                            <summary className="flex items-center justify-between gap-2 cursor-pointer px-2.5 py-1.5 list-none">
+                              <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-white/80 min-w-0">
+                                <Check size={12} className="text-orange-DEFAULT flex-shrink-0" />
+                                <span className="line-clamp-1">{ch.titre}</span>
+                              </span>
+                              {ch.lessons.length > 0 && (
+                                <span className="flex items-center gap-1 text-[11px] text-gray-400 shrink-0">
+                                  {ch.lessons.length} <ChevronRight size={11} className="group-open:rotate-90 transition-transform" />
+                                </span>
+                              )}
+                            </summary>
+                            {ch.lessons.length > 0 && (
+                              <ul className="pb-1.5 ps-7 pe-2.5 space-y-0.5">
+                                {ch.lessons.map((l, k) => (
+                                  <li key={k} className="flex items-center gap-1.5 text-[11px] text-gray-500 dark:text-white/55">
+                                    <PlayCircle size={10} className="text-violet-400 flex-shrink-0" /> <span className="line-clamp-1">{l}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </details>
                         ))}
-                        {c.program.length > 8 && (
-                          <li className="text-xs text-gray-400 dark:text-white/40 ps-4">+{c.program.length - 8}…</li>
-                        )}
-                      </ul>
+                      </div>
                     </div>
                   )}
                   {c.slug && (

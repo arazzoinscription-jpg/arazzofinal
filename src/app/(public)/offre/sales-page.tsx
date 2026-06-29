@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { AnimatedText } from "@/components/ui/animated-text";
+import { PackFicheModal } from "./pack-fiche-modal";
 import { OFFRE, type Lang } from "./offre-i18n";
 import { createClient } from "@/lib/supabase/client";
 import { submitLead, createLeadProofUploadUrl, recordLeadProof, sendPaymentInfo, getCourseFiche, submitDeliveryOrder } from "@/app/actions/rejoindre";
@@ -909,6 +910,7 @@ function Inscription({
   const [payMethod, setPayMethod] = useState<"baridi" | "delivery">("baridi");
   const [plan, setPlan] = useState<"full" | "installments">("full");
   const [deliveryDone, setDeliveryDone] = useState(false);
+  const [packFicheId, setPackFicheId] = useState<string | null>(null);
 
   // Preuve de paiement
   const [proofEmail, setProofEmail] = useState("");
@@ -1080,17 +1082,12 @@ function Inscription({
                         </div>
                         <p className="font-semibold text-sm text-gray-900 dark:text-white leading-snug line-clamp-2">{c.titre}</p>
                         <p className="font-bold text-orange-600 mt-2 text-sm">{c.prixDzd > 0 ? fmt(c.prixDzd) : ""}</p>
-                        {c.detailSlug && (
-                          <a
-                            href={`/boutique/${c.detailSlug}`}
-                            target="_blank" rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-violet-700 dark:text-violet-300 hover:underline"
-                          >
-                            {lang === "ar" ? "عرض تفاصيل التكوين" : lang === "en" ? "View course details" : "Voir le détail de la formation"}
-                            <ChevronRight size={13} className="rtl:rotate-180" />
-                          </a>
-                        )}
+                        <button type="button"
+                          onClick={(e) => { e.stopPropagation(); setPackFicheId(c.id); }}
+                          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-violet-700 dark:text-violet-300 hover:underline">
+                          {lang === "ar" ? "عرض تفاصيل التكوين" : lang === "en" ? "View course details" : "Voir le détail de la formation"}
+                          <ChevronRight size={13} className="rtl:rotate-180" />
+                        </button>
                       </div>
                     );
                   })}
@@ -1220,6 +1217,15 @@ function Inscription({
           </div>
         )}
       </div>
+
+      {/* Popup détail d'un pack (reste sur /offre) */}
+      <PackFicheModal
+        packId={packFicheId}
+        lang={lang}
+        onClose={() => setPackFicheId(null)}
+        onChoose={(pid) => { setCourseId(pid); setTimeout(() => document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth" }), 60); }}
+        fmt={fmt}
+      />
     </Section>
   );
 }
