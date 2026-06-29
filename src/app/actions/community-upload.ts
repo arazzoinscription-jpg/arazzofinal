@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createBunnyVideo, bunnyTusAuth, bunnyPlaybackUrls } from "@/lib/bunny/stream";
+import { isFacebookVideoUrl } from "@/lib/community-types";
 
 type Source = "admin" | "course_teaser" | "patron_demo";
 
@@ -98,6 +99,56 @@ export async function finalizeCommunityVideo(input: unknown) {
     thumbnail_url: thumbnail,
     course_id: sourceType === "course_teaser" ? courseId : null,
     patron_id: sourceType === "patron_demo" ? patronId : null,
+    status: "ready",
+  });
+  if (cmErr) {
+    await admin.from("posts").delete().eq("id", post.id);
+    return { ok: false as const, error: cmErr.message };
+  }
+
+  revalidatePath("/communaute");
+  return { ok: true as const };
+}
+
+const FacebookSchema = z.object({
+  url: z.string().trim().url("Lien invalide.").max(500),
+  caption: z.string().trim().max(500).optional(),
+});
+
+/**
+ * Partage une vidéo Facebook dans le feed — SANS téléchargement ni réupload.
+ * On enregistre juste l'URL (lecteur Facebook intégré au rendu). Ouvert à tout
+ * membre connecté ; l'admin peut masquer/supprimer ensuite (togglePostPublished/deletePost).
+ * La vidéo doit être PUBLIQUE pour être lisible par les autres.
+ */
+export async function addFacebookVideo(input: unknown) {
+  const parsed = FacebookSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
+  const url = parsed.data.url;
+  if (!url.startsWith("https://") || !isFacebookVideoUrl(url)) {
+    return { ok: false as const, error: "Collez le lien d'une vidéo Facebook (facebook.com ou fb.watch)." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Connectez-vous pour partager une vidéo." };
+
+  const admin = createAdminClient();
+  const { data: post, error: postErr } = await admin
+    .from("posts")
+    .insert({ author_id: user.id, group_id: null, content: parsed.data.caption?.trim() || null, published: true })
+    .select("id")
+    .single();
+  if (postErr || !post) return { ok: false as const, error: "Publication impossible." };
+
+  // source_type contraint (admin/course_teaser/practical/patron_demo) → on stocke 'admin' ;
+  // le type « facebook » est déduit de l'URL au rendu (mapRow). media_url porte le lien FB.
+  const { error: cmErr } = await admin.from("community_media").insert({
+    post_id: post.id,
+    source_type: "admin",
+    media_kind: "video",
+    media_url: url,
+    bunny_video_id: null,
     status: "ready",
   });
   if (cmErr) {

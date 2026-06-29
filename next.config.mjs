@@ -33,7 +33,7 @@ const nextConfig = {
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: https:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.virustotal.com https://iframe.mediadelivery.net https://*.b-cdn.net https://video.bunnycdn.com",
-      "frame-src 'self' https://iframe.mediadelivery.net https://*.b-cdn.net https://www.youtube.com https://player.vimeo.com",
+      "frame-src 'self' https://iframe.mediadelivery.net https://*.b-cdn.net https://www.youtube.com https://player.vimeo.com https://www.facebook.com https://web.facebook.com https://*.facebook.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self' https://*.chargily.com https://*.paypal.com",

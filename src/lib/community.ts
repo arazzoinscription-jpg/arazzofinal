@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bunnyPlaybackUrls } from "@/lib/bunny/stream";
-import type { CommunityItem } from "@/lib/community-types";
+import { isFacebookVideoUrl, type CommunityItem } from "@/lib/community-types";
 
 export type { CommunityItem, SourceType } from "@/lib/community-types";
 export { sourceLabel } from "@/lib/community-types";
@@ -17,10 +17,12 @@ function mapRow(r: any, meId: string): CommunityItem {
   const post = r.post ?? {};
   const likes = (post.likes ?? []) as { user_id: string }[];
   const bunny = r.bunny_video_id ? bunnyPlaybackUrls(r.bunny_video_id) : null;
+  // Vidéo Facebook partagée : détectée par l'URL (stockée dans media_url) → libellé « Facebook ».
+  const isFb = isFacebookVideoUrl(r.media_url);
   return {
     id: r.id,
     postId: r.post_id,
-    sourceType: r.source_type,
+    sourceType: isFb ? "facebook" : r.source_type,
     mediaKind: r.media_kind,
     videoHls: bunny?.hls ?? null,
     mediaUrl: r.media_url ?? null,

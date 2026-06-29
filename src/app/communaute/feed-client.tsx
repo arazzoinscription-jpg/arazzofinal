@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send } from "lucide-react";
+import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check } from "lucide-react";
 import { toggleLike, addComment } from "@/app/actions/feed";
 import { getPostComments } from "@/app/actions/community";
-import { sourceLabel, type CommunityItem } from "@/lib/community-types";
+import { addFacebookVideo } from "@/app/actions/community-upload";
+import { sourceLabel, isFacebookVideoUrl, facebookEmbedSrc, type CommunityItem } from "@/lib/community-types";
 import { CommunityTabs } from "./community-tabs";
 
 interface Comment {
@@ -19,6 +20,7 @@ export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityIt
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
   const [commentPost, setCommentPost] = useState<string | null>(null);
+  const [fbOpen, setFbOpen] = useState(false);
 
   const shown = items;
 
@@ -32,6 +34,8 @@ export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityIt
         <div className="flex-1" />
         <Link href="/dashboard" aria-label="Tableau de bord"
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
+        <button onClick={() => setFbOpen(true)} aria-label="Partager une vidéo Facebook"
+          className="w-9 h-9 grid place-items-center rounded-full bg-[#1877F2] text-white shrink-0"><Facebook size={17} /></button>
         <button onClick={() => setMuted((m) => !m)} aria-label="Son"
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0">
           {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -76,6 +80,63 @@ export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityIt
       {commentPost && (
         <CommentSheet postId={commentPost} onClose={() => setCommentPost(null)} />
       )}
+
+      {fbOpen && <FacebookAddSheet onClose={() => setFbOpen(false)} />}
+    </div>
+  );
+}
+
+/** Partager une vidéo Facebook par lien (aucun téléchargement / réupload). */
+function FacebookAddSheet({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [url, setUrl] = useState("");
+  const [caption, setCaption] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const valid = isFacebookVideoUrl(url.trim());
+
+  function submit() {
+    setError(null);
+    if (!valid) { setError("Collez le lien d'une vidéo Facebook (facebook.com ou fb.watch)."); return; }
+    startTransition(async () => {
+      const res = await addFacebookVideo({ url: url.trim(), caption: caption.trim() || undefined });
+      if (res.ok) { setDone(true); router.refresh(); setTimeout(onClose, 900); }
+      else setError(res.error ?? "Erreur");
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center sm:justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60" />
+      <div onClick={(e) => e.stopPropagation()}
+        className="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-5 pb-[max(20px,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-between mb-1">
+          <span className="inline-flex items-center gap-2 font-semibold text-gray-900">
+            <Facebook size={20} className="text-[#1877F2]" /> Partager une vidéo Facebook
+          </span>
+          <button onClick={onClose} className="w-8 h-8 grid place-items-center rounded-full hover:bg-cream-100"><X size={18} /></button>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">Collez le lien d'une vidéo Facebook <strong>publique</strong> (la vôtre ou d'un autre compte). La vidéo reste hébergée chez Facebook — aucun téléchargement.</p>
+
+        {error && <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm mb-3">{error}</div>}
+        {done && <div className="rounded-xl bg-green-50 border border-green-200 text-green-700 px-3 py-2 text-sm mb-3 flex items-center gap-2"><Check size={15} /> Vidéo ajoutée au feed !</div>}
+
+        <label className="block text-sm font-medium text-gray-700 mb-1">Lien de la vidéo Facebook</label>
+        <input value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" placeholder="https://www.facebook.com/.../videos/..."
+          className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2] mb-1" />
+        {url.trim() && !valid && <p className="text-xs text-red-500 mb-2">Ce lien n'est pas une vidéo Facebook.</p>}
+
+        <label className="block text-sm font-medium text-gray-700 mb-1 mt-3">Légende (optionnel)</label>
+        <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={2} maxLength={500} placeholder="Décrivez la vidéo…"
+          className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1877F2]" />
+
+        <button onClick={submit} disabled={isPending || !valid}
+          className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-[#1877F2] text-white py-3 rounded-xl font-semibold hover:bg-[#1568d8] disabled:opacity-50 transition-colors">
+          {isPending ? <Loader2 size={18} className="animate-spin" /> : <Facebook size={18} />} Partager dans le feed
+        </button>
+      </div>
     </div>
   );
 }
@@ -120,6 +181,7 @@ function Slide({
     });
   }
 
+  const isFacebook = isFacebookVideoUrl(item.mediaUrl);
   const isBunny = !item.mediaUrl && !!item.videoHls;
 
   return (
@@ -127,6 +189,20 @@ function Slide({
       {/* Média */}
       {item.mediaKind === "image" ? (
         <img src={item.mediaUrl ?? item.thumbnail ?? ""} alt="" className="absolute inset-0 w-full h-full object-contain" />
+      ) : isFacebook ? (
+        active ? (
+          <iframe
+            src={facebookEmbedSrc(item.mediaUrl)}
+            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+            allowFullScreen scrolling="no"
+            className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0b0818] text-white/70">
+            <Facebook size={44} className="text-[#1877F2]" />
+            <span className="font-dm text-sm">Vidéo Facebook</span>
+          </div>
+        )
       ) : isBunny ? (
         active ? (
           <iframe

@@ -1,7 +1,24 @@
 // Types & helpers communauté SANS dépendance serveur — importables côté client.
 // (Le chargement des données vit dans community.ts, qui importe du code server-only.)
 
-export type SourceType = "admin" | "course_teaser" | "practical" | "patron_demo";
+export type SourceType = "admin" | "course_teaser" | "practical" | "patron_demo" | "facebook";
+
+/** Vrai si l'URL pointe vers une vidéo Facebook (facebook.com / fb.watch). */
+export function isFacebookVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    return /(^|\.)facebook\.com$/.test(h) || h === "fb.watch" || h.endsWith(".fb.watch");
+  } catch {
+    return false;
+  }
+}
+
+/** Construit la source du lecteur Facebook intégré (aucun téléchargement : la vidéo reste chez Facebook). */
+export function facebookEmbedSrc(url: string | null | undefined): string {
+  const href = encodeURIComponent(url ?? "");
+  return `https://www.facebook.com/plugins/video.php?href=${href}&show_text=false&autoplay=false&allowfullscreen=true`;
+}
 
 export interface CommunityItem {
   id: string;            // community_media.id
@@ -25,6 +42,7 @@ const SOURCE_LABEL: Record<SourceType, string> = {
   course_teaser: "Formation",
   practical: "Travail d'élève",
   patron_demo: "Patron",
+  facebook: "Facebook",
 };
 
 export function sourceLabel(s: SourceType): string {
