@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Scissors, Ruler, FileText, ArrowUpRight, PackageOpen } from "lucide-react";
+import { Scissors, Ruler, FileText, ArrowUpRight, PackageOpen, LayoutGrid } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { FlickeringBackground } from "@/components/ui/flickering-bg";
@@ -11,9 +11,12 @@ import { normLang, isRtl, type Lang } from "@/lib/store-i18n";
 
 /** Traductions de la page Patrons (FR / AR / EN). */
 const T = {
-  fr: { eyebrow: "Patrons numériques", title: "Bibliothèque de patrons", count: (n: number) => `${n} patrons PDF prêts à imprimer`, tag: "Patrons", latest: "Dernières pièces ajoutées", cardTitle: (i: string) => `Patron N° ${i}`, added: (d: string) => `Ajouté le ${d}`, emptyCat: (l: string) => `Aucun patron dans « ${l} » pour l'instant.`, emptySoon: "Les premiers patrons arrivent bientôt…", seeAll: "Voir tous les patrons", by: "par", buy: "Acheter ce patron", pages: "p." },
-  ar: { eyebrow: "باترونات رقمية", title: "مكتبة الباترونات", count: (n: number) => `${n} باترون PDF جاهز للطباعة`, tag: "باترونات", latest: "أحدث القطع المضافة", cardTitle: (i: string) => `باترون رقم ${i}`, added: (d: string) => `أُضيف في ${d}`, emptyCat: (l: string) => `لا يوجد باترون في «${l}» حاليًا.`, emptySoon: "أول الباترونات قادمة قريبًا…", seeAll: "عرض كل الباترونات", by: "بواسطة", buy: "شراء هذا الباترون", pages: "ص" },
-  en: { eyebrow: "Digital patterns", title: "Pattern library", count: (n: number) => `${n} print-ready PDF patterns`, tag: "Patterns", latest: "Latest additions", cardTitle: (i: string) => `Pattern N° ${i}`, added: (d: string) => `Added ${d}`, emptyCat: (l: string) => `No patterns in "${l}" yet.`, emptySoon: "The first patterns are coming soon…", seeAll: "See all patterns", by: "by", buy: "Buy this pattern", pages: "p." },
+  fr: { eyebrow: "Patrons numériques", title: "Bibliothèque de patrons", count: (n: number) => `${n} patrons PDF prêts à imprimer`, tag: "Patrons", latest: "Dernières pièces ajoutées", cardTitle: (i: string) => `Patron N° ${i}`, added: (d: string) => `Ajouté le ${d}`, emptyCat: (l: string) => `Aucun patron dans « ${l} » pour l'instant.`, emptySoon: "Les premiers patrons arrivent bientôt…", seeAll: "Voir tous les patrons", by: "par", buy: "Acheter ce patron", pages: "p.",
+    sm: { eyebrow: "Le sur-mesure", title: "Votre modèle n'existe pas encore ?", titleHi: "On le crée pour vous", desc: "Nos patronnistes tracent votre patron et calculent votre placement d'après vos propres mesures — du croquis au PDF prêt à couper.", ctaPatron: "Commander un patron sur mesure", subPatron: "Un patron tracé à vos mesures", ctaPlacement: "Demander un placement sur mesure", subPlacement: "Le calage optimal des pièces sur votre tissu" } },
+  ar: { eyebrow: "باترونات رقمية", title: "مكتبة الباترونات", count: (n: number) => `${n} باترون PDF جاهز للطباعة`, tag: "باترونات", latest: "أحدث القطع المضافة", cardTitle: (i: string) => `باترون رقم ${i}`, added: (d: string) => `أُضيف في ${d}`, emptyCat: (l: string) => `لا يوجد باترون في «${l}» حاليًا.`, emptySoon: "أول الباترونات قادمة قريبًا…", seeAll: "عرض كل الباترونات", by: "بواسطة", buy: "شراء هذا الباترون", pages: "ص",
+    sm: { eyebrow: "حسب الطلب", title: "موديلك غير موجود بعد؟", titleHi: "نصنعه لك", desc: "تقوم باترونيستاتنا برسم باترونك وحساب توزيع القطع حسب مقاساتك الخاصة — من الرسم إلى ملف PDF جاهز للقص.", ctaPatron: "اطلبي باترون حسب الطلب", subPatron: "باترون مرسوم على مقاساتك", ctaPlacement: "اطلبي توزيع القطع حسب الطلب", subPlacement: "التوزيع الأمثل للقطع على قماشك" } },
+  en: { eyebrow: "Digital patterns", title: "Pattern library", count: (n: number) => `${n} print-ready PDF patterns`, tag: "Patterns", latest: "Latest additions", cardTitle: (i: string) => `Pattern N° ${i}`, added: (d: string) => `Added ${d}`, emptyCat: (l: string) => `No patterns in "${l}" yet.`, emptySoon: "The first patterns are coming soon…", seeAll: "See all patterns", by: "by", buy: "Buy this pattern", pages: "p.",
+    sm: { eyebrow: "Made to measure", title: "Your model doesn't exist yet?", titleHi: "We'll make it for you", desc: "Our patternmakers draft your pattern and compute your cutting layout from your own measurements — from sketch to print-ready PDF.", ctaPatron: "Order a custom pattern", subPatron: "A pattern drafted to your measurements", ctaPlacement: "Request a custom cutting layout", subPlacement: "Optimal placement of pieces on your fabric" } },
 } as const;
 
 /** Classes d'empilement des 3 cartes « Dernières pièces » (effet stack incliné). */
@@ -227,6 +230,62 @@ export default async function PatronsPage({ searchParams }: { searchParams: { ca
             </div>
           )}
         </div>
+
+        {/* ── Bloc sur-mesure : patron + placement (couture éditoriale) ── */}
+        <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20">
+          <div className="relative overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-violet-900 via-violet-800 to-[#2a1245] px-6 sm:px-10 lg:px-14 py-12 sm:py-14 shadow-2xl">
+            {/* Couture intérieure + texture papier */}
+            <div aria-hidden className="absolute inset-3 rounded-[1.7rem] border border-dashed border-white/15 pointer-events-none" />
+            <div aria-hidden className="absolute inset-0 opacity-[0.06] mix-blend-screen pointer-events-none"
+              style={{ backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+            <div aria-hidden className="absolute -top-16 end-8 w-56 h-56 rounded-full bg-orange-500/30 blur-3xl pointer-events-none" />
+
+            <div className="relative grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+              {/* Texte */}
+              <div>
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-orange-300">N° 03·C</span>
+                  <span className="h-px w-10 bg-white/30" />
+                  <span className="text-[11px] sm:text-xs font-dm font-semibold uppercase tracking-[0.2em] text-white/70">{t.sm.eyebrow}</span>
+                </div>
+                <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-white leading-tight">
+                  {t.sm.title}{" "}
+                  <span className="italic text-orange-300">{t.sm.titleHi}</span>
+                </h2>
+                <p className="mt-4 text-violet-200 font-dm leading-relaxed max-w-md">{t.sm.desc}</p>
+              </div>
+
+              {/* Deux CTA */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Link href="/dashboard/sur-mesure?type=patron"
+                  className="group relative flex flex-col rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] ring-1 ring-white/15 hover:ring-orange-300/60 p-5 transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-orange-DEFAULT text-white shadow-md mb-4">
+                    <Scissors size={20} />
+                  </span>
+                  <span className="font-playfair text-lg font-bold text-white leading-snug">{t.sm.ctaPatron}</span>
+                  <span className="mt-1.5 text-sm text-violet-200/80 font-dm leading-relaxed">{t.sm.subPatron}</span>
+                  <span className="mt-4 inline-flex items-center gap-1.5 font-dm text-sm font-bold text-orange-300">
+                    {lang === "ar" ? "ابدئي" : lang === "en" ? "Start" : "Commencer"}
+                    <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform rtl:-scale-x-100" />
+                  </span>
+                </Link>
+
+                <Link href="/dashboard/sur-mesure?type=placement"
+                  className="group relative flex flex-col rounded-2xl bg-white/[0.06] hover:bg-white/[0.1] ring-1 ring-white/15 hover:ring-orange-300/60 p-5 transition-all duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+                  <span className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-white/10 ring-1 ring-white/20 text-orange-300 shadow-md mb-4">
+                    <LayoutGrid size={20} />
+                  </span>
+                  <span className="font-playfair text-lg font-bold text-white leading-snug">{t.sm.ctaPlacement}</span>
+                  <span className="mt-1.5 text-sm text-violet-200/80 font-dm leading-relaxed">{t.sm.subPlacement}</span>
+                  <span className="mt-4 inline-flex items-center gap-1.5 font-dm text-sm font-bold text-orange-300">
+                    {lang === "ar" ? "ابدئي" : lang === "en" ? "Start" : "Commencer"}
+                    <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform rtl:-scale-x-100" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer lang={lang} />
     </div>

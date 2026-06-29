@@ -28,7 +28,7 @@ export default async function BoutiquePage({ searchParams }: { searchParams: { t
 
   let query = supabase
     .from("products")
-    .select("id, title, description, type, price, compare_price, images, stock, slug, is_active, course_id, course:courses(formateur:users(nom)), patron:patrons(formateur:users(nom))")
+    .select("id, title, description, type, price, compare_price, images, stock, slug, is_active, course_id, files, course:courses(formateur:users(nom)), patron:patrons(formateur:users(nom))")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (type) query = query.eq("type", type);

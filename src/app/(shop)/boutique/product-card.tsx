@@ -23,6 +23,20 @@ export interface ShopProduct {
   slug: string;
   creatorName?: string | null;
   course_id?: string | null;
+  /** Pour les packs (bundle) : référence du pack encodée « pack:<id> ». */
+  files?: string[] | null;
+}
+
+/** Id du pack de cours d'un produit « bundle » (encodé dans files). */
+export function packIdFromFiles(files?: string[] | null): string | null {
+  const ref = (files ?? []).find((f) => typeof f === "string" && f.startsWith("pack:"));
+  return ref ? ref.slice(5) : null;
+}
+
+/** Lien de réservation /offre pour un cours ou un pack de cours. */
+export function reserveHref(product: { type: string; course_id?: string | null; files?: string[] | null }): string {
+  const id = product.type === "bundle" ? packIdFromFiles(product.files) : product.course_id;
+  return id ? `/offre?c=${id}#inscription` : "/offre#inscription";
 }
 
 const TYPE_META: Record<string, { Icon: LucideIcon; chip: string }> = {
@@ -128,10 +142,10 @@ export function ProductCard({ product, index = 0, lang = "fr" }: { product: Shop
         </div>
 
         <div className="mt-auto pt-4">
-          {product.type === "course" ? (
-            // Formations : pas de panier → on renvoie vers la procédure de réservation (/offre).
+          {product.type === "course" || product.type === "bundle" ? (
+            // Formations ET packs de cours : pas de panier → réservation via /offre.
             <Link
-              href={product.course_id ? `/offre?c=${product.course_id}#inscription` : "/offre#inscription"}
+              href={reserveHref(product)}
               className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold hover:bg-orange-600 active:scale-[0.98] transition-all">
               <GraduationCap size={17} /> {t.reserve}
             </Link>

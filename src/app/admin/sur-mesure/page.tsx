@@ -1,7 +1,8 @@
-import { Ruler } from "lucide-react";
+import { Ruler, LayoutGrid } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminOrderActions } from "./order-actions";
+import { orderType, SUR_MESURE } from "@/app/dashboard/sur-mesure/constants";
 
 export const metadata = { title: "Commandes sur mesure — Admin" };
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function AdminSurMesurePage() {
   const admin = createAdminClient();
   const { data: orders } = await admin
     .from("patron_custom_orders")
-    .select("id, titre, statut, proposed_price_dzd, payment_proof_path, file_path, created_at, claimed_at, photo_url, video_url, patronniste_id, client:users!patron_custom_orders_client_id_fkey(nom, email), responsable:users!patron_custom_orders_patronniste_id_fkey(nom, email)")
+    .select("id, titre, note, statut, proposed_price_dzd, payment_proof_path, file_path, created_at, claimed_at, photo_url, video_url, patronniste_id, client:users!patron_custom_orders_client_id_fkey(nom, email), responsable:users!patron_custom_orders_patronniste_id_fkey(nom, email)")
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -69,9 +70,16 @@ export default async function AdminSurMesurePage() {
               {list.map((o) => {
                 const client = o.client as { nom?: string; email?: string } | null;
                 const responsable = o.responsable as { nom?: string; email?: string } | null;
+                const type = orderType(o as any);
+                const TypeIcon = type === "placement" ? LayoutGrid : Ruler;
                 return (
                   <TableRow key={o.id} className="hover:bg-gray-50">
-                    <TableCell className="px-5 py-3 font-medium text-gray-900">{o.titre}</TableCell>
+                    <TableCell className="px-5 py-3 font-medium text-gray-900">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mb-1 ${type === "placement" ? "bg-violet-100 text-violet-700" : "bg-orange-100 text-orange-700"}`}>
+                        <TypeIcon size={11} /> {SUR_MESURE[type].short}
+                      </span>
+                      <div>{o.titre}</div>
+                    </TableCell>
                     <TableCell className="px-5 py-3 text-sm text-gray-600">{client?.nom ?? "—"}<br /><span className="text-xs text-gray-400">{client?.email}</span></TableCell>
                     <TableCell className="px-5 py-3 text-sm">
                       <div className="flex gap-1">

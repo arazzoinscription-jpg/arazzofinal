@@ -2,13 +2,14 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, X, Download, Upload, Loader2, Clock, Hammer, Hourglass } from "lucide-react";
+import { Check, X, Download, Upload, Loader2, Clock, Hammer, Hourglass, Ruler, LayoutGrid } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toast";
 import {
   acceptCustomPrice, refuseCustomPrice,
   createCustomPaymentUploadUrl, submitCustomPayment, getCustomPatronDownload,
 } from "./actions";
+import { SUR_MESURE, type SurMesureType } from "./constants";
 
 export interface ClientOrder {
   id: string;
@@ -43,12 +44,14 @@ const LABEL: Record<string, string> = {
   annule: "Annulé",
 };
 
-export function CustomOrderCard({ o }: { o: ClientOrder }) {
+export function CustomOrderCard({ o, type = "patron" }: { o: ClientOrder; type?: SurMesureType }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [payBusy, setPayBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const fmt = (n: number) => `${Number(n).toLocaleString("fr-DZ")} DA`;
+  const noun = SUR_MESURE[type].noun; // « patron » ou « placement »
+  const TypeIcon = type === "placement" ? LayoutGrid : Ruler;
 
   function accept() {
     start(async () => {
@@ -95,8 +98,13 @@ export function CustomOrderCard({ o }: { o: ClientOrder }) {
   return (
     <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-4">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="font-semibold">{o.titre}</h3>
-        <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${BADGE[o.statut] ?? "bg-gray-100 text-gray-500"}`}>
+        <div className="min-w-0">
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mb-1 ${type === "placement" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" : "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"}`}>
+            <TypeIcon size={11} /> {SUR_MESURE[type].short}
+          </span>
+          <h3 className="font-semibold truncate">{o.titre}</h3>
+        </div>
+        <span className={`shrink-0 text-[11px] font-semibold px-2 py-1 rounded-full ${BADGE[o.statut] ?? "bg-gray-100 text-gray-500"}`}>
           {LABEL[o.statut] ?? o.statut}
         </span>
       </div>
@@ -131,14 +139,14 @@ export function CustomOrderCard({ o }: { o: ClientOrder }) {
         <p className="mt-3 text-sm text-blue-600 inline-flex items-center gap-1.5"><Hourglass size={14} /> Recherche d'une patronniste disponible…</p>
       )}
       {o.statut === "en_cours" && (
-        <p className="mt-3 text-sm text-violet-600 inline-flex items-center gap-1.5"><Hammer size={14} /> Une patronniste réalise votre patron {o.proposed_price_dzd ? `· ${fmt(o.proposed_price_dzd)}` : ""}.</p>
+        <p className="mt-3 text-sm text-violet-600 inline-flex items-center gap-1.5"><Hammer size={14} /> Une patronniste réalise votre {noun} {o.proposed_price_dzd ? `· ${fmt(o.proposed_price_dzd)}` : ""}.</p>
       )}
 
       {/* Livré → régler le paiement pour débloquer le téléchargement */}
       {o.statut === "delivered" && (
         <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-500/10 p-3">
           <p className="text-sm text-gray-700 dark:text-white/80">
-            Votre patron est prêt ! Réglez <strong>{fmt(o.proposed_price_dzd ?? 0)}</strong> puis déposez votre preuve de paiement pour télécharger.
+            Votre {noun} est prêt ! Réglez <strong>{fmt(o.proposed_price_dzd ?? 0)}</strong> puis déposez votre preuve de paiement pour télécharger.
           </p>
           <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf" hidden onChange={onPayFile} />
           <button onClick={() => fileRef.current?.click()} disabled={payBusy}
@@ -155,7 +163,7 @@ export function CustomOrderCard({ o }: { o: ClientOrder }) {
       {o.statut === "completed" && (
         <button onClick={download}
           className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700">
-          <Download size={16} /> Télécharger mon patron
+          <Download size={16} /> Télécharger mon {noun}
         </button>
       )}
     </div>

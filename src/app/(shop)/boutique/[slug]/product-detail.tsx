@@ -7,6 +7,7 @@ import { ShoppingCart, Check, Minus, Plus, Loader2, ShieldCheck, Zap, BadgeCheck
 import { addToCart } from "@/app/actions/cart";
 import { toast } from "@/components/ui/toast";
 import { STORE, type Lang } from "@/lib/store-i18n";
+import { reserveHref } from "../product-card";
 
 export interface DetailProduct {
   id: string;
@@ -19,6 +20,8 @@ export interface DetailProduct {
   stock: number | null;
   slug: string;
   course_id?: string | null;
+  /** Pour les packs (bundle) : référence du pack encodée « pack:<id> ». */
+  files?: string[] | null;
 }
 
 const FALLBACK_EMOJI: Record<string, string> = { course: "🎓", digital_file: "📁", patron_pdf: "✂️", bundle: "📦" };
@@ -113,11 +116,11 @@ export function ProductDetail({ product, lang = "fr" }: { product: DetailProduct
           )}
         </p>
 
-        {/* Formation : réservation au lieu du panier */}
-        {product.type === "course" ? (
+        {/* Formation ET pack de cours : réservation au lieu du panier */}
+        {product.type === "course" || product.type === "bundle" ? (
           <div className="mt-6">
             <Link
-              href={product.course_id ? `/offre?c=${product.course_id}#inscription` : "/offre#inscription"}
+              href={reserveHref(product)}
               className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-3 rounded-xl font-bold hover:bg-orange-600 active:scale-[0.98] transition-all shadow-glow">
               <GraduationCap size={18} /> {t.reserve}
             </Link>

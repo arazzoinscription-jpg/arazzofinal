@@ -1,8 +1,9 @@
-import { Ruler, AlertTriangle, BadgeCheck, Clock, Bell } from "lucide-react";
+import { Ruler, AlertTriangle, BadgeCheck, Clock, Bell, LayoutGrid } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ClaimButton } from "./claim-button";
 import { DeliverUploader } from "./deliver-uploader";
+import { orderType, displayNote, SUR_MESURE } from "@/app/dashboard/sur-mesure/constants";
 
 export const metadata = { title: "Commandes sur mesure — Patronniste" };
 export const dynamic = "force-dynamic";
@@ -112,10 +113,15 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
   const responsable = o.responsable as { nom?: string } | null;
   const mesures = (o.mesures ?? {}) as Record<string, string | number>;
   const entries = Object.entries(mesures);
+  const type = orderType(o);
+  const TypeIcon = type === "placement" ? LayoutGrid : Ruler;
   return (
     <div className={`rounded-2xl bg-white dark:bg-white/[0.04] border p-5 ${urgent ? "border-red-300 dark:border-red-500/40 ring-1 ring-red-200" : "border-cream-200 dark:border-white/10"}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full mb-1 ${type === "placement" ? "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" : "bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300"}`}>
+            <TypeIcon size={11} /> {SUR_MESURE[type].short}
+          </span>
           <h3 className="font-semibold truncate">{o.titre}</h3>
           <p className="text-xs text-gray-400">{client?.nom ?? "—"} · {client?.email}</p>
         </div>
@@ -166,7 +172,7 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
         </div>
       )}
 
-      {o.note && <p className="text-sm text-gray-500 dark:text-white/50 mb-3 italic">« {o.note} »</p>}
+      {displayNote(o.note) && <p className="text-sm text-gray-500 dark:text-white/50 mb-3 italic">« {displayNote(o.note)} »</p>}
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <span className="text-xs text-gray-400">{new Date(o.created_at).toLocaleDateString("fr-FR")}</span>

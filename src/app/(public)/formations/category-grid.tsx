@@ -10,6 +10,8 @@ export interface CatItem {
   id: string;
   href: string;
   name: string;
+  /** Slug de la catégorie (sert au mapping photo/description par univers). */
+  slug: string;
   image: string | null;
   gradient: string;
   /** Nombre d'éléments (sous-catégories ou cours). */

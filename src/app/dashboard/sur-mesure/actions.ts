@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyPatronnistes, notifyUser, notifyAdmins } from "@/lib/sur-mesure-notify";
 import { z } from "zod";
 import { createBunnyVideo, bunnyTusAuth, isBunnyConfigured, FEED_LIBRARY_ID } from "@/lib/bunny/stream";
-import { MESURE_FIELDS } from "./constants";
+import { MESURE_FIELDS, buildSurMesureNote, orderType, SUR_MESURE, type SurMesureType } from "./constants";
 
 /**
  * Démarre l'upload de la vidéo du modèle vers Bunny Stream (TUS résumable côté
@@ -35,7 +35,10 @@ export async function placeCustomOrder(formData: FormData) {
 
   const tissu = String(formData.get("tissu") || "").trim() || null;
   const taille = String(formData.get("taille") || "").trim() || null;
-  const note = String(formData.get("note") || "").trim() || null;
+  const type: SurMesureType = String(formData.get("type") || "") === "placement" ? "placement" : "patron";
+  const isPlacement = type === "placement";
+  // Type conservé via marqueur en tête de note (compat sans colonne dédiée — voir constants.ts).
+  const note = buildSurMesureNote(type, String(formData.get("note") || ""));
   const photo_url = String(formData.get("photo_url") || "").trim() || null;
   const video_url = String(formData.get("video_url") || "").trim() || null;
 
@@ -64,8 +67,8 @@ export async function placeCustomOrder(formData: FormData) {
 
   // Étape 1 : la demande part vers l'ADMIN (proposition de prix), pas encore aux patronnistes.
   await notifyAdmins(admin, {
-    title: "💬 Demande de prix sur mesure",
-    body: `« ${titre} » — une cliente attend une proposition de prix.`,
+    title: isPlacement ? "💬 Demande de placement sur mesure" : "💬 Demande de prix sur mesure",
+    body: `« ${titre} » — une cliente attend une proposition de prix${isPlacement ? " (placement)" : ""}.`,
     link: "/admin/sur-mesure",
   });
 
@@ -81,7 +84,7 @@ const guardClient = async (orderId: string) => {
   const admin = createAdminClient();
   const { data: order } = await admin
     .from("patron_custom_orders")
-    .select("id, client_id, titre, statut, proposed_price_dzd, file_path")
+    .select("id, client_id, titre, statut, proposed_price_dzd, file_path, note")
     .eq("id", orderId)
     .maybeSingle();
   if (!order || order.client_id !== user.id) return { user, admin, order: null };
@@ -96,9 +99,10 @@ export async function acceptCustomPrice(orderId: string) {
   if (order.statut !== "price_proposed") return { ok: false, error: "Cette commande n'attend pas votre accord." };
 
   await admin.from("patron_custom_orders").update({ statut: "awaiting_patronniste" }).eq("id", orderId);
+  const svc = SUR_MESURE[orderType(order)];
   await notifyPatronnistes(admin, {
-    title: "🧵 Nouvelle commande sur mesure disponible",
-    body: `« ${order.titre} » — ${Number(order.proposed_price_dzd ?? 0).toLocaleString("fr-DZ")} DA. Première patronniste à l'accepter la prend.`,
+    title: `🧵 Nouveau ${svc.noun} sur mesure disponible`,
+    body: `« ${order.titre} » (${svc.short}) — ${Number(order.proposed_price_dzd ?? 0).toLocaleString("fr-DZ")} DA. Première patronniste à l'accepter le prend.`,
   });
   revalidatePath("/dashboard/sur-mesure");
   revalidatePath("/patronniste/sur-mesure");

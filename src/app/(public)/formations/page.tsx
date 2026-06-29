@@ -7,9 +7,9 @@ import { CourseCard } from "@/components/ui/card";
 import { EnrollRequestButton } from "@/components/enrollment/enroll-request-button";
 import { createClient } from "@/lib/supabase/server";
 import { FormationsGuide } from "./formations-guide";
-import { CategoryShowcase } from "./category-showcase";
 import { FormationsHero } from "./formations-hero";
 import { CategoryGrid, type CatItem } from "./category-grid";
+import { CategoryIndex } from "./category-index";
 import { FlickeringBackground } from "@/components/ui/flickering-bg";
 import { STORE, normLang, isRtl } from "@/lib/store-i18n";
 
@@ -110,6 +110,7 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
       id: c.id,
       href: hrefFor(c.slug),
       name: catName(c),
+      slug: c.slug,
       image: c.image_url,
       gradient: GRAD[i % GRAD.length],
       isSub: sub > 0,
@@ -206,9 +207,6 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
           </div>
         )}
 
-        {/* Sections par catégorie (vidéos) — vue racine uniquement */}
-        {!selected && <CategoryShowcase />}
-
         <div id="formations-content" className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {parentHref !== null && (
             <Link href={parentHref} className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:underline mb-6">
@@ -223,6 +221,9 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
                 <PackageOpen size={48} strokeWidth={1.5} className="mb-4 text-cream-300 dark:text-white/20" />
                 <p className="text-xl font-dm">{t.noCategory}</p>
               </div>
+            ) : !selected ? (
+              /* Vue racine : index éditorial des univers (affichage repensé) */
+              <CategoryIndex items={catItems} lang={lang} />
             ) : (
               <>
                 <div className="mb-7">
