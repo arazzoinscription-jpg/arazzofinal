@@ -17,6 +17,7 @@ export interface PackInfo {
     thumbnail: string | null;
     lessons: number;
     chapters: number;
+    program?: string[];
   }[];
 }
 
@@ -25,7 +26,7 @@ const T = {
     contains: (n: number) => `Ce pack contient ${n} formation${n > 1 ? "s" : ""}`,
     intro: "Accédez à toutes ces formations en une seule fois, à tarif avantageux.",
     lessons: (n: number) => `${n} leçon${n > 1 ? "s" : ""}`, chapters: (n: number) => `${n} chapitre${n > 1 ? "s" : ""}`,
-    see: "Voir la formation", included: "Ce pack inclut",
+    see: "Voir la formation", included: "Ce pack inclut", program: "Programme",
     lifetime: "Accès à vie à toutes les formations", certificate: "Certificat pour chaque formation",
     patterns: "Patrons PDF inclus", secure: "Paiement sécurisé",
     allLessons: (n: number) => `${n} leçons vidéo HD au total`,
@@ -36,7 +37,7 @@ const T = {
     contains: (n: number) => `تحتوي هذه الحزمة على ${n} دورة`,
     intro: "ادخلي إلى كل هذه الدورات دفعة واحدة بسعر مميّز.",
     lessons: (n: number) => `${n} درس`, chapters: (n: number) => `${n} محور`,
-    see: "عرض الدورة", included: "تشمل هذه الحزمة",
+    see: "عرض الدورة", included: "تشمل هذه الحزمة", program: "البرنامج",
     lifetime: "وصول مدى الحياة لكل الدورات", certificate: "شهادة لكل دورة",
     patterns: "باترونات PDF مرفقة", secure: "دفع آمن",
     allLessons: (n: number) => `${n} درس فيديو HD إجمالاً`,
@@ -47,7 +48,7 @@ const T = {
     contains: (n: number) => `This pack includes ${n} course${n > 1 ? "s" : ""}`,
     intro: "Get all these courses at once, at a discounted price.",
     lessons: (n: number) => `${n} lesson${n > 1 ? "s" : ""}`, chapters: (n: number) => `${n} chapter${n > 1 ? "s" : ""}`,
-    see: "View course", included: "This pack includes",
+    see: "View course", included: "This pack includes", program: "Curriculum",
     lifetime: "Lifetime access to all courses", certificate: "Certificate for each course",
     patterns: "PDF patterns included", secure: "Secure payment",
     allLessons: (n: number) => `${n} HD video lessons in total`,
@@ -96,6 +97,21 @@ export function PackInfoSection({ pack, lang = "fr" }: { pack: PackInfo; lang?: 
                     <span className="inline-flex items-center gap-1"><PlayCircle size={12} /> {t.lessons(c.lessons)}</span>
                     <span className="inline-flex items-center gap-1"><FileText size={12} /> {t.chapters(c.chapters)}</span>
                   </div>
+                  {c.program && c.program.length > 0 && (
+                    <div className="mt-2.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 mb-1">{t.program}</p>
+                      <ul className="space-y-1">
+                        {c.program.slice(0, 8).map((ch, j) => (
+                          <li key={j} className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-white/60 font-dm">
+                            <Check size={12} className="text-orange-DEFAULT flex-shrink-0 mt-0.5" /> <span className="line-clamp-1">{ch}</span>
+                          </li>
+                        ))}
+                        {c.program.length > 8 && (
+                          <li className="text-xs text-gray-400 dark:text-white/40 ps-4">+{c.program.length - 8}…</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                   {c.slug && (
                     <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-orange-600 dark:text-orange-300 mt-2">
                       {t.see} <ChevronRight size={13} className="rtl:rotate-180" />

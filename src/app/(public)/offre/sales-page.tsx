@@ -22,7 +22,7 @@ import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 
 /* ── Types partagés ────────────────────────────────────────────────────── */
 export type Level = "debutant" | "intermediaire" | "avance";
-export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; isPack?: boolean; }
+export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; isPack?: boolean; detailSlug?: string | null; }
 export interface PayInfo { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string; }
 
 const LEVELS: Level[] = ["debutant", "intermediaire", "avance"];
@@ -1080,6 +1080,17 @@ function Inscription({
                         </div>
                         <p className="font-semibold text-sm text-gray-900 dark:text-white leading-snug line-clamp-2">{c.titre}</p>
                         <p className="font-bold text-orange-600 mt-2 text-sm">{c.prixDzd > 0 ? fmt(c.prixDzd) : ""}</p>
+                        {c.detailSlug && (
+                          <a
+                            href={`/boutique/${c.detailSlug}`}
+                            target="_blank" rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-violet-700 dark:text-violet-300 hover:underline"
+                          >
+                            {lang === "ar" ? "عرض تفاصيل التكوين" : lang === "en" ? "View course details" : "Voir le détail de la formation"}
+                            <ChevronRight size={13} className="rtl:rotate-180" />
+                          </a>
+                        )}
                       </div>
                     );
                   })}
