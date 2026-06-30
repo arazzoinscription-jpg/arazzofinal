@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAdminEmail } from "@/lib/admin-notify";
 
 export async function requestRole(requested: "formateur" | "patronniste", message?: string) {
   if (requested !== "formateur" && requested !== "patronniste") {
@@ -30,6 +31,13 @@ export async function requestRole(requested: "formateur" | "patronniste", messag
     message: message?.trim() || null,
   });
   if (error) return { ok: false, error: error.message };
+
+  const { data: u } = await admin.from("users").select("nom, email").eq("id", user.id).maybeSingle();
+  await notifyAdminEmail("🙋 Nouvelle demande de rôle", {
+    "Rôle demandé": requested === "formateur" ? "Formateur" : "Patronniste",
+    "Utilisateur": u?.nom || "—", "Email": u?.email || user.email || "—",
+    "Message": message?.trim() || "—",
+  }, { intro: "Un membre demande à devenir formateur/patronniste.", link: "/admin/demandes" });
 
   revalidatePath("/dashboard");
   return { ok: true };

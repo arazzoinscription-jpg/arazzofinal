@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check } from "lucide-react";
-import { toggleLike, addComment } from "@/app/actions/feed";
+import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore } from "lucide-react";
+import { toggleLike, addComment, deletePost } from "@/app/actions/feed";
 import { getPostComments } from "@/app/actions/community";
 import { addFacebookVideo } from "@/app/actions/community-upload";
+import { toast } from "@/components/ui/toast";
 import { sourceLabel, isFacebookVideoUrl, facebookEmbedSrc, type CommunityItem } from "@/lib/community-types";
 import { CommunityTabs } from "./community-tabs";
 
@@ -15,7 +16,7 @@ interface Comment {
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string }) {
+export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
@@ -72,6 +73,8 @@ export function FeedClient({ items, meId, bunnyLibraryId }: { items: CommunityIt
           active={activeId === it.id}
           muted={muted}
           bunnyLibraryId={bunnyLibraryId}
+          meId={meId}
+          canModerate={canModerate}
           onActive={() => setActiveId(it.id)}
           onOpenComments={() => setCommentPost(it.postId)}
         />
@@ -142,16 +145,46 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
 }
 
 function Slide({
-  item, active, muted, bunnyLibraryId, onActive, onOpenComments,
+  item, active, muted, bunnyLibraryId, meId, canModerate, onActive, onOpenComments,
 }: {
   item: CommunityItem; active: boolean; muted: boolean; bunnyLibraryId: string;
+  meId: string; canModerate: boolean;
   onActive: () => void; onOpenComments: () => void;
 }) {
+  const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
+  const [shareOpen, setShareOpen] = useState(false);
   const [, startTransition] = useTransition();
+
+  const isOwner = item.author.id === meId;
+  // Lien partageable + attribution « filigrane » Arazzo.
+  const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/communaute` : "https://www.formation-arazzo.store/communaute";
+  const shareText = `${item.caption ? item.caption + " — " : ""}🧵 via Arazzo Formation`;
+
+  async function nativeShare() {
+    try {
+      if (navigator.share) { await navigator.share({ title: "Arazzo Formation", text: shareText, url: shareUrl }); setShareOpen(false); return true; }
+    } catch { /* annulé */ }
+    return false;
+  }
+  function openSocial(kind: "whatsapp" | "facebook" | "copy") {
+    const enc = encodeURIComponent(`${shareText} ${shareUrl}`);
+    if (kind === "whatsapp") window.open(`https://wa.me/?text=${enc}`, "_blank");
+    else if (kind === "facebook") window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`, "_blank");
+    else { navigator.clipboard?.writeText(`${shareText} ${shareUrl}`).then(() => toast("Lien copié 🔗", "success")); }
+    setShareOpen(false);
+  }
+  function del() {
+    if (!confirm("Supprimer cette publication du feed ?")) return;
+    startTransition(async () => {
+      const r = await deletePost(item.postId);
+      if (r.ok) { toast("Publication supprimée", "success"); router.refresh(); }
+      else toast(r.error ?? "Erreur", "error");
+    });
+  }
 
   // Détecte quand la slide est majoritairement visible → devient active.
   useEffect(() => {
@@ -240,6 +273,29 @@ function Slide({
           </span>
           <span className="text-xs font-semibold">{item.commentCount}</span>
         </button>
+
+        {/* Partager */}
+        <div className="relative flex flex-col items-center gap-1">
+          <button onClick={async () => { if (!(await nativeShare())) setShareOpen((o) => !o); }} className="flex flex-col items-center gap-1">
+            <span className="w-12 h-12 grid place-items-center rounded-full bg-black/30 backdrop-blur"><Share2 size={24} /></span>
+            <span className="text-xs font-semibold">Partager</span>
+          </button>
+          {shareOpen && (
+            <div className="absolute right-14 bottom-0 w-44 bg-white rounded-2xl shadow-2xl overflow-hidden text-gray-800 text-sm">
+              <button onClick={() => openSocial("whatsapp")} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-cream-100 text-start"><MessageCircleMore size={17} className="text-green-600" /> WhatsApp</button>
+              <button onClick={() => openSocial("facebook")} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-cream-100 text-start"><Facebook size={17} className="text-[#1877F2]" /> Facebook</button>
+              <button onClick={() => openSocial("copy")} className="w-full flex items-center gap-2.5 px-4 py-2.5 hover:bg-cream-100 text-start"><Link2 size={17} className="text-violet-600" /> Copier le lien</button>
+            </div>
+          )}
+        </div>
+
+        {/* Supprimer (propriétaire ou admin) */}
+        {(isOwner || canModerate) && (
+          <button onClick={del} className="flex flex-col items-center gap-1">
+            <span className="w-12 h-12 grid place-items-center rounded-full bg-black/30 backdrop-blur text-red-300"><Trash2 size={23} /></span>
+            <span className="text-xs font-semibold">Suppr.</span>
+          </button>
+        )}
       </div>
 
       {/* Infos auteur + légende + CTA */}

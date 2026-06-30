@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Scissors, Ruler, FileText, ArrowUpRight, PackageOpen, LayoutGrid } from "lucide-react";
+import { Scissors, Ruler, FileText, ArrowUpRight, PackageOpen, LayoutGrid, User, Users, Baby, Briefcase, Crown, type LucideIcon } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { FlickeringBackground } from "@/components/ui/flickering-bg";
@@ -41,6 +41,15 @@ const CATS: { slug: string; label: Record<Lang, string>; kw: string[] }[] = [
   { slug: "traditionnel", label: { fr: "Tenue traditionnelle", ar: "اللباس التقليدي", en: "Traditional wear" }, kw: ["traditionnel", "caftan", "karakou", "djellaba", "gandoura", "haik", "takchita", "burnous", "robe kabyle"] },
 ];
 
+/** Visuel (icône + dégradé de marque) par catégorie de patrons. */
+const CAT_VISUAL: Record<string, { Icon: LucideIcon; gradient: string }> = {
+  femme: { Icon: User, gradient: "from-blush-400 to-blush-500" },
+  homme: { Icon: Users, gradient: "from-violet-500 to-violet-700" },
+  enfant: { Icon: Baby, gradient: "from-orange-400 to-orange-600" },
+  travail: { Icon: Briefcase, gradient: "from-teal-500 to-teal-700" },
+  traditionnel: { Icon: Crown, gradient: "from-violet-600 to-orange-500" },
+};
+
 export default async function PatronsPage({ searchParams }: { searchParams: { cat?: string } }) {
   const lang = normLang((await cookies()).get("lang")?.value);
   const t = T[lang];
@@ -60,6 +69,16 @@ export default async function PatronsPage({ searchParams }: { searchParams: { ca
     return cur.kw.some((k) => hay.includes(k));
   };
   const patrons = (allPatrons ?? []).filter(matches);
+
+  // Comptage par catégorie (pour l'index de catégories façon « formations »).
+  const countFor = (kw: string[]) => {
+    if (!kw.length) return allPatrons?.length ?? 0;
+    return (allPatrons ?? []).filter((p: any) => {
+      const hay = [p.titre, p.description, p.tissu, p.tailles].filter(Boolean).join(" ").toLowerCase();
+      return kw.some((k) => hay.includes(k));
+    }).length;
+  };
+  const catIndex = CATS.filter((c) => c.slug && CAT_VISUAL[c.slug]);
 
   // Pile « Dernières pièces » : les 3 patrons les plus récents (effet cartes empilées)
   const latestCards = (allPatrons ?? []).slice(0, 3).map((p, i) => ({
@@ -138,6 +157,37 @@ export default async function PatronsPage({ searchParams }: { searchParams: { ca
         )}
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Index des catégories (façon page Formations) — vue « Tous » uniquement */}
+          {!cur.slug && (
+            <div className="mb-10">
+              <div className="flex items-center gap-3 mb-5">
+                <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-orange-600 dark:text-orange-400">Le sommaire</span>
+                <span className="h-px w-10 bg-violet-950/25 dark:bg-white/25" />
+                <span className="text-[11px] sm:text-xs font-dm font-semibold uppercase tracking-[0.2em] text-violet-950/60 dark:text-white/55">Catégories de patrons</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {catIndex.map((c) => {
+                  const v = CAT_VISUAL[c.slug];
+                  const n = countFor(c.kw);
+                  return (
+                    <Link key={c.slug} href={`/patrons?cat=${c.slug}`}
+                      className="group relative rounded-[1.3rem] bg-cream-50 dark:bg-white/[0.04] p-3 ring-1 ring-violet-950/10 dark:ring-white/10 shadow-soft hover:-translate-y-1 hover:shadow-glow hover:ring-orange-300/70 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500">
+                      <div className={`relative h-24 rounded-2xl overflow-hidden bg-gradient-to-br ${v.gradient} flex items-center justify-center`}>
+                        <v.Icon size={30} className="text-white/90" />
+                        <span className="absolute top-2 end-2 inline-flex items-center gap-1 rounded-full bg-white/20 backdrop-blur px-2 py-0.5 text-[11px] font-bold text-white tnum">{n}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 px-1 pt-2.5">
+                        <h3 className="font-playfair text-base font-bold text-violet-950 dark:text-white leading-tight">{c.label[lang]}</h3>
+                        <span className="shrink-0 w-7 h-7 rounded-full bg-violet-950 dark:bg-orange-DEFAULT text-white flex items-center justify-center group-hover:rotate-45 transition-transform"><ArrowUpRight size={14} className="rtl:-scale-x-100" /></span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+              <span aria-hidden className="mt-8 block border-t border-dashed border-violet-950/15 dark:border-white/15" />
+            </div>
+          )}
+
           {/* Catégories (onglets éditoriaux) */}
           <div className="flex flex-wrap gap-2 mb-9">
             {CATS.map((c, i) => {

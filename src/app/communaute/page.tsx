@@ -23,7 +23,7 @@ export default async function CommunautePage() {
   // contrairement à la clé API qui reste côté serveur.
   return (
     <>
-      <FeedClient items={items} meId={me.id} bunnyLibraryId={FEED_LIBRARY_ID} />
+      <FeedClient items={items} meId={me.id} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} />
       {/* Bouton « + » flottant : publier une vidéo / une actualité (staff uniquement). */}
       {isStaff && <CommunityFab role={role} />}
       {/* Menu du site en bas (mobile) : reste accessible par-dessus le feed plein écran. */}

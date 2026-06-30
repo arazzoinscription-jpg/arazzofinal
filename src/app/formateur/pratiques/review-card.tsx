@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, RotateCcw, Loader2 } from "lucide-react";
+import { Check, RotateCcw, Loader2, Clapperboard } from "lucide-react";
 import { setPracticalFeedback } from "@/app/dashboard/cours/[id]/extras-actions";
+import { sharePracticalToFeedAsStaff } from "@/app/actions/community";
 import { toast } from "@/components/ui/toast";
 
 export interface PracticalRow {
@@ -25,6 +26,8 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
   const [feedback, setFeedback] = useState(row.feedback ?? "");
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState("");
+  const [approved, setApproved] = useState(false); // vient d'être validé → propose le partage
+  const [shared, setShared] = useState(false);
   const isReviewed = row.status === "reviewed";
 
   function decide(status: "approved" | "reviewed") {
@@ -36,17 +39,20 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
     startTransition(async () => {
       const res = await setPracticalFeedback(row.id, feedback.trim(), status);
       if (res.ok) {
-        toast(
-          status === "approved"
-            ? "Travail validé ✅"
-            : "Retour envoyé à l'élève — à retravailler ↩️",
-          "success",
-        );
-        router.refresh();
+        if (status === "approved") { toast("Travail validé ✅", "success"); setApproved(true); }
+        else { toast("Retour envoyé à l'élève — à retravailler ↩️", "success"); router.refresh(); }
       } else {
         toast(res.error ?? "Erreur", "error");
         setErr(res.error ?? "Erreur");
       }
+    });
+  }
+
+  function shareToFeed() {
+    startTransition(async () => {
+      const res = await sharePracticalToFeedAsStaff(row.id);
+      if (res.ok) { toast("Publié sur le feed communauté 🎬", "success"); setShared(true); }
+      else toast(res.error ?? "Erreur", "error");
     });
   }
 
@@ -89,16 +95,35 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
 
       {err && <p className="text-sm text-red-500 mb-2">{err}</p>}
 
-      <div className="flex gap-2">
-        <button onClick={() => decide("approved")} disabled={isPending}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white py-2 rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors disabled:opacity-50">
-          {isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />} Valider
-        </button>
-        <button onClick={() => decide("reviewed")} disabled={isPending}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 bg-violet-700 text-white py-2 rounded-xl font-semibold text-sm hover:bg-violet-800 transition-colors disabled:opacity-50">
-          {isPending ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />} {isReviewed ? "Renvoyer le retour" : "À retravailler"}
-        </button>
-      </div>
+      {approved ? (
+        <div className="rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-3">
+          <p className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 inline-flex items-center gap-1.5"><Check size={15} /> Travail validé</p>
+          <div className="flex gap-2">
+            {!shared ? (
+              <button onClick={shareToFeed} disabled={isPending}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 bg-violet-700 text-white py-2 rounded-xl font-semibold text-sm hover:bg-violet-800 transition-colors disabled:opacity-50">
+                {isPending ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={15} />} Partager au feed
+              </button>
+            ) : (
+              <span className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-green-700 dark:text-green-300"><Check size={15} /> Publié sur le feed</span>
+            )}
+            <button onClick={() => router.refresh()} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-white/60 border border-gray-200 dark:border-white/15 hover:bg-gray-50 dark:hover:bg-white/5">
+              Terminé
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button onClick={() => decide("approved")} disabled={isPending}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white py-2 rounded-xl font-semibold text-sm hover:bg-green-700 transition-colors disabled:opacity-50">
+            {isPending ? <Loader2 size={14} className="animate-spin" /> : <Check size={15} />} Valider
+          </button>
+          <button onClick={() => decide("reviewed")} disabled={isPending}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 bg-violet-700 text-white py-2 rounded-xl font-semibold text-sm hover:bg-violet-800 transition-colors disabled:opacity-50">
+            {isPending ? <Loader2 size={14} className="animate-spin" /> : <RotateCcw size={14} />} {isReviewed ? "Renvoyer le retour" : "À retravailler"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

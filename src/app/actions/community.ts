@@ -60,6 +60,57 @@ export async function sharePracticalToFeed(practicalId: string) {
   return { ok: true };
 }
 
+/**
+ * Partage staff : l'ADMIN ou le FORMATEUR du cours publie un travail pratique
+ * VALIDÉ sur le feed (auteur = l'élève). Permet à l'admin de mettre en avant
+ * les meilleures réalisations.
+ */
+export async function sharePracticalToFeedAsStaff(practicalId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Non authentifié." };
+
+  const admin = createAdminClient();
+  const { data: prof } = await admin.from("users").select("role").eq("id", user.id).maybeSingle();
+  const isAdmin = prof?.role === "admin";
+
+  const { data: prac } = await admin
+    .from("lesson_practicals")
+    .select("id, user_id, status, photo_url, video_url, note, lesson:lessons(chapter:chapters(course_id))")
+    .eq("id", practicalId)
+    .maybeSingle();
+  if (!prac) return { ok: false, error: "Travail introuvable." };
+  if (prac.status !== "approved") return { ok: false, error: "Validez d'abord ce travail." };
+
+  const courseId = (prac.lesson as any)?.chapter?.course_id ?? null;
+  if (!isAdmin) {
+    const { data: course } = await admin.from("courses").select("formateur_id").eq("id", courseId).maybeSingle();
+    if (!course || course.formateur_id !== user.id) return { ok: false, error: "Réservé à l'admin ou au formateur du cours." };
+  }
+
+  const { data: already } = await admin.from("community_media").select("id").eq("practical_id", practicalId).maybeSingle();
+  if (already) return { ok: false, error: "Déjà publié sur la communauté." };
+
+  const mediaUrl = prac.video_url || prac.photo_url;
+  if (!mediaUrl) return { ok: false, error: "Ce travail n'a ni photo ni vidéo." };
+  const mediaKind: "video" | "image" = prac.video_url ? "video" : "image";
+
+  // Auteur = l'élève (c'est son travail).
+  const { data: post, error: postErr } = await admin
+    .from("posts").insert({ author_id: prac.user_id, group_id: null, content: prac.note ?? null, published: true })
+    .select("id").single();
+  if (postErr || !post) return { ok: false, error: "Publication impossible." };
+
+  const { error: cmErr } = await admin.from("community_media").insert({
+    post_id: post.id, source_type: "practical", media_kind: mediaKind, media_url: mediaUrl,
+    thumbnail_url: mediaKind === "image" ? mediaUrl : null, course_id: courseId, practical_id: practicalId, status: "ready",
+  });
+  if (cmErr) { await admin.from("posts").delete().eq("id", post.id); return { ok: false, error: cmErr.message }; }
+
+  revalidatePath("/communaute");
+  return { ok: true };
+}
+
 /** Supprime un média communauté (auteur du post ou admin) + sa vidéo Bunny. */
 export async function deleteCommunityMedia(mediaId: string) {
   const supabase = await createClient();

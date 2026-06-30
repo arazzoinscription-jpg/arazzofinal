@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { LogOut, Search, Bell, Scissors } from "lucide-react";
+import { LogOut, Search, Scissors } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -13,6 +13,7 @@ import { ProSubnav } from "@/components/pro/pro-subnav";
 import { ProMobileNav } from "@/components/pro/pro-mobile-nav";
 import { PageTransition } from "@/app/dashboard/page-transition";
 import { PRO_UI } from "@/components/pro/pro-data";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 // Identité « Atelier » : sidebar sombre #1e0a3c, fond #faf7ff, header épuré.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -94,10 +95,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               />
             </div>
             <div className="flex-1 md:hidden" />
-            <button aria-label="Notifications" className="relative w-10 h-10 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-500 hover:text-[#6B21C8] transition-colors">
-              <Bell size={18} />
-              <span className="absolute top-2 end-2.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
+            <NotificationBell userId={user.id} />
             <LangSwitcher current={lang} />
             <ThemeToggle />
           </div>

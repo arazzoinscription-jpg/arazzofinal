@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyAdminEmail } from "@/lib/admin-notify";
 
 const Schema = z.object({
   courseId: z.string().uuid("Formation invalide."),
@@ -35,6 +36,13 @@ export async function requestEnrollment(input: unknown) {
       { onConflict: "course_id,email" },
     );
   if (error) return { ok: false as const, error: "Envoi impossible. Réessayez." };
+
+  const { data: c } = await admin.from("courses").select("titre_fr").eq("id", courseId).maybeSingle();
+  await notifyAdminEmail("📝 Nouvelle demande d'enrôlement", {
+    "Formation": c?.titre_fr || "—",
+    "Nom": full_name, "Email": cleanEmail,
+    "Téléphone": phone || "—", "Wilaya": wilaya || "—",
+  }, { intro: "Une personne souhaite s'inscrire à une formation.", link: "/admin/demandes-enrolement" });
 
   return { ok: true as const };
 }

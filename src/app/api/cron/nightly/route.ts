@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GET as cleanupImages } from "../cleanup-images/route";
 import { GET as surMesureRealert } from "../sur-mesure-realert/route";
+import { GET as formateurDigest } from "../formateur-digest/route";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -21,6 +22,7 @@ export async function GET(req: NextRequest) {
   for (const [name, fn] of [
     ["cleanup-images", cleanupImages],
     ["sur-mesure-realert", surMesureRealert],
+    ["formateur-digest", formateurDigest],
   ] as const) {
     try {
       const res = await fn(req);
