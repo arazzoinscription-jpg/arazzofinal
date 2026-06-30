@@ -1,4 +1,5 @@
-import { Ruler, AlertTriangle, BadgeCheck, Clock, Bell, LayoutGrid } from "lucide-react";
+import Link from "next/link";
+import { Ruler, AlertTriangle, BadgeCheck, Clock, Bell, LayoutGrid, BookPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ClaimButton } from "./claim-button";
@@ -167,6 +168,7 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
       {isPlacementPatron && (
         <div className="rounded-xl border border-violet-200 dark:border-violet-500/30 bg-violet-50/60 dark:bg-violet-500/10 p-3 mb-3 text-sm space-y-1">
           <p className="font-semibold text-violet-800 dark:text-violet-200 flex items-center gap-1.5"><LayoutGrid size={14} /> Placement à réaliser</p>
+          {mesures.taille_choisie && <p className="text-gray-700 dark:text-white/70">Taille : <strong>{mesures.taille_choisie}</strong></p>}
           <p className="text-gray-700 dark:text-white/70">Table : <strong>{pTable.longueur_cm ?? "—"} × {pTable.largeur_cm ?? "—"} cm</strong></p>
           <p className="text-gray-700 dark:text-white/70">Laize tissu : <strong>{pTissu.laize_cm ?? "—"} cm</strong>{pTissu.matiere ? ` · ${pTissu.matiere}` : ""}</p>
           {pFormat && <p className="text-gray-700 dark:text-white/70">Format choisi : <strong>{pFormat}</strong></p>}
@@ -196,17 +198,25 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
         {variant === "alert" ? (
           <div className="flex-1 max-w-[12rem]"><ClaimButton id={o.id} /></div>
         ) : variant === "mine" ? (
-          o.statut === "en_cours" ? (
-            <div className="flex-1 max-w-[16rem]"><DeliverUploader orderId={o.id} /></div>
-          ) : o.statut === "delivered" ? (
-            <span className="text-xs font-medium text-amber-600">Livré · en attente du paiement client</span>
-          ) : o.statut === "payment_review" ? (
-            <span className="text-xs font-medium text-blue-600">Paiement en validation</span>
-          ) : o.statut === "completed" ? (
-            <span className="text-xs font-medium text-green-600">Terminé ✅</span>
-          ) : (
-            <span className="text-xs text-gray-400">{STATUT_LABEL[o.statut] ?? o.statut}</span>
-          )
+          <div className="flex flex-col items-end gap-2">
+            {o.statut === "en_cours" ? (
+              <div className="w-full max-w-[16rem]"><DeliverUploader orderId={o.id} /></div>
+            ) : o.statut === "delivered" ? (
+              <span className="text-xs font-medium text-amber-600">Livré · en attente du paiement client</span>
+            ) : o.statut === "payment_review" ? (
+              <span className="text-xs font-medium text-blue-600">Paiement en validation</span>
+            ) : o.statut === "completed" ? (
+              <span className="text-xs font-medium text-green-600">Terminé ✅</span>
+            ) : (
+              <span className="text-xs text-gray-400">{STATUT_LABEL[o.statut] ?? o.statut}</span>
+            )}
+            {["en_cours", "delivered", "payment_review", "completed"].includes(o.statut) && (
+              <Link href={`/patronniste/patrons/nouveau?fromOrder=${o.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-700 dark:text-violet-300 hover:underline">
+                <BookPlus size={13} /> Publier dans la bibliothèque
+              </Link>
+            )}
+          </div>
         ) : (
           <span className="text-xs font-medium text-violet-600 dark:text-violet-300">Prise par {responsable?.nom ?? "une patronniste"}</span>
         )}

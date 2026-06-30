@@ -103,7 +103,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
               )}
 
               {/* Achat — 3 choix : PDF / Imprimé A0 / Placement sur mesure */}
-              <PatronPurchase patronId={patron.id} productId={product?.id ?? null} price={price} />
+              <PatronPurchase patronId={patron.id} productId={product?.id ?? null} price={price} tailles={patron.tailles ?? null} />
             </div>
           </div>
 

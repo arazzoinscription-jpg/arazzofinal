@@ -14,15 +14,36 @@ const field =
   "w-full rounded-xl border border-cream-200 dark:border-white/15 bg-white dark:bg-white/5 px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-500";
 const label = "block text-xs font-medium text-gray-500 dark:text-white/50 mb-1";
 
+/** Transforme le champ « tailles » (ex. "34 – 52", "36,38,40", "S-M-L") en options. */
+function parseSizes(tailles: string | null): string[] {
+  if (!tailles) return [];
+  const s = tailles.trim();
+  if (/[,/;]/.test(s)) return s.split(/[,/;]/).map((x) => x.trim()).filter(Boolean);
+  const m = s.replace(/\s/g, "").match(/^(\d{1,3})[–-](\d{1,3})$/);
+  if (m) {
+    const a = +m[1], b = +m[2];
+    if (b > a && b - a <= 80) {
+      const step = a % 2 === 0 && b % 2 === 0 ? 2 : 1;
+      const out: string[] = [];
+      for (let i = a; i <= b; i += step) out.push(String(i));
+      return out;
+    }
+  }
+  return [s];
+}
+
 export function PatronPurchase({
-  patronId, productId, price,
+  patronId, productId, price, tailles = null,
 }: {
   patronId: string;
   productId: string | null;
   price: number;
+  tailles?: string | null;
 }) {
   const router = useRouter();
   const [choice, setChoice] = useState<Choice>("pdf");
+  const sizes = parseSizes(tailles);
+  const [taille, setTaille] = useState<string>("");
 
   const options: { key: Choice; Icon: typeof FileDown; title: string; desc: string }[] = [
     { key: "pdf", Icon: FileDown, title: "Fichier PDF", desc: "À télécharger, à imprimer chez vous" },
@@ -32,6 +53,27 @@ export function PatronPurchase({
 
   return (
     <div className="w-full">
+      {/* Choix de la taille */}
+      {sizes.length > 0 && (
+        <div className="mb-5">
+          <span className={label}>Votre taille {choice === "pdf" && <em className="text-gray-400 not-italic">(le PDF contient toutes les tailles)</em>}</span>
+          <div className="flex flex-wrap gap-2">
+            {sizes.map((s) => {
+              const on = taille === s;
+              return (
+                <button key={s} type="button" onClick={() => setTaille(on ? "" : s)}
+                  className={`min-w-[3rem] rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                    on ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-200 ring-1 ring-orange-DEFAULT"
+                       : "border-cream-200 dark:border-white/15 text-gray-600 dark:text-white/60 hover:border-orange-300"
+                  }`}>
+                  {s}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Sélecteur des 3 choix */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-5">
         {options.map((o) => {
@@ -51,8 +93,8 @@ export function PatronPurchase({
       </div>
 
       {choice === "pdf" && <PdfChoice productId={productId} price={price} />}
-      {choice === "a0" && <A0Choice patronId={patronId} onDone={() => router.refresh()} />}
-      {choice === "placement" && <PlacementChoice patronId={patronId} onDone={() => router.refresh()} />}
+      {choice === "a0" && <A0Choice patronId={patronId} taille={taille} sizeRequired={sizes.length > 0} onDone={() => router.refresh()} />}
+      {choice === "placement" && <PlacementChoice patronId={patronId} taille={taille} sizeRequired={sizes.length > 0} onDone={() => router.refresh()} />}
     </div>
   );
 }
@@ -100,7 +142,7 @@ function PdfChoice({ productId, price }: { productId: string | null; price: numb
 }
 
 /* ── Choix 2 : Impression A0 (livrée) ───────────────────────── */
-function A0Choice({ patronId, onDone }: { patronId: string; onDone: () => void }) {
+function A0Choice({ patronId, taille, sizeRequired, onDone }: { patronId: string; taille: string; sizeRequired: boolean; onDone: () => void }) {
   const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
   const [largeur, setLargeur] = useState("90");
@@ -109,10 +151,11 @@ function A0Choice({ patronId, onDone }: { patronId: string; onDone: () => void }
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr("");
+    if (sizeRequired && !taille) { setErr("Choisissez votre taille en haut."); return; }
     const fd = new FormData(e.currentTarget);
     start(async () => {
       const res = await requestPatronFulfilment({
-        patronId, type: "impression_a0", largeur,
+        patronId, type: "impression_a0", largeur, taille: taille || undefined,
         fullName: String(fd.get("fullName") || ""), phone: String(fd.get("phone") || ""),
         wilaya: String(fd.get("wilaya") || ""), address: String(fd.get("address") || ""),
         note: String(fd.get("note") || ""),
@@ -156,7 +199,7 @@ function A0Choice({ patronId, onDone }: { patronId: string; onDone: () => void }
 }
 
 /* ── Choix 3 : Placement sur mesure ─────────────────────────── */
-function PlacementChoice({ patronId, onDone }: { patronId: string; onDone: () => void }) {
+function PlacementChoice({ patronId, taille, sizeRequired, onDone }: { patronId: string; taille: string; sizeRequired: boolean; onDone: () => void }) {
   const [pending, start] = useTransition();
   const [done, setDone] = useState(false);
   const [err, setErr] = useState("");
@@ -164,10 +207,11 @@ function PlacementChoice({ patronId, onDone }: { patronId: string; onDone: () =>
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr("");
+    if (sizeRequired && !taille) { setErr("Choisissez votre taille en haut."); return; }
     const fd = new FormData(e.currentTarget);
     start(async () => {
       const res = await requestPatronFulfilment({
-        patronId, type: "placement",
+        patronId, type: "placement", taille: taille || undefined,
         tableLongueur: String(fd.get("tableLongueur") || ""), tableLargeur: String(fd.get("tableLargeur") || ""),
         laizeTissu: String(fd.get("laizeTissu") || ""), tissu: String(fd.get("tissu") || ""),
         note: String(fd.get("note") || ""),

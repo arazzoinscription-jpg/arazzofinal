@@ -20,6 +20,7 @@ export interface PatronRequestInput {
   tableLargeur?: string;
   laizeTissu?: string;         // largeur du rouleau / laize (cm)
   // commun
+  taille?: string;            // taille choisie par la cliente (depuis le champ « tailles » du patron)
   tissu?: string;
   note?: string;
 }
@@ -46,6 +47,7 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
   let titre: string;
   let mesures: Record<string, unknown>;
   let taille: string | null = null;
+  const tailleChoisie = sanitizeText(input.taille ?? "").slice(0, 40).trim() || null;
 
   if (input.type === "impression_a0") {
     if (!input.fullName?.trim() || !input.phone?.trim() || !input.wilaya?.trim()) {
@@ -53,9 +55,10 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
     }
     const largeur = input.largeur === "180" ? "180" : "90";
     titre = `Impression A0 (${largeur} cm) — ${patron.titre}`;
-    taille = `Papier traceur ${largeur} cm`;
+    taille = `${tailleChoisie ? `Taille ${tailleChoisie} · ` : ""}Papier traceur ${largeur} cm`;
     mesures = {
       type: "impression_a0",
+      taille_choisie: tailleChoisie,
       largeur_cm: largeur,
       livraison: {
         nom: sanitizeText(input.fullName).slice(0, 120),
@@ -69,9 +72,11 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
       return { ok: false, error: "Renseignez les mesures de la table et la laize du tissu." };
     }
     titre = `Placement sur mesure — ${patron.titre}`;
+    taille = tailleChoisie;
     mesures = {
       type: "placement",
       kind: "placement_patron", // → flux devis (2 prix PDF/papier) au lieu de l'envoi direct
+      taille_choisie: tailleChoisie,
       table: { longueur_cm: input.tableLongueur.trim(), largeur_cm: input.tableLargeur.trim() },
       tissu: { laize_cm: input.laizeTissu.trim(), matiere: (input.tissu ?? "").trim() },
     };
@@ -111,6 +116,7 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
     {
       "Type": isPlacement ? "Placement sur mesure (à chiffrer : prix PDF + papier)" : "Impression A0",
       "Patron": patron.titre,
+      "Taille choisie": tailleChoisie || "—",
       "Fiche / modèle": patron.preview_url || "—",
       "Prix PDF du patron (réf.)": patron.prix_dzd ? `${Number(patron.prix_dzd).toLocaleString("fr-DZ")} DA` : "—",
       "Cliente": user.email,
