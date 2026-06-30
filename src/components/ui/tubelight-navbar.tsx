@@ -11,6 +11,8 @@ interface NavItem {
   name: string;
   url: string;
   icon: LucideIcon;
+  /** Couleur de mise en avant (classes Tailwind text-…) — pour distinguer Offre/Communauté. */
+  color?: string;
 }
 
 interface NavBarProps {
@@ -55,8 +57,10 @@ export function NavBar({ items, className, lampId = "lamp" }: NavBarProps) {
                 setActiveTab(item.name);
               }}
               className={cn(
-                "relative cursor-pointer flex-1 sm:flex-none flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 text-[11px] sm:text-sm font-semibold px-2 sm:px-6 py-2 rounded-xl sm:rounded-full transition-colors",
-                "text-violet-950/70 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
+                "relative cursor-pointer flex-1 sm:flex-none flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 text-[11px] sm:text-sm font-semibold px-1.5 sm:px-6 py-2 rounded-xl sm:rounded-full transition-colors",
+                item.color
+                  ? item.color
+                  : "text-violet-950/70 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
                 isActive && "bg-violet-50 dark:bg-white/10 text-[#6B21C8] dark:text-violet-200",
               )}
             >
