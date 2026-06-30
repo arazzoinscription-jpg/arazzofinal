@@ -32,9 +32,11 @@ export function buildSurMesureNote(type: SurMesureType, rawNote: string): string
   return clean || null;
 }
 
-/** Déduit le type d'une commande : colonne `type` prioritaire, sinon marqueur de note. */
-export function orderType(o: { type?: string | null; note?: string | null }): SurMesureType {
+/** Déduit le type d'une commande : colonne `type`, sinon `mesures`, sinon marqueur de note. */
+export function orderType(o: { type?: string | null; note?: string | null; mesures?: any }): SurMesureType {
   if (o?.type === "placement") return "placement";
+  const m = o?.mesures;
+  if (m && (m.kind === "placement_patron" || m.type === "placement")) return "placement";
   if (typeof o?.note === "string" && o.note.startsWith(PLACEMENT_TAG)) return "placement";
   return "patron";
 }

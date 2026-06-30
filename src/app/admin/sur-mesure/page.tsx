@@ -30,7 +30,7 @@ export default async function AdminSurMesurePage() {
   const admin = createAdminClient();
   const { data: orders } = await admin
     .from("patron_custom_orders")
-    .select("id, titre, note, statut, proposed_price_dzd, payment_proof_path, file_path, created_at, claimed_at, photo_url, video_url, patronniste_id, client:users!patron_custom_orders_client_id_fkey(nom, email), responsable:users!patron_custom_orders_patronniste_id_fkey(nom, email)")
+    .select("id, titre, note, mesures, statut, proposed_price_dzd, payment_proof_path, file_path, created_at, claimed_at, photo_url, video_url, patronniste_id, client:users!patron_custom_orders_client_id_fkey(nom, email), responsable:users!patron_custom_orders_patronniste_id_fkey(nom, email)")
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -107,6 +107,8 @@ export default async function AdminSurMesurePage() {
                         proposedPrice={(o as any).proposed_price_dzd ?? null}
                         hasProof={!!(o as any).payment_proof_path}
                         hasFile={!!(o as any).file_path}
+                        isPlacementPatron={((o as any).mesures ?? {}).kind === "placement_patron"}
+                        paperPrice={((o as any).mesures ?? {}).prix_papier_dzd ?? null}
                       />
                     </TableCell>
                   </TableRow>

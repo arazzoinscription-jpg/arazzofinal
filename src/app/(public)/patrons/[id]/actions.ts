@@ -38,8 +38,10 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
 
   const admin = createAdminClient();
   const { data: patron } = await admin
-    .from("patrons").select("id, titre, formateur_id").eq("id", input.patronId).maybeSingle();
+    .from("patrons").select("id, titre, formateur_id, preview_url, prix_dzd").eq("id", input.patronId).maybeSingle();
   if (!patron) return { ok: false, error: "Patron introuvable." };
+
+  const isPlacement = input.type === "placement";
 
   let titre: string;
   let mesures: Record<string, unknown>;
@@ -69,22 +71,25 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
     titre = `Placement sur mesure — ${patron.titre}`;
     mesures = {
       type: "placement",
+      kind: "placement_patron", // → flux devis (2 prix PDF/papier) au lieu de l'envoi direct
       table: { longueur_cm: input.tableLongueur.trim(), largeur_cm: input.tableLargeur.trim() },
       tissu: { laize_cm: input.laizeTissu.trim(), matiere: (input.tissu ?? "").trim() },
     };
   }
 
-  const { error } = await admin.from("patron_custom_orders").insert({
+  const { data: created, error } = await admin.from("patron_custom_orders").insert({
     client_id: user.id,
-    patronniste_id: patron.formateur_id ?? null,
+    // Placement : non assigné (diffusé aux patronnistes après acceptation du devis).
+    patronniste_id: isPlacement ? null : (patron.formateur_id ?? null),
     patron_id: patron.id,
     titre,
     tissu: sanitizeText(input.tissu).slice(0, 120) || null,
     taille,
     mesures,
     note: sanitizeText(input.note).slice(0, 500) || null,
-    statut: "en_attente",
-  });
+    // Placement → devis admin d'abord ; impression A0 → envoi direct.
+    statut: isPlacement ? "price_requested" : "en_attente",
+  }).select("id").single();
   if (error) return { ok: false, error: error.message };
 
   // Notification au client
@@ -92,28 +97,34 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
     await admin.from("notifications").insert({
       user_id: user.id,
       type: "system",
-      title: input.type === "impression_a0" ? "🖨️ Demande d'impression reçue" : "📐 Demande de placement reçue",
+      title: input.type === "impression_a0" ? "🖨️ Demande d'impression reçue" : "📐 Demande de placement reçue — devis en cours",
       body: input.type === "impression_a0"
         ? "Nous avons reçu votre demande d'impression A0. Nous vous contactons pour la livraison."
-        : "Nous avons reçu votre demande de placement sur mesure. Le patronniste vous répond bientôt.",
-      link: "/dashboard/commandes",
+        : "Demande de placement bien reçue. Vous allez recevoir un devis (par email et dans « Sur mesure »). Vous pourrez l'accepter et choisir PDF ou papier imprimé.",
+      link: isPlacement ? "/dashboard/sur-mesure" : "/dashboard/commandes",
     });
   } catch { /* ignore */ }
 
-  // Notification admin par email
+  // Notification admin par email (avec la fiche/le modèle du patron à chiffrer).
   await notifyAdminEmail(
-    input.type === "impression_a0" ? "🖨️ Nouvelle commande patron (impression A0)" : "📐 Nouvelle commande patron (placement)",
+    isPlacement ? "📐 Devis à faire — placement sur mesure (patron)" : "🖨️ Nouvelle commande patron (impression A0)",
     {
-      "Type": input.type === "impression_a0" ? "Impression A0" : "Placement sur mesure",
+      "Type": isPlacement ? "Placement sur mesure (à chiffrer : prix PDF + papier)" : "Impression A0",
       "Patron": patron.titre,
-      "Détail": titre,
+      "Fiche / modèle": patron.preview_url || "—",
+      "Prix PDF du patron (réf.)": patron.prix_dzd ? `${Number(patron.prix_dzd).toLocaleString("fr-DZ")} DA` : "—",
       "Cliente": user.email,
-      "Coordonnées": input.type === "impression_a0"
-        ? `${(input.fullName ?? "").trim()} · ${(input.phone ?? "").trim()} · ${(input.wilaya ?? "").trim()}`
-        : `Table ${input.tableLongueur}×${input.tableLargeur} cm · laize ${input.laizeTissu} cm`,
+      "Coordonnées / mesures": isPlacement
+        ? `Table ${input.tableLongueur}×${input.tableLargeur} cm · laize ${input.laizeTissu} cm`
+        : `${(input.fullName ?? "").trim()} · ${(input.phone ?? "").trim()} · ${(input.wilaya ?? "").trim()}`,
       "Tissu": (input.tissu ?? "").trim() || "—",
     },
-    { intro: "Une commande de fabrication patron vient d'être passée.", link: "/patronniste/sur-mesure" },
+    {
+      intro: isPlacement
+        ? "Une cliente attend un devis de placement. Proposez le prix PDF et le prix papier imprimé."
+        : "Une commande d'impression A0 vient d'être passée.",
+      link: "/admin/sur-mesure",
+    },
   );
 
   return { ok: true };

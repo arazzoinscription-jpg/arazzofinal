@@ -111,10 +111,17 @@ export default async function SurMesurePage() {
 function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" | "other"; urgent?: boolean }) {
   const client = o.client as { nom?: string; email?: string } | null;
   const responsable = o.responsable as { nom?: string } | null;
-  const mesures = (o.mesures ?? {}) as Record<string, string | number>;
-  const entries = Object.entries(mesures);
+  const mesures = (o.mesures ?? {}) as Record<string, any>;
+  const isPlacementPatron = mesures.kind === "placement_patron";
+  // Table générique de mesures seulement pour les commandes « classiques » (champs simples).
+  const entries = isPlacementPatron ? [] : Object.entries(mesures).filter(([, v]) => typeof v === "number" || typeof v === "string");
   const type = orderType(o);
   const TypeIcon = type === "placement" ? LayoutGrid : Ruler;
+  // Résumé placement patron (table, laize, tissu, format choisi).
+  const pTable = mesures.table ?? {};
+  const pTissu = mesures.tissu ?? {};
+  const pFormat = mesures.format_choisi === "papier" ? "Papier imprimé (livré)" : mesures.format_choisi === "pdf" ? "PDF (à télécharger)" : null;
+  const fmtDa = (n: any) => `${Number(n).toLocaleString("fr-DZ")} DA`;
   return (
     <div className={`rounded-2xl bg-white dark:bg-white/[0.04] border p-5 ${urgent ? "border-red-300 dark:border-red-500/40 ring-1 ring-red-200" : "border-cream-200 dark:border-white/10"}`}>
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -156,6 +163,16 @@ function OrderCard({ o, variant, urgent }: { o: any; variant: "alert" | "mine" |
         {o.taille && <span className="bg-cream-100 dark:bg-white/10 px-2 py-0.5 rounded">Taille : {o.taille}</span>}
         {o.tissu && <span className="bg-cream-100 dark:bg-white/10 px-2 py-0.5 rounded">Tissu : {o.tissu}</span>}
       </div>
+
+      {isPlacementPatron && (
+        <div className="rounded-xl border border-violet-200 dark:border-violet-500/30 bg-violet-50/60 dark:bg-violet-500/10 p-3 mb-3 text-sm space-y-1">
+          <p className="font-semibold text-violet-800 dark:text-violet-200 flex items-center gap-1.5"><LayoutGrid size={14} /> Placement à réaliser</p>
+          <p className="text-gray-700 dark:text-white/70">Table : <strong>{pTable.longueur_cm ?? "—"} × {pTable.largeur_cm ?? "—"} cm</strong></p>
+          <p className="text-gray-700 dark:text-white/70">Laize tissu : <strong>{pTissu.laize_cm ?? "—"} cm</strong>{pTissu.matiere ? ` · ${pTissu.matiere}` : ""}</p>
+          {pFormat && <p className="text-gray-700 dark:text-white/70">Format choisi : <strong>{pFormat}</strong></p>}
+          {o.proposed_price_dzd != null && <p className="text-gray-700 dark:text-white/70">Prix retenu : <strong>{fmtDa(o.proposed_price_dzd)}</strong></p>}
+        </div>
+      )}
 
       {entries.length > 0 && (
         <div className="rounded-xl border border-cream-200 dark:border-white/10 overflow-hidden mb-3">

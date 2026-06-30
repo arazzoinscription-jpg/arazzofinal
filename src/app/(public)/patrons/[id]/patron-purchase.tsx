@@ -177,7 +177,7 @@ function PlacementChoice({ patronId, onDone }: { patronId: string; onDone: () =>
     });
   }
 
-  if (done) return <Success text="Demande de placement sur mesure envoyée ! Le patronniste vous répond bientôt." />;
+  if (done) return <Success href="/dashboard/sur-mesure" text="Demande de placement envoyée ! Vous recevrez un devis (prix PDF + papier imprimé) à accepter dans « Sur mesure »." />;
 
   return (
     <form onSubmit={submit} className="rounded-2xl border border-cream-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-4 space-y-3">
@@ -198,11 +198,11 @@ function PlacementChoice({ patronId, onDone }: { patronId: string; onDone: () =>
   );
 }
 
-function Success({ text }: { text: string }) {
+function Success({ text, href = "/dashboard/commandes" }: { text: string; href?: string }) {
   return (
     <div className="rounded-2xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-4 text-green-700 dark:text-green-300 text-sm font-dm flex items-start gap-2">
       <Check size={18} className="flex-shrink-0 mt-0.5" />
-      <span>{text} <Link href="/dashboard/commandes" className="font-semibold underline inline-flex items-center gap-1">Suivre <ArrowRight size={13} /></Link></span>
+      <span>{text} <Link href={href} className="font-semibold underline inline-flex items-center gap-1">Suivre <ArrowRight size={13} /></Link></span>
     </div>
   );
 }

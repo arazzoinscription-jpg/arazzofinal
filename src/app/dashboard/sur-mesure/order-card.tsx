@@ -19,6 +19,7 @@ export interface ClientOrder {
   statut: string;
   proposed_price_dzd: number | null;
   created_at: string;
+  mesures?: Record<string, any> | null;
 }
 
 const BADGE: Record<string, string> = {
@@ -53,10 +54,17 @@ export function CustomOrderCard({ o, type = "patron" }: { o: ClientOrder; type?:
   const noun = SUR_MESURE[type].noun; // « patron » ou « placement »
   const TypeIcon = type === "placement" ? LayoutGrid : Ruler;
 
+  // Placement patron : devis à 2 prix (PDF / papier imprimé) → choix du format à l'acceptation.
+  const m = (o.mesures ?? {}) as Record<string, any>;
+  const isPlacementPatron = m.kind === "placement_patron";
+  const pdfPrice = Number(m.prix_pdf_dzd ?? o.proposed_price_dzd ?? 0);
+  const paperPrice = Number(m.prix_papier_dzd ?? 0);
+  const [format, setFormat] = useState<"pdf" | "papier">("pdf");
+
   function accept() {
     start(async () => {
-      const r = await acceptCustomPrice(o.id);
-      if (r.ok) { toast("Prix accepté — recherche d'une patronniste ✅", "success"); router.refresh(); }
+      const r = await acceptCustomPrice(o.id, isPlacementPatron ? format : undefined);
+      if (r.ok) { toast("Devis accepté — recherche d'une patronniste ✅", "success"); router.refresh(); }
       else toast(r.error ?? "Erreur", "error");
     });
   }
@@ -113,16 +121,36 @@ export function CustomOrderCard({ o, type = "patron" }: { o: ClientOrder; type?:
         {o.taille ? ` · Taille ${o.taille}` : ""}{o.tissu ? ` · ${o.tissu}` : ""}
       </div>
 
-      {/* Prix proposé → accepter / refuser */}
+      {/* Prix proposé → (placement : choix du format) accepter / refuser */}
       {o.statut === "price_proposed" && (
         <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 dark:bg-orange-500/10 p-3">
-          <p className="text-sm text-gray-700 dark:text-white/80">
-            Prix proposé : <strong className="text-orange-700">{fmt(o.proposed_price_dzd ?? 0)}</strong>
-          </p>
+          {isPlacementPatron ? (
+            <>
+              <p className="text-sm text-gray-700 dark:text-white/80 mb-2">Devis prêt — choisissez votre format :</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setFormat("pdf")}
+                  className={`rounded-lg border p-2.5 text-start transition-colors ${format === "pdf" ? "border-orange-DEFAULT bg-white dark:bg-white/10 ring-1 ring-orange-DEFAULT" : "border-gray-200 dark:border-white/15"}`}>
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-900 dark:text-white"><Download size={13} /> PDF</span>
+                  <span className="block text-sm font-bold text-orange-700 dark:text-orange-300 mt-0.5">{fmt(pdfPrice)}</span>
+                  <span className="block text-[10px] text-gray-400">À télécharger</span>
+                </button>
+                <button type="button" onClick={() => setFormat("papier")}
+                  className={`rounded-lg border p-2.5 text-start transition-colors ${format === "papier" ? "border-orange-DEFAULT bg-white dark:bg-white/10 ring-1 ring-orange-DEFAULT" : "border-gray-200 dark:border-white/15"}`}>
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-900 dark:text-white"><Upload size={13} /> Papier imprimé</span>
+                  <span className="block text-sm font-bold text-orange-700 dark:text-orange-300 mt-0.5">{fmt(paperPrice)}</span>
+                  <span className="block text-[10px] text-gray-400">Livré chez vous</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-700 dark:text-white/80">
+              Prix proposé : <strong className="text-orange-700">{fmt(o.proposed_price_dzd ?? 0)}</strong>
+            </p>
+          )}
           <div className="flex gap-2 mt-2.5">
             <button onClick={accept} disabled={pending}
               className="flex-1 inline-flex items-center justify-center gap-1.5 bg-green-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-60">
-              {pending ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Accepter
+              {pending ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} {isPlacementPatron ? "Accepter ce format" : "Accepter"}
             </button>
             <button onClick={refuse} disabled={pending}
               className="flex-1 inline-flex items-center justify-center gap-1.5 border border-gray-300 text-gray-600 py-2 rounded-lg text-sm font-semibold hover:bg-gray-50 disabled:opacity-60">

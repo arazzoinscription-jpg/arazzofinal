@@ -96,26 +96,55 @@ const guardClient = async (orderId: string) => {
   const admin = createAdminClient();
   const { data: order } = await admin
     .from("patron_custom_orders")
-    .select("id, client_id, titre, statut, proposed_price_dzd, file_path, note")
+    .select("id, client_id, titre, statut, proposed_price_dzd, file_path, note, mesures")
     .eq("id", orderId)
     .maybeSingle();
   if (!order || order.client_id !== user.id) return { user, admin, order: null };
   return { user, admin, order };
 };
 
-/** Le client ACCEPTE le prix proposé → la commande est diffusée aux patronnistes. */
-export async function acceptCustomPrice(orderId: string) {
+/**
+ * Le client ACCEPTE le prix proposé → la commande est diffusée aux patronnistes.
+ * Pour un PLACEMENT patron, le client choisit aussi le FORMAT (pdf | papier) :
+ * le prix retenu (proposed_price_dzd) devient le prix du format choisi.
+ */
+export async function acceptCustomPrice(orderId: string, format?: "pdf" | "papier") {
   if (!z.string().uuid().safeParse(orderId).success) return { ok: false, error: "Commande invalide." };
   const { admin, order } = await guardClient(orderId);
   if (!admin || !order) return { ok: false, error: "Commande introuvable." };
   if (order.statut !== "price_proposed") return { ok: false, error: "Cette commande n'attend pas votre accord." };
 
-  await admin.from("patron_custom_orders").update({ statut: "awaiting_patronniste" }).eq("id", orderId);
+  const mesures = ((order as any).mesures ?? {}) as Record<string, unknown>;
+  const isPlacementPatron = mesures.kind === "placement_patron";
+
+  const update: Record<string, unknown> = { statut: "awaiting_patronniste" };
+  let formatLabel = "";
+  if (isPlacementPatron) {
+    if (format !== "pdf" && format !== "papier") return { ok: false, error: "Choisissez le format (PDF ou papier imprimé)." };
+    const chosen = format === "papier" ? Number(mesures.prix_papier_dzd) : Number(mesures.prix_pdf_dzd ?? order.proposed_price_dzd);
+    if (!Number.isFinite(chosen) || chosen <= 0) return { ok: false, error: "Prix du format indisponible." };
+    update.proposed_price_dzd = Math.round(chosen);
+    update.mesures = { ...mesures, format_choisi: format };
+    formatLabel = format === "papier" ? "Papier imprimé (livré)" : "PDF (à télécharger)";
+  }
+
+  await admin.from("patron_custom_orders").update(update).eq("id", orderId);
+
+  const finalPrice = Number(update.proposed_price_dzd ?? order.proposed_price_dzd ?? 0);
   const svc = SUR_MESURE[orderType(order)];
   await notifyPatronnistes(admin, {
-    title: `🧵 Nouveau ${svc.noun} sur mesure disponible`,
-    body: `« ${order.titre} » (${svc.short}) — ${Number(order.proposed_price_dzd ?? 0).toLocaleString("fr-DZ")} DA. Première patronniste à l'accepter le prend.`,
+    title: isPlacementPatron ? "🧵 Placement en demande — disponible" : `🧵 Nouveau ${svc.noun} sur mesure disponible`,
+    body: `« ${order.titre} »${isPlacementPatron ? ` — ${formatLabel}` : ` (${svc.short})`} — ${finalPrice.toLocaleString("fr-DZ")} DA. Première patronniste à l'accepter le prend.`,
   });
+
+  if (isPlacementPatron) {
+    await notifyAdminEmail("📐 Placement en demande (accepté par la cliente)", {
+      "Commande": order.titre,
+      "Format choisi": formatLabel,
+      "Prix retenu": `${finalPrice.toLocaleString("fr-DZ")} DA`,
+    }, { intro: "La cliente a accepté le devis et choisi son format. La commande est diffusée aux patronnistes.", link: "/admin/sur-mesure" });
+  }
+
   revalidatePath("/dashboard/sur-mesure");
   revalidatePath("/patronniste/sur-mesure");
   return { ok: true };
