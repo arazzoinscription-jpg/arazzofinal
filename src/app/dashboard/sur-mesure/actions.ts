@@ -164,6 +164,51 @@ export async function refuseCustomPrice(orderId: string) {
 }
 
 /**
+ * Placement PAPIER : une fois le patron réalisé (statut "delivered"), la cliente
+ * renseigne ses coordonnées de livraison → la commande passe en "completed" avec
+ * un sous-statut livraison "a_expedier" (stocké dans mesures). Paiement à la
+ * livraison (COD), comme les autres livraisons du site.
+ */
+export async function submitPlacementDelivery(
+  orderId: string,
+  coords: { nom: string; phone: string; wilaya: string; adresse?: string },
+) {
+  if (!z.string().uuid().safeParse(orderId).success) return { ok: false, error: "Commande invalide." };
+  const { admin, order } = await guardClient(orderId);
+  if (!admin || !order) return { ok: false, error: "Commande introuvable." };
+  if (order.statut !== "delivered") return { ok: false, error: "Le patron n'est pas encore prêt." };
+
+  const mesures = ((order as any).mesures ?? {}) as Record<string, unknown>;
+  if (mesures.kind !== "placement_patron" || mesures.format_choisi !== "papier") {
+    return { ok: false, error: "Cette commande n'est pas une livraison papier." };
+  }
+  const nom = (coords?.nom ?? "").trim().slice(0, 120);
+  const phone = (coords?.phone ?? "").trim().slice(0, 40);
+  const wilaya = (coords?.wilaya ?? "").trim().slice(0, 60);
+  const adresse = (coords?.adresse ?? "").trim().slice(0, 300);
+  if (!nom || !phone || !wilaya) return { ok: false, error: "Renseignez au moins le nom, le téléphone et la wilaya." };
+
+  await admin.from("patron_custom_orders").update({
+    statut: "completed",
+    mesures: { ...mesures, livraison: { nom, phone, wilaya, adresse }, livraison_statut: "a_expedier" },
+  }).eq("id", orderId);
+
+  await notifyAdmins(admin, {
+    title: "📦 Placement papier à expédier",
+    body: `« ${order.titre} » — ${nom} · ${phone} · ${wilaya}. Coordonnées de livraison reçues.`,
+    link: "/admin/sur-mesure",
+  });
+  await notifyAdminEmail("📦 Placement papier — à expédier", {
+    "Commande": order.titre,
+    "Destinataire": nom, "Téléphone": phone, "Wilaya": wilaya, "Adresse": adresse || "—",
+  }, { intro: "La cliente a renseigné ses coordonnées : le patron papier est à expédier.", link: "/admin/sur-mesure" });
+
+  revalidatePath("/dashboard/sur-mesure");
+  revalidatePath("/admin/sur-mesure");
+  return { ok: true };
+}
+
+/**
  * Étape paiement : prépare une URL d'upload signée pour la preuve de paiement
  * (bucket privé `proofs`). Le client n'upload qu'au moment de télécharger.
  */

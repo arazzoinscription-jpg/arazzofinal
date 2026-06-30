@@ -47,7 +47,7 @@ export async function requestPatronFulfilment(input: PatronRequestInput) {
   let titre: string;
   let mesures: Record<string, unknown>;
   let taille: string | null = null;
-  const tailleChoisie = sanitizeText(input.taille ?? "").slice(0, 40).trim() || null;
+  const tailleChoisie = sanitizeText(input.taille ?? "").slice(0, 120).trim() || null;
 
   if (input.type === "impression_a0") {
     if (!input.fullName?.trim() || !input.phone?.trim() || !input.wilaya?.trim()) {

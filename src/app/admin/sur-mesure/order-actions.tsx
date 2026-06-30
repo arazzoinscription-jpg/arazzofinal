@@ -2,12 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Check, FileText, Receipt } from "lucide-react";
-import { proposeCustomPrice, approveCustomPayment, getAdminCustomFileUrl } from "./actions";
+import { Loader2, Check, FileText, Receipt, Truck, PackageCheck } from "lucide-react";
+import { proposeCustomPrice, approveCustomPayment, getAdminCustomFileUrl, setPlacementShipping } from "./actions";
 import { toast } from "@/components/ui/toast";
 
 export function AdminOrderActions({
   orderId, statut, proposedPrice, hasProof, hasFile, isPlacementPatron = false, paperPrice = null,
+  paperDelivery = null,
 }: {
   orderId: string;
   statut: string;
@@ -16,6 +17,8 @@ export function AdminOrderActions({
   hasFile: boolean;
   isPlacementPatron?: boolean;
   paperPrice?: number | null;
+  /** Livraison papier : { statut, nom, wilaya } si la cliente a renseigné l'adresse. */
+  paperDelivery?: { statut?: string; nom?: string; wilaya?: string } | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -48,6 +51,13 @@ export function AdminOrderActions({
     const r = await getAdminCustomFileUrl(orderId, kind);
     if (r.ok) window.open(r.url, "_blank");
     else toast(r.error ?? "Indisponible", "error");
+  }
+  function ship(s: "expedie" | "livre") {
+    start(async () => {
+      const r = await setPlacementShipping(orderId, s);
+      if (r.ok) { toast(s === "expedie" ? "Marqué expédié 📦" : "Marqué livré ✅", "success"); router.refresh(); }
+      else toast(r.error ?? "Erreur", "error");
+    });
   }
 
   return (
@@ -88,6 +98,26 @@ export function AdminOrderActions({
           className="inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50">
           {pending ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Valider le paiement
         </button>
+      )}
+
+      {/* Livraison papier (placement) : expédier / livrer */}
+      {paperDelivery && (
+        <div className="flex flex-col gap-1.5 border-t border-gray-100 pt-2">
+          <span className="text-[10px] text-gray-500">📦 {paperDelivery.nom} · {paperDelivery.wilaya}</span>
+          {(!paperDelivery.statut || paperDelivery.statut === "a_expedier") && (
+            <button onClick={() => ship("expedie")} disabled={pending}
+              className="inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-blue-700 disabled:opacity-50">
+              <Truck size={13} /> Marquer expédié
+            </button>
+          )}
+          {paperDelivery.statut === "expedie" && (
+            <button onClick={() => ship("livre")} disabled={pending}
+              className="inline-flex items-center justify-center gap-1.5 bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 disabled:opacity-50">
+              <PackageCheck size={13} /> Marquer livré
+            </button>
+          )}
+          {paperDelivery.statut === "livre" && <span className="text-xs font-medium text-green-600">Livré ✅</span>}
+        </div>
       )}
     </div>
   );

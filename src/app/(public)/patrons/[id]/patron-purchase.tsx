@@ -43,7 +43,10 @@ export function PatronPurchase({
   const router = useRouter();
   const [choice, setChoice] = useState<Choice>("pdf");
   const sizes = parseSizes(tailles);
-  const [taille, setTaille] = useState<string>("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggleSize = (s: string) => setSelected((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
+  // Conserve l'ordre d'origine des tailles dans le récapitulatif.
+  const taille = sizes.filter((s) => selected.includes(s)).join(", ");
 
   const options: { key: Choice; Icon: typeof FileDown; title: string; desc: string }[] = [
     { key: "pdf", Icon: FileDown, title: "Fichier PDF", desc: "À télécharger, à imprimer chez vous" },
@@ -53,24 +56,34 @@ export function PatronPurchase({
 
   return (
     <div className="w-full">
-      {/* Choix de la taille */}
+      {/* Choix des tailles (multi-sélection à cocher) */}
       {sizes.length > 0 && (
         <div className="mb-5">
-          <span className={label}>Votre taille {choice === "pdf" && <em className="text-gray-400 not-italic">(le PDF contient toutes les tailles)</em>}</span>
-          <div className="flex flex-wrap gap-2">
+          <span className={label}>
+            Vos tailles <span className="text-gray-400">(cochez une ou plusieurs)</span>
+            {choice === "pdf" && <em className="text-gray-400 not-italic"> · le PDF contient toutes les tailles</em>}
+          </span>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {sizes.map((s) => {
-              const on = taille === s;
+              const on = selected.includes(s);
               return (
-                <button key={s} type="button" onClick={() => setTaille(on ? "" : s)}
-                  className={`min-w-[3rem] rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                <label key={s}
+                  className={`flex items-center gap-2 cursor-pointer rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
                     on ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-200 ring-1 ring-orange-DEFAULT"
                        : "border-cream-200 dark:border-white/15 text-gray-600 dark:text-white/60 hover:border-orange-300"
                   }`}>
+                  <input type="checkbox" checked={on} onChange={() => toggleSize(s)}
+                    className="w-4 h-4 accent-orange-600 shrink-0" />
                   {s}
-                </button>
+                </label>
               );
             })}
           </div>
+          {selected.length > 0 && (
+            <p className="mt-2.5 text-sm text-gray-700 dark:text-white/70">
+              Tailles choisies : <strong className="text-orange-700 dark:text-orange-300">{taille}</strong>
+            </p>
+          )}
         </div>
       )}
 

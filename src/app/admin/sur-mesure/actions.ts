@@ -97,6 +97,31 @@ export async function approveCustomPayment(orderId: string) {
   return { ok: true };
 }
 
+/** Placement PAPIER : l'admin met à jour le statut de livraison (expédié / livré). */
+export async function setPlacementShipping(orderId: string, statut: "expedie" | "livre") {
+  if (!z.string().uuid().safeParse(orderId).success) return { ok: false, error: "Commande invalide." };
+  if (statut !== "expedie" && statut !== "livre") return { ok: false, error: "Statut invalide." };
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: order } = await admin.from("patron_custom_orders").select("id, client_id, titre, mesures").eq("id", orderId).maybeSingle();
+  if (!order) return { ok: false, error: "Commande introuvable." };
+  const mesures = (order.mesures ?? {}) as Record<string, unknown>;
+  if (mesures.kind !== "placement_patron" || mesures.format_choisi !== "papier") {
+    return { ok: false, error: "Cette commande n'est pas une livraison papier." };
+  }
+
+  await admin.from("patron_custom_orders").update({ mesures: { ...mesures, livraison_statut: statut } }).eq("id", orderId);
+  await notifyUser(admin, order.client_id, {
+    title: statut === "expedie" ? "📦 Votre patron papier est expédié" : "✅ Votre patron papier est livré",
+    body: `« ${order.titre} » : ${statut === "expedie" ? "votre colis a été remis au transporteur." : "votre colis a été livré. Merci !"}`,
+    link: "/dashboard/sur-mesure",
+  });
+  revalidatePath("/admin/sur-mesure");
+  revalidatePath("/dashboard/sur-mesure");
+  return { ok: true };
+}
+
 /** URL signée pour qu'un média (preuve de paiement OU fichier livré) soit consultable par l'admin. */
 export async function getAdminCustomFileUrl(orderId: string, kind: "proof" | "file") {
   if (!z.string().uuid().safeParse(orderId).success) return { ok: false as const, error: "Commande invalide." };

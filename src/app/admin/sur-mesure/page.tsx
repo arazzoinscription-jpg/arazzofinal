@@ -109,6 +109,12 @@ export default async function AdminSurMesurePage() {
                         hasFile={!!(o as any).file_path}
                         isPlacementPatron={((o as any).mesures ?? {}).kind === "placement_patron"}
                         paperPrice={((o as any).mesures ?? {}).prix_papier_dzd ?? null}
+                        paperDelivery={(() => {
+                          const md = ((o as any).mesures ?? {});
+                          return md.kind === "placement_patron" && md.format_choisi === "papier" && md.livraison
+                            ? { statut: md.livraison_statut, nom: md.livraison?.nom, wilaya: md.livraison?.wilaya }
+                            : null;
+                        })()}
                       />
                     </TableCell>
                   </TableRow>
