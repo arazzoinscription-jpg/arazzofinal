@@ -1067,7 +1067,8 @@ function Inscription({
           <form onSubmit={submit} className="bg-white dark:bg-white/[0.04] rounded-2xl border border-cream-200 dark:border-white/10 p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 dark:text-white/70 mb-2">{t.chooseCourse} *</label>
-              <div className="grid sm:grid-cols-3 gap-3">
+              {/* 3 formations sur UNE ligne, y compris sur mobile (cartes compactées). */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[0, 1, 2].map((i) => {
                   const lv = LEVELS[i];
                   const c = courses.find((x) => x.titre.toLowerCase().startsWith(`niveau ${i + 1}`)) ?? courses.find((x) => x.niveau === lv);
@@ -1076,16 +1077,16 @@ function Inscription({
                   return (
                     <div key={i} role="button" tabIndex={0} onClick={() => setCourseId(c.id)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setCourseId(c.id); } }}
-                      className={`cursor-pointer rounded-2xl border-2 p-4 transition-all flex flex-col ${selected ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-mono uppercase tracking-wide text-orange-600">{t.levelLabels[lv] ?? `Niveau ${i + 1}`}</span>
-                        {selected && <CheckCircle2 size={16} className="text-orange-DEFAULT shrink-0" />}
+                      className={`cursor-pointer rounded-xl sm:rounded-2xl border-2 p-2.5 sm:p-4 transition-all flex flex-col ${selected ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
+                      <div className="flex items-center justify-between mb-1 sm:mb-1.5 gap-1">
+                        <span className="text-[9px] sm:text-[11px] font-mono uppercase tracking-wide text-orange-600 leading-tight">{t.levelLabels[lv] ?? `Niveau ${i + 1}`}</span>
+                        {selected && <CheckCircle2 size={14} className="text-orange-DEFAULT shrink-0" />}
                       </div>
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white leading-snug line-clamp-2">{c.titre}</p>
-                      <p className="font-bold text-orange-600 mt-2 text-sm">{c.prixDzd > 0 ? fmt(c.prixDzd) : ""}</p>
+                      <p className="font-semibold text-xs sm:text-sm text-gray-900 dark:text-white leading-snug line-clamp-2">{c.titre}</p>
+                      <p className="font-bold text-orange-600 mt-1 sm:mt-2 text-xs sm:text-sm">{c.prixDzd > 0 ? fmt(c.prixDzd) : ""}</p>
                       <button type="button" onClick={(e) => { e.stopPropagation(); onFiche(c.id); }}
-                        className="mt-auto pt-2 inline-block text-start text-xs font-semibold text-violet-700 dark:text-violet-300 hover:underline">
-                        {lang === "ar" ? "عرض التكوين ←" : lang === "en" ? "View course →" : "Voir la formation →"}
+                        className="mt-auto pt-1.5 sm:pt-2 inline-block text-start text-[10px] sm:text-xs font-semibold text-violet-700 dark:text-violet-300 hover:underline leading-tight">
+                        {lang === "ar" ? "عرض التكوين ←" : lang === "en" ? "View →" : "Voir →"}
                       </button>
                     </div>
                   );
