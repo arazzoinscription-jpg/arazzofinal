@@ -80,12 +80,11 @@ export default async function DashboardLayout({
 
   const lang = normLang((await cookies()).get("lang")?.value);
 
-  // Bulle WhatsApp (espace étudiant) : formateur assigné sinon administrateur.
-  const bubble = role === "eleve"
-    ? await getWhatsAppBubble(createAdminClient(), {
-        userId: user.id, nom: profile?.nom ?? null, email: user.email ?? null, space: "student",
-      })
-    : null;
+  // Bulle WhatsApp (espace privé étudiant) : formateur assigné sinon administrateur.
+  // Toujours affichée (sauf si l'admin l'a désactivée) — même sans numéro (message au clic).
+  const bubble = await getWhatsAppBubble(createAdminClient(), {
+    userId: user.id, nom: profile?.nom ?? null, email: user.email ?? null, space: "student",
+  });
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
@@ -146,7 +145,7 @@ export default async function DashboardLayout({
       {/* Menu flottant unique (mêmes 5 entrées que le reste du site) + visite guidée 1er accès */}
       <MobileQuickNav />
       {role === "eleve" && <OnboardingTour lang={lang} />}
-      {bubble && <WhatsAppBubble href={bubble.href} />}
+      {bubble && <WhatsAppBubble href={bubble.href} hint={bubble.hint} />}
     </div>
   );
 }

@@ -40,7 +40,7 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     key: "community", icon: Users, home: "/formateur/groupes",
     label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
     items: [
-      { href: "/admin/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
+      { href: "/formateur/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
       { href: "/formateur/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
       { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
       { href: "/formateur/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },

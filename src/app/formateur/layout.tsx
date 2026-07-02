@@ -50,11 +50,10 @@ export default async function FormateurLayout({
   const ui = PRO_UI[lang];
 
   // Bulle WhatsApp (espace formateur) → administrateur.
-  const bubble = profile?.role === "formateur"
-    ? await getWhatsAppBubble(createAdminClient(), {
-        userId: user.id, nom: profile?.nom ?? null, email: user.email ?? null, space: "formateur",
-      })
-    : null;
+  // Toujours affichée (sauf si l'admin l'a désactivée) — même sans numéro (message au clic).
+  const bubble = await getWhatsAppBubble(createAdminClient(), {
+    userId: user.id, nom: profile?.nom ?? null, email: user.email ?? null, space: "formateur",
+  });
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
@@ -127,7 +126,7 @@ export default async function FormateurLayout({
         <div className="p-4 sm:p-6 lg:p-8"><PageTransition>{children}</PageTransition></div>
       </main>
       <Toaster />
-      {bubble && <WhatsAppBubble href={bubble.href} />}
+      {bubble && <WhatsAppBubble href={bubble.href} hint={bubble.hint} />}
     </div>
   );
 }
