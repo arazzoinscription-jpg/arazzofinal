@@ -1,7 +1,6 @@
 import { loadCommunityFeed } from "@/lib/community";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FEED_LIBRARY_ID } from "@/lib/bunny/stream";
-import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
 import { CommunityFab } from "@/components/community/community-fab";
 import { FeedClient } from "./feed-client";
 
@@ -26,8 +25,8 @@ export default async function CommunautePage() {
       <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} />
       {/* Bouton « + » flottant : publier une vidéo / une actualité (staff uniquement). */}
       {isStaff && <CommunityFab role={role} />}
-      {/* Menu du site en bas (mobile) : reste accessible par-dessus le feed plein écran. */}
-      <MobileQuickNav />
+      {/* Pas de menu bas ici : le feed est plein écran et a sa propre navigation en haut
+          (le menu du bas masquait le « + », les popups et le bouton de partage). */}
     </>
   );
 }

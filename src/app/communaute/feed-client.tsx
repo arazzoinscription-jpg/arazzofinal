@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore } from "lucide-react";
@@ -93,14 +94,22 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
       ))}
 
       {commentPost && (
-        <CommentSheet postId={commentPost} onClose={() => setCommentPost(null)} />
+        <Portal><CommentSheet postId={commentPost} onClose={() => setCommentPost(null)} /></Portal>
       )}
 
-      {fbOpen && <FacebookAddSheet onClose={() => setFbOpen(false)} />}
+      {fbOpen && <Portal><FacebookAddSheet onClose={() => setFbOpen(false)} /></Portal>}
 
-      {gate && <GuestGate kind={gate} onClose={() => setGate(null)} />}
+      {gate && <Portal><GuestGate kind={gate} onClose={() => setGate(null)} /></Portal>}
     </div>
   );
+}
+
+/** Rend les popups au niveau <body> pour qu'ils passent AU-DESSUS du feed, du « + » et du menu. */
+function Portal({ children }: { children: ReactNode }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(children, document.body);
 }
 
 /** Invitation à s'inscrire pour les visiteurs : douce (toutes les 3 vidéos) ou bloquante (10ᵉ vidéo). */
