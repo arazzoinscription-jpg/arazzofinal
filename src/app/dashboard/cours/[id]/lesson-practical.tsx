@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Video, Loader2, Send, Share2, Check } from "lucide-react";
+import { ImagePlus, Video, Loader2, Send, Share2, Check, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { recordPractical } from "./extras-actions";
+import { recordPractical, deletePractical } from "./extras-actions";
 import { sharePracticalToFeed } from "@/app/actions/community";
 import { MAX_PRACTICAL_PHOTOS, MAX_PRACTICAL_VIDEOS } from "@/lib/practicals-limits";
 import { toast } from "@/components/ui/toast";
@@ -38,6 +38,16 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   const [err, setErr] = useState<string | null>(null);
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shared, setShared] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function remove(id: string) {
+    if (!confirm("Supprimer définitivement ce travail pratique ?")) return;
+    setDeletingId(id);
+    const res = await deletePractical(id);
+    setDeletingId(null);
+    if (res.ok) { toast("Travail supprimé ✅", "success"); router.refresh(); }
+    else toast(res.error ?? "Suppression impossible", "error");
+  }
 
   // Quota par leçon pour l'élève (le staff n'est pas limité) : 3 photos / 2 vidéos.
   const myPhotos = submissions.filter((s) => s.user_id === meId && s.photo_url).length;
@@ -64,7 +74,8 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   // Évite la limite ~4,5 Mo des Server Actions sur Vercel → gère photos ET vidéos.
   async function upload(file: File, type: "photo" | "video"): Promise<string> {
     const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "bin";
-    const path = `${lessonId}/${meId}/${type}-${crypto.randomUUID()}.${ext}`;
+    const uid = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const path = `${lessonId}/${meId}/${type}-${uid}.${ext}`;
     const { error } = await supabase.storage.from("practicals").upload(path, file, { upsert: false, contentType: file.type || undefined });
     if (error) throw new Error("Envoi échoué : " + error.message);
     return supabase.storage.from("practicals").getPublicUrl(path).data.publicUrl;
@@ -153,18 +164,31 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
                 </div>
               )}
 
-              {/* L'élève peut partager SON travail sur le feed communauté (encouragements). */}
-              {s.user_id === meId && (s.photo_url || s.video_url) && (
-                <button
-                  onClick={() => share(s.id)}
-                  disabled={sharingId === s.id || shared.has(s.id)}
-                  className="mt-3 inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-2 border-orange-DEFAULT text-orange-600 hover:bg-orange-50 disabled:opacity-60 transition-colors">
-                  {sharingId === s.id ? <Loader2 size={15} className="animate-spin" />
-                    : shared.has(s.id) ? <Check size={15} />
-                    : <Share2 size={15} />}
-                  {shared.has(s.id) ? "Publié sur la communauté" : "Postez vos travaux sur la communauté"}
-                </button>
-              )}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {/* L'élève peut partager SON travail sur le feed communauté (encouragements). */}
+                {s.user_id === meId && (s.photo_url || s.video_url) && (
+                  <button
+                    onClick={() => share(s.id)}
+                    disabled={sharingId === s.id || shared.has(s.id)}
+                    className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border-2 border-orange-DEFAULT text-orange-600 hover:bg-orange-50 disabled:opacity-60 transition-colors">
+                    {sharingId === s.id ? <Loader2 size={15} className="animate-spin" />
+                      : shared.has(s.id) ? <Check size={15} />
+                      : <Share2 size={15} />}
+                    {shared.has(s.id) ? "Publié sur la communauté" : "Postez vos travaux sur la communauté"}
+                  </button>
+                )}
+
+                {/* Suppression : par l'auteur (son travail) ou le staff (formateur/admin). */}
+                {(s.user_id === meId || isStaff) && (
+                  <button
+                    onClick={() => remove(s.id)}
+                    disabled={deletingId === s.id}
+                    className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60 transition-colors">
+                    {deletingId === s.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                    Supprimer
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

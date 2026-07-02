@@ -132,6 +132,28 @@ export async function recordPractical(lessonId: string, photoUrl: string | null,
   }
 }
 
+/**
+ * Supprime un travail pratique déjà déposé.
+ * Autorisé à l'AUTEUR (l'élève, son propre travail) OU au STAFF (formateur/admin).
+ * La ligne community_media liée est retirée automatiquement (FK ON DELETE CASCADE).
+ */
+export async function deletePractical(id: string) {
+  const c = await ctx();
+  if (!c) return { ok: false, error: "Non authentifié." };
+  const admin = createAdminClient();
+  const { data: row } = await admin.from("lesson_practicals").select("user_id, lesson_id").eq("id", id).maybeSingle();
+  if (!row) return { ok: false, error: "Introuvable." };
+  if (row.user_id !== c.user.id && !c.isStaff) return { ok: false, error: "Accès refusé." };
+
+  const { error } = await admin.from("lesson_practicals").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/dashboard/cours/${row.lesson_id}`);
+  revalidatePath("/dashboard/pratiques");
+  revalidatePath("/formateur/pratiques");
+  return { ok: true };
+}
+
 /** Retour de la formatrice sur un travail pratique (staff). */
 export async function setPracticalFeedback(id: string, feedback: string, status: "reviewed" | "approved") {
   const c = await ctx();

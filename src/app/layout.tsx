@@ -4,6 +4,7 @@ import "./globals.css";
 import { validateEnv } from "@/lib/security/env";
 import { AnalyticsTracker } from "@/components/analytics/analytics-tracker";
 import { RecoveryRedirect } from "@/components/auth/recovery-redirect";
+import { CookieConsent } from "@/components/layout/cookie-consent";
 
 // Polices auto-hébergées via next/font (non bloquant, sans requête externe à Google).
 // `display: swap` + `variable` exposé en CSS (voir globals.css / tailwind.config.ts).
@@ -54,6 +55,7 @@ export default function RootLayout({
         {children}
         <RecoveryRedirect />
         <AnalyticsTracker />
+        <CookieConsent />
       </body>
     </html>
   );

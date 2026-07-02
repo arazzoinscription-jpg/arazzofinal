@@ -31,7 +31,8 @@ export function CustomOrderForm({ type = "patron" }: { type?: "patron" | "placem
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setError("Veuillez vous connecter."); return; }
       const ext = (file.name.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "bin";
-      const path = `sur-mesure/${user.id}/${kind}-${crypto.randomUUID()}.${ext}`;
+      const uid = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const path = `sur-mesure/${user.id}/${kind}-${uid}.${ext}`;
       const { error: upErr } = await supabase.storage.from("practicals").upload(path, file, { upsert: false, contentType: file.type || undefined });
       if (upErr) { setError("Envoi échoué : " + upErr.message); return; }
       const url = supabase.storage.from("practicals").getPublicUrl(path).data.publicUrl;

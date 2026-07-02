@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, RotateCcw, Loader2, Clapperboard } from "lucide-react";
-import { setPracticalFeedback } from "@/app/dashboard/cours/[id]/extras-actions";
+import { Check, RotateCcw, Loader2, Clapperboard, Trash2 } from "lucide-react";
+import { setPracticalFeedback, deletePractical } from "@/app/dashboard/cours/[id]/extras-actions";
 import { sharePracticalToFeedAsStaff } from "@/app/actions/community";
 import { toast } from "@/components/ui/toast";
 
@@ -53,6 +53,15 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
       const res = await sharePracticalToFeedAsStaff(row.id);
       if (res.ok) { toast("Publié sur le feed communauté 🎬", "success"); setShared(true); }
       else toast(res.error ?? "Erreur", "error");
+    });
+  }
+
+  function remove() {
+    if (!confirm("Supprimer définitivement ce travail pratique de l'élève ?")) return;
+    startTransition(async () => {
+      const res = await deletePractical(row.id);
+      if (res.ok) { toast("Travail supprimé ✅", "success"); router.refresh(); }
+      else toast(res.error ?? "Suppression impossible", "error");
     });
   }
 
@@ -130,6 +139,12 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
           </button>
         </div>
       )}
+
+      {/* Suppression du travail (formateur / admin) */}
+      <button onClick={remove} disabled={isPending}
+        className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50">
+        <Trash2 size={13} /> Supprimer ce travail
+      </button>
     </div>
   );
 }
