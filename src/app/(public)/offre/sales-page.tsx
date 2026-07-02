@@ -100,6 +100,7 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
   const [courseId, setCourseId] = useState("");
   const [phase, setPhase] = useState<"form" | "done">("form");
   const [ficheId, setFicheId] = useState<string | null>(null);
+  const [packFicheId, setPackFicheId] = useState<string | null>(null);
   const ficheFmt = (n: number) => `${Number(n).toLocaleString(lang === "ar" ? "ar-DZ" : "fr-DZ")} ${t.inscription.currency}`;
 
   function pickCourse(level: Level) {
@@ -127,15 +128,8 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
       <Navbar lang={lang} solid />
       <Hero lang={lang} />
       <Why lang={lang} />
-      <Paths lang={lang} courses={courses} onEnroll={(cid) => enroll(null, cid)} onFiche={setFicheId} />
-      <TestBand lang={lang} />
-      <Testimonials lang={lang} />
-      <Gallery lang={lang} />
-      <Platform lang={lang} />
-      <TikTokCouture lang={lang} />
-      <PaymentMethodsSection lang={lang} />
-      <DiplomaSection lang={lang} />
-      <Quiz lang={lang} courses={courses} onEnroll={(lvl) => enroll(lvl)} />
+      <Paths lang={lang} courses={courses} onEnroll={(cid) => enroll(null, cid)} onFiche={setFicheId} onPackFiche={setPackFicheId} />
+      {/* « Réserve ta place » placée juste après « Choisis ton parcours ». */}
       {courses.length > 0 && (
         <Inscription
           lang={lang} courses={courses} pay={pay}
@@ -145,9 +139,20 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
           onFiche={setFicheId}
         />
       )}
+      <TestBand lang={lang} />
+      <Testimonials lang={lang} />
+      <Gallery lang={lang} />
+      <Platform lang={lang} />
+      <TikTokCouture lang={lang} />
+      <PaymentMethodsSection lang={lang} />
+      <DiplomaSection lang={lang} />
+      <Quiz lang={lang} courses={courses} onEnroll={(lvl) => enroll(lvl)} />
       <FinalCta lang={lang} />
 
       <CourseFicheModal courseId={ficheId} lang={lang} onClose={() => setFicheId(null)} onEnroll={(cid) => enroll(null, cid)} fmt={ficheFmt} />
+      {/* Popup détail du pack (niv 1 + niv 2) — accessible depuis « Choisis ton parcours ». */}
+      <PackFicheModal packId={packFicheId} lang={lang} onClose={() => setPackFicheId(null)}
+        onChoose={(pid) => { setCourseId(pid); setTimeout(() => document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth" }), 60); }} fmt={ficheFmt} />
 
       <footer className="border-t border-cream-200 dark:border-white/10 py-8 text-center text-sm text-gray-400 dark:text-white/40 font-dm">
         © {new Date().getFullYear()} Arazzo Formation — {t.hero.eyebrow}
@@ -514,10 +519,12 @@ function TikTokCouture({ lang }: { lang: Lang }) {
 }
 
 /* ── Parcours / formations ─────────────────────────────────────────────── */
-function Paths({ lang, courses, onEnroll, onFiche }: { lang: Lang; courses: CourseOption[]; onEnroll: (courseId: string) => void; onFiche: (id: string) => void }) {
+function Paths({ lang, courses, onEnroll, onFiche, onPackFiche }: { lang: Lang; courses: CourseOption[]; onEnroll: (courseId: string) => void; onFiche: (id: string) => void; onPackFiche: (id: string) => void }) {
   const t = OFFRE[lang].paths;
   const ins = OFFRE[lang].inscription;
   const fmt = (n: number) => `${Number(n).toLocaleString(lang === "ar" ? "ar-DZ" : "fr-DZ")} ${ins.currency}`;
+  const packs = courses.filter((c) => c.isPack);
+  const detailLabel = lang === "ar" ? "عرض تفاصيل التكوين" : lang === "en" ? "View course details" : "Voir le détail de la formation";
 
   // Cartes réelles si des formations existent, sinon repli sur le contenu statique.
   // On met en avant 3 formations (une par niveau) pour rester sur « trois parcours clairs » ;
@@ -591,6 +598,29 @@ function Paths({ lang, courses, onEnroll, onFiche }: { lang: Lang; courses: Cour
             );
           })}
         </div>
+
+        {/* Pack (niv 1 + niv 2) avec « Voir le détail de la formation » */}
+        {packs.length > 0 && (
+          <div className="mt-8 grid sm:grid-cols-2 gap-4">
+            {packs.map((p) => (
+              <div key={p.id} className="relative rounded-3xl border-2 border-orange-300/70 bg-gradient-to-br from-orange-50 to-cream-100 dark:from-orange-500/10 dark:to-white/[0.03] p-5 sm:p-6 flex flex-col">
+                <span className="inline-flex items-center gap-1 self-start text-[11px] font-extrabold px-2.5 py-1 rounded-full bg-orange-DEFAULT text-white mb-3"><Star size={11} className="fill-white" /> {t.popular}</span>
+                <h3 className="font-playfair text-xl font-bold text-violet-950 dark:text-white">{p.titre}</h3>
+                {p.prixDzd > 0 && <p className="font-playfair text-2xl font-bold text-orange-600 dark:text-orange-300 mt-1">{fmt(p.prixDzd)}</p>}
+                <div className="flex flex-wrap gap-2 mt-5">
+                  <button type="button" onClick={() => onPackFiche(p.id)}
+                    className="flex-1 min-w-[10rem] text-center border border-violet-DEFAULT text-violet-700 dark:text-violet-300 py-2.5 rounded-xl font-semibold text-sm hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors">
+                    {detailLabel}
+                  </button>
+                  <button onClick={() => onEnroll(p.id)}
+                    className="flex-1 min-w-[8rem] text-center bg-orange-DEFAULT text-white py-2.5 rounded-xl font-semibold text-sm hover:bg-orange-600 transition-colors">
+                    {t.enroll}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {useReal && courses.length > featured.length && (
           <div className="text-center mt-10">

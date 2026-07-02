@@ -16,14 +16,24 @@ interface Comment {
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean }) {
+export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
   const [commentPost, setCommentPost] = useState<string | null>(null);
   const [fbOpen, setFbOpen] = useState(false);
+  const [gate, setGate] = useState<null | "soft" | "hard">(null);
 
-  const shown = items;
+  // Visiteur non connecté : feed limité à 10 vidéos, invitation toutes les 3.
+  const shown = isGuest ? items.slice(0, 10) : items;
+
+  function activate(id: string) {
+    setActiveId(id);
+    if (!isGuest) return;
+    const idx = shown.findIndex((x) => x.id === id);
+    if (idx >= 9) setGate("hard");                        // 10ᵉ vidéo → blocage
+    else if (idx >= 2 && (idx - 2) % 3 === 0) setGate("soft"); // 3ᵉ, 6ᵉ, 9ᵉ → invitation
+  }
 
   // Barre du haut : Retour · logo→site · dashboard · son + onglets bascule.
   const topBar = (
@@ -33,9 +43,9 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false }:
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><ArrowLeft size={18} /></button>
         <Link href="/" className="font-playfair text-white font-bold text-base drop-shadow shrink-0">Arazzo</Link>
         <div className="flex-1" />
-        <Link href="/dashboard" aria-label="Tableau de bord"
+        <Link href={isGuest ? "/register" : "/dashboard"} aria-label={isGuest ? "S'inscrire" : "Tableau de bord"}
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
-        <button onClick={() => setFbOpen(true)} aria-label="Partager une vidéo Facebook"
+        <button onClick={() => (isGuest ? setGate("soft") : setFbOpen(true))} aria-label="Partager une vidéo Facebook"
           className="w-9 h-9 grid place-items-center rounded-full bg-[#1877F2] text-white shrink-0"><Facebook size={17} /></button>
         <button onClick={() => setMuted((m) => !m)} aria-label="Son"
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0">
@@ -75,8 +85,10 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false }:
           bunnyLibraryId={bunnyLibraryId}
           meId={meId}
           canModerate={canModerate}
-          onActive={() => setActiveId(it.id)}
-          onOpenComments={() => setCommentPost(it.postId)}
+          isGuest={isGuest}
+          onGuest={() => setGate("soft")}
+          onActive={() => activate(it.id)}
+          onOpenComments={() => (isGuest ? setGate("soft") : setCommentPost(it.postId))}
         />
       ))}
 
@@ -85,6 +97,41 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false }:
       )}
 
       {fbOpen && <FacebookAddSheet onClose={() => setFbOpen(false)} />}
+
+      {gate && <GuestGate kind={gate} onClose={() => setGate(null)} />}
+    </div>
+  );
+}
+
+/** Invitation à s'inscrire pour les visiteurs : douce (toutes les 3 vidéos) ou bloquante (10ᵉ vidéo). */
+function GuestGate({ kind, onClose }: { kind: "soft" | "hard"; onClose: () => void }) {
+  const hard = kind === "hard";
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center sm:justify-center" onClick={hard ? undefined : onClose}>
+      <div className={`absolute inset-0 ${hard ? "bg-black/80 backdrop-blur-sm" : "bg-black/55"}`} />
+      <div onClick={(e) => e.stopPropagation()}
+        className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-6 pb-[max(24px,env(safe-area-inset-bottom))] text-center">
+        <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-orange-DEFAULT text-white mb-4"><Scissors size={26} /></span>
+        <h3 className="font-playfair text-2xl font-bold text-violet-950 mb-2">
+          {hard ? "Continue avec Arazzo" : "Rejoins la communauté Arazzo"}
+        </h3>
+        <p className="text-gray-600 font-dm text-sm mb-5">
+          {hard
+            ? "Tu as parcouru l'aperçu gratuit. Connecte-toi pour continuer à regarder, commenter et publier."
+            : "Inscris-toi gratuitement pour profiter de patrons offerts, des cours de modélisme et de toute la communauté."}
+        </p>
+        <div className="flex flex-col gap-2.5">
+          <Link href="/register" className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-3 rounded-2xl font-bold hover:bg-orange-600 transition-colors">
+            S'inscrire gratuitement <ArrowRight size={18} />
+          </Link>
+          <Link href="/login?redirect=/communaute" className="w-full inline-flex items-center justify-center gap-2 border-2 border-violet-200 text-violet-700 py-2.5 rounded-2xl font-semibold hover:bg-violet-50 transition-colors">
+            J'ai déjà un compte
+          </Link>
+          {!hard && (
+            <button onClick={onClose} className="text-sm text-gray-400 font-dm mt-1 hover:text-gray-600">Plus tard</button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -145,10 +192,10 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
 }
 
 function Slide({
-  item, active, muted, bunnyLibraryId, meId, canModerate, onActive, onOpenComments,
+  item, active, muted, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
 }: {
   item: CommunityItem; active: boolean; muted: boolean; bunnyLibraryId: string;
-  meId: string; canModerate: boolean;
+  meId: string; canModerate: boolean; isGuest: boolean; onGuest: () => void;
   onActive: () => void; onOpenComments: () => void;
 }) {
   const router = useRouter();
@@ -206,6 +253,7 @@ function Slide({
   }, [active]);
 
   function onLike() {
+    if (isGuest) { onGuest(); return; }
     setLiked((l) => !l);
     setLikeCount((c) => c + (liked ? -1 : 1));
     startTransition(async () => {

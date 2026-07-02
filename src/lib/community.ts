@@ -54,7 +54,8 @@ const SELECT = `
 export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; items: CommunityItem[] }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { me: null, items: [] };
+  // Le feed est consultable par les VISITEURS (non connectés) : on charge les vidéos
+  // dans tous les cas ; l'invitation à s'inscrire est gérée côté client.
 
   const admin = createAdminClient();
   const { data: rows } = await admin
@@ -65,9 +66,9 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
 
   const items = (rows ?? [])
     .filter((r: any) => r.post && (r.post.published ?? true))
-    .map((r: any) => mapRow(r, user.id));
+    .map((r: any) => mapRow(r, user?.id ?? ""));
 
-  return { me: { id: user.id }, items };
+  return { me: user ? { id: user.id } : null, items };
 }
 
 /** Médias publiés par un utilisateur (page profil). */

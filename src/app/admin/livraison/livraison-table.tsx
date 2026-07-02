@@ -20,7 +20,42 @@ export function LivraisonTable({ rows }: { rows: DeliveryRow[] }) {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [qrs, setQrs] = useState<Record<string, string>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
   const [, startTransition] = useTransition();
+
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const toggleOne = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleAll = () => setSelected((s) => (rows.every((r) => s.has(r.id)) ? new Set() : new Set(rows.map((r) => r.id))));
+
+  /** Exporte les commandes SÉLECTIONNÉES : 2 fichiers (fiches PDF + feuille de livraison CSV). */
+  async function exportSelection() {
+    const ids = [...selected];
+    if (!ids.length) { toast("Sélectionnez au moins une commande.", "error"); return; }
+    setExporting(true);
+    try {
+      const targets: [string, string][] = [
+        ["/api/livraison/export-fiches", "fiches-inscription.pdf"],
+        ["/api/livraison/export-sheet", "livraison.csv"],
+      ];
+      for (const [url, filename] of targets) {
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
+        if (!res.ok) { toast(`Export échoué (${filename})`, "error"); continue; }
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        await new Promise((r) => setTimeout(r, 500)); // laisse le 1er téléchargement démarrer
+      }
+      toast(`Export généré pour ${ids.length} commande(s) : fiches PDF + feuille de livraison ✓`, "success");
+    } catch {
+      toast("Export impossible.", "error");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function makeQr(id: string, link: string) {
     try {
@@ -85,17 +120,25 @@ export function LivraisonTable({ rows }: { rows: DeliveryRow[] }) {
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <p className="text-sm text-gray-500">{rows.length} inscription(s)</p>
-        <button onClick={exportCsv}
-          className="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-700">
-          <Download size={15} /> Exporter (CSV / Excel)
-        </button>
+        <p className="text-sm text-gray-500">{rows.length} inscription(s){selected.size > 0 ? ` · ${selected.size} sélectionnée(s)` : ""}</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={exportSelection} disabled={exporting || selected.size === 0}
+            className="inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-orange-600 disabled:opacity-50">
+            {exporting ? <Loader2 size={15} className="animate-spin" /> : <QrCode size={15} />} Exporter la sélection ({selected.size})
+          </button>
+          <button onClick={exportCsv}
+            className="inline-flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-700">
+            <Download size={15} /> Tout (CSV)
+          </button>
+        </div>
       </div>
+      <p className="text-xs text-gray-400 mb-3">Sélectionnez des commandes, puis « Exporter la sélection » → 2 fichiers : les <strong>fiches d'inscription (PDF, avec QR de reconnexion)</strong> et la <strong>feuille de livraison (CSV)</strong> à importer chez le transporteur.</p>
 
       <div className="overflow-x-auto bg-white rounded-2xl border border-gray-100 shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100 bg-gray-50">
+              <th className="px-4 py-3"><input type="checkbox" checked={allSelected} onChange={toggleAll} className="w-4 h-4 accent-orange-600" aria-label="Tout sélectionner" /></th>
               <th className="px-4 py-3 font-semibold">Élève</th>
               <th className="px-4 py-3 font-semibold">Contact</th>
               <th className="px-4 py-3 font-semibold">Adresse</th>
@@ -110,7 +153,10 @@ export function LivraisonTable({ rows }: { rows: DeliveryRow[] }) {
               const link = links[r.id];
               const qr = qrs[r.id];
               return (
-                <tr key={r.id} className="border-b border-gray-50 align-top">
+                <tr key={r.id} className={`border-b border-gray-50 align-top ${selected.has(r.id) ? "bg-orange-50/40" : ""}`}>
+                  <td className="px-4 py-3">
+                    <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleOne(r.id)} className="w-4 h-4 accent-orange-600" aria-label="Sélectionner" />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-semibold text-gray-900">{r.fullName || "—"}</div>
                     <div className="text-xs text-gray-400">{r.orderNumber} · {new Date(r.createdAt).toLocaleDateString("fr-FR")}</div>
