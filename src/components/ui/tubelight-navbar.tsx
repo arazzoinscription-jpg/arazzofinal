@@ -20,9 +20,12 @@ interface NavBarProps {
   className?: string;
   /** Identifiant unique de l'animation « lampe » (évite les conflits si plusieurs barres montées). */
   lampId?: string;
+  /** Version compacte (pilule centrée, icônes seules) — pour le feed communauté
+   *  où les boutons du feed (+, partage…) doivent rester visibles. */
+  compact?: boolean;
 }
 
-export function NavBar({ items, className, lampId = "lamp" }: NavBarProps) {
+export function NavBar({ items, className, lampId = "lamp", compact = false }: NavBarProps) {
   const [activeTab, setActiveTab] = useState(items[0].name);
   const pathname = usePathname();
 
@@ -37,11 +40,22 @@ export function NavBar({ items, className, lampId = "lamp" }: NavBarProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-0 sm:top-0 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 mb-4 sm:mb-0 sm:pt-6",
+        compact
+          // Pilule centrée, réduite : n'occupe pas toute la largeur → laisse le « + »
+          // et les actions latérales du feed visibles. z-40 pour passer sous les modales.
+          ? "fixed bottom-0 left-1/2 -translate-x-1/2 z-40 mb-2"
+          : "fixed bottom-0 sm:top-0 inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 mb-4 sm:mb-0 sm:pt-6",
         className,
       )}
     >
-      <div className="flex items-center justify-around sm:justify-start gap-1 sm:gap-3 bg-white dark:bg-[#15102b] border border-cream-200 dark:border-white/10 backdrop-blur-lg py-1.5 px-2 sm:py-1 sm:px-1 rounded-2xl sm:rounded-full shadow-xl">
+      <div
+        className={cn(
+          "flex items-center bg-white dark:bg-[#15102b] border border-cream-200 dark:border-white/10 backdrop-blur-lg shadow-xl",
+          compact
+            ? "justify-center gap-0.5 py-1 px-1.5 rounded-full"
+            : "justify-around sm:justify-start gap-1 sm:gap-3 py-1.5 px-2 sm:py-1 sm:px-1 rounded-2xl sm:rounded-full",
+        )}
+      >
         {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.name;
@@ -50,6 +64,8 @@ export function NavBar({ items, className, lampId = "lamp" }: NavBarProps) {
             <Link
               key={item.name}
               href={item.url}
+              title={compact ? item.name : undefined}
+              aria-label={compact ? item.name : undefined}
               onClick={(e) => {
                 // Déjà sur cette page (ex. « Communauté » sur le feed) : on évite la
                 // renavigation qui remonterait la page et « sortirait » du feed.
@@ -57,16 +73,19 @@ export function NavBar({ items, className, lampId = "lamp" }: NavBarProps) {
                 setActiveTab(item.name);
               }}
               className={cn(
-                "relative cursor-pointer flex-1 sm:flex-none flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 text-[11px] sm:text-sm font-semibold px-1.5 sm:px-6 py-2 rounded-xl sm:rounded-full transition-colors",
+                "relative cursor-pointer flex items-center justify-center transition-colors",
+                compact
+                  ? "flex-col px-2.5 py-1.5 rounded-full"
+                  : "flex-1 sm:flex-none flex-col sm:flex-row gap-0.5 sm:gap-2 text-[11px] sm:text-sm font-semibold px-1.5 sm:px-6 py-2 rounded-xl sm:rounded-full",
                 item.color
                   ? item.color
                   : "text-violet-950/70 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
                 isActive && "bg-violet-50 dark:bg-white/10 text-[#6B21C8] dark:text-violet-200",
               )}
             >
-              <Icon size={22} strokeWidth={2.5} className="md:hidden" />
-              <span className="md:hidden">{item.name}</span>
-              <span className="hidden md:inline">{item.name}</span>
+              <Icon size={compact ? 19 : 22} strokeWidth={2.5} className={compact ? "" : "md:hidden"} />
+              {!compact && <span className="md:hidden">{item.name}</span>}
+              <span className={compact ? "hidden" : "hidden md:inline"}>{item.name}</span>
               {isActive && (
                 <motion.div
                   layoutId={lampId}

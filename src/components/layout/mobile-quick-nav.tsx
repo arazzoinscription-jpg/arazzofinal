@@ -8,7 +8,7 @@ import { NavBar } from "@/components/ui/tubelight-navbar";
  * desktop). Mêmes entrées partout → le menu ne change pas de style quand on navigue.
  * « Offre » (orange) et « Communauté » (sarcelle) sont mises en avant en couleur.
  */
-export function MobileQuickNav() {
+export function MobileQuickNav({ compact = false }: { compact?: boolean }) {
   const items = [
     { name: "Accueil", url: "/", icon: Home },
     { name: "Mon espace", url: "/dashboard", icon: LayoutGrid },
@@ -18,5 +18,5 @@ export function MobileQuickNav() {
     { name: "Patron", url: "/patrons", icon: Scissors },
   ];
 
-  return <NavBar items={items} lampId="quicknav-mobile" className="sm:hidden" />;
+  return <NavBar items={items} lampId="quicknav-mobile" className="sm:hidden" compact={compact} />;
 }
