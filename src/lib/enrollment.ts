@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { stopProspectSequenceOnPurchase } from "@/lib/prospects";
 
 export interface EnrollResult {
   ok: boolean;
@@ -115,6 +116,9 @@ export async function enrollAfterPayment(orderId: string): Promise<EnrollResult>
       } catch { /* ignore */ }
     }
   }
+
+  // Achat effectué → arrêt immédiat de la séquence marketing prospect (best-effort).
+  await stopProspectSequenceOnPurchase(admin, userId);
 
   return { ok: true, userId, isNewAccount, enrolled };
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GET as sessionReminders } from "../session-reminders/route";
 import { GET as reactivation } from "../reactivation/route";
+import { GET as prospectSequence } from "../prospect-sequence/route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runInstallmentReminders } from "@/lib/subscriptions";
 import { runPackInstallmentReminders } from "@/lib/pack-subscriptions";
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
   for (const [name, fn] of [
     ["session-reminders", sessionReminders],
     ["reactivation", reactivation],
+    ["prospect-sequence", prospectSequence],
   ] as const) {
     try {
       const res = await fn(req);

@@ -11,6 +11,7 @@ type Initial = {
   pays: string;
   avatar_url: string;
   role: string;
+  whatsapp: string;
 };
 
 const PAYS = [
@@ -47,6 +48,7 @@ export function ProfileForm({ initial }: { initial: Initial }) {
     } = await supabase.auth.getUser();
     if (!user) return;
 
+    const isStaff = form.role === "formateur" || form.role === "admin";
     const { error } = await supabase
       .from("users")
       .update({
@@ -54,6 +56,8 @@ export function ProfileForm({ initial }: { initial: Initial }) {
         ville: form.ville || null,
         pays: form.pays,
         avatar_url: form.avatar_url || null,
+        // Numéro WhatsApp : réservé au formateur/admin (contact depuis l'espace étudiant).
+        ...(isStaff ? { whatsapp: form.whatsapp.trim() || null } : {}),
       })
       .eq("id", user.id);
 
@@ -163,6 +167,20 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
+
+          {(form.role === "formateur" || form.role === "admin") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Numéro WhatsApp</label>
+              <input
+                type="tel"
+                value={form.whatsapp}
+                onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                placeholder="+213 6 12 34 56 78"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Utilisé pour vous contacter depuis l'espace étudiant (avec l'indicatif pays).</p>
+            </div>
+          )}
         </div>
 
         {msgP && (

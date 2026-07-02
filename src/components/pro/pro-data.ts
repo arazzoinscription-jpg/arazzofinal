@@ -1,9 +1,9 @@
 import {
   LayoutDashboard, BookOpen, PlusCircle, FileQuestion, Scissors, FolderOpen, Package,
-  Users, UsersRound, Newspaper, Megaphone, UserMinus, LifeBuoy, UserCog, UserPlus,
+  Users, UsersRound, Newspaper, Megaphone, UserMinus, LifeBuoy, UserCog, UserPlus, UserSearch,
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
-  Settings, Mail, ScrollText,
+  Settings, Mail, ScrollText, MessageCircle,
   Shapes, Ruler, Clapperboard, FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -88,6 +88,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
       { href: "/admin/acheteurs-patrons", icon: ShoppingBag, label: { fr: "Acheteurs de patrons", ar: "مشترو الباترونات", en: "Pattern buyers" } },
       { href: "/admin/demandes", icon: BadgeCheck, label: { fr: "Demandes de rôle", ar: "طلبات الأدوار", en: "Role requests" } },
       { href: "/admin/demandes-enrolement", icon: UserPlus, label: { fr: "Demandes d'enrôlement", ar: "طلبات الالتحاق", en: "Enrollment requests" } },
+      { href: "/admin/prospects", icon: UserSearch, label: { fr: "Prospects (sans commande)", ar: "العملاء المحتملون", en: "Prospects (no order)" } },
     ],
   },
   {
@@ -129,6 +130,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Système", ar: "النظام", en: "System" },
     items: [
       { href: "/admin/emails", icon: Mail, label: { fr: "Emails", ar: "الرسائل", en: "Emails" } },
+      { href: "/admin/whatsapp", icon: MessageCircle, label: { fr: "WhatsApp", ar: "واتساب", en: "WhatsApp" } },
       { href: "/admin/activite", icon: ScrollText, label: { fr: "Journal", ar: "السجلّ", en: "Activity log" } },
     ],
   },

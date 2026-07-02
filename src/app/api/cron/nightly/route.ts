@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { GET as cleanupImages } from "../cleanup-images/route";
 import { GET as surMesureRealert } from "../sur-mesure-realert/route";
 import { GET as formateurDigest } from "../formateur-digest/route";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { runProspectInactivity } from "@/lib/prospects";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -30,6 +32,14 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       results[name] = { error: e instanceof Error ? e.message : String(e) };
     }
+  }
+
+  // Inactivité prospect ≥ 12 mois (helper direct) : email « conserver le compte ? »
+  // puis marquage « À supprimer » (suppression réelle = validation admin manuelle).
+  try {
+    results["prospect-inactivity"] = await runProspectInactivity(createAdminClient());
+  } catch (e) {
+    results["prospect-inactivity"] = { error: e instanceof Error ? e.message : String(e) };
   }
 
   return NextResponse.json({ ok: true, results });

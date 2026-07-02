@@ -13,6 +13,7 @@ const PrefsSchema = z.object({
   certificates: z.boolean(),
   reactivation: z.boolean(),
   announcements: z.boolean(),
+  prospect: z.boolean(),
 });
 
 export type PrefsInput = z.infer<typeof PrefsSchema>;

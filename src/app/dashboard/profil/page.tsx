@@ -16,7 +16,7 @@ export default async function ProfilPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("nom, email, ville, pays, avatar_url, role")
+    .select("nom, email, ville, pays, avatar_url, role, whatsapp")
     .eq("id", user.id)
     .single();
 
@@ -40,6 +40,7 @@ export default async function ProfilPage() {
           pays: profile?.pays ?? "DZ",
           avatar_url: profile?.avatar_url ?? "",
           role: profile?.role ?? "eleve",
+          whatsapp: profile?.whatsapp ?? "",
         }}
       />
 

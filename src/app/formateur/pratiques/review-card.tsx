@@ -21,13 +21,13 @@ export interface PracticalRow {
 }
 
 /** Correction d'un travail pratique (lesson_practicals) : retour + valider / à retravailler. */
-export function ReviewCard({ row }: { row: PracticalRow }) {
+export function ReviewCard({ row, defaultApproved = false, defaultShared = false }: { row: PracticalRow; defaultApproved?: boolean; defaultShared?: boolean }) {
   const router = useRouter();
   const [feedback, setFeedback] = useState(row.feedback ?? "");
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState("");
-  const [approved, setApproved] = useState(false); // vient d'être validé → propose le partage
-  const [shared, setShared] = useState(false);
+  const [approved, setApproved] = useState(defaultApproved); // validé → propose le partage
+  const [shared, setShared] = useState(defaultShared);
   const isReviewed = row.status === "reviewed";
 
   function decide(status: "approved" | "reviewed") {
@@ -85,19 +85,23 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
 
       {row.note && <p className="text-sm text-gray-600 dark:text-white/70 font-dm mb-3 italic">« {row.note} »</p>}
 
-      <textarea
-        value={feedback}
-        onChange={(e) => setFeedback(e.target.value)}
-        rows={2}
-        placeholder="Votre retour à l'élève (obligatoire pour « à retravailler »)…"
-        className="w-full border border-gray-200 dark:border-white/15 bg-white dark:bg-white/5 text-gray-900 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none mb-2"
-      />
-
-      {err && <p className="text-sm text-red-500 mb-2">{err}</p>}
+      {!approved && (
+        <>
+          <textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            rows={2}
+            placeholder="Votre retour à l'élève (obligatoire pour « à retravailler »)…"
+            className="w-full border border-gray-200 dark:border-white/15 bg-white dark:bg-white/5 text-gray-900 dark:text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none mb-2"
+          />
+          {err && <p className="text-sm text-red-500 mb-2">{err}</p>}
+        </>
+      )}
 
       {approved ? (
         <div className="rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-3">
           <p className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 inline-flex items-center gap-1.5"><Check size={15} /> Travail validé</p>
+          {row.feedback && <p className="text-xs text-green-800/80 dark:text-green-200/70 mb-2 italic">Retour : « {row.feedback} »</p>}
           <div className="flex gap-2">
             {!shared ? (
               <button onClick={shareToFeed} disabled={isPending}
@@ -107,9 +111,11 @@ export function ReviewCard({ row }: { row: PracticalRow }) {
             ) : (
               <span className="flex-1 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-green-700 dark:text-green-300"><Check size={15} /> Publié sur le feed</span>
             )}
-            <button onClick={() => router.refresh()} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-white/60 border border-gray-200 dark:border-white/15 hover:bg-gray-50 dark:hover:bg-white/5">
-              Terminé
-            </button>
+            {!defaultApproved && (
+              <button onClick={() => router.refresh()} className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-600 dark:text-white/60 border border-gray-200 dark:border-white/15 hover:bg-gray-50 dark:hover:bg-white/5">
+                Terminé
+              </button>
+            )}
           </div>
         </div>
       ) : (

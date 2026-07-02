@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { loadFeed } from "@/lib/feed";
 import { Feed } from "@/components/feed/Feed";
 import { MembersManager, type Member } from "./members-manager";
+import { GroupWhatsAppManager } from "./whatsapp-manager";
 
 export const metadata = { title: "Groupe — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function FormateurGroupPage({ params }: { params: { id: str
   const isAdmin = prof?.role === "admin";
 
   const { data: group } = await supabase
-    .from("groups").select("id, name, description, cover_image_url, creator_id").eq("id", params.id).single();
+    .from("groups").select("id, name, description, cover_image_url, creator_id, whatsapp_link, whatsapp_disabled").eq("id", params.id).single();
   if (!group) notFound();
   if (group.creator_id !== user.id && !isAdmin) redirect("/formateur/groupes");
 
@@ -52,8 +53,9 @@ export default async function FormateurGroupPage({ params }: { params: { id: str
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Membres */}
-        <div className="lg:col-span-1 lg:order-2">
+        {/* Membres + groupe WhatsApp */}
+        <div className="lg:col-span-1 lg:order-2 space-y-4">
+          <GroupWhatsAppManager groupId={group.id} initialLink={group.whatsapp_link ?? null} disabled={!!group.whatsapp_disabled} />
           <MembersManager groupId={group.id} members={members} />
         </div>
         {/* Feed */}

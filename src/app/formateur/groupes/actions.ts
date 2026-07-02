@@ -5,6 +5,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isValidWhatsAppGroupLink } from "@/lib/whatsapp";
 
 async function requireStaff() {
   const supabase = await createClient();
@@ -55,6 +56,39 @@ export async function deleteGroup(id: string) {
   const { error } = await supabase.from("groups").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/formateur/groupes");
+  return { ok: true };
+}
+
+/** Vérifie que l'utilisateur est propriétaire du groupe (ou admin). */
+async function ownsGroup(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, groupId: string): Promise<boolean> {
+  const { data: g } = await supabase.from("groups").select("creator_id").eq("id", groupId).single();
+  if (!g) return false;
+  if (g.creator_id === userId) return true;
+  const { data: prof } = await supabase.from("users").select("role").eq("id", userId).single();
+  return prof?.role === "admin";
+}
+
+/**
+ * Ajoute ou modifie le lien du groupe WhatsApp (propriétaire du groupe ou admin).
+ * `link` vide/null = suppression. Valide le format d'un lien d'invitation officiel.
+ */
+export async function setGroupWhatsAppLink(input: { groupId: string; link: string | null }) {
+  const parsed = z.object({ groupId: z.string().uuid(), link: z.string().max(300).nullable() }).safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Données invalides." };
+  const { supabase, user, ok } = await requireStaff();
+  if (!ok || !user) return { ok: false, error: "Accès refusé." };
+  if (!(await ownsGroup(supabase, user.id, parsed.data.groupId))) return { ok: false, error: "Accès refusé." };
+
+  const link = parsed.data.link?.trim() || null;
+  if (link && !isValidWhatsAppGroupLink(link)) {
+    return { ok: false, error: "Lien invalide (attendu : https://chat.whatsapp.com/…)." };
+  }
+  // Mutation via service-role (l'ownership est déjà vérifié) : couvre aussi le cas admin
+  // non-créateur, bloqué par la policy RLS groups_update (créateur uniquement).
+  const { error } = await createAdminClient().from("groups").update({ whatsapp_link: link }).eq("id", parsed.data.groupId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/formateur/groupes/${parsed.data.groupId}`);
   return { ok: true };
 }
 

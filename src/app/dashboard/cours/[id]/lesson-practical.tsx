@@ -6,6 +6,7 @@ import { ImagePlus, Video, Loader2, Send, Share2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { recordPractical } from "./extras-actions";
 import { sharePracticalToFeed } from "@/app/actions/community";
+import { MAX_PRACTICAL_PHOTOS, MAX_PRACTICAL_VIDEOS } from "@/lib/practicals-limits";
 import { toast } from "@/components/ui/toast";
 
 export interface Practical {
@@ -38,6 +39,12 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   const [sharingId, setSharingId] = useState<string | null>(null);
   const [shared, setShared] = useState<Set<string>>(new Set());
 
+  // Quota par leçon pour l'élève (le staff n'est pas limité) : 3 photos / 2 vidéos.
+  const myPhotos = submissions.filter((s) => s.user_id === meId && s.photo_url).length;
+  const myVideos = submissions.filter((s) => s.user_id === meId && s.video_url).length;
+  const photoFull = !isStaff && myPhotos >= MAX_PRACTICAL_PHOTOS;
+  const videoFull = !isStaff && myVideos >= MAX_PRACTICAL_VIDEOS;
+
   async function share(id: string) {
     setSharingId(id);
     const res = await sharePracticalToFeed(id);
@@ -65,11 +72,14 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
 
   async function submit() {
     setErr(null);
-    if (!photo && !video && !note.trim()) { setErr("Ajoutez une photo, une vidéo ou une note."); return; }
+    // Respecte le quota côté client (le serveur revérifie de toute façon).
+    const usePhoto = photoFull ? null : photo;
+    const useVideo = videoFull ? null : video;
+    if (!usePhoto && !useVideo && !note.trim()) { setErr("Ajoutez une photo, une vidéo ou une note."); return; }
     setBusy(true);
     try {
-      const photoUrl = photo ? await upload(photo, "photo") : null;
-      const videoUrl = video ? await upload(video, "video") : null;
+      const photoUrl = usePhoto ? await upload(usePhoto, "photo") : null;
+      const videoUrl = useVideo ? await upload(useVideo, "video") : null;
       const res = await recordPractical(lessonId, photoUrl, videoUrl, note);
       if (!res.ok) throw new Error(res.error || "Erreur");
       setPhoto(null); setVideo(null); setNote("");
@@ -93,14 +103,22 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
         <div className="rounded-xl border border-cream-200 dark:border-white/10 p-4 mb-5 space-y-3">
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-sm">
-              <span className="flex items-center gap-1.5 text-gray-600 dark:text-white/70 mb-1"><ImagePlus size={15} /> Photo</span>
-              <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
-                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700" />
+              <span className="flex items-center justify-between gap-1.5 text-gray-600 dark:text-white/70 mb-1">
+                <span className="flex items-center gap-1.5"><ImagePlus size={15} /> Photo</span>
+                {!isStaff && <span className="text-[11px] text-gray-400">{myPhotos}/{MAX_PRACTICAL_PHOTOS}</span>}
+              </span>
+              <input type="file" accept="image/*" disabled={photoFull} onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" />
+              {photoFull && <span className="block text-[11px] text-orange-600 mt-1">Limite de {MAX_PRACTICAL_PHOTOS} photos atteinte.</span>}
             </label>
             <label className="text-sm">
-              <span className="flex items-center gap-1.5 text-gray-600 dark:text-white/70 mb-1"><Video size={15} /> Vidéo</span>
-              <input type="file" accept="video/*" onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
-                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700" />
+              <span className="flex items-center justify-between gap-1.5 text-gray-600 dark:text-white/70 mb-1">
+                <span className="flex items-center gap-1.5"><Video size={15} /> Vidéo</span>
+                {!isStaff && <span className="text-[11px] text-gray-400">{myVideos}/{MAX_PRACTICAL_VIDEOS}</span>}
+              </span>
+              <input type="file" accept="video/*" disabled={videoFull} onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" />
+              {videoFull && <span className="block text-[11px] text-orange-600 mt-1">Limite de {MAX_PRACTICAL_VIDEOS} vidéos atteinte.</span>}
             </label>
           </div>
           <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} placeholder="Une note (optionnel)…"

@@ -9,13 +9,18 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   failed: { label: "Échec", cls: "bg-red-100 text-red-700" },
 };
 
-export default async function AdminEmailsPage() {
+export default async function AdminEmailsPage({ searchParams }: { searchParams: { q?: string; category?: string } }) {
   const admin = createAdminClient();
-  const { data: logs } = await admin
+  const q = (searchParams.q ?? "").trim();
+  const category = (searchParams.category ?? "").trim();
+
+  let query = admin
     .from("email_log")
-    .select("to_email, category, subject, status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(80);
+    .select("to_email, category, subject, status, error, created_at")
+    .order("created_at", { ascending: false });
+  if (q) query = query.ilike("to_email", `%${q}%`);
+  if (category) query = query.eq("category", category);
+  const { data: logs } = await query.limit(200);
 
   const counts: Record<string, number> = { sent: 0, skipped: 0, failed: 0 };
   (logs ?? []).forEach((l) => { counts[l.status] = (counts[l.status] ?? 0) + 1; });
@@ -24,6 +29,22 @@ export default async function AdminEmailsPage() {
     <div className="px-4 lg:px-8 py-6">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-1">Journal des emails</h1>
       <p className="text-gray-500 mb-6 font-dm">Traçabilité de tous les envois (et opt-out respectés).</p>
+
+      {/* Recherche par destinataire + filtre catégorie */}
+      <form className="flex flex-wrap gap-3 mb-6">
+        <input name="q" defaultValue={q} placeholder="Rechercher un destinataire (email)…"
+          className="flex-1 min-w-56 border border-gray-100 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        <select name="category" defaultValue={category} className="border border-gray-100 rounded-xl px-4 py-2.5 bg-white">
+          <option value="">Toutes catégories</option>
+          <option value="prospect">Prospect (séquence)</option>
+          <option value="welcome">Bienvenue / compte</option>
+          <option value="purchases">Achats</option>
+          <option value="reactivation">Réactivation</option>
+          <option value="announcements">Annonces</option>
+          <option value="certificates">Certificats</option>
+        </select>
+        <button className="bg-orange-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-700">Filtrer</button>
+      </form>
 
       <div className="flex flex-wrap gap-3 mb-6">
         {Object.entries(STATUS).map(([k, v]) => (

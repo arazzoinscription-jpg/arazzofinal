@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { uploadPracticalFile as bunnyUpload, isPracticalsConfigured } from "@/lib/bunny/practicals-storage";
+import { MAX_PRACTICAL_PHOTOS, MAX_PRACTICAL_VIDEOS } from "@/lib/practicals-limits";
 
 async function ctx() {
   const supabase = await createClient();
@@ -106,6 +107,19 @@ export async function recordPractical(lessonId: string, photoUrl: string | null,
 
     const admin = createAdminClient();
     if (!(await hasAccess(admin, c.user.id, c.isStaff, lessonId))) return { ok: false, error: "Accès refusé." };
+
+    // Limite par leçon pour les élèves : 3 photos et 2 vidéos maximum (le staff n'est pas limité).
+    if (!c.isStaff && (photoUrl || videoUrl)) {
+      const { data: mine } = await admin
+        .from("lesson_practicals")
+        .select("photo_url, video_url")
+        .eq("lesson_id", lessonId)
+        .eq("user_id", c.user.id);
+      const photos = (mine ?? []).filter((m: { photo_url: string | null }) => m.photo_url).length;
+      const videos = (mine ?? []).filter((m: { video_url: string | null }) => m.video_url).length;
+      if (photoUrl && photos >= MAX_PRACTICAL_PHOTOS) return { ok: false, error: `Limite atteinte : ${MAX_PRACTICAL_PHOTOS} photos maximum pour cette leçon.` };
+      if (videoUrl && videos >= MAX_PRACTICAL_VIDEOS) return { ok: false, error: `Limite atteinte : ${MAX_PRACTICAL_VIDEOS} vidéos maximum pour cette leçon.` };
+    }
 
     const { error } = await admin.from("lesson_practicals").insert({
       lesson_id: lessonId, user_id: c.user.id, photo_url: photoUrl, video_url: videoUrl, note: sanitizeText(note).slice(0, 1000) || null,

@@ -12,6 +12,7 @@ const FIELDS: { key: keyof PrefsInput; label: string; desc: string; icon: string
   { key: "certificates",  label: "Certificats & réussite",  desc: "Certificats obtenus et félicitations de fin",         icon: "🎓" },
   { key: "reactivation",  label: "Rappels & motivation",    desc: "Petits rappels si vous restez inactive un moment",    icon: "🌸" },
   { key: "announcements", label: "Annonces",                desc: "Annonces importantes de vos formatrices",             icon: "📢" },
+  { key: "prospect",      label: "Découverte & offres",     desc: "Emails de découverte tant que vous n'avez pas commandé", icon: "🎁" },
 ];
 
 export function PreferencesForm({ initial }: { initial: PrefsInput }) {

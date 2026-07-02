@@ -7,7 +7,7 @@ export const metadata = { title: "Préférences email — Arazzo Formation" };
 
 const DEFAULTS = {
   welcome: true, purchases: true, new_content: true, teacher_reply: true,
-  private_msg: true, certificates: true, reactivation: true, announcements: true,
+  private_msg: true, certificates: true, reactivation: true, announcements: true, prospect: true,
 };
 
 export default async function PreferencesPage() {
@@ -19,7 +19,7 @@ export default async function PreferencesPage() {
 
   const { data: prefs } = await supabase
     .from("email_preferences")
-    .select("welcome, purchases, new_content, teacher_reply, private_msg, certificates, reactivation, announcements")
+    .select("welcome, purchases, new_content, teacher_reply, private_msg, certificates, reactivation, announcements, prospect")
     .eq("user_id", user.id)
     .maybeSingle();
 
