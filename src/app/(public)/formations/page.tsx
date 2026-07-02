@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { CourseCard } from "@/components/ui/card";
 import { EnrollRequestButton } from "@/components/enrollment/enroll-request-button";
+import { isEnrolledStudent } from "@/lib/is-enrolled-student";
 import { createClient } from "@/lib/supabase/server";
 import { FormationsGuide } from "./formations-guide";
 import { FormationsHero } from "./formations-hero";
@@ -46,6 +47,9 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
   const t = STORE[lang].formations;
   const rtl = isRtl(lang);
   const catName = (c: Cat) => (lang === "ar" ? c.name_ar || c.name_fr : c.name_fr);
+
+  // Le bouton « Demande d'enrôlement » n'est visible que pour les étudiants déjà inscrits.
+  const enrolledStudent = await isEnrolledStudent();
 
   const { data: allCats } = await supabase
     .from("categories").select("id, parent_id, name_fr, name_ar, slug, ordre, image_url").order("ordre", { ascending: true });
@@ -276,7 +280,7 @@ export default async function FormationsPage({ searchParams }: { searchParams: {
                       <CourseCard title={cardTitle} titleAr={lang === "ar" ? undefined : course.titre_ar}
                         thumbnail={course.thumbnail} prixDzd={course.prix_dzd} prixEur={course.prix_eur}
                         formateur={(course.formateur as any)?.nom} niveau={course.niveau} duree={course.duree} slug={course.slug} />
-                      <EnrollRequestButton courseId={course.id} courseTitle={cardTitle} variant="card" />
+                      {enrolledStudent && <EnrollRequestButton courseId={course.id} courseTitle={cardTitle} variant="card" />}
                     </div>
                     );
                   })}
