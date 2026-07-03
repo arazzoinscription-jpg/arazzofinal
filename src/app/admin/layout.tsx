@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { LogOut, Search, Scissors } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/toast";
+import { ChatWidget } from "@/components/messaging/chat-widget";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
@@ -104,6 +105,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <PageTransition>{children}</PageTransition>
         <Toaster />
       </main>
+      <ChatWidget />
     </div>
   );
 }

@@ -3,9 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Scissors } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getWhatsAppBubble } from "@/lib/whatsapp-server";
-import { WhatsAppBubble } from "@/components/layout/whatsapp-bubble";
+import { ChatWidget } from "@/components/messaging/chat-widget";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { SearchBar } from "@/components/search/search-bar";
 import { Toaster } from "@/components/ui/toast";
@@ -80,12 +78,6 @@ export default async function DashboardLayout({
 
   const lang = normLang((await cookies()).get("lang")?.value);
 
-  // Bulle WhatsApp (espace privé étudiant) : formateur assigné sinon administrateur.
-  // Toujours affichée (sauf si l'admin l'a désactivée) — même sans numéro (message au clic).
-  const bubble = await getWhatsAppBubble(createAdminClient(), {
-    userId: user.id, nom: profile?.nom ?? null, email: user.email ?? null, space: "student",
-  });
-
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
       <AnimatedBackground />
@@ -145,7 +137,7 @@ export default async function DashboardLayout({
       {/* Menu flottant unique (mêmes 5 entrées que le reste du site) + visite guidée 1er accès */}
       <MobileQuickNav />
       {role === "eleve" && <OnboardingTour lang={lang} />}
-      {bubble && <WhatsAppBubble href={bubble.href} hint={bubble.hint} />}
+      <ChatWidget />
     </div>
   );
 }

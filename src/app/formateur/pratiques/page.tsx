@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ReviewCard, type PracticalRow } from "./review-card";
+import { type PracticalRow } from "./review-card";
+import { PracticalsBoard } from "./practicals-board";
 
 export const metadata = { title: "Travaux pratiques — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -97,34 +98,8 @@ export default async function PratiquesPage() {
         </p>
       </div>
 
-      {/* À corriger */}
-      <h2 className="font-dm font-semibold text-gray-800 dark:text-white/80 mb-3">
-        À corriger <span className="text-gray-400 font-normal">({pendingRows.length})</span>
-      </h2>
-      {pendingRows.length === 0 ? (
-        <div className="text-center py-14 bg-white dark:bg-white/[0.04] rounded-2xl border border-cream-200 dark:border-white/10 mb-10">
-          <div className="text-5xl mb-3">🪡</div>
-          <p className="text-gray-400 font-dm">Aucun travail en attente de correction.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-          {pendingRows.map((r) => <ReviewCard key={r.id} row={r} />)}
-        </div>
-      )}
-
-      {/* Travaux validés — restent accessibles pour le partage sur le feed */}
-      {approvedRows.length > 0 && (
-        <>
-          <h2 className="font-dm font-semibold text-gray-800 dark:text-white/80 mb-3">
-            Travaux validés <span className="text-gray-400 font-normal">({approvedRows.length})</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {approvedRows.map((r) => (
-              <ReviewCard key={r.id} row={r} defaultApproved defaultShared={sharedSet.has(r.id)} />
-            ))}
-          </div>
-        </>
-      )}
+      {/* Sélection multiple + suppression en masse (client) */}
+      <PracticalsBoard pending={pendingRows} approved={approvedRows} sharedIds={[...sharedSet]} />
     </div>
   );
 }

@@ -14,12 +14,31 @@ const card = "rounded-2xl bg-white dark:bg-white/[0.04] ring-1 ring-violet-950/[
 export default async function PatronnisteHome() {
   const admin = createAdminClient();
   const supabase = await createClient();
-  const [{ count: patrons }, { count: achats }, { count: surMesure }, { data: { user } }] = await Promise.all([
-    admin.from("patrons").select("*", { count: "exact", head: true }),
-    admin.from("patron_purchases").select("*", { count: "exact", head: true }),
-    admin.from("patron_custom_orders").select("*", { count: "exact", head: true }).eq("statut", "en_attente"),
-    supabase.auth.getUser(),
-  ]);
+  const { data: { user } } = await supabase.auth.getUser();
+  const meId = user?.id ?? "";
+
+  // ── Statistiques PROPRES au patronniste connecté (et non globales) ──
+  // 1) Ses patrons (patrons.formateur_id = créateur)
+  const { data: myPatrons } = await admin.from("patrons").select("id").eq("formateur_id", meId);
+  const myPatronIds = (myPatrons ?? []).map((p) => p.id as string);
+  const patrons = myPatronIds.length;
+
+  // 2) Achats clients de SES patrons uniquement
+  let achats = 0;
+  if (myPatronIds.length) {
+    const { count } = await admin
+      .from("patron_purchases")
+      .select("*", { count: "exact", head: true })
+      .in("patron_id", myPatronIds);
+    achats = count ?? 0;
+  }
+
+  // 3) Sur-mesure à prendre en charge (pool ouvert) + ses commandes en cours
+  const { count: pool } = await admin
+    .from("patron_custom_orders").select("*", { count: "exact", head: true }).eq("statut", "awaiting_patronniste");
+  const { count: mine } = await admin
+    .from("patron_custom_orders").select("*", { count: "exact", head: true }).eq("patronniste_id", meId).eq("statut", "en_cours");
+  const surMesure = (pool ?? 0) + (mine ?? 0);
 
   const { data: profile } = user
     ? await admin.from("users").select("nom").eq("id", user.id).maybeSingle()

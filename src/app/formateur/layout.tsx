@@ -3,9 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getWhatsAppBubble } from "@/lib/whatsapp-server";
-import { WhatsAppBubble } from "@/components/layout/whatsapp-bubble";
+import { ChatWidget } from "@/components/messaging/chat-widget";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Toaster } from "@/components/ui/toast";
 import { LangSwitcher } from "@/app/dashboard/lang-switcher";
@@ -48,12 +46,6 @@ export default async function FormateurLayout({
 
   const lang = normLang((await cookies()).get("lang")?.value);
   const ui = PRO_UI[lang];
-
-  // Bulle WhatsApp (espace formateur) → administrateur.
-  // Toujours affichée (sauf si l'admin l'a désactivée) — même sans numéro (message au clic).
-  const bubble = await getWhatsAppBubble(createAdminClient(), {
-    userId: user.id, nom: profile?.nom ?? null, email: user.email ?? null, space: "formateur",
-  });
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
@@ -126,7 +118,7 @@ export default async function FormateurLayout({
         <div className="p-4 sm:p-6 lg:p-8"><PageTransition>{children}</PageTransition></div>
       </main>
       <Toaster />
-      {bubble && <WhatsAppBubble href={bubble.href} hint={bubble.hint} />}
+      <ChatWidget />
     </div>
   );
 }

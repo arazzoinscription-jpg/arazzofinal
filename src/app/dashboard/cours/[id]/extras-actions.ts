@@ -154,6 +154,32 @@ export async function deletePractical(id: string) {
   return { ok: true };
 }
 
+/**
+ * Suppression EN MASSE de travaux pratiques (sélection).
+ * Chaque ligne n'est supprimée que si l'utilisateur en est l'AUTEUR ou est STAFF.
+ */
+export async function bulkDeletePracticals(ids: string[]) {
+  const c = await ctx();
+  if (!c) return { ok: false, error: "Non authentifié." };
+  const list = [...new Set((ids ?? []).filter(Boolean))].slice(0, 200);
+  if (list.length === 0) return { ok: false, error: "Aucune sélection." };
+
+  const admin = createAdminClient();
+  const { data: rows } = await admin.from("lesson_practicals").select("id, user_id, lesson_id").in("id", list);
+  const allowed = (rows ?? []).filter((r: { user_id: string }) => c.isStaff || r.user_id === c.user.id);
+  const allowedIds = allowed.map((r: { id: string }) => r.id);
+  if (allowedIds.length === 0) return { ok: false, error: "Accès refusé." };
+
+  const { error } = await admin.from("lesson_practicals").delete().in("id", allowedIds);
+  if (error) return { ok: false, error: error.message };
+
+  const lessonIds = [...new Set(allowed.map((r: { lesson_id: string }) => r.lesson_id))];
+  for (const lid of lessonIds) revalidatePath(`/dashboard/cours/${lid}`);
+  revalidatePath("/dashboard/pratiques");
+  revalidatePath("/formateur/pratiques");
+  return { ok: true, count: allowedIds.length };
+}
+
 /** Retour de la formatrice sur un travail pratique (staff). */
 export async function setPracticalFeedback(id: string, feedback: string, status: "reviewed" | "approved") {
   const c = await ctx();

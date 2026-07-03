@@ -7,6 +7,7 @@ import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, MailCheck } from "lucide
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
 import { requestPasswordReset } from "@/app/actions/forgot-password";
+import { requestMagicLink } from "@/app/actions/magic-link";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
 import { isRtl, type Lang } from "@/lib/store-i18n";
 
@@ -89,11 +90,8 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     }
     setLoading(true);
     setError("");
-    const supabase = createClient();
-    await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${location.origin}/dashboard` },
-    });
+    // Envoi via Resend (email personnalisé du site), pas le système Supabase.
+    await requestMagicLink(email);
     setMagicSent(true);
     setLoading(false);
   }

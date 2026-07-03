@@ -1,15 +1,29 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Commandes clients — Patronniste" };
 export const dynamic = "force-dynamic";
 
 export default async function CommandesPage() {
   const admin = createAdminClient();
-  const { data: achats } = await admin
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: prof } = user ? await admin.from("users").select("role").eq("id", user.id).maybeSingle() : { data: null };
+  const isAdmin = prof?.role === "admin";
+
+  // Le patronniste ne voit QUE les achats de SES patrons (l'admin voit tout).
+  let onlyIds: string[] | null = null;
+  if (!isAdmin && user) {
+    const { data: myPatrons } = await admin.from("patrons").select("id").eq("formateur_id", user.id);
+    onlyIds = (myPatrons ?? []).map((p) => p.id as string);
+  }
+  let query = admin
     .from("patron_purchases")
     .select("id, paid_at, client:users(nom, email), patron:patrons(titre, prix_dzd)")
     .order("paid_at", { ascending: false })
-    .limit(200);
+    .limit(500);
+  if (onlyIds !== null) query = query.in("patron_id", onlyIds.length ? onlyIds : ["00000000-0000-0000-0000-000000000000"]);
+  const { data: achats } = await query;
 
   return (
     <div className="text-gray-900 dark:text-white">

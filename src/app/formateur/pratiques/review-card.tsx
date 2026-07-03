@@ -21,7 +21,10 @@ export interface PracticalRow {
 }
 
 /** Correction d'un travail pratique (lesson_practicals) : retour + valider / à retravailler. */
-export function ReviewCard({ row, defaultApproved = false, defaultShared = false }: { row: PracticalRow; defaultApproved?: boolean; defaultShared?: boolean }) {
+export function ReviewCard({ row, defaultApproved = false, defaultShared = false, selectable = false, selected = false, onToggleSelect }: {
+  row: PracticalRow; defaultApproved?: boolean; defaultShared?: boolean;
+  selectable?: boolean; selected?: boolean; onToggleSelect?: () => void;
+}) {
   const router = useRouter();
   const [feedback, setFeedback] = useState(row.feedback ?? "");
   const [isPending, startTransition] = useTransition();
@@ -66,11 +69,17 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
   }
 
   return (
-    <div className="bg-white dark:bg-white/[0.04] rounded-2xl border border-cream-200 dark:border-white/10 shadow-soft p-5">
+    <div className={`bg-white dark:bg-white/[0.04] rounded-2xl border shadow-soft p-5 ${selected ? "border-orange-DEFAULT ring-2 ring-orange-200" : "border-cream-200 dark:border-white/10"}`}>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <div className="min-w-0">
-          <p className="font-semibold text-gray-900 dark:text-white font-dm truncate">{row.studentName}</p>
-          <p className="text-xs text-gray-400 font-dm truncate">{row.lessonTitle}{row.courseTitle ? ` · ${row.courseTitle}` : ""}</p>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {selectable && (
+            <input type="checkbox" checked={selected} onChange={onToggleSelect}
+              aria-label={`Sélectionner le travail de ${row.studentName}`} className="w-4 h-4 accent-orange-600 shrink-0" />
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-900 dark:text-white font-dm truncate">{row.studentName}</p>
+            <p className="text-xs text-gray-400 font-dm truncate">{row.lessonTitle}{row.courseTitle ? ` · ${row.courseTitle}` : ""}</p>
+          </div>
         </div>
         <span className="text-xs text-gray-400 font-dm flex-shrink-0">
           {new Date(row.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
