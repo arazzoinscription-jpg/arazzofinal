@@ -230,6 +230,36 @@ export function tplReactivation(nom: string, stage: "reminder_7" | "motivation_1
   };
 }
 
+// ─── 9 bis. Relance « Continuez votre cours » (leçon commencée non terminée) ──
+export function tplContinueCourse(nom: string, coursTitre: string, lien: string) {
+  return {
+    category: "reactivation" as EmailCategory,
+    subject: "Continuez votre formation — vous y êtes presque ! 🎯",
+    html: layout({
+      title: `${nom}, reprenez là où vous en êtes 🎯`,
+      body: `Vous avez bien avancé dans <strong>${coursTitre}</strong> — il ne reste plus grand-chose !
+             Reprenez votre leçon là où vous vous êtes arrêtée : quelques minutes suffisent pour la terminer.`,
+      cta: { label: "Continuer ma leçon", href: lien },
+    }),
+  };
+}
+
+// ─── 9 ter. Relance « Envoyez votre travail pratique » (leçon finie, devoir) ──
+export function tplDoPractical(nom: string, coursTitre: string, lien: string) {
+  return {
+    category: "reactivation" as EmailCategory,
+    subject: "Envoyez votre travail pratique et gagnez des points ✂️",
+    html: layout({
+      title: `${nom}, à vous de jouer ! ✂️`,
+      body: `Bravo, vous avez terminé une leçon de <strong>${coursTitre}</strong> !<br/><br/>
+             Passez à la pratique : réalisez votre <strong>travail pratique</strong> et envoyez-le à votre
+             formatrice pour qu'elle le corrige. Vous gagnerez des <strong>points</strong> qui comptent pour
+             obtenir votre <strong>diplôme</strong>. 🎓`,
+      cta: { label: "Envoyer mon travail pratique", href: lien },
+    }),
+  };
+}
+
 // ─── 10. Annonce ──────────────────────────────────────────────────────────────
 export function tplAnnouncement(nom: string, titre: string, message: string) {
   return {

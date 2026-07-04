@@ -5,6 +5,7 @@ import { GET as prospectSequence } from "../prospect-sequence/route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runInstallmentReminders } from "@/lib/subscriptions";
 import { runPackInstallmentReminders } from "@/lib/pack-subscriptions";
+import { runLearningReminders } from "@/lib/learning-reminders";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -48,6 +49,13 @@ export async function GET(req: NextRequest) {
     results["pack-installment-reminders"] = await runPackInstallmentReminders(createAdminClient());
   } catch (e) {
     results["pack-installment-reminders"] = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Relances pédagogiques (« Continuez votre cours » + « Envoyez votre travail »).
+  try {
+    results["learning-reminders"] = await runLearningReminders(createAdminClient());
+  } catch (e) {
+    results["learning-reminders"] = { error: e instanceof Error ? e.message : String(e) };
   }
 
   return NextResponse.json({ ok: true, results });
