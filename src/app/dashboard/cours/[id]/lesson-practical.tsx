@@ -31,7 +31,7 @@ const STATUS_LABEL: Record<string, string> = { submitted: "Soumis", reviewed: "C
 export function LessonPractical({ lessonId, meId, isStaff, submissions }: { lessonId: string; meId: string; isStaff: boolean; submissions: Practical[] }) {
   const router = useRouter();
   const supabase = createClient();
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [video, setVideo] = useState<File | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -54,6 +54,20 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   const myVideos = submissions.filter((s) => s.user_id === meId && s.video_url).length;
   const photoFull = !isStaff && myPhotos >= MAX_PRACTICAL_PHOTOS;
   const videoFull = !isStaff && myVideos >= MAX_PRACTICAL_VIDEOS;
+  const remainingPhotos = isStaff ? Infinity : Math.max(0, MAX_PRACTICAL_PHOTOS - myPhotos);
+
+  /** Sélection multiple d'images, bornée à 3 au total (message si dépassement). */
+  function onPickPhotos(files: FileList | null) {
+    const list = Array.from(files ?? []);
+    if (list.length === 0) { setPhotos([]); return; }
+    if (!isStaff && list.length > remainingPhotos) {
+      setErr(`Vous ne pouvez pas envoyer plus de ${MAX_PRACTICAL_PHOTOS} images. Il vous en reste ${remainingPhotos} — seules les ${remainingPhotos} premières sont conservées.`);
+      setPhotos(list.slice(0, remainingPhotos));
+    } else {
+      setErr(null);
+      setPhotos(list);
+    }
+  }
 
   async function share(id: string) {
     setSharingId(id);
@@ -84,16 +98,31 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   async function submit() {
     setErr(null);
     // Respecte le quota côté client (le serveur revérifie de toute façon).
-    const usePhoto = photoFull ? null : photo;
+    const usePhotos = isStaff ? photos : photos.slice(0, remainingPhotos);
     const useVideo = videoFull ? null : video;
-    if (!usePhoto && !useVideo && !note.trim()) { setErr("Ajoutez une photo, une vidéo ou une note."); return; }
+    if (usePhotos.length === 0 && !useVideo && !note.trim()) { setErr("Ajoutez une photo, une vidéo ou une note."); return; }
     setBusy(true);
     try {
-      const photoUrl = usePhoto ? await upload(usePhoto, "photo") : null;
+      const photoUrls: string[] = [];
+      for (const f of usePhotos) photoUrls.push(await upload(f, "photo"));
       const videoUrl = useVideo ? await upload(useVideo, "video") : null;
-      const res = await recordPractical(lessonId, photoUrl, videoUrl, note);
-      if (!res.ok) throw new Error(res.error || "Erreur");
-      setPhoto(null); setVideo(null); setNote("");
+
+      if (photoUrls.length > 0) {
+        // Une ligne par image (la note est jointe à la 1re).
+        for (let i = 0; i < photoUrls.length; i++) {
+          const res = await recordPractical(lessonId, photoUrls[i], null, i === 0 ? note : null);
+          if (!res.ok) throw new Error(res.error || "Erreur");
+        }
+        if (videoUrl) {
+          const res = await recordPractical(lessonId, null, videoUrl, null);
+          if (!res.ok) throw new Error(res.error || "Erreur");
+        }
+      } else {
+        const res = await recordPractical(lessonId, null, videoUrl, note);
+        if (!res.ok) throw new Error(res.error || "Erreur");
+      }
+
+      setPhotos([]); setVideo(null); setNote("");
       router.refresh();
     } catch (e) {
       setErr((e as Error).message);
@@ -106,7 +135,7 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
     <div className="mt-6 bg-white dark:bg-white/[0.04] rounded-2xl border border-cream-200 dark:border-white/10 p-5">
       <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white mb-1">🪡 Travaux pratiques</h2>
       <p className="text-sm text-gray-500 dark:text-white/50 mb-4">
-        {isStaff ? "Soumettez un exemple, et retrouvez les travaux de vos élèves ci-dessous." : "Envoyez une photo et/ou une vidéo de votre réalisation."}
+        {isStaff ? "Soumettez un exemple, et retrouvez les travaux de vos élèves ci-dessous." : `Envoyez jusqu'à ${MAX_PRACTICAL_PHOTOS} photos et/ou une vidéo de votre réalisation.`}
       </p>
 
       {/* Formulaire d'envoi (visible pour tous) */}
@@ -115,12 +144,16 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
           <div className="grid sm:grid-cols-2 gap-3">
             <label className="text-sm">
               <span className="flex items-center justify-between gap-1.5 text-gray-600 dark:text-white/70 mb-1">
-                <span className="flex items-center gap-1.5"><ImagePlus size={15} /> Photo</span>
+                <span className="flex items-center gap-1.5"><ImagePlus size={15} /> Photos <span className="text-[11px] text-gray-400">(max {MAX_PRACTICAL_PHOTOS})</span></span>
                 {!isStaff && <span className="text-[11px] text-gray-400">{myPhotos}/{MAX_PRACTICAL_PHOTOS}</span>}
               </span>
-              <input type="file" accept="image/*" disabled={photoFull} onChange={(e) => setPhoto(e.target.files?.[0] ?? null)}
+              <input type="file" accept="image/*" multiple disabled={photoFull} onChange={(e) => onPickPhotos(e.target.files)}
                 className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" />
-              {photoFull && <span className="block text-[11px] text-orange-600 mt-1">Limite de {MAX_PRACTICAL_PHOTOS} photos atteinte.</span>}
+              {photoFull ? (
+                <span className="block text-[11px] text-orange-600 mt-1">Limite de {MAX_PRACTICAL_PHOTOS} images atteinte — vous ne pouvez plus en ajouter.</span>
+              ) : photos.length > 0 ? (
+                <span className="block text-[11px] text-gray-500 mt-1">{photos.length} image(s) sélectionnée(s).</span>
+              ) : null}
             </label>
             <label className="text-sm">
               <span className="flex items-center justify-between gap-1.5 text-gray-600 dark:text-white/70 mb-1">
