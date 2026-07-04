@@ -1,8 +1,9 @@
 ﻿import Link from "next/link";
 import { GraduationCap, BookOpen, Users, MapPin } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getFormateurCommissionRate, netForPrice } from "@/lib/commissions";
+import { getFormateurCommissionRate, netForPrice, getGainsStartDate, countsForGains } from "@/lib/commissions";
 import { CommissionForm } from "../patronnistes/commission-form";
+import { GainsDateForm } from "./gains-date-form";
 
 export const metadata = { title: "Formateurs — Admin" };
 export const dynamic = "force-dynamic";
@@ -21,7 +22,8 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
 
   // Cours + inscrits + revenu (montant payé DZD) par formateur
   const rate = await getFormateurCommissionRate(admin);
-  const { data: courses } = await admin.from("courses").select("formateur_id, enrollments(amount, currency)");
+  const gainsStart = await getGainsStartDate(admin);
+  const { data: courses } = await admin.from("courses").select("formateur_id, enrollments(amount, currency, paid_at)");
   const nbCours = new Map<string, number>();
   const nbEleves = new Map<string, number>();
   const netByFormateur = new Map<string, number>();
@@ -29,9 +31,12 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
     const fid = (c as any).formateur_id as string | null;
     if (!fid) continue;
     nbCours.set(fid, (nbCours.get(fid) ?? 0) + 1);
-    const enrs = ((c as any).enrollments as { amount: number | null; currency: string | null }[]) ?? [];
+    const enrs = ((c as any).enrollments as { amount: number | null; currency: string | null; paid_at: string | null }[]) ?? [];
     nbEleves.set(fid, (nbEleves.get(fid) ?? 0) + enrs.length);
-    const grossDzd = enrs.filter((e) => e.currency !== "EUR").reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    // Revenu compté seulement à partir de la date de départ des gains.
+    const grossDzd = enrs
+      .filter((e) => e.currency !== "EUR" && countsForGains(e.paid_at, gainsStart))
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
     netByFormateur.set(fid, (netByFormateur.get(fid) ?? 0) + netForPrice(grossDzd, rate));
   }
 
@@ -43,6 +48,7 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
       <p className="text-gray-500 mb-6 font-dm">{formateurs?.length ?? 0} formateur(s) · commission formations {rate}%.</p>
 
       <CommissionForm rate={rate} scope="formateur" />
+      <GainsDateForm initial={gainsStart} />
 
       <form className="flex gap-3 mb-6">
         <input name="q" defaultValue={q} placeholder="Rechercher un formateur…"

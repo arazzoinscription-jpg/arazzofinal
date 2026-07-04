@@ -568,6 +568,23 @@ export async function setCommissionRate(rate: number) {
   return { ok: true };
 }
 
+/**
+ * Fixe la DATE DE DÉPART des gains (YYYY-MM-DD) : les paiements antérieurs
+ * comptent 0 DA dans tous les calculs de gains/CA. null = réinitialise (tout compté).
+ */
+export async function setGainsStartDate(date: string | null) {
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  const clean = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null;
+  const { error } = await admin
+    .from("platform_config")
+    .upsert({ id: 1, gains_start_date: clean, updated_at: new Date().toISOString() }, { onConflict: "id" });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/formateurs");
+  revalidatePath("/admin/patronnistes");
+  return { ok: true };
+}
+
 /** Fixe le taux de commission FORMATEUR (en %, 0–100). Réservé à l'admin. */
 export async function setFormateurCommissionRate(rate: number) {
   const r = Number(rate);

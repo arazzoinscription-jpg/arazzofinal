@@ -1,6 +1,6 @@
 import { Scissors, MapPin } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCommissionRate, netForPrice } from "@/lib/commissions";
+import { getCommissionRate, netForPrice, getGainsStartDate, countsForGains } from "@/lib/commissions";
 import { CommissionForm } from "./commission-form";
 
 export const metadata = { title: "Patronnistes — Admin" };
@@ -36,18 +36,21 @@ export default async function AdminPatronnistesPage({ searchParams }: { searchPa
 
   // ── Gains nets par patronniste (taux courant) : patrons vendus + sur-mesure terminés ──
   const rate = await getCommissionRate(admin);
+  const gainsStart = await getGainsStartDate(admin);
   const netByPatronniste = new Map<string, number>();
   const { data: patronsPrice } = await admin.from("patrons").select("id, formateur_id, prix_dzd");
   const priceByPatron = new Map<string, { owner: string | null; prix: number }>();
   for (const p of patronsPrice ?? []) priceByPatron.set(p.id, { owner: (p as any).formateur_id ?? null, prix: Number((p as any).prix_dzd) || 0 });
-  const { data: allPurchases } = await admin.from("patron_purchases").select("patron_id");
+  const { data: allPurchases } = await admin.from("patron_purchases").select("patron_id, paid_at");
   for (const pu of allPurchases ?? []) {
+    if (!countsForGains((pu as any).paid_at, gainsStart)) continue; // gains à partir de la date
     const info = pu.patron_id ? priceByPatron.get(pu.patron_id) : null;
     if (info?.owner) netByPatronniste.set(info.owner, (netByPatronniste.get(info.owner) ?? 0) + netForPrice(info.prix, rate));
   }
   const { data: doneOrders } = await admin
-    .from("patron_custom_orders").select("patronniste_id, proposed_price_dzd").eq("statut", "completed");
+    .from("patron_custom_orders").select("patronniste_id, proposed_price_dzd, paid_at, created_at").eq("statut", "completed");
   for (const o of doneOrders ?? []) {
+    if (!countsForGains((o as any).paid_at ?? (o as any).created_at, gainsStart)) continue;
     const id = (o as any).patronniste_id as string | null;
     if (id) netByPatronniste.set(id, (netByPatronniste.get(id) ?? 0) + netForPrice(Number((o as any).proposed_price_dzd) || 0, rate));
   }

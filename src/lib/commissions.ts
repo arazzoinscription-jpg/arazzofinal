@@ -17,6 +17,23 @@ export async function getFormateurCommissionRate(admin: Admin): Promise<number> 
   return Number.isFinite(r) ? r : 30;
 }
 
+/**
+ * Date de départ des gains (YYYY-MM-DD) ou null. Les paiements ANTÉRIEURS à
+ * cette date comptent 0 DA dans les calculs de gains / CA.
+ */
+export async function getGainsStartDate(admin: Admin): Promise<string | null> {
+  const { data } = await admin.from("platform_config").select("gains_start_date").eq("id", 1).maybeSingle();
+  const d = (data as { gains_start_date?: string | null } | null)?.gains_start_date;
+  return d ? String(d) : null;
+}
+
+/** Vrai si la date de paiement compte pour les gains (>= date de départ, ou pas de date). */
+export function countsForGains(paidAt: string | null | undefined, startDate: string | null): boolean {
+  if (!startDate) return true;
+  if (!paidAt) return false;
+  return String(paidAt).slice(0, 10) >= startDate;
+}
+
 /** Gain net pour un prix donné = prix × (1 − taux). */
 export function netForPrice(price: number, ratePct: number): number {
   return Math.round((Number(price) || 0) * (1 - (ratePct || 0) / 100));
@@ -52,6 +69,7 @@ export interface PatronnisteEarnings {
  */
 export async function getPatronnisteEarnings(admin: Admin, patronnisteId: string): Promise<PatronnisteEarnings> {
   const rate = await getCommissionRate(admin);
+  const gainsStart = await getGainsStartDate(admin);
 
   // ── Patrons créés par ce patronniste + nombre de ventes ──
   const { data: patrons } = await admin
@@ -64,9 +82,11 @@ export async function getPatronnisteEarnings(admin: Admin, patronnisteId: string
   if (patronIds.length) {
     const { data: purchases } = await admin
       .from("patron_purchases")
-      .select("patron_id")
+      .select("patron_id, paid_at")
       .in("patron_id", patronIds);
     for (const pu of purchases ?? []) {
+      // Gains à partir de la date de départ : les ventes antérieures comptent 0.
+      if (!countsForGains((pu as { paid_at?: string | null }).paid_at, gainsStart)) continue;
       if (pu.patron_id) salesByPatron.set(pu.patron_id, (salesByPatron.get(pu.patron_id) ?? 0) + 1);
     }
   }
@@ -86,11 +106,13 @@ export async function getPatronnisteEarnings(admin: Admin, patronnisteId: string
     .eq("patronniste_id", patronnisteId)
     .eq("statut", "completed");
 
-  const surMesureRows: SurMesureEarning[] = (orders ?? []).map((o) => {
-    const prix = Number(o.proposed_price_dzd) || 0;
-    const net = netForPrice(prix, rate);
-    return { id: o.id, titre: o.titre ?? "Sur mesure", prix, commission: prix - net, net, date: o.paid_at ?? o.created_at };
-  });
+  const surMesureRows: SurMesureEarning[] = (orders ?? [])
+    .filter((o) => countsForGains((o as { paid_at?: string | null }).paid_at ?? (o as { created_at?: string }).created_at, gainsStart))
+    .map((o) => {
+      const prix = Number(o.proposed_price_dzd) || 0;
+      const net = netForPrice(prix, rate);
+      return { id: o.id, titre: o.titre ?? "Sur mesure", prix, commission: prix - net, net, date: o.paid_at ?? o.created_at };
+    });
 
   // ── Totaux ──
   const all = [...patronRows.map((p) => ({ gross: p.gross, net: p.net, sales: p.sales })),
@@ -126,6 +148,7 @@ export interface FormateurEarnings {
  */
 export async function getFormateurEarnings(admin: Admin, formateurId: string): Promise<FormateurEarnings> {
   const rate = await getFormateurCommissionRate(admin);
+  const gainsStart = await getGainsStartDate(admin);
 
   const { data: courses } = await admin
     .from("courses")
@@ -137,11 +160,13 @@ export async function getFormateurEarnings(admin: Admin, formateurId: string): P
   if (courseIds.length) {
     const { data: enrolls } = await admin
       .from("enrollments")
-      .select("course_id, amount, currency")
+      .select("course_id, amount, currency, paid_at")
       .in("course_id", courseIds);
     for (const e of enrolls ?? []) {
       const cid = e.course_id as string;
       if (!cid) continue;
+      // Gains à partir de la date de départ : les inscriptions antérieures comptent 0.
+      if (!countsForGains((e as { paid_at?: string | null }).paid_at, gainsStart)) continue;
       const cur = agg.get(cid) ?? { sales: 0, grossDzd: 0, grossEur: 0 };
       cur.sales += 1;
       const amt = Number(e.amount) || 0;
