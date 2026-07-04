@@ -56,17 +56,31 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
   const videoFull = !isStaff && myVideos >= MAX_PRACTICAL_VIDEOS;
   const remainingPhotos = isStaff ? Infinity : Math.max(0, MAX_PRACTICAL_PHOTOS - myPhotos);
 
-  /** Sélection multiple d'images, bornée à 3 au total (message si dépassement). */
-  function onPickPhotos(files: FileList | null) {
-    const list = Array.from(files ?? []);
+  /** Sélection multiple d'images : bloc DUR à 3 au total — au-delà, rien ne passe. */
+  function onPickPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const list = Array.from(e.target.files ?? []);
     if (list.length === 0) { setPhotos([]); return; }
-    if (!isStaff && list.length > remainingPhotos) {
-      setErr(`Vous ne pouvez pas envoyer plus de ${MAX_PRACTICAL_PHOTOS} images. Il vous en reste ${remainingPhotos} — seules les ${remainingPhotos} premières sont conservées.`);
-      setPhotos(list.slice(0, remainingPhotos));
-    } else {
-      setErr(null);
-      setPhotos(list);
+    if (!isStaff && myPhotos + list.length > MAX_PRACTICAL_PHOTOS) {
+      setErr(`⛔ Limite : ${MAX_PRACTICAL_PHOTOS} images maximum par leçon. Vous en avez déjà ${myPhotos} — vous ne pouvez en ajouter que ${remainingPhotos}. Sélection annulée.`);
+      setPhotos([]);
+      e.target.value = ""; // annule le transfert (aucun fichier retenu)
+      return;
     }
+    setErr(null);
+    setPhotos(list);
+  }
+
+  /** Vidéo : bloc DUR à 2 au total. */
+  function onPickVideo(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0] ?? null;
+    if (f && videoFull) {
+      setErr(`⛔ Limite : ${MAX_PRACTICAL_VIDEOS} vidéos maximum par leçon.`);
+      setVideo(null);
+      e.target.value = "";
+      return;
+    }
+    setErr(null);
+    setVideo(f);
   }
 
   async function share(id: string) {
@@ -97,8 +111,15 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
 
   async function submit() {
     setErr(null);
-    // Respecte le quota côté client (le serveur revérifie de toute façon).
-    const usePhotos = isStaff ? photos : photos.slice(0, remainingPhotos);
+    // Garde DURE avant tout transfert : jamais plus de 3 images / 2 vidéos.
+    if (!isStaff) {
+      if (myPhotos + photos.length > MAX_PRACTICAL_PHOTOS) {
+        setErr(`⛔ ${MAX_PRACTICAL_PHOTOS} images maximum par leçon. Retirez-en ${myPhotos + photos.length - MAX_PRACTICAL_PHOTOS}.`);
+        return;
+      }
+      if (video && videoFull) { setErr(`⛔ ${MAX_PRACTICAL_VIDEOS} vidéos maximum par leçon.`); return; }
+    }
+    const usePhotos = photos;
     const useVideo = videoFull ? null : video;
     if (usePhotos.length === 0 && !useVideo && !note.trim()) { setErr("Ajoutez une photo, une vidéo ou une note."); return; }
     setBusy(true);
@@ -147,7 +168,7 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
                 <span className="flex items-center gap-1.5"><ImagePlus size={15} /> Photos <span className="text-[11px] text-gray-400">(max {MAX_PRACTICAL_PHOTOS})</span></span>
                 {!isStaff && <span className="text-[11px] text-gray-400">{myPhotos}/{MAX_PRACTICAL_PHOTOS}</span>}
               </span>
-              <input type="file" accept="image/*" multiple disabled={photoFull} onChange={(e) => onPickPhotos(e.target.files)}
+              <input type="file" accept="image/*" multiple disabled={photoFull} onChange={onPickPhotos}
                 className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" />
               {photoFull ? (
                 <span className="block text-[11px] text-orange-600 mt-1">Limite de {MAX_PRACTICAL_PHOTOS} images atteinte — vous ne pouvez plus en ajouter.</span>
@@ -160,7 +181,7 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
                 <span className="flex items-center gap-1.5"><Video size={15} /> Vidéo</span>
                 {!isStaff && <span className="text-[11px] text-gray-400">{myVideos}/{MAX_PRACTICAL_VIDEOS}</span>}
               </span>
-              <input type="file" accept="video/*" disabled={videoFull} onChange={(e) => setVideo(e.target.files?.[0] ?? null)}
+              <input type="file" accept="video/*" disabled={videoFull} onChange={onPickVideo}
                 className="block w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-cream-100 file:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed" />
               {videoFull && <span className="block text-[11px] text-orange-600 mt-1">Limite de {MAX_PRACTICAL_VIDEOS} vidéos atteinte.</span>}
             </label>
