@@ -63,15 +63,19 @@ export async function getPackAccessForCourse(
       });
 
       // 4) Liste GLOBALE des chapitres du pack, dans l'ordre, + index
+      //    select("*") : résilient si unlock_month n'existe pas encore (migration 053).
       const { data: chapters } = await admin
         .from("chapters")
-        .select("id, course_id, ordre")
+        .select("*")
         .in("course_id", courseIds);
       const byCourse = new Map<string, { id: string; ordre: number }[]>();
+      const explicitMonth = new Map<string, number>(); // mois d'ouverture personnalisé
       for (const ch of chapters ?? []) {
         const arr = byCourse.get(ch.course_id as string) ?? [];
         arr.push({ id: ch.id as string, ordre: (ch.ordre as number) ?? 0 });
         byCourse.set(ch.course_id as string, arr);
+        const m = Number((ch as { unlock_month?: number | null }).unlock_month);
+        if (Number.isFinite(m) && m >= 1) explicitMonth.set(ch.id as string, m);
       }
       const globalOrder: string[] = [];
       for (const c of ordered) {
@@ -84,7 +88,9 @@ export async function getPackAccessForCourse(
       const total = globalOrder.length;
       const unlockMonthByChapter: Record<string, number> = {};
       globalOrder.forEach((chId, i) => {
-        unlockMonthByChapter[chId] = unlockMonthForIndex(i, total, totalMonths);
+        // Mois personnalisé prioritaire ; sinon découpe auto par index.
+        const ex = explicitMonth.get(chId);
+        unlockMonthByChapter[chId] = ex ? Math.min(ex, totalMonths) : unlockMonthForIndex(i, total, totalMonths);
       });
 
       return {

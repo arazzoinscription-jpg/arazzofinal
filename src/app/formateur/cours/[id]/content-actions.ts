@@ -30,6 +30,7 @@ const LessonInput = z.object({
 const ChapterInput = z.object({
   id: z.string().uuid().nullable().optional(),
   titre: z.string().trim().min(1, "Titre de chapitre requis."),
+  unlock_month: z.number().int().min(1).max(24).nullable().optional(),
   lessons: z.array(LessonInput),
 });
 const ContentSchema = z.object({
@@ -92,6 +93,12 @@ export async function saveCourseContent(input: SaveCourseContentInput) {
         .from("chapters").insert({ course_id: courseId, titre: ch.titre, ordre: ci + 1 }).select("id").single();
       if (error || !created) return { ok: false as const, error: error?.message ?? "Création du chapitre échouée." };
       chapterId = created.id as string;
+    }
+
+    // Mois d'ouverture personnalisé (colonne migration 053) — écriture RÉSILIENTE :
+    // si la colonne n'existe pas encore, on ignore l'erreur (le reste est sauvé).
+    if (chapterId) {
+      await admin.from("chapters").update({ unlock_month: ch.unlock_month ?? null }).eq("id", chapterId);
     }
 
     // Leçons existantes de ce chapitre

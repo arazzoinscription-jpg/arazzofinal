@@ -53,9 +53,20 @@ export default async function EditCoursePage({ params }: { params: { id: string 
     }
   }
 
+  // Lecture résiliente du « mois d'ouverture » par chapitre (colonne migration 053).
+  const unlockByChapter = new Map<string, string>();
+  const chapterIds = (chapterRows ?? []).map((ch: any) => ch.id);
+  if (chapterIds.length) {
+    const { data: um } = await admin.from("chapters").select("id, unlock_month").in("id", chapterIds);
+    for (const c of (um as { id: string; unlock_month?: number | null }[] | null) ?? []) {
+      if (c.unlock_month != null) unlockByChapter.set(c.id, String(c.unlock_month));
+    }
+  }
+
   const initialChapters: EditChapter[] = (chapterRows ?? []).map((ch: any) => ({
     id: ch.id,
     titre: ch.titre ?? "",
+    unlockMonth: unlockByChapter.get(ch.id) ?? "",
     lessons: ((ch.lessons as any[]) ?? [])
       .sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
       .map((l) => ({

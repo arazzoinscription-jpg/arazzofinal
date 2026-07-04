@@ -68,16 +68,22 @@ export async function getCourseAccess(admin: Admin, userId: string, courseId: st
   const totalMonths = (sub.total_months as number) || months;
   const unlockedMonths = sub.status === "completed" ? totalMonths : (sub.installments_paid as number) || 0;
 
+  // select("*") : résilient si la colonne unlock_month n'existe pas encore (migration 053).
   const { data: chapters } = await admin
     .from("chapters")
-    .select("id, ordre")
+    .select("*")
     .eq("course_id", courseId)
     .order("ordre", { ascending: true });
 
   const list = chapters ?? [];
   const unlockMonthByChapter: Record<string, number> = {};
   list.forEach((c, i) => {
-    unlockMonthByChapter[c.id as string] = unlockMonthForIndex(i, list.length, totalMonths);
+    // Mois d'ouverture PERSONNALISÉ (chapters.unlock_month) prioritaire ; sinon découpe auto.
+    const explicit = Number((c as { unlock_month?: number | null }).unlock_month);
+    unlockMonthByChapter[c.id as string] =
+      Number.isFinite(explicit) && explicit >= 1
+        ? Math.min(explicit, totalMonths)
+        : unlockMonthForIndex(i, list.length, totalMonths);
   });
 
   return {

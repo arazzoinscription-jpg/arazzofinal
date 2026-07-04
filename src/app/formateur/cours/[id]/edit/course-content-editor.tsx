@@ -8,7 +8,7 @@ import { saveCourseContent } from "../content-actions";
 import { toast } from "@/components/ui/toast";
 
 export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; devoir: string; duree_minutes: string; is_preview: boolean; }
-export interface EditChapter { id: string | null; titre: string; lessons: EditLesson[]; }
+export interface EditChapter { id: string | null; titre: string; unlockMonth: string; lessons: EditLesson[]; }
 
 function move<T>(arr: T[], from: number, to: number): T[] {
   if (to < 0 || to >= arr.length) return arr;
@@ -22,7 +22,7 @@ function move<T>(arr: T[], from: number, to: number): T[] {
 export function CourseContentEditor({ courseId, initial }: { courseId: string; initial: EditChapter[] }) {
   const router = useRouter();
   const [chapters, setChapters] = useState<EditChapter[]>(
-    initial.length ? initial : [{ id: null, titre: "Chapitre 1", lessons: [] }],
+    initial.length ? initial : [{ id: null, titre: "Chapitre 1", unlockMonth: "", lessons: [] }],
   );
   const [saving, startSave] = useTransition();
   const [error, setError] = useState("");
@@ -30,7 +30,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
   function update(next: EditChapter[]) { setChapters(next); }
 
   function addChapter() {
-    update([...chapters, { id: null, titre: `Chapitre ${chapters.length + 1}`, lessons: [] }]);
+    update([...chapters, { id: null, titre: `Chapitre ${chapters.length + 1}`, unlockMonth: "", lessons: [] }]);
   }
   function removeChapter(ci: number) {
     const ch = chapters[ci];
@@ -42,6 +42,9 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
   }
   function setChapterField(ci: number, titre: string) {
     const next = [...chapters]; next[ci] = { ...next[ci], titre }; update(next);
+  }
+  function setChapterUnlockMonth(ci: number, unlockMonth: string) {
+    const next = [...chapters]; next[ci] = { ...next[ci], unlockMonth }; update(next);
   }
   function moveChapter(ci: number, dir: -1 | 1) { update(move(chapters, ci, ci + dir)); }
 
@@ -85,6 +88,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
         chapters: chapters.map((ch) => ({
           id: ch.id,
           titre: ch.titre.trim(),
+          unlock_month: ch.unlockMonth && Number(ch.unlockMonth) >= 1 ? Number(ch.unlockMonth) : null,
           lessons: ch.lessons.map((l) => ({
             id: l.id,
             titre: l.titre.trim(),
@@ -131,6 +135,16 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
                 placeholder="Titre du chapitre"
                 className="flex-1 font-semibold text-gray-800 border-0 border-b border-cream-200 pb-1.5 focus:outline-none focus:border-orange-DEFAULT bg-transparent"
               />
+              {/* Mois d'ouverture (abonnement par tranches) — vide = découpe auto */}
+              <label className="flex items-center gap-1 text-[11px] text-gray-500 shrink-0" title="Mois d'ouverture pour l'abonnement par tranches (vide = automatique)">
+                <span className="hidden sm:inline">Mois</span>
+                <input
+                  type="number" min={1} max={24} value={ch.unlockMonth}
+                  onChange={(e) => setChapterUnlockMonth(ci, e.target.value)}
+                  placeholder="auto"
+                  className="w-14 border border-cream-200 rounded-lg px-2 py-1 text-center text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                />
+              </label>
               <div className="flex items-center gap-1 shrink-0">
                 <button type="button" onClick={() => moveChapter(ci, -1)} disabled={ci === 0}
                   className="p-1.5 rounded-lg text-gray-400 hover:bg-cream-100 disabled:opacity-30" title="Monter">
