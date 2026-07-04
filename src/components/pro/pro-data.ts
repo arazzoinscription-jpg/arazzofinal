@@ -45,6 +45,7 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
       { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
       { href: "/formateur/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
       { href: "/formateur/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
+      { href: "/formateur/questions", icon: MessageCircle, label: { fr: "Questions des élèves", ar: "أسئلة الطلاب", en: "Student questions" } },
       { href: "/formateur/etudiantes-inactives", icon: UserMinus, label: { fr: "Étudiantes inactives", ar: "طالبات غير نشطات", en: "Inactive students" } },
       { href: "/formateur/tickets", icon: LifeBuoy, label: { fr: "Tickets support", ar: "تذاكر الدعم", en: "Support tickets" } },
     ],
