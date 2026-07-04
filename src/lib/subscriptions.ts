@@ -180,22 +180,26 @@ const PROCESSING_STATUSES = ["pending", "payment_pending", "payment_review"];
  */
 export async function runInstallmentReminders(admin: Admin): Promise<{ reminded: number }> {
   const now = new Date();
-  const cutoffDue = new Date(now.getTime() + 3 * 24 * 3600 * 1000).toISOString().slice(0, 10);
-  const remindFloor = new Date(now.getTime() - 20 * 24 * 3600 * 1000).toISOString();
+  const today = now.toISOString().slice(0, 10);
+  const DAY = 24 * 3600 * 1000;
 
+  // Échéances arrivées à terme (fin de mois atteinte).
   const { data: subs } = await admin
     .from("course_subscriptions")
     .select("id, user_id, course_id, total_months, installments_paid, monthly_amount_dzd, next_due_date, last_reminded_at")
     .eq("status", "active")
-    .lte("next_due_date", cutoffDue)
-    .limit(200);
+    .lte("next_due_date", today)
+    .limit(300);
 
   let reminded = 0;
   for (const s of subs ?? []) {
     const paid = (s.installments_paid as number) || 0;
     const totalMonths = (s.total_months as number) || 0;
     if (paid >= totalMonths) continue; // tout réglé
-    if (s.last_reminded_at && (s.last_reminded_at as string) > remindFloor) continue; // déjà rappelé récemment
+    // Relance QUOTIDIENNE pendant 15 jours à partir de l'échéance (fin de mois).
+    const due = (s.next_due_date as string) || today;
+    if (now.getTime() > new Date(due).getTime() + 15 * DAY) continue; // fenêtre de 15 j dépassée → on n'insiste plus
+    if (s.last_reminded_at && (s.last_reminded_at as string).slice(0, 10) >= today) continue; // déjà relancé aujourd'hui
 
     const nextMonth = paid + 1;
     const amount = (s.monthly_amount_dzd as number) || 0;

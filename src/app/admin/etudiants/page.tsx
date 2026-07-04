@@ -143,10 +143,8 @@ export default async function AdminStudentsPage({
     if (isLevel1 || (isModule && moduleNum! >= 1 && moduleNum! <= 9)) row.hasLevel1 = true;
     if (isLevel2 || (isModule && moduleNum! >= 10 && moduleNum! <= 12)) row.hasLevel2 = true;
 
-    // Conserver le nom des cours qui ne sont pas des modules 1-12
-    if (titre && !isLevel1 && !isLevel2 && !isModule) {
-      row.otherCourses.add(titre);
-    }
+    // Nom RÉEL de chaque formation suivie (affiché tel quel, sans regroupement niveau).
+    if (titre) row.otherCourses.add(titre);
 
     // Formateur : privilégier celui du cours-niveau, sinon le premier trouvé
     if ((isLevel1 || isLevel2) && formateurNom) {
@@ -200,9 +198,7 @@ export default async function AdminStudentsPage({
   // Recherche nom / email / formation
   if (q) {
     rows = rows.filter((r) => {
-      const levels = [r.hasLevel1 ? "NIVEAU 1" : "", r.hasLevel2 ? "NIVEAU 2" : ""].filter(Boolean).join(", ");
-      const courses = Array.from(r.otherCourses).join(", ");
-      const formationText = [levels, courses].filter(Boolean).join(", ").toLowerCase();
+      const formationText = Array.from(r.otherCourses).join(", ").toLowerCase();
       return (
         r.nom.toLowerCase().includes(q) ||
         r.email.toLowerCase().includes(q) ||
@@ -218,10 +214,7 @@ export default async function AdminStudentsPage({
     iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
   const tableRows = rows.map((r) => {
-    const formationParts: string[] = [];
-    if (r.hasLevel1) formationParts.push("NIVEAU 1");
-    if (r.hasLevel2) formationParts.push("NIVEAU 2");
-    formationParts.push(...Array.from(r.otherCourses));
+    const formationParts: string[] = Array.from(r.otherCourses);
     return {
       id: r.id,
       nom: r.nom,

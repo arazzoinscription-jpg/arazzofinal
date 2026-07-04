@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/email";
 import { notifyAdminEmail } from "@/lib/admin-notify";
 import { createMagicLink, createPasswordSetupLink } from "@/lib/magic-link";
@@ -169,6 +170,19 @@ export async function submitLead(input: unknown) {
   const cleanEmail = email.trim().toLowerCase();
   const admin = createAdminClient();
 
+  // Rattache la commande au compte : l'élève connecté, sinon un compte existant
+  // avec cet email → la commande apparaît IMMÉDIATEMENT dans « Mes commandes ».
+  let customerId: string | null = null;
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) customerId = user.id;
+  } catch { /* invité */ }
+  if (!customerId) {
+    const { data: existing } = await admin.from("users").select("id").eq("email", cleanEmail).maybeSingle();
+    if (existing) customerId = existing.id as string;
+  }
+
   // ── Inscription à un PACK (abonnement ou achat complet) ──────────────────
   if (packId) {
     const { data: pack } = await admin
@@ -190,7 +204,7 @@ export async function submitLead(input: unknown) {
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .insert({
-        status: "pending", full_name, email: cleanEmail, phone,
+        status: "pending", customer_id: customerId, full_name, email: cleanEmail, phone,
         wilaya: wilaya ?? null, country: "Algérie",
         subtotal: total, discount: 0, total, payment_method: "transfer",
         pack_id: packId, installment_month: isInstallment ? 1 : null,
@@ -239,7 +253,7 @@ export async function submitLead(input: unknown) {
   const { data: order, error: orderErr } = await admin
     .from("orders")
     .insert({
-      status: "pending", full_name, email: cleanEmail, phone,
+      status: "pending", customer_id: customerId, full_name, email: cleanEmail, phone,
       wilaya: wilaya ?? null, country: "Algérie",
       subtotal: total, discount: 0, total, payment_method: "transfer",
       installment_month: isInstallment ? 1 : null,
