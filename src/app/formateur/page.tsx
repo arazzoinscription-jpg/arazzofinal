@@ -19,7 +19,9 @@ export default async function FormateurDashboard() {
 
   const admin = createAdminClient();
 
-  const { data: courses } = await supabase
+  // Cours du formateur lus via le client ADMIN (propriétaire légitime) : la RLS
+  // masquait au client de session ses propres cours (surtout non publiés) → liste vide.
+  const { data: courses } = await admin
     .from("courses")
     .select("id, titre_fr, description_fr, published, created_at, prix_dzd, prix_eur, thumbnail")
     .eq("formateur_id", user!.id)
