@@ -246,3 +246,83 @@ export async function runInstallmentReminders(admin: Admin): Promise<{ reminded:
 
   return { reminded };
 }
+
+/** Crée (ou réutilise) la commande d'échéance PENDING pour un match donné. */
+async function openInstallmentOrder(
+  admin: Admin,
+  userId: string,
+  matchField: "subscription_id" | "pack_subscription_id",
+  matchValue: string,
+  installmentMonth: number,
+  amount: number,
+  orderExtra: Record<string, unknown>,
+  itemTitle: string,
+): Promise<{ ok: boolean; orderId?: string; error?: string; month?: number; amount?: number }> {
+  const { data: existing } = await admin
+    .from("orders").select("id")
+    .eq(matchField, matchValue).eq("installment_month", installmentMonth)
+    .in("status", PROCESSING_STATUSES).maybeSingle();
+  if (existing) return { ok: true, orderId: existing.id as string, month: installmentMonth, amount };
+
+  const { data: u } = await admin.from("users").select("nom, email").eq("id", userId).maybeSingle();
+  const email = (u as { email?: string } | null)?.email;
+  if (!email) return { ok: false, error: "Votre compte n'a pas d'email." };
+
+  const { data: order, error } = await admin
+    .from("orders")
+    .insert({
+      status: "pending", customer_id: userId, full_name: (u as { nom?: string } | null)?.nom ?? "", email,
+      country: "Algérie", subtotal: amount, discount: 0, total: amount, payment_method: "transfer",
+      installment_month: installmentMonth, ...orderExtra,
+    })
+    .select("id").single();
+  if (error || !order) return { ok: false, error: error?.message ?? "Création de l'échéance impossible." };
+
+  await admin.from("order_items").insert({ order_id: order.id, title: itemTitle, price: amount, quantity: 1 }).then(() => {}, () => {});
+  return { ok: true, orderId: order.id as string, month: installmentMonth, amount };
+}
+
+/**
+ * Prépare le paiement du MOIS SUIVANT en avance (élève).
+ * Gère l'abonnement solo (course_subscriptions) ET l'abonnement pack
+ * (pack_subscriptions contenant ce cours). Idempotent : réutilise une commande
+ * d'échéance déjà ouverte. Renvoie l'orderId → l'élève dépose son reçu dans
+ * /dashboard/commandes ; à la validation admin, le palier suivant s'ouvre.
+ */
+export async function ensureNextInstallmentOrder(
+  admin: Admin, userId: string, courseId: string,
+): Promise<{ ok: boolean; orderId?: string; error?: string; month?: number; amount?: number; done?: boolean }> {
+  // 1) Abonnement SOLO du cours
+  const { data: sub } = await admin
+    .from("course_subscriptions")
+    .select("id, total_months, installments_paid, monthly_amount_dzd")
+    .eq("user_id", userId).eq("course_id", courseId).eq("status", "active").maybeSingle();
+  if (sub) {
+    const paid = (sub.installments_paid as number) || 0;
+    const total = (sub.total_months as number) || 0;
+    if (paid >= total) return { ok: false, done: true, error: "Toutes vos échéances sont déjà réglées." };
+    const { data: c } = await admin.from("courses").select("titre_fr").eq("id", courseId).maybeSingle();
+    const titre = (c as { titre_fr?: string } | null)?.titre_fr ?? "Formation";
+    return openInstallmentOrder(admin, userId, "subscription_id", sub.id as string, paid + 1,
+      (sub.monthly_amount_dzd as number) || 0, { subscription_id: sub.id }, `${titre} — échéance ${paid + 1}`);
+  }
+
+  // 2) Abonnement PACK contenant ce cours
+  const { data: psubs } = await admin
+    .from("pack_subscriptions")
+    .select("id, pack_id, total_months, installments_paid, monthly_amount_dzd")
+    .eq("user_id", userId).eq("status", "active");
+  for (const ps of psubs ?? []) {
+    const { data: members } = await admin.from("course_pack_items").select("course_id").eq("pack_id", ps.pack_id as string);
+    if (!(members ?? []).some((m) => (m.course_id as string) === courseId)) continue;
+    const paid = (ps.installments_paid as number) || 0;
+    const total = (ps.total_months as number) || 0;
+    if (paid >= total) return { ok: false, done: true, error: "Toutes vos échéances sont déjà réglées." };
+    const { data: pk } = await admin.from("course_packs").select("titre_fr").eq("id", ps.pack_id as string).maybeSingle();
+    const titre = (pk as { titre_fr?: string } | null)?.titre_fr ?? "Pack";
+    return openInstallmentOrder(admin, userId, "pack_subscription_id", ps.id as string, paid + 1,
+      (ps.monthly_amount_dzd as number) || 0, { pack_id: ps.pack_id, pack_subscription_id: ps.id }, `${titre} — échéance ${paid + 1}`);
+  }
+
+  return { ok: false, error: "Aucun abonnement par tranches actif pour cette formation." };
+}

@@ -9,6 +9,7 @@ import { LessonWatch } from "@/components/player/lesson-watch";
 import { LessonSidebar } from "./lesson-sidebar";
 import { LessonQA, type QA } from "./lesson-qa";
 import { LessonPractical, type Practical } from "./lesson-practical";
+import { PayNextInstallmentButton } from "./pay-next-installment";
 
 export default async function LessonPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -139,12 +140,16 @@ export default async function LessonPage({ params }: { params: { id: string } })
             <h2 className="font-playfair text-xl font-bold text-gray-900">Chapitre verrouillé</h2>
             <p className="text-sm text-gray-600 font-dm mt-2 max-w-md mx-auto">
               Ce chapitre s'ouvre au <strong>mois {lockedUnlockMonth}</strong> de votre abonnement
-              (tranches payées : {access.unlockedMonths}/{access.totalMonths}). Réglez votre prochaine
-              échéance pour débloquer la suite de la formation.
+              (tranches payées : {access.unlockedMonths}/{access.totalMonths}).
+              Vous pouvez <strong>payer le mois suivant dès maintenant</strong> pour débloquer la suite,
+              sans attendre la fin du mois en cours.
             </p>
-            <Link href="/dashboard/commandes" className="inline-flex items-center gap-2 mt-5 bg-orange-DEFAULT text-white px-6 py-3 rounded-2xl font-semibold hover:bg-orange-600 transition-colors">
-              Régler mon échéance →
-            </Link>
+            <div className="mt-5 flex flex-col items-center gap-2">
+              <PayNextInstallmentButton courseId={course?.id ?? ""} />
+              <Link href="/dashboard/commandes" className="text-sm text-gray-500 hover:text-orange-600 hover:underline">
+                Voir mes commandes & factures →
+              </Link>
+            </div>
           </div>
         </div>
         <LessonSidebar
@@ -194,13 +199,12 @@ export default async function LessonPage({ params }: { params: { id: string } })
         </div>
 
         {access.isSubscription && access.unlockedMonths < access.totalMonths && (
-          <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 flex items-center justify-between gap-3">
+          <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm text-violet-800 font-dm">
               Abonnement : <strong>{access.unlockedMonths}/{access.totalMonths}</strong> mois débloqués.
+              Payez le mois suivant en avance pour ouvrir la suite.
             </span>
-            <Link href="/dashboard/commandes" className="text-sm font-semibold text-orange-600 hover:underline whitespace-nowrap">
-              Régler l'échéance →
-            </Link>
+            <PayNextInstallmentButton courseId={course?.id ?? ""} variant="soft" label="Payer le mois suivant" />
           </div>
         )}
 

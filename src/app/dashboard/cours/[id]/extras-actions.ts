@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitizeText } from "@/lib/security/sanitize";
 import { uploadPracticalFile as bunnyUpload, isPracticalsConfigured } from "@/lib/bunny/practicals-storage";
 import { MAX_PRACTICAL_PHOTOS, MAX_PRACTICAL_VIDEOS } from "@/lib/practicals-limits";
+import { ensureNextInstallmentOrder } from "@/lib/subscriptions";
 
 async function ctx() {
   const supabase = await createClient();
@@ -152,6 +153,20 @@ export async function deletePractical(id: string) {
   revalidatePath("/dashboard/pratiques");
   revalidatePath("/formateur/pratiques");
   return { ok: true };
+}
+
+/**
+ * Payer le MOIS SUIVANT en avance : prépare (ou réutilise) la commande d'échéance
+ * pending, que l'élève règle ensuite dans /dashboard/commandes (facture + reçu).
+ * À la validation admin, le palier suivant s'ouvre automatiquement.
+ */
+export async function payNextInstallment(courseId: string) {
+  const c = await ctx();
+  if (!c) return { ok: false as const, error: "Non authentifié." };
+  if (!courseId) return { ok: false as const, error: "Formation inconnue." };
+  const admin = createAdminClient();
+  const res = await ensureNextInstallmentOrder(admin, c.user.id, courseId);
+  return res.ok ? { ok: true as const, orderId: res.orderId } : { ok: false as const, error: res.error, done: res.done };
 }
 
 /**
