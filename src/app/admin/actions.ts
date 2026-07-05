@@ -249,6 +249,7 @@ const SubscriptionSchema = z.object({
   courseId: z.string().uuid("Formation invalide."),
   enabled: z.boolean(),
   durationMonths: z.number().int().min(2).max(24).nullable(),
+  fullDiscount: z.boolean().optional(), // remise « 1 mois offert » au comptant (défaut true)
 });
 
 /**
@@ -272,6 +273,8 @@ export async function setCourseSubscription(input: z.infer<typeof SubscriptionSc
     .update({ subscription_enabled: enabled, duration_months: enabled ? durationMonths : null })
     .eq("id", courseId);
   if (error) return { ok: false, error: error.message };
+  // Remise comptant « 1 mois offert » (résilient : colonne migration 055).
+  await admin.from("courses").update({ full_payment_discount: parsed.data.fullDiscount !== false }).eq("id", courseId).then(() => {}, () => {});
   revalidatePath("/admin/formations");
   revalidatePath("/offre");
   return { ok: true };

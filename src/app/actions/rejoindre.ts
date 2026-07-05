@@ -187,7 +187,7 @@ export async function submitLead(input: unknown) {
   if (packId) {
     const { data: pack } = await admin
       .from("course_packs")
-      .select("id, titre_fr, prix_dzd, published, subscription_enabled, duration_months")
+      .select("*")
       .eq("id", packId).maybeSingle();
     if (!pack || !pack.published) return { ok: false as const, error: "Pack indisponible." };
 
@@ -195,7 +195,8 @@ export async function submitLead(input: unknown) {
     const months = Number((pack as { duration_months?: number | null }).duration_months) || 0;
     const subOn = (pack as { subscription_enabled?: boolean }).subscription_enabled === true && months >= 2;
     const isInstallment = subOn && plan === "installments";
-    const total = isInstallment ? monthlyAmount(price, months) : subOn ? fullDiscountedAmount(price, months) : price;
+    const discountOn = (pack as { full_payment_discount?: boolean }).full_payment_discount !== false; // défaut: remise
+    const total = isInstallment ? monthlyAmount(price, months) : subOn ? fullDiscountedAmount(price, months, discountOn) : price;
 
     const { data: packCourses } = await admin.from("course_pack_items").select("course_id").eq("pack_id", packId);
     const courseIds = (packCourses ?? []).map((i) => i.course_id as string).filter(Boolean);
@@ -236,7 +237,7 @@ export async function submitLead(input: unknown) {
   if (!courseId) return { ok: false as const, error: "Choisissez une formation." };
 
   const { data: course } = await admin
-    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription, subscription_enabled, duration_months").eq("id", courseId).maybeSingle();
+    .from("courses").select("*").eq("id", courseId).maybeSingle();
   if (!course || !course.published || !course.visible_inscription) return { ok: false as const, error: "Formation indisponible." };
 
   const price = Number(course.prix_dzd) || 0;
@@ -245,8 +246,9 @@ export async function submitLead(input: unknown) {
   const months = Number((course as { duration_months?: number | null }).duration_months) || 0;
   const subOn = (course as { subscription_enabled?: boolean }).subscription_enabled === true && months >= 2;
   const isInstallment = subOn && plan === "installments";
-  // Montant dû à l'inscription : 1ʳᵉ tranche (abonnement) ; prix remisé (comptant sur formation abonnement) ; sinon prix plein.
-  const total = isInstallment ? monthlyAmount(price, months) : subOn ? fullDiscountedAmount(price, months) : price;
+  const discountOn = (course as { full_payment_discount?: boolean }).full_payment_discount !== false; // défaut: remise (ex. Niveau 1 → false = prix plein)
+  // Montant dû à l'inscription : 1ʳᵉ tranche (abonnement) ; comptant remisé si remise activée ; sinon prix plein.
+  const total = isInstallment ? monthlyAmount(price, months) : subOn ? fullDiscountedAmount(price, months, discountOn) : price;
 
   // Commande « pending » (virement) — pas d'accès tant que l'admin n'a pas validé la preuve.
   // `installment_month=1` marque la 1ʳᵉ échéance : `finalizeOrderConfirmation` créera l'abonnement.

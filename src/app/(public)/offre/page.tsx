@@ -17,7 +17,7 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
 
   const { data: courses } = await admin
     .from("courses")
-    .select("id, titre_fr, slug, niveau, prix_dzd, thumbnail, subscription_enabled, duration_months")
+    .select("*")
     .eq("published", true)
     .eq("visible_inscription", true)
     .order("ordre", { ascending: true });
@@ -31,13 +31,14 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
     slug: c.slug ?? "",
     subscriptionEnabled: (c as { subscription_enabled?: boolean }).subscription_enabled === true,
     durationMonths: (c as { duration_months?: number | null }).duration_months ?? null,
+    fullDiscount: (c as { full_payment_discount?: boolean }).full_payment_discount !== false,
   }));
 
   // Packs proposés en abonnement (publiés + mode abonnement). Lecture résiliente :
   // si la migration 047 n'est pas appliquée, la requête échoue → aucun pack ajouté.
   const { data: subPacks } = await admin
     .from("course_packs")
-    .select("id, titre_fr, slug, prix_dzd, thumbnail, duration_months")
+    .select("*")
     .eq("published", true)
     .eq("subscription_enabled", true)
     .order("created_at", { ascending: false });
@@ -60,6 +61,7 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
       slug: p.slug ?? "",
       subscriptionEnabled: true,
       durationMonths: (p as { duration_months?: number | null }).duration_months ?? null,
+      fullDiscount: (p as { full_payment_discount?: boolean }).full_payment_discount !== false,
       isPack: true,
       detailSlug: bundleSlugByPack.get(p.id) ?? null,
     });

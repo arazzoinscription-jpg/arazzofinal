@@ -19,7 +19,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
 
   let query = admin
     .from("courses")
-    .select("id, titre_fr, prix_dzd, published, visible_inscription, subscription_enabled, duration_months, formateur_id, formateur:users(nom)")
+    .select("*, formateur:users(nom)")
     .order("created_at", { ascending: false });
   if (q) query = query.ilike("titre_fr", `%${q}%`);
   const { data: courses } = await query.limit(200);
@@ -151,6 +151,7 @@ export default async function AdminCoursesPage({ searchParams }: { searchParams:
                     enabled={(c as any).subscription_enabled ?? false}
                     durationMonths={(c as any).duration_months ?? null}
                     chaptersCount={chapterCounts.get(c.id) ?? 0}
+                    fullDiscount={(c as any).full_payment_discount ?? true}
                   />
                 </TableCell>
                 <TableCell className="px-5 py-3">

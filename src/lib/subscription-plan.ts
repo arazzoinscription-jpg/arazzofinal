@@ -47,8 +47,9 @@ export function monthlyAmount(prixDzd: number, months: number): number {
 /**
  * Montant si l'élève paie comptant : un mois offert → prix × (M-1)/M (arrondi).
  * Ex 4 mois à 10 000 → 30 000 au lieu de 40 000.
+ * `applyDiscount = false` (ex. Niveau 1) → PRIX PLEIN, aucune remise.
  */
-export function fullDiscountedAmount(prixDzd: number, months: number): number {
-  if (months <= 1) return prixDzd;
+export function fullDiscountedAmount(prixDzd: number, months: number, applyDiscount = true): number {
+  if (!applyDiscount || months <= 1) return Math.round(prixDzd);
   return Math.round((prixDzd * (months - 1)) / months);
 }

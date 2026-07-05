@@ -12,24 +12,26 @@ import { batchSizes } from "@/lib/subscription-plan";
  * durée en mois ; un aperçu montre la découpe des chapitres (ex : 6, 6, 6, 4).
  */
 export function SubscriptionToggle({
-  courseId, enabled, durationMonths, chaptersCount,
+  courseId, enabled, durationMonths, chaptersCount, fullDiscount = true,
 }: {
   courseId: string;
   enabled: boolean;
   durationMonths: number | null;
   chaptersCount: number;
+  fullDiscount?: boolean;
 }) {
   const router = useRouter();
   const [on, setOn] = useState(enabled);
   const [months, setMonths] = useState(durationMonths ?? 4);
+  const [discount, setDiscount] = useState(fullDiscount !== false);
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState("");
 
-  function save(nextOn: boolean, nextMonths: number) {
+  function save(nextOn: boolean, nextMonths: number, nextDiscount: boolean) {
     setErr("");
     startTransition(async () => {
       const res = await setCourseSubscription({
-        courseId, enabled: nextOn, durationMonths: nextOn ? nextMonths : null,
+        courseId, enabled: nextOn, durationMonths: nextOn ? nextMonths : null, fullDiscount: nextDiscount,
       });
       if (!res.ok) { setOn(!nextOn); setErr(res.error ?? "Erreur"); }
       else router.refresh();
@@ -39,7 +41,7 @@ export function SubscriptionToggle({
   function toggle() {
     const next = !on;
     setOn(next);
-    save(next, months);
+    save(next, months, discount);
   }
 
   const sizes = on && chaptersCount > 0 ? batchSizes(chaptersCount, months) : [];
@@ -58,16 +60,24 @@ export function SubscriptionToggle({
       </div>
 
       {on && (
-        <div className="flex items-center gap-1.5">
-          <input
-            type="number" min={2} max={24} value={months}
-            onChange={(e) => setMonths(Math.max(2, Math.min(24, Number(e.target.value) || 2)))}
-            onBlur={() => save(true, months)}
-            disabled={isPending}
-            className="w-14 rounded-lg border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500"
-          />
-          <span className="text-[11px] text-gray-400">mois</span>
-        </div>
+        <>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number" min={2} max={24} value={months}
+              onChange={(e) => setMonths(Math.max(2, Math.min(24, Number(e.target.value) || 2)))}
+              onBlur={() => save(true, months, discount)}
+              disabled={isPending}
+              className="w-14 rounded-lg border border-gray-200 px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500"
+            />
+            <span className="text-[11px] text-gray-400">mois</span>
+          </div>
+          <label className="flex items-center gap-1.5 text-[11px] text-gray-600 cursor-pointer" title="Décochez pour le Niveau 1 : le paiement comptant reste au prix plein (pas de mois offert)">
+            <input type="checkbox" checked={discount} disabled={isPending}
+              onChange={(e) => { setDiscount(e.target.checked); save(true, months, e.target.checked); }}
+              className="w-3.5 h-3.5 accent-violet-600" />
+            Remise 1 mois offert (comptant)
+          </label>
+        </>
       )}
 
       {sizes.length > 0 && (

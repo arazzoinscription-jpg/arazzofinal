@@ -23,7 +23,7 @@ import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 
 /* ── Types partagés ────────────────────────────────────────────────────── */
 export type Level = "debutant" | "intermediaire" | "avance";
-export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; isPack?: boolean; detailSlug?: string | null; }
+export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; fullDiscount?: boolean; isPack?: boolean; detailSlug?: string | null; }
 export interface PayInfo { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string; }
 
 const LEVELS: Level[] = ["debutant", "intermediaire", "avance"];
@@ -960,7 +960,7 @@ function Inscription({
   const subMonths = selectedCourse?.durationMonths ?? 0;
   const subOn = !!selectedCourse?.subscriptionEnabled && subMonths >= 2;
   const monthlyDzd = subOn ? monthlyAmount(basePrice, subMonths) : 0;
-  const fullDiscDzd = subOn ? fullDiscountedAmount(basePrice, subMonths) : 0;
+  const fullDiscDzd = subOn ? fullDiscountedAmount(basePrice, subMonths, selectedCourse?.fullDiscount !== false) : 0;
   // Montant dû maintenant : 1ʳᵉ tranche si abonnement, sinon prix (remisé en comptant abonnement).
   const total = !subOn ? basePrice : plan === "installments" ? monthlyDzd : fullDiscDzd;
   const field = "w-full rounded-xl border border-cream-200 dark:border-white/10 bg-white dark:bg-white/5 px-4 py-3 text-sm text-violet-950 dark:text-white placeholder:text-violet-950/35 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-violet-500";
