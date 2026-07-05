@@ -213,8 +213,29 @@ export default async function AdminStudentsPage({
   const fmt = (iso: string | null) =>
     iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
+  // ── Type d'inscription : Abonnement par tranches (mois payés) vs Total ──
+  const subByStudent = new Map<string, { paid: number; total: number; isPack: boolean }>();
+  {
+    const chunk = <T,>(a: T[], n: number) => { const o: T[][] = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+    for (const part of chunk(studentIds, 300)) {
+      const { data: cs } = await admin.from("course_subscriptions").select("user_id, total_months, installments_paid").in("user_id", part).eq("status", "active");
+      for (const s of cs ?? []) {
+        const paid = (s.installments_paid as number) || 0, total = (s.total_months as number) || 0;
+        const cur = subByStudent.get(s.user_id as string);
+        if (!cur || total - paid > cur.total - cur.paid) subByStudent.set(s.user_id as string, { paid, total, isPack: false });
+      }
+      const { data: ps } = await admin.from("pack_subscriptions").select("user_id, total_months, installments_paid").in("user_id", part).eq("status", "active");
+      for (const s of ps ?? []) {
+        const paid = (s.installments_paid as number) || 0, total = (s.total_months as number) || 0;
+        const cur = subByStudent.get(s.user_id as string);
+        if (!cur || total - paid > cur.total - cur.paid) subByStudent.set(s.user_id as string, { paid, total, isPack: true });
+      }
+    }
+  }
+
   const tableRows = rows.map((r) => {
     const formationParts: string[] = Array.from(r.otherCourses);
+    const sub = subByStudent.get(r.id);
     return {
       id: r.id,
       nom: r.nom,
@@ -226,6 +247,10 @@ export default async function AdminStudentsPage({
       formateurEmail: r.formateurEmail,
       active: r.active,
       accessStatus: accessByUser.get(r.id) ?? "none",
+      payType: (sub ? "abonnement" : "total") as "abonnement" | "total",
+      paidMonths: sub?.paid ?? 0,
+      totalMonths: sub?.total ?? 0,
+      isPack: sub?.isPack ?? false,
     };
   });
 

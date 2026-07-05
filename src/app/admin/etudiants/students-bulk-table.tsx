@@ -3,10 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail, UserX, ArrowUpDown } from "lucide-react";
+import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail, UserX, ArrowUpDown, BellRing } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { bulkSetUserStatus, bulkDeleteUsers, bulkActivateAndInvite, cancelStudentEnrollments } from "@/app/admin/actions";
+import { bulkSetUserStatus, bulkDeleteUsers, bulkActivateAndInvite, cancelStudentEnrollments, remindSubscriber } from "@/app/admin/actions";
 
 export type AccessStatus = "none" | "valid" | "used" | "expired";
 
@@ -21,6 +21,10 @@ export interface StudentRowLite {
   formateurEmail: string | null;
   active: boolean;
   accessStatus: AccessStatus;
+  payType: "abonnement" | "total";
+  paidMonths: number;
+  totalMonths: number;
+  isPack: boolean;
 }
 
 type SortKey = "date_desc" | "date_asc" | "nom_asc" | "nom_desc";
@@ -118,6 +122,14 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
     });
   }
 
+  function remind(r: StudentRowLite) {
+    start(async () => {
+      const res = await remindSubscriber(r.id);
+      if (res.ok) toast(`Rappel d'échéance envoyé à ${r.nom} 🔔`, "success");
+      else toast(res.error ?? "Envoi impossible", "error");
+    });
+  }
+
   const selCls = "border border-gray-200 rounded-xl px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500";
 
   return (
@@ -190,6 +202,7 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
               <TableHead className="px-5 py-3 font-medium">Formateur</TableHead>
               <TableHead className="px-5 py-3 font-medium">Date inscription</TableHead>
               <TableHead className="px-5 py-3 font-medium">Formation</TableHead>
+              <TableHead className="px-5 py-3 font-medium">Paiement</TableHead>
               <TableHead className="px-5 py-3 font-medium">Accès envoyé</TableHead>
               <TableHead className="px-5 py-3 font-medium">Statut</TableHead>
               <TableHead className="px-5 py-3 font-medium text-right">Action</TableHead>
@@ -197,7 +210,7 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
           </TableHeader>
           <TableBody className="divide-y divide-gray-50">
             {view.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-10 text-gray-400">Aucun étudiant.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-10 text-gray-400">Aucun étudiant.</TableCell></TableRow>
             ) : view.map((r) => {
               const checked = sel.has(r.id);
               const acc = ACCESS_META[r.accessStatus];
@@ -237,6 +250,22 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                       </div>
                     )}
                   </TableCell>
+                  <TableCell className="px-5 py-3 whitespace-nowrap">
+                    {r.payType === "abonnement" ? (
+                      <div>
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                          r.paidMonths >= r.totalMonths ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                        }`}>
+                          Abonnement {r.isPack ? "(pack) " : ""}{r.paidMonths}/{r.totalMonths}
+                        </span>
+                        {r.paidMonths < r.totalMonths && (
+                          <div className="text-[11px] text-amber-600 mt-0.5">reste {r.totalMonths - r.paidMonths} mois</div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">Inscription totale</span>
+                    )}
+                  </TableCell>
                   <TableCell className="px-5 py-3">
                     <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${acc.cls}`}>
                       {acc.label}
@@ -250,11 +279,20 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                     </span>
                   </TableCell>
                   <TableCell className="px-5 py-3 text-right">
-                    <button onClick={() => cancelEnrollment(r)} disabled={pending}
-                      title="Annuler l'inscription (retire l'accès aux cours, garde le compte)"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50">
-                      <UserX size={14} /> Annuler
-                    </button>
+                    <div className="flex flex-col items-end gap-1.5">
+                      {r.payType === "abonnement" && r.paidMonths < r.totalMonths && (
+                        <button onClick={() => remind(r)} disabled={pending}
+                          title="Envoyer un rappel de paiement d'échéance à l'abonné"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 hover:text-white hover:bg-amber-500 border border-amber-200 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50">
+                          <BellRing size={14} /> Relancer
+                        </button>
+                      )}
+                      <button onClick={() => cancelEnrollment(r)} disabled={pending}
+                        title="Annuler l'inscription (retire l'accès aux cours, garde le compte)"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-600 border border-red-200 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50">
+                        <UserX size={14} /> Annuler
+                      </button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );

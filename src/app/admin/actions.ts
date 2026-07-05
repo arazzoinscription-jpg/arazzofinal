@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { activateAndInvite } from "@/lib/account-access";
+import { sendEmail } from "@/lib/email";
+import { tplInstallmentReminder } from "@/lib/email-templates";
 
 function slugify(s: string): string {
   const base = s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -582,6 +584,44 @@ export async function setGainsStartDate(date: string | null) {
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/formateurs");
   revalidatePath("/admin/patronnistes");
+  return { ok: true };
+}
+
+/**
+ * Rappel MANUEL d'échéance à un abonné (bouton admin) : envoie l'email de rappel
+ * de paiement pour éviter la perte d'accès. Abonnement cours OU pack.
+ */
+export async function remindSubscriber(userId: string) {
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+
+  const { data: u } = await admin.from("users").select("nom, email").eq("id", userId).maybeSingle();
+  const email = (u as { email?: string } | null)?.email;
+  if (!email) return { ok: false, error: "Cet élève n'a pas d'email." };
+  const nom = (u as { nom?: string } | null)?.nom ?? "";
+
+  let titre = "votre formation", paid = 0, total = 0, monthly = 0;
+  const { data: cs } = await admin.from("course_subscriptions")
+    .select("course_id, total_months, installments_paid, monthly_amount_dzd")
+    .eq("user_id", userId).eq("status", "active").maybeSingle();
+  if (cs) {
+    paid = (cs.installments_paid as number) || 0; total = (cs.total_months as number) || 0; monthly = (cs.monthly_amount_dzd as number) || 0;
+    const { data: c } = await admin.from("courses").select("titre_fr").eq("id", cs.course_id as string).maybeSingle();
+    titre = (c as { titre_fr?: string } | null)?.titre_fr ?? titre;
+  } else {
+    const { data: ps } = await admin.from("pack_subscriptions")
+      .select("pack_id, total_months, installments_paid, monthly_amount_dzd")
+      .eq("user_id", userId).eq("status", "active").maybeSingle();
+    if (!ps) return { ok: false, error: "Cet élève n'a pas d'abonnement par tranches actif." };
+    paid = (ps.installments_paid as number) || 0; total = (ps.total_months as number) || 0; monthly = (ps.monthly_amount_dzd as number) || 0;
+    const { data: pk } = await admin.from("course_packs").select("titre_fr").eq("id", ps.pack_id as string).maybeSingle();
+    titre = (pk as { titre_fr?: string } | null)?.titre_fr ?? "votre pack";
+  }
+  if (paid >= total) return { ok: false, error: "Toutes les échéances sont déjà réglées." };
+
+  const tpl = tplInstallmentReminder(nom, titre, paid + 1, total, `${monthly.toLocaleString("fr-DZ")} DA`);
+  const res = await sendEmail({ userId, to: email, category: tpl.category, subject: tpl.subject, html: tpl.html, force: true });
+  if (res.error) return { ok: false, error: res.error };
   return { ok: true };
 }
 
