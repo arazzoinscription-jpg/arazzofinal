@@ -4,17 +4,40 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { monthlyAmount } from "@/lib/subscription-plan";
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+/** Crée un abonnement par tranches (mois 1 accordé par l'admin) pour un cours. */
+async function grantCourseSubscription(admin: Admin, userId: string, courseId: string) {
+  const { data: c } = await admin.from("courses").select("prix_dzd, duration_months, subscription_enabled").eq("id", courseId).maybeSingle();
+  const months = Number((c as { duration_months?: number | null } | null)?.duration_months) || 0;
+  const enabled = (c as { subscription_enabled?: boolean } | null)?.subscription_enabled === true;
+  if (!enabled || months < 2) return { ok: false as const, error: "Cette formation n'est pas en mode abonnement (activez l'abonnement + durée ≥ 2 mois)." };
+  const { data: has } = await admin.from("course_subscriptions").select("id").eq("user_id", userId).eq("course_id", courseId).maybeSingle();
+  if (!has) {
+    await admin.from("course_subscriptions").insert({
+      user_id: userId, course_id: courseId, status: "active", total_months: months, installments_paid: 1,
+      monthly_amount_dzd: monthlyAmount(Number((c as { prix_dzd?: number } | null)?.prix_dzd) || 0, months),
+      next_due_date: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+      started_at: new Date().toISOString(),
+    });
+  }
+  return { ok: true as const };
+}
+
 const Schema = z.object({
   courseId: z.string().uuid(),
   email: z.string().email("Email invalide."),
   nom: z.string().trim().max(120).optional().nullable(),
+  plan: z.enum(["total", "abonnement"]).optional(),
 });
 
 /** Inscrit manuellement une élève à un cours (sans passer par une commande). */
-export async function manualEnroll(input: { courseId: string; email: string; nom?: string | null }) {
+export async function manualEnroll(input: { courseId: string; email: string; nom?: string | null; plan?: "total" | "abonnement" }) {
   const parsed = Schema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
-  const { courseId, email, nom } = parsed.data;
+  const { courseId, email, nom, plan } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
 
   // Garde : formateur propriétaire du cours, ou admin
@@ -59,6 +82,12 @@ export async function manualEnroll(input: { courseId: string; email: string; nom
   });
   if (insErr) return { ok: false, error: insErr.message };
 
+  // Type d'inscription : ABONNEMENT → crée l'abonnement par tranches (drip mois par mois).
+  if (plan === "abonnement") {
+    const s = await grantCourseSubscription(admin, studentId, courseId);
+    if (!s.ok) return { ok: false, error: s.error };
+  }
+
   // Notification à l'élève
   try {
     await admin.from("notifications").insert({
@@ -75,17 +104,36 @@ export async function manualEnroll(input: { courseId: string; email: string; nom
   return { ok: true };
 }
 
+/** Crée un abonnement pack par tranches (mois 1 accordé par l'admin). */
+async function grantPackSubscription(admin: Admin, userId: string, packId: string) {
+  const { data: p } = await admin.from("course_packs").select("prix_dzd, duration_months, subscription_enabled").eq("id", packId).maybeSingle();
+  const months = Number((p as { duration_months?: number | null } | null)?.duration_months) || 0;
+  const enabled = (p as { subscription_enabled?: boolean } | null)?.subscription_enabled === true;
+  if (!enabled || months < 2) return { ok: false as const, error: "Ce pack n'est pas en mode abonnement (activez l'abonnement + durée ≥ 2 mois)." };
+  const { data: has } = await admin.from("pack_subscriptions").select("id").eq("user_id", userId).eq("pack_id", packId).maybeSingle();
+  if (!has) {
+    await admin.from("pack_subscriptions").insert({
+      user_id: userId, pack_id: packId, status: "active", total_months: months, installments_paid: 1,
+      monthly_amount_dzd: monthlyAmount(Number((p as { prix_dzd?: number } | null)?.prix_dzd) || 0, months),
+      next_due_date: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+      started_at: new Date().toISOString(),
+    });
+  }
+  return { ok: true as const };
+}
+
 const PackSchema = z.object({
   packId: z.string().uuid(),
   email: z.string().email("Email invalide."),
   nom: z.string().trim().max(120).optional().nullable(),
+  plan: z.enum(["total", "abonnement"]).optional(),
 });
 
 /** Inscrit manuellement une élève à TOUS les cours d'un pack (staff propriétaire du pack ou admin). */
-export async function manualEnrollPack(input: { packId: string; email: string; nom?: string | null }) {
+export async function manualEnrollPack(input: { packId: string; email: string; nom?: string | null; plan?: "total" | "abonnement" }) {
   const parsed = PackSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
-  const { packId, email, nom } = parsed.data;
+  const { packId, email, nom, plan } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
 
   const supabase = await createClient();
@@ -131,6 +179,12 @@ export async function manualEnrollPack(input: { packId: string; email: string; n
     toAdd.map((cid) => ({ user_id: sid, course_id: cid, amount: 0, currency: "DZD" }))
   );
   if (insErr) return { ok: false, error: insErr.message };
+
+  // Type d'inscription : ABONNEMENT → abonnement pack par tranches (drip mois par mois).
+  if (plan === "abonnement") {
+    const s = await grantPackSubscription(admin, sid, packId);
+    if (!s.ok) return { ok: false, error: s.error };
+  }
 
   try {
     await admin.from("notifications").insert({

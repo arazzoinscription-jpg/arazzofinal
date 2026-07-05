@@ -68,6 +68,10 @@ export default async function AdminStudentsPage({
     .select("id, titre_fr, slug, formateur_id, formateur:users!courses_formateur_id_fkey(nom, email)")
     .order("titre_fr", { ascending: true });
 
+  // Packs (pour l'inscription manuelle à un pack).
+  const { data: allPacks } = await admin
+    .from("course_packs").select("id, titre_fr").order("titre_fr", { ascending: true });
+
   const level1 = (allCourses ?? []).find((c) => c.slug === LEVEL_1_SLUG);
   const level2 = (allCourses ?? []).find((c) => c.slug === LEVEL_2_SLUG);
 
@@ -274,7 +278,10 @@ export default async function AdminStudentsPage({
       </form>
 
       {/* Inscription manuelle (admin) */}
-      <AdminEnrollForm courses={(allCourses ?? []).map((c) => ({ id: c.id, titre_fr: c.titre_fr }))} />
+      <AdminEnrollForm
+        courses={(allCourses ?? []).map((c) => ({ id: c.id, titre_fr: c.titre_fr }))}
+        packs={(allPacks ?? []).map((p) => ({ id: p.id, titre_fr: p.titre_fr }))}
+      />
 
       <StudentsBulkTable rows={tableRows} />
     </div>
