@@ -160,12 +160,13 @@ export async function deletePractical(id: string) {
  * pending, que l'élève règle ensuite dans /dashboard/commandes (facture + reçu).
  * À la validation admin, le palier suivant s'ouvre automatiquement.
  */
-export async function payNextInstallment(courseId: string) {
+export async function payNextInstallment(courseId: string, targetMonth?: number) {
   const c = await ctx();
   if (!c) return { ok: false as const, error: "Non authentifié." };
   if (!courseId) return { ok: false as const, error: "Formation inconnue." };
   const admin = createAdminClient();
-  const res = await ensureNextInstallmentOrder(admin, c.user.id, courseId);
+  const target = Number.isFinite(Number(targetMonth)) && Number(targetMonth) > 0 ? Number(targetMonth) : undefined;
+  const res = await ensureNextInstallmentOrder(admin, c.user.id, courseId, target);
   return res.ok ? { ok: true as const, orderId: res.orderId } : { ok: false as const, error: res.error, done: res.done };
 }
 

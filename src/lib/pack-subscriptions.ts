@@ -149,7 +149,8 @@ export async function advancePackSubscriptionForOrder(
   if (!sub) return;
 
   const totalMonths = sub.total_months || installmentMonth;
-  const newPaid = (sub.installments_paid || 0) + 1;
+  // Cumulatif : une échéance qui vise le mois N règle tous les mois jusqu'à N.
+  const newPaid = Math.min(totalMonths, Math.max((sub.installments_paid || 0) + 1, installmentMonth || 0));
   const completed = newPaid >= totalMonths;
 
   await admin

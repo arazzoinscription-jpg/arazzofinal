@@ -145,7 +145,11 @@ export default async function LessonPage({ params }: { params: { id: string } })
               sans attendre la fin du mois en cours.
             </p>
             <div className="mt-5 flex flex-col items-center gap-2">
-              <PayNextInstallmentButton courseId={course?.id ?? ""} />
+              <PayNextInstallmentButton courseId={course?.id ?? ""} targetMonth={lockedUnlockMonth}
+                label={`Débloquer jusqu'au mois ${lockedUnlockMonth}`} />
+              <p className="text-xs text-gray-400 max-w-md">
+                Impossible de sauter un mois : la facture cumule les mois impayés jusqu'au mois {lockedUnlockMonth}.
+              </p>
               <Link href="/dashboard/commandes" className="text-sm text-gray-500 hover:text-orange-600 hover:underline">
                 Voir mes commandes & factures →
               </Link>

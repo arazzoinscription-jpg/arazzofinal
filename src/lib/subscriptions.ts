@@ -141,7 +141,9 @@ export async function advanceSubscriptionForOrder(
   if (!sub) return;
 
   const totalMonths = sub.total_months || installmentMonth;
-  const newPaid = (sub.installments_paid || 0) + 1;
+  // Cumulatif : une échéance qui vise le mois N règle TOUS les mois jusqu'à N
+  // (impossible de sauter : la facture couvre les mois impayés jusqu'à la cible).
+  const newPaid = Math.min(totalMonths, Math.max((sub.installments_paid || 0) + 1, installmentMonth || 0));
   const completed = newPaid >= totalMonths;
 
   await admin
@@ -251,7 +253,14 @@ export async function runInstallmentReminders(admin: Admin): Promise<{ reminded:
   return { reminded };
 }
 
-/** Crée (ou réutilise) la commande d'échéance PENDING pour un match donné. */
+/** Détail lisible de la facture d'abonnement (#4). */
+function installmentItemTitle(titre: string, nextMonth: number, target: number, total: number): string {
+  const span = target > nextMonth ? `mois ${nextMonth} à ${target}` : `mois ${nextMonth}`;
+  const reste = Math.max(0, total - target);
+  return `${titre} — Abonnement : ${span} / ${total}${reste > 0 ? ` · reste ${reste} mois` : " · dernier mois"}`;
+}
+
+/** Crée (ou met à jour) l'unique commande d'échéance PENDING pour un abonnement. */
 async function openInstallmentOrder(
   admin: Admin,
   userId: string,
@@ -262,11 +271,20 @@ async function openInstallmentOrder(
   orderExtra: Record<string, unknown>,
   itemTitle: string,
 ): Promise<{ ok: boolean; orderId?: string; error?: string; month?: number; amount?: number }> {
+  // Une seule commande d'échéance ouverte à la fois : on la met à jour vers la cible cumulée.
   const { data: existing } = await admin
     .from("orders").select("id")
-    .eq(matchField, matchValue).eq("installment_month", installmentMonth)
-    .in("status", PROCESSING_STATUSES).maybeSingle();
-  if (existing) return { ok: true, orderId: existing.id as string, month: installmentMonth, amount };
+    .eq(matchField, matchValue)
+    .in("status", PROCESSING_STATUSES)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+  if (existing) {
+    await admin.from("orders")
+      .update({ installment_month: installmentMonth, subtotal: amount, discount: 0, total: amount })
+      .eq("id", existing.id);
+    await admin.from("order_items").update({ title: itemTitle, price: amount }).eq("order_id", existing.id).then(() => {}, () => {});
+    return { ok: true, orderId: existing.id as string, month: installmentMonth, amount };
+  }
 
   const { data: u } = await admin.from("users").select("nom, email").eq("id", userId).maybeSingle();
   const email = (u as { email?: string } | null)?.email;
@@ -287,15 +305,19 @@ async function openInstallmentOrder(
 }
 
 /**
- * Prépare le paiement du MOIS SUIVANT en avance (élève).
- * Gère l'abonnement solo (course_subscriptions) ET l'abonnement pack
- * (pack_subscriptions contenant ce cours). Idempotent : réutilise une commande
- * d'échéance déjà ouverte. Renvoie l'orderId → l'élève dépose son reçu dans
- * /dashboard/commandes ; à la validation admin, le palier suivant s'ouvre.
+ * Prépare le paiement d'échéance (élève). `targetMonth` = mois que l'élève veut
+ * atteindre (ex. débloquer un chapitre du mois 4). IMPOSSIBLE de sauter : la facture
+ * CUMULE tous les mois impayés de `paid+1` jusqu'à la cible (montant × nb de mois).
+ * Gère l'abonnement solo ET pack. À la validation admin, les paliers s'ouvrent.
  */
 export async function ensureNextInstallmentOrder(
-  admin: Admin, userId: string, courseId: string,
+  admin: Admin, userId: string, courseId: string, targetMonth?: number,
 ): Promise<{ ok: boolean; orderId?: string; error?: string; month?: number; amount?: number; done?: boolean }> {
+  const clampTarget = (paid: number, total: number) => {
+    const next = paid + 1;
+    return Math.min(total, Math.max(next, Number(targetMonth) || next));
+  };
+
   // 1) Abonnement SOLO du cours
   const { data: sub } = await admin
     .from("course_subscriptions")
@@ -305,10 +327,12 @@ export async function ensureNextInstallmentOrder(
     const paid = (sub.installments_paid as number) || 0;
     const total = (sub.total_months as number) || 0;
     if (paid >= total) return { ok: false, done: true, error: "Toutes vos échéances sont déjà réglées." };
+    const target = clampTarget(paid, total);
+    const amount = ((sub.monthly_amount_dzd as number) || 0) * (target - paid); // cumul des mois impayés
     const { data: c } = await admin.from("courses").select("titre_fr").eq("id", courseId).maybeSingle();
     const titre = (c as { titre_fr?: string } | null)?.titre_fr ?? "Formation";
-    return openInstallmentOrder(admin, userId, "subscription_id", sub.id as string, paid + 1,
-      (sub.monthly_amount_dzd as number) || 0, { subscription_id: sub.id }, `${titre} — échéance ${paid + 1}`);
+    return openInstallmentOrder(admin, userId, "subscription_id", sub.id as string, target,
+      amount, { subscription_id: sub.id }, installmentItemTitle(titre, paid + 1, target, total));
   }
 
   // 2) Abonnement PACK contenant ce cours
@@ -322,10 +346,12 @@ export async function ensureNextInstallmentOrder(
     const paid = (ps.installments_paid as number) || 0;
     const total = (ps.total_months as number) || 0;
     if (paid >= total) return { ok: false, done: true, error: "Toutes vos échéances sont déjà réglées." };
+    const target = clampTarget(paid, total);
+    const amount = ((ps.monthly_amount_dzd as number) || 0) * (target - paid);
     const { data: pk } = await admin.from("course_packs").select("titre_fr").eq("id", ps.pack_id as string).maybeSingle();
     const titre = (pk as { titre_fr?: string } | null)?.titre_fr ?? "Pack";
-    return openInstallmentOrder(admin, userId, "pack_subscription_id", ps.id as string, paid + 1,
-      (ps.monthly_amount_dzd as number) || 0, { pack_id: ps.pack_id, pack_subscription_id: ps.id }, `${titre} — échéance ${paid + 1}`);
+    return openInstallmentOrder(admin, userId, "pack_subscription_id", ps.id as string, target,
+      amount, { pack_id: ps.pack_id, pack_subscription_id: ps.id }, installmentItemTitle(titre, paid + 1, target, total));
   }
 
   return { ok: false, error: "Aucun abonnement par tranches actif pour cette formation." };

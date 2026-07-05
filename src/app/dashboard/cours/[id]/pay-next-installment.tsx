@@ -10,13 +10,13 @@ import { payNextInstallment } from "./extras-actions";
  * Bouton « Payer le mois suivant » (en avance). Prépare la commande d'échéance
  * puis emmène l'élève vers ses commandes pour voir la facture + déposer son reçu.
  */
-export function PayNextInstallmentButton({ courseId, label, variant = "solid" }: { courseId: string; label?: string; variant?: "solid" | "soft" }) {
+export function PayNextInstallmentButton({ courseId, label, variant = "solid", targetMonth }: { courseId: string; label?: string; variant?: "solid" | "soft"; targetMonth?: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
   function go() {
     start(async () => {
-      const res = await payNextInstallment(courseId);
+      const res = await payNextInstallment(courseId, targetMonth);
       if (res.ok) {
         toast("Échéance prête — déposez votre reçu de paiement. 🧾", "success");
         router.push("/dashboard/commandes");
