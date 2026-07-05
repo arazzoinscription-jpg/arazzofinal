@@ -67,27 +67,21 @@ export function CommunityProfileCard({
   return (
     <div className="w-full max-w-sm mx-auto">
       <div className="bg-white dark:bg-[#15102b] rounded-[2rem] shadow-xl border border-cream-200 dark:border-white/10 overflow-hidden">
-        {/* En-tête dégradé couture */}
-        <div className="relative h-32 bg-gradient-to-br from-violet-DEFAULT via-violet-600 to-orange-500">
-          <div aria-hidden className="absolute inset-0 opacity-25"
-            style={{
-              backgroundImage:
-                "linear-gradient(to right, rgba(255,255,255,0.18) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.18) 1px, transparent 1px)",
-              backgroundSize: "18px 18px",
-            }} />
-          {!isMe && (
-            <button onClick={onFollow} disabled={pending}
-              className={`absolute top-4 right-4 inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-70 ${
-                following ? "bg-white/20 text-white border border-white/40 backdrop-blur" : "bg-white text-violet-800 hover:bg-white/90"}`}>
-              {following ? <><Check size={15} /> {ft.following}</> : <><UserPlus size={15} /> {ft.follow}</>}
-            </button>
-          )}
-        </div>
-
-        <div className="px-6 pb-6 -mt-12">
-          {/* Avatar */}
-          <div className="w-24 h-24 mb-4 rounded-full border-4 border-white dark:border-[#15102b] overflow-hidden bg-orange-DEFAULT grid place-items-center text-white text-3xl font-bold shadow-lg">
-            {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : initial}
+        <div className="px-6 pt-6 pb-6">
+          {/* Avatar + bouton suivre (plus de bandeau violet : la photo est mise en avant) */}
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-orange-DEFAULT grid place-items-center text-white text-3xl font-bold shadow-lg ring-1 ring-cream-200 dark:ring-white/10">
+              {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : initial}
+            </div>
+            {!isMe && (
+              <button onClick={onFollow} disabled={pending}
+                className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-70 ${
+                  following
+                    ? "bg-violet-100 text-violet-700 border border-violet-200 dark:bg-white/10 dark:text-white dark:border-white/20"
+                    : "bg-violet-600 text-white hover:bg-violet-700"}`}>
+                {following ? <><Check size={15} /> {ft.following}</> : <><UserPlus size={15} /> {ft.follow}</>}
+              </button>
+            )}
           </div>
 
           {/* Nom + rôle + bio */}

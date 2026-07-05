@@ -9,12 +9,40 @@ import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
+// ── Anti-doublon abonnement (cours ↔ pack) ───────────────────────────────────
+// Un cours peut appartenir à un pack (course_pack_items). On empêche de cumuler,
+// pour une même élève, un abonnement COURS et un abonnement PACK qui couvrent la
+// même formation (source de la confusion « 1/4 au lieu de 1/2 »).
+
+/** L'élève a-t-elle déjà un abonnement PACK actif incluant ce cours ? */
+async function packCoversCourse(admin: Admin, userId: string, courseId: string): Promise<boolean> {
+  const { data: items } = await admin.from("course_pack_items").select("pack_id").eq("course_id", courseId);
+  const packIds = [...new Set((items ?? []).map((r) => r.pack_id as string))];
+  if (!packIds.length) return false;
+  const { data } = await admin.from("pack_subscriptions").select("id")
+    .eq("user_id", userId).in("pack_id", packIds).eq("status", "active").maybeSingle();
+  return !!data;
+}
+
+/** L'élève a-t-elle déjà un abonnement COURS actif sur une formation incluse dans ce pack ? */
+async function courseSubOverlapsPack(admin: Admin, userId: string, packId: string): Promise<boolean> {
+  const { data: items } = await admin.from("course_pack_items").select("course_id").eq("pack_id", packId);
+  const courseIds = [...new Set((items ?? []).map((r) => r.course_id as string))];
+  if (!courseIds.length) return false;
+  const { data } = await admin.from("course_subscriptions").select("id")
+    .eq("user_id", userId).in("course_id", courseIds).eq("status", "active").maybeSingle();
+  return !!data;
+}
+
 /** Crée un abonnement par tranches (mois 1 accordé par l'admin) pour un cours. */
 async function grantCourseSubscription(admin: Admin, userId: string, courseId: string) {
   const { data: c } = await admin.from("courses").select("prix_dzd, duration_months, subscription_enabled").eq("id", courseId).maybeSingle();
   const months = Number((c as { duration_months?: number | null } | null)?.duration_months) || 0;
   const enabled = (c as { subscription_enabled?: boolean } | null)?.subscription_enabled === true;
   if (!enabled || months < 2) return { ok: false as const, error: "Cette formation n'est pas en mode abonnement (activez l'abonnement + durée ≥ 2 mois)." };
+  if (await packCoversCourse(admin, userId, courseId)) {
+    return { ok: false as const, error: "Cette élève a déjà un abonnement pack qui inclut cette formation. Retirez le pack avant d'ajouter la formation seule." };
+  }
   const { data: has } = await admin.from("course_subscriptions").select("id").eq("user_id", userId).eq("course_id", courseId).maybeSingle();
   if (!has) {
     await admin.from("course_subscriptions").insert({
@@ -71,6 +99,11 @@ export async function manualEnroll(input: { courseId: string; email: string; nom
   }
   if (!studentId) return { ok: false, error: "Compte introuvable." };
 
+  // Anti-doublon (abonnement) : déjà couverte par un abonnement pack incluant ce cours ?
+  if (plan === "abonnement" && await packCoversCourse(admin, studentId, courseId)) {
+    return { ok: false, error: "Cette élève a déjà un abonnement pack qui inclut cette formation." };
+  }
+
   // Déjà inscrite ?
   const { data: enr } = await admin
     .from("enrollments").select("id").eq("user_id", studentId).eq("course_id", courseId).maybeSingle();
@@ -111,6 +144,9 @@ async function grantPackSubscription(admin: Admin, userId: string, packId: strin
   const months = Number((p as { duration_months?: number | null } | null)?.duration_months) || 0;
   const enabled = (p as { subscription_enabled?: boolean } | null)?.subscription_enabled === true;
   if (!enabled || months < 2) return { ok: false as const, error: "Ce pack n'est pas en mode abonnement (activez l'abonnement + durée ≥ 2 mois)." };
+  if (await courseSubOverlapsPack(admin, userId, packId)) {
+    return { ok: false as const, error: "Cette élève a déjà un abonnement sur une formation incluse dans ce pack. Retirez cet abonnement avant d'ajouter le pack." };
+  }
   const { data: has } = await admin.from("pack_subscriptions").select("id").eq("user_id", userId).eq("pack_id", packId).maybeSingle();
   if (!has) {
     await admin.from("pack_subscriptions").insert({
@@ -169,6 +205,11 @@ export async function manualEnrollPack(input: { packId: string; email: string; n
   }
   if (!studentId) return { ok: false, error: "Compte introuvable." };
   const sid: string = studentId;
+
+  // Anti-doublon (abonnement) : déjà un abonnement de cours actif sur une formation du pack ?
+  if (plan === "abonnement" && await courseSubOverlapsPack(admin, sid, packId)) {
+    return { ok: false, error: "Cette élève a déjà un abonnement sur une formation incluse dans ce pack. Retirez-le avant d'ajouter le pack." };
+  }
 
   // Inscrire à tous les cours du pack non déjà inscrits
   const { data: already } = await admin.from("enrollments").select("course_id").eq("user_id", sid).in("course_id", courseIds);

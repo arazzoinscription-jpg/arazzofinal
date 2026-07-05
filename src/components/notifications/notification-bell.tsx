@@ -83,14 +83,14 @@ export function NotificationBell({ userId }: { userId: string }) {
       >
         <span className="text-xl">🔔</span>
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-orange-DEFAULT text-white text-xs font-bold flex items-center justify-center">
+          <span className="absolute -top-1 -end-1 min-w-5 h-5 px-1 rounded-full bg-orange-DEFAULT text-white text-xs font-bold flex items-center justify-center">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-cream-200 shadow-2xl overflow-hidden z-50">
+        <div className="absolute end-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white rounded-2xl border border-cream-200 shadow-2xl overflow-hidden z-50">
           <div className="px-4 py-3 border-b border-cream-100 flex items-center justify-between">
             <span className="font-semibold text-gray-900 font-dm">Notifications</span>
             {unread > 0 && (

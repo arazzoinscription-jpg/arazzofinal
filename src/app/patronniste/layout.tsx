@@ -17,6 +17,7 @@ import { PRO_UI } from "@/components/pro/pro-data";
 import { AnimatedBackground } from "@/components/ui/animated-bg";
 import { isPatronniste, isAdmin } from "@/lib/roles";
 import { SpaceSwitcher } from "@/components/pro/space-switcher";
+import { PushOptIn } from "@/components/pwa/push-opt-in";
 
 export default async function PatronnisteLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -105,7 +106,7 @@ export default async function PatronnisteLayout({ children }: { children: React.
           </div>
           <ProSubnav variant="patronniste" lang={lang} />
         </div>
-        <div className="p-4 sm:p-6 lg:p-8"><PageTransition>{children}</PageTransition></div>
+        <div className="p-4 sm:p-6 lg:p-8"><PushOptIn /><PageTransition>{children}</PageTransition></div>
         <Toaster />
       </main>
       <ChatWidget />

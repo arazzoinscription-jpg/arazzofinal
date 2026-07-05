@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendPushToUsers } from "@/lib/push";
 
 type Admin = ReturnType<typeof createAdminClient>;
 export type Role = "eleve" | "formateur" | "patronniste" | "admin";
@@ -234,13 +235,15 @@ export async function sendMessageCore(
   const { error } = await admin.from("messages").insert({ from_user: me.id, to_user: toId, body });
   if (error) return { ok: false, error: error.message };
 
-  // Notification destinataire (cloche existante), best-effort.
+  // Notification destinataire (cloche existante + push), best-effort.
   try {
     const { data: sender } = await admin.from("users").select("nom").eq("id", me.id).maybeSingle();
+    const title = `Nouveau message de ${sender?.nom ?? "un membre"}`;
     await admin.from("notifications").insert({
-      user_id: toId, type: "message",
-      title: `Nouveau message de ${sender?.nom ?? "un membre"}`,
-      body: body.slice(0, 120), link: null,
+      user_id: toId, type: "message", title, body: body.slice(0, 120), link: null,
+    });
+    await sendPushToUsers(admin, [toId], {
+      title, body: body.slice(0, 120), url: "/dashboard", tag: `msg-${me.id}`,
     });
   } catch { /* ignore */ }
 

@@ -18,6 +18,7 @@ import { TopbarIcon } from "./topbar-icon";
 import { PageTransition } from "./page-transition";
 import { LangSwitcher } from "./lang-switcher";
 import { normLang, isRtl } from "./dash-i18n";
+import { PushOptIn } from "@/components/pwa/push-opt-in";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
@@ -131,7 +132,7 @@ export default async function DashboardLayout({
           </div>
           <DashboardSubnav lang={lang} />
         </div>
-        <div className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"><PageTransition>{children}</PageTransition></div>
+        <div className="p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8"><PushOptIn /><PageTransition>{children}</PageTransition></div>
         <Toaster />
       </main>
 

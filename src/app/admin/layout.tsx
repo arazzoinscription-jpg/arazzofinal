@@ -17,6 +17,7 @@ import { PRO_UI } from "@/components/pro/pro-data";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { isAdmin } from "@/lib/roles";
 import { SpaceSwitcher } from "@/components/pro/space-switcher";
+import { PushOptIn } from "@/components/pwa/push-opt-in";
 
 // Identité « Atelier » : sidebar sombre #1e0a3c, fond #faf7ff, header épuré.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -105,6 +106,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <ProSubnav variant="admin" lang={lang} />
         </div>
+        <div className="px-4 sm:px-6 lg:px-8 pt-4"><PushOptIn /></div>
         <PageTransition>{children}</PageTransition>
         <Toaster />
       </main>
