@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
@@ -21,9 +22,9 @@ export default async function FormateurStudentsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (prof?.role !== "formateur" && prof?.role !== "admin") redirect("/dashboard");
-  const isAdmin = prof?.role === "admin";
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(prof)) redirect("/dashboard");
+  const isAdmin = hasAdminRole(prof);
 
   const admin = createAdminClient();
 

@@ -206,24 +206,24 @@ export const PRO_UI: Record<Lang, {
   navigation: string;
   formateurSpace: string; adminSpace: string; patronnisteSpace: string;
   roleFormateur: string; roleAdmin: string; rolePatronniste: string;
-  studentSpace: string; logout: string;
+  studentSpace: string; logout: string; changeSpace: string;
 }> = {
   fr: {
     navigation: "Navigation",
     formateurSpace: "Espace Formateur", adminSpace: "Espace Admin", patronnisteSpace: "Espace Patronniste",
     roleFormateur: "Formatrice", roleAdmin: "Administratrice", rolePatronniste: "Patronniste",
-    studentSpace: "Mon espace élève", logout: "Déconnexion",
+    studentSpace: "Mon espace élève", logout: "Déconnexion", changeSpace: "Changer d'espace",
   },
   ar: {
     navigation: "التنقّل",
     formateurSpace: "فضاء المدرّب", adminSpace: "فضاء الإدارة", patronnisteSpace: "فضاء الباترونيست",
     roleFormateur: "مدرّبة", roleAdmin: "مديرة", rolePatronniste: "باترونيست",
-    studentSpace: "فضاء الطالبة", logout: "تسجيل الخروج",
+    studentSpace: "فضاء الطالبة", logout: "تسجيل الخروج", changeSpace: "تغيير الفضاء",
   },
   en: {
     navigation: "Navigation",
     formateurSpace: "Trainer space", adminSpace: "Admin space", patronnisteSpace: "Pattern-maker space",
     roleFormateur: "Trainer", roleAdmin: "Administrator", rolePatronniste: "Pattern maker",
-    studentSpace: "Student space", logout: "Sign out",
+    studentSpace: "Student space", logout: "Sign out", changeSpace: "Switch space",
   },
 };

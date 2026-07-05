@@ -15,14 +15,16 @@ import { ProMobileNav } from "@/components/pro/pro-mobile-nav";
 import { PageTransition } from "@/app/dashboard/page-transition";
 import { PRO_UI } from "@/components/pro/pro-data";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { isAdmin } from "@/lib/roles";
+import { SpaceSwitcher } from "@/components/pro/space-switcher";
 
 // Identité « Atelier » : sidebar sombre #1e0a3c, fond #faf7ff, header épuré.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  const { data: profile } = await supabase.from("users").select("nom, role, avatar_url").eq("id", user.id).single();
-  if (profile?.role !== "admin") redirect("/dashboard");
+  const { data: profile } = await supabase.from("users").select("nom, role, roles, avatar_url").eq("id", user.id).single();
+  if (!isAdmin(profile)) redirect("/dashboard");
 
   const lang = normLang((await cookies()).get("lang")?.value);
   const ui = PRO_UI[lang];
@@ -96,6 +98,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               />
             </div>
             <div className="flex-1 md:hidden" />
+            <SpaceSwitcher role={profile?.role ?? null} roles={profile?.roles ?? []} current="admin" lang={lang} />
             <NotificationBell userId={user.id} />
             <LangSwitcher current={lang} />
             <ThemeToggle />

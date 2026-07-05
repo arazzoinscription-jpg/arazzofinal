@@ -3,7 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 /** Crée une notification in-app pour chaque patronniste (+ admin) — alerte commande sur mesure. */
 export async function notifyPatronnistes(admin: SupabaseClient, n: { title: string; body: string }) {
-  const { data: pros } = await admin.from("users").select("id").in("role", ["patronniste", "admin"]);
+  // Cible l'ENSEMBLE des rôles : inclut les comptes qui cumulent patronniste + un autre espace.
+  const { data: pros } = await admin.from("users").select("id").overlaps("roles", ["patronniste", "admin"]);
   if (!pros?.length) return;
   const rows = pros.map((p: { id: string }) => ({
     user_id: p.id,

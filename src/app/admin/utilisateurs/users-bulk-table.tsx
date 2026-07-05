@@ -20,6 +20,7 @@ export interface UserRowLite {
   pays: string | null;
   points: number;
   role: string;
+  roles: string[];
   status: Status;
   isAdmin: boolean;
 }
@@ -145,7 +146,7 @@ export function UsersBulkTable({ rows }: { rows: UserRowLite[] }) {
                   </TableCell>
                   <TableCell className="px-5 py-3 text-gray-500">{u.ville ? `${u.ville}, ${u.pays}` : u.pays ?? "—"}</TableCell>
                   <TableCell className="px-5 py-3 text-gray-500">{u.points}</TableCell>
-                  <TableCell className="px-5 py-3"><RoleSelect userId={u.id} role={u.role} /></TableCell>
+                  <TableCell className="px-5 py-3"><RoleSelect userId={u.id} roles={u.roles} /></TableCell>
                   <TableCell className="px-5 py-3"><StatusBadge status={u.status} /></TableCell>
                   <TableCell className="px-5 py-3 text-end"><UserActions userId={u.id} status={u.status} isAdmin={u.isAdmin} /></TableCell>
                 </TableRow>

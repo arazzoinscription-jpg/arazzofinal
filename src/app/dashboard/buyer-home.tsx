@@ -56,8 +56,8 @@ export async function BuyerHome({ prenom }: { prenom: string }) {
         <BecomeStudent />
       </div>
 
-      {/* CTA : devenir formatrice / patronniste */}
-      <RoleRequestCTA formateurStatus={latestStatus("formateur")} patronnisteStatus={latestStatus("patronniste")} />
+      {/* CTA : devenir formatrice / patronniste (écran réservé aux comptes sans espace pro) */}
+      <RoleRequestCTA formateurStatus={latestStatus("formateur")} patronnisteStatus={latestStatus("patronniste")} hasFormateur={false} hasPatronniste={false} />
 
       {/* Lien catalogue en pied */}
       <div className="mt-6">

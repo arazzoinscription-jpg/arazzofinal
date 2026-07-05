@@ -15,6 +15,8 @@ import { ProMobileNav } from "@/components/pro/pro-mobile-nav";
 import { PageTransition } from "@/app/dashboard/page-transition";
 import { PRO_UI } from "@/components/pro/pro-data";
 import { AnimatedBackground } from "@/components/ui/animated-bg";
+import { isFormateur, isAdmin } from "@/lib/roles";
+import { SpaceSwitcher } from "@/components/pro/space-switcher";
 
 export default async function FormateurLayout({
   children,
@@ -30,17 +32,17 @@ export default async function FormateurLayout({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("nom, role, avatar_url")
+    .select("nom, role, roles, avatar_url")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "formateur" && profile?.role !== "admin") {
+  if (!isFormateur(profile)) {
     redirect("/dashboard");
   }
 
   // Compte suspendu (bloqué / en veille) : l'écran d'accès suspendu vit dans /dashboard.
   const acctStatus = (user.app_metadata?.status as string) ?? "actif";
-  if ((acctStatus === "bloque" || acctStatus === "veille") && profile?.role !== "admin") {
+  if ((acctStatus === "bloque" || acctStatus === "veille") && !isAdmin(profile)) {
     redirect("/dashboard");
   }
 
@@ -110,6 +112,7 @@ export default async function FormateurLayout({
               <img src="/images/arazzo-icon.png" alt="Arazzo Formation" className="h-9 w-9 rounded-lg shadow-sm" />
             </Link>
             <div className="flex-1" />
+            <SpaceSwitcher role={profile?.role ?? null} roles={profile?.roles ?? []} current="formateur" lang={lang} />
             <LangSwitcher current={lang} />
             <ThemeToggle />
           </div>

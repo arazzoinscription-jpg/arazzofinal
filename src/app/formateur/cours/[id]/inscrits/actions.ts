@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { monthlyAmount } from "@/lib/subscription-plan";
+import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -44,9 +45,9 @@ export async function manualEnroll(input: { courseId: string; email: string; nom
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-  if (prof?.role !== "formateur" && !isAdmin) return { ok: false, error: "Accès refusé." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const isAdmin = hasAdminRole(prof);
+  if (!isFormateur(prof)) return { ok: false, error: "Accès refusé." };
 
   const admin = createAdminClient();
   const { data: course } = await admin
@@ -139,9 +140,9 @@ export async function manualEnrollPack(input: { packId: string; email: string; n
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-  if (prof?.role !== "formateur" && !isAdmin) return { ok: false, error: "Accès refusé." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const isAdmin = hasAdminRole(prof);
+  if (!isFormateur(prof)) return { ok: false, error: "Accès refusé." };
 
   const admin = createAdminClient();
   const { data: pack } = await admin
@@ -208,9 +209,9 @@ export async function bulkEnrollPack(packId: string, userIds: string[]) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Non authentifié." };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-  if (prof?.role !== "formateur" && !isAdmin) return { ok: false, error: "Accès refusé." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const isAdmin = hasAdminRole(prof);
+  if (!isFormateur(prof)) return { ok: false, error: "Accès refusé." };
 
   const admin = createAdminClient();
   const { data: pack } = await admin.from("course_packs").select("id, titre_fr, formateur_id").eq("id", packId).maybeSingle();
@@ -256,9 +257,9 @@ async function requireCourseStaff(courseId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Non authentifié." };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-  if (prof?.role !== "formateur" && !isAdmin) return { ok: false as const, error: "Accès refusé." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const isAdmin = hasAdminRole(prof);
+  if (!isFormateur(prof)) return { ok: false as const, error: "Accès refusé." };
   const admin = createAdminClient();
   const { data: course } = await admin.from("courses").select("id, titre_fr, formateur_id").eq("id", courseId).maybeSingle();
   if (!course) return { ok: false as const, error: "Cours introuvable." };
@@ -271,8 +272,8 @@ export async function listStudents(query: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, results: [] as { id: string; nom: string; email: string }[] };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (prof?.role !== "formateur" && prof?.role !== "admin") return { ok: false, results: [] };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(prof)) return { ok: false, results: [] };
 
   const admin = createAdminClient();
   let q = admin.from("users").select("id, nom, email").eq("role", "eleve").order("nom", { ascending: true }).limit(100);

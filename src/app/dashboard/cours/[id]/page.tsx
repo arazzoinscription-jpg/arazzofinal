@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ClipboardList, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur, isAdmin } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCourseAccess } from "@/lib/subscriptions";
 import { logActivity } from "@/lib/activity";
@@ -102,9 +103,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .order("created_at", { ascending: true });
 
   // Rôle + propriété du cours (pour l'accès aux travaux pratiques)
-  const { data: meProf } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isStaff = meProf?.role === "formateur" || meProf?.role === "admin";
-  const canViewAllPracticals = meProf?.role === "admin" || (meProf?.role === "formateur" && course?.formateur_id === user.id);
+  const { data: meProf } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const isStaff = isFormateur(meProf);
+  const canViewAllPracticals = isAdmin(meProf) || (isFormateur(meProf) && course?.formateur_id === user.id);
 
   const extrasAdmin = createAdminClient();
 

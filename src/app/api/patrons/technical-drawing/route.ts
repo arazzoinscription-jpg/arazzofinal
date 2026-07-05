@@ -4,11 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inspectUploadBuffer, buildStoragePath } from "@/lib/security/fileValidation";
 import { generateTechnicalDrawing, isGeminiConfigured } from "@/lib/ai/technical-drawing";
+import { isPatronniste, isFormateur } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const MANAGE_ROLES = ["patronniste", "formateur", "admin"];
 const IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp"];
 const MAX = 15 * 1024 * 1024; // 15 Mo (photo source)
 
@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (!prof || !MANAGE_ROLES.includes(prof.role)) {
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isPatronniste(prof) && !isFormateur(prof)) {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }
 

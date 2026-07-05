@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { type PracticalRow } from "./review-card";
 import { PracticalsBoard } from "./practicals-board";
@@ -12,9 +13,9 @@ export default async function PratiquesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (profile?.role !== "formateur" && profile?.role !== "admin") redirect("/dashboard");
-  const isAdmin = profile?.role === "admin";
+  const { data: profile } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(profile)) redirect("/dashboard");
+  const isAdmin = hasAdminRole(profile);
 
   const admin = createAdminClient();
 

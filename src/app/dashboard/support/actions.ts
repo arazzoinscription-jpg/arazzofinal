@@ -4,16 +4,19 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isFormateur } from "@/lib/roles";
 
 async function ctx() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   let role: string | null = null;
+  let staff = false;
   if (user) {
-    const { data } = await supabase.from("users").select("role").eq("id", user.id).single();
+    const { data } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
     role = data?.role ?? null;
+    staff = isFormateur(data);
   }
-  return { supabase, user, role, isStaff: role === "formateur" || role === "admin" };
+  return { supabase, user, role, isStaff: staff };
 }
 
 const CreateSchema = z.object({

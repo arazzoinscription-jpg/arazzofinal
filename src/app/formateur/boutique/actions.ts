@@ -4,16 +4,15 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-const SELL_ROLES = ["formateur", "admin", "patronniste"];
+import { isStaff, isAdmin } from "@/lib/roles";
 
 async function guard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (!prof || !SELL_ROLES.includes(prof.role)) return null;
-  return { user, role: prof.role };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isStaff(prof)) return null;
+  return { user, role: isAdmin(prof) ? "admin" : (prof?.role ?? "eleve") };
 }
 
 function slugify(s: string): string {

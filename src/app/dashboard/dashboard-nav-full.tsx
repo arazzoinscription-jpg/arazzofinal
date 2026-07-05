@@ -5,9 +5,12 @@ import { usePathname } from "next/navigation";
 import { GraduationCap, Shapes } from "lucide-react";
 import { SECTIONS } from "./nav-data";
 import { DICT, type Lang } from "./dash-i18n";
+import { isFormateur, isPatronniste } from "@/lib/roles";
 
 /** Menu COMPLET (sections + tous les sous-liens) — utilisé dans le drawer mobile. */
-export function DashboardNavFull({ role, lang = "fr", buyer = false }: { role: string; lang?: Lang; buyer?: boolean }) {
+export function DashboardNavFull({ role, roles = [], lang = "fr", buyer = false }: { role: string; roles?: string[]; lang?: Lang; buyer?: boolean }) {
+  const canFormateur = isFormateur({ role, roles });
+  const canPatronniste = isPatronniste({ role, roles });
   const pathname = usePathname();
   const t = DICT[lang];
 
@@ -58,16 +61,16 @@ export function DashboardNavFull({ role, lang = "fr", buyer = false }: { role: s
         );
       })}
 
-      {(role === "formateur" || role === "admin" || role === "patronniste") && (
+      {(canFormateur || canPatronniste) && (
         <div className="pt-3 mt-2 border-t border-white/10 space-y-1">
           <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-white/40">{t.pro}</p>
-          {(role === "formateur" || role === "admin") && (
+          {canFormateur && (
             <Link href="/formateur"
               className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
               <GraduationCap size={20} className="flex-shrink-0" /> {t.trainer}
             </Link>
           )}
-          {(role === "patronniste" || role === "admin") && (
+          {canPatronniste && (
             <Link href="/patronniste"
               className="flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
               <Shapes size={20} className="flex-shrink-0" /> {t.patronniste}

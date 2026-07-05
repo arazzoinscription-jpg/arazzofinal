@@ -6,15 +6,14 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyUser } from "@/lib/sur-mesure-notify";
-
-const MANAGE_ROLES = ["patronniste", "formateur", "admin"];
+import { isPatronniste, isFormateur } from "@/lib/roles";
 
 async function guard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (!prof || !MANAGE_ROLES.includes(prof.role)) return null;
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isPatronniste(prof) && !isFormateur(prof)) return null;
   return user;
 }
 

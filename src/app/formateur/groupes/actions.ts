@@ -6,13 +6,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidWhatsAppGroupLink } from "@/lib/whatsapp";
+import { isFormateur } from "@/lib/roles";
 
 async function requireStaff() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, ok: false };
-  const { data: p } = await supabase.from("users").select("role").eq("id", user.id).single();
-  return { supabase, user, ok: p?.role === "formateur" || p?.role === "admin" };
+  const { data: p } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  return { supabase, user, ok: isFormateur(p) };
 }
 
 /** Crée un groupe (prof/admin). FormData : name, description, cover (image optionnelle). */

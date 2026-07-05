@@ -10,9 +10,10 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
   const q = (searchParams.q ?? "").trim();
   const roleFilter = searchParams.role ?? "";
 
-  let query = admin.from("users").select("id, nom, email, role, ville, pays, total_points, created_at").order("created_at", { ascending: false });
+  let query = admin.from("users").select("id, nom, email, role, roles, ville, pays, total_points, created_at").order("created_at", { ascending: false });
   if (q) query = query.or(`nom.ilike.%${q}%,email.ilike.%${q}%`);
-  if (roleFilter) query = query.eq("role", roleFilter);
+  // Filtre par rôle : cherche dans l'ENSEMBLE des rôles (un compte peut en cumuler plusieurs).
+  if (roleFilter) query = query.contains("roles", [roleFilter]);
   const { data: users } = await query.limit(100);
 
   const { count: total } = await admin.from("users").select("*", { count: "exact", head: true });
@@ -36,6 +37,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: {
     pays: u.pays ?? null,
     points: u.total_points ?? 0,
     role: u.role,
+    roles: (u.roles ?? [u.role]) as string[],
     status: statusById.get(u.id) ?? "actif",
     isAdmin: u.role === "admin",
   }));

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur, isPatronniste } from "@/lib/roles";
 import { cookies } from "next/headers";
 import { DICT, normLang } from "./dash-i18n";
 import { RoleRequestCTA } from "./role-request/cta";
@@ -23,12 +24,15 @@ export default async function DashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: profile } = await supabase
-    .from("users").select("nom, role, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
+    .from("users").select("nom, role, roles, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
     .eq("id", user!.id).single();
+
+  const hasFormateur = isFormateur(profile);
+  const hasPatronniste = isPatronniste(profile);
 
   // Espace acheteur de patrons : compte créé en mode "patrons", encore simple élève.
   const accountType = (user!.user_metadata?.account_type as string) ?? "formations";
-  if (accountType === "patrons" && (profile?.role ?? "eleve") === "eleve") {
+  if (accountType === "patrons" && (profile?.role ?? "eleve") === "eleve" && !hasFormateur && !hasPatronniste) {
     return <BuyerHome prenom={profile?.nom?.split(" ")[0] ?? ""} />;
   }
 
@@ -123,11 +127,13 @@ export default async function DashboardPage() {
         <CommunityGlobe prenom={prenom} />
       </div>
 
-      {(profile?.role ?? "eleve") === "eleve" && (
+      {(!hasFormateur || !hasPatronniste) && (
         <div className="mb-6">
           <RoleRequestCTA
             formateurStatus={latestStatus("formateur")}
             patronnisteStatus={latestStatus("patronniste")}
+            hasFormateur={hasFormateur}
+            hasPatronniste={hasPatronniste}
           />
         </div>
       )}

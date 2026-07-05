@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { uploadDiploma, isDiplomasConfigured } from "@/lib/bunny/diplomas-storage";
 import { sendEmail } from "@/lib/email";
+import { isFormateur } from "@/lib/roles";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 
@@ -14,8 +15,8 @@ async function requireStaff() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Non authentifié." };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (prof?.role !== "formateur" && prof?.role !== "admin") return { ok: false as const, error: "Accès refusé." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(prof)) return { ok: false as const, error: "Accès refusé." };
   return { ok: true as const, admin: createAdminClient() };
 }
 

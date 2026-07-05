@@ -9,11 +9,12 @@ import { DICT, type Lang } from "./dash-i18n";
 
 /** Bouton hamburger + drawer latéral (mobile uniquement). */
 export function MobileNav({
-  nom, avatarUrl, role, roleLabel, lang, buyer = false,
+  nom, avatarUrl, role, roles = [], roleLabel, lang, buyer = false,
 }: {
   nom: string | null;
   avatarUrl: string | null;
   role: string;
+  roles?: string[];
   roleLabel: string;
   lang: Lang;
   buyer?: boolean;
@@ -44,7 +45,7 @@ export function MobileNav({
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in"
       />
       <aside className="absolute inset-y-0 start-0 w-[86vw] max-w-[340px] h-full overflow-hidden flex flex-col bg-gradient-to-b from-violet-800 to-violet-900 shadow-2xl animate-in slide-in-from-left">
-        <SidebarInner nom={nom} avatarUrl={avatarUrl} role={role} roleLabel={roleLabel} lang={lang} full onClose={() => setOpen(false)} buyer={buyer} />
+        <SidebarInner nom={nom} avatarUrl={avatarUrl} role={role} roles={roles} roleLabel={roleLabel} lang={lang} full onClose={() => setOpen(false)} buyer={buyer} />
       </aside>
     </div>,
     document.body,

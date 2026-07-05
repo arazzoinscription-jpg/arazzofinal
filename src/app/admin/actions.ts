@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { activateAndInvite } from "@/lib/account-access";
 import { sendEmail } from "@/lib/email";
 import { tplInstallmentReminder } from "@/lib/email-templates";
+import { addRole, removeRole, primaryRole } from "@/lib/roles";
 
 function slugify(s: string): string {
   const base = s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -23,24 +24,44 @@ async function requireAdmin() {
   return { ok: prof?.role === "admin", admin: createAdminClient(), userId: user.id };
 }
 
-const RoleSchema = z.object({
+const RoleToggleSchema = z.object({
   userId: z.string().uuid(),
-  role: z.enum(["eleve", "formateur", "patronniste", "admin"]),
+  role: z.enum(["formateur", "patronniste", "admin"]),
+  grant: z.boolean(),
 });
 
-export async function changeUserRole(input: z.infer<typeof RoleSchema>) {
-  const parsed = RoleSchema.safeParse(input);
+/**
+ * Ajoute ou retire UN rôle à un compte, sans toucher aux autres.
+ * Un compte peut cumuler formateur + patronniste + admin (+ élève de base).
+ * Le rôle « principal » (users.role) est resynchronisé sur le plus élevé.
+ */
+export async function setUserRole(input: z.infer<typeof RoleToggleSchema>) {
+  const parsed = RoleToggleSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Données invalides." };
   const { ok, admin, userId } = await requireAdmin();
   if (!ok || !admin) return { ok: false, error: "Accès refusé." };
-  // Empêcher de se rétrograder soi-même
-  if (parsed.data.userId === userId && parsed.data.role !== "admin") {
-    return { ok: false, error: "Vous ne pouvez pas changer votre propre rôle." };
+
+  const { userId: target, role, grant } = parsed.data;
+
+  // On ne peut pas retirer son propre rôle admin (éviter de se verrouiller dehors).
+  if (target === userId && role === "admin" && !grant) {
+    return { ok: false, error: "Vous ne pouvez pas retirer votre propre rôle admin." };
   }
-  const { error } = await admin.from("users").update({ role: parsed.data.role }).eq("id", parsed.data.userId);
+
+  const { data: current } = await admin.from("users").select("roles, role").eq("id", target).maybeSingle();
+  if (!current) return { ok: false, error: "Compte introuvable." };
+
+  const next = grant
+    ? addRole(current.roles ?? [current.role], role)
+    : removeRole(current.roles ?? [current.role], role);
+
+  const { error } = await admin
+    .from("users")
+    .update({ roles: next, role: primaryRole(next) })
+    .eq("id", target);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/utilisateurs");
-  return { ok: true };
+  return { ok: true, roles: next, role: primaryRole(next) };
 }
 
 const StatusSchema = z.object({

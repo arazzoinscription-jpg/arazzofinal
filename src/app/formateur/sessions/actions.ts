@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur } from "@/lib/roles";
 
 const SessionSchema = z.object({
   titre: z.string().min(2, "Titre trop court"),
@@ -17,8 +18,8 @@ async function requireStaff() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { supabase, user: null, ok: false };
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const ok = prof?.role === "formateur" || prof?.role === "admin";
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const ok = isFormateur(prof);
   return { supabase, user, ok };
 }
 

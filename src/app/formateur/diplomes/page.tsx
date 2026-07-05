@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DiplomaRow, type DiplomaRowData } from "./diploma-row";
 
@@ -11,9 +12,9 @@ export default async function FormateurDiplomesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const isAdmin = prof?.role === "admin";
-  if (prof?.role !== "formateur" && !isAdmin) redirect("/dashboard");
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  const isAdmin = hasAdminRole(prof);
+  if (!isFormateur(prof)) redirect("/dashboard");
 
   const admin = createAdminClient();
 

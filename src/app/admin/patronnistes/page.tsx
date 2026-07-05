@@ -13,7 +13,7 @@ export default async function AdminPatronnistesPage({ searchParams }: { searchPa
   let query = admin
     .from("users")
     .select("id, nom, email, ville, avatar_url, created_at")
-    .eq("role", "patronniste")
+    .contains("roles", ["patronniste"])
     .order("created_at", { ascending: false });
   if (q) query = query.or(`nom.ilike.%${q}%,email.ilike.%${q}%`);
   const { data: patronnistes } = await query.limit(200);

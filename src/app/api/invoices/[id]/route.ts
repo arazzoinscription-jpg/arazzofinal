@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import jsPDF from "jspdf";
 
@@ -18,8 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!enr) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
   // Accès : propriétaire ou staff
-  const { data: prof } = await admin.from("users").select("role").eq("id", user.id).single();
-  const isStaff = prof?.role === "formateur" || prof?.role === "admin";
+  const { data: prof } = await admin.from("users").select("role, roles").eq("id", user.id).single();
+  const isStaff = isFormateur(prof);
   if (enr.user_id !== user.id && !isStaff) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
   const u = enr.user as any;

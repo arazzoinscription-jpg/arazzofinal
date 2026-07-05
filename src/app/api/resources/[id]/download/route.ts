@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "@/lib/activity";
+import { isFormateur } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +17,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!resource) return NextResponse.json({ error: "Ressource introuvable" }, { status: 404 });
 
   // Contrôle d'accès : staff, ressource générale, ou inscrite au cours
-  const { data: prof } = await admin.from("users").select("role").eq("id", user.id).single();
-  const isStaff = prof?.role === "formateur" || prof?.role === "admin";
+  const { data: prof } = await admin.from("users").select("role, roles").eq("id", user.id).single();
+  const isStaff = isFormateur(prof);
   let allowed = isStaff || !resource.course_id;
   if (!allowed && resource.course_id) {
     const { data: enr } = await admin

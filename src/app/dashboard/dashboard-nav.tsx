@@ -6,12 +6,15 @@ import { motion } from "framer-motion";
 import { GraduationCap, Shapes } from "lucide-react";
 import { SECTIONS, activeSectionKey } from "./nav-data";
 import { DICT, type Lang } from "./dash-i18n";
+import { isFormateur, isPatronniste } from "@/lib/roles";
 
 const MotionLink = motion.create(Link);
 const hover = { whileHover: { x: -4 }, transition: { duration: 0.2 } };
 
 /** Sidebar verticale : grandes sections (le détail va dans le menu horizontal). */
-export function DashboardNav({ role, lang = "fr", buyer = false }: { role: string; lang?: Lang; buyer?: boolean }) {
+export function DashboardNav({ role, roles = [], lang = "fr", buyer = false }: { role: string; roles?: string[]; lang?: Lang; buyer?: boolean }) {
+  const canFormateur = isFormateur({ role, roles });
+  const canPatronniste = isPatronniste({ role, roles });
   const pathname = usePathname();
   const active = activeSectionKey(pathname);
   const t = DICT[lang];
@@ -41,16 +44,16 @@ export function DashboardNav({ role, lang = "fr", buyer = false }: { role: strin
         );
       })}
 
-      {(role === "formateur" || role === "admin" || role === "patronniste") && (
+      {(canFormateur || canPatronniste) && (
         <div className="pt-4 mt-3 border-t border-white/10 space-y-1">
           <p className="nav-label px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{t.pro}</p>
-          {(role === "formateur" || role === "admin") && (
+          {canFormateur && (
             <MotionLink href="/formateur" {...hover} title={t.trainer}
               className="nav-center flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
               <GraduationCap size={20} className="flex-shrink-0" /> <span className="nav-label">{t.trainer}</span>
             </MotionLink>
           )}
-          {(role === "patronniste" || role === "admin") && (
+          {canPatronniste && (
             <MotionLink href="/patronniste" {...hover} title={t.patronniste}
               className="nav-center flex items-center gap-3 px-3.5 py-3 rounded-xl text-[15px] font-semibold text-orange-200 hover:bg-white/10 hover:text-orange-100 transition-colors">
               <Shapes size={20} className="flex-shrink-0" /> <span className="nav-label">{t.patronniste}</span>

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdmin } from "@/lib/roles";
 
 /**
  * Vérifie que l'utilisateur courant peut gérer un cours donné :
@@ -14,7 +15,7 @@ async function requireCourseAccess(courseId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, admin: null, error: "Non authentifié." };
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
   const admin = createAdminClient();
 
   const { data: course } = await admin
@@ -22,10 +23,10 @@ async function requireCourseAccess(courseId: string) {
   if (!course) return { ok: false as const, admin: null, error: "Cours introuvable." };
 
   const isOwner = course.formateur_id === user.id;
-  const isAdmin = prof?.role === "admin";
-  if (!isOwner && !isAdmin) return { ok: false as const, admin: null, error: "Accès refusé." };
+  const adminRole = isAdmin(prof);
+  if (!isOwner && !adminRole) return { ok: false as const, admin: null, error: "Accès refusé." };
 
-  return { ok: true as const, admin, isAdmin };
+  return { ok: true as const, admin, isAdmin: adminRole };
 }
 
 /** Message clair si la migration 027 (colonnes homework/atelier_required) n'est pas encore appliquée. */

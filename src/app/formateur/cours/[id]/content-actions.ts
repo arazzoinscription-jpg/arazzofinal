@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isFormateur, isAdmin } from "@/lib/roles";
 
 /**
  * Édition du contenu d'un cours (chapitres + leçons) par le formateur.
@@ -46,15 +47,14 @@ async function authorizeCourse(courseId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, error: "Non authentifié." };
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  const role = prof?.role;
-  if (role !== "formateur" && role !== "admin") return { ok: false as const, error: "Accès refusé." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(prof)) return { ok: false as const, error: "Accès refusé." };
 
   const admin = createAdminClient();
   const { data: course } = await admin.from("courses").select("id, formateur_id").eq("id", courseId).single();
   if (!course) return { ok: false as const, error: "Cours introuvable." };
 
-  const allowed = role === "admin" || course.formateur_id === user.id || course.formateur_id === null;
+  const allowed = isAdmin(prof) || course.formateur_id === user.id || course.formateur_id === null;
   if (!allowed) return { ok: false as const, error: "Ce cours appartient à un autre formateur." };
 
   return { ok: true as const, admin, userId: user.id };

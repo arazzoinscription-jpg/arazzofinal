@@ -15,7 +15,7 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
   let query = admin
     .from("users")
     .select("id, nom, email, ville, avatar_url, created_at")
-    .eq("role", "formateur")
+    .contains("roles", ["formateur"])
     .order("created_at", { ascending: false });
   if (q) query = query.or(`nom.ilike.%${q}%,email.ilike.%${q}%`);
   const { data: formateurs } = await query.limit(200);

@@ -7,14 +7,15 @@ import { sanitizeText } from "@/lib/security/sanitize";
 import { uploadPracticalFile as bunnyUpload, isPracticalsConfigured } from "@/lib/bunny/practicals-storage";
 import { MAX_PRACTICAL_PHOTOS, MAX_PRACTICAL_VIDEOS } from "@/lib/practicals-limits";
 import { ensureNextInstallmentOrder } from "@/lib/subscriptions";
+import { isFormateur } from "@/lib/roles";
 
 async function ctx() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
   const role = prof?.role ?? "eleve";
-  return { user, role, isStaff: role === "formateur" || role === "admin" };
+  return { user, role, isStaff: isFormateur(prof) };
 }
 
 async function lessonCourse(admin: ReturnType<typeof createAdminClient>, lessonId: string) {

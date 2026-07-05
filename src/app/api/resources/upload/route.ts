@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isFormateur } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,8 +14,8 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
 
-  const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (prof?.role !== "formateur" && prof?.role !== "admin") {
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(prof)) {
     return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
   }
 

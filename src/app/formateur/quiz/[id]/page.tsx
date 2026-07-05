@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isFormateur } from "@/lib/roles";
 import { QuestionForm } from "./question-form";
 import { DeleteQuestionButton } from "./delete-question-button";
 
@@ -16,8 +17,8 @@ export default async function QuizEditorPage({ params }: { params: { id: string 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
-  if (profile?.role !== "formateur" && profile?.role !== "admin") redirect("/dashboard");
+  const { data: profile } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(profile)) redirect("/dashboard");
 
   const { data: quiz } = await supabase
     .from("quizzes")

@@ -9,11 +9,12 @@ import { DICT, type Lang } from "./dash-i18n";
 
 /** Corps de la sidebar (logo + carte user + nav + déconnexion), partagé desktop & drawer mobile. */
 export function SidebarInner({
-  nom, avatarUrl, role, roleLabel, lang, full = false, onClose, buyer = false,
+  nom, avatarUrl, role, roles = [], roleLabel, lang, full = false, onClose, buyer = false,
 }: {
   nom: string | null;
   avatarUrl: string | null;
   role: string;
+  roles?: string[];
   roleLabel: string;
   lang: Lang;
   /** Affiche le menu complet (sections + sous-liens) — pour le drawer mobile. */
@@ -61,7 +62,7 @@ export function SidebarInner({
       </div>
 
       {/* Navigation */}
-      {full ? <DashboardNavFull role={role} lang={lang} buyer={buyer} /> : <DashboardNav role={role} lang={lang} buyer={buyer} />}
+      {full ? <DashboardNavFull role={role} roles={roles} lang={lang} buyer={buyer} /> : <DashboardNav role={role} roles={roles} lang={lang} buyer={buyer} />}
 
       {/* Déconnexion */}
       <div className="p-3 border-t border-white/10">

@@ -66,11 +66,12 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("nom, role, avatar_url")
+    .select("nom, role, roles, avatar_url")
     .eq("id", user.id)
     .single();
 
   const role = profile?.role ?? "eleve";
+  const roles = profile?.roles ?? [];
   // Acheteur de patrons : navigation réduite (uniquement si encore simple élève).
   const accountType = (user.user_metadata?.account_type as string) ?? "formations";
   const buyer = accountType === "patrons" && role === "eleve";
@@ -83,7 +84,7 @@ export default async function DashboardLayout({
       <AnimatedBackground />
       {/* ── Sidebar desktop (≥ lg) ── */}
       <aside className="app-sidebar hidden lg:flex w-64 flex-col fixed inset-y-0 start-0 z-30 bg-gradient-to-b from-violet-800 to-violet-900 shadow-xl">
-        <SidebarInner nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roleLabel={roleLabel} lang={lang} buyer={buyer} />
+        <SidebarInner nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roles={roles} roleLabel={roleLabel} lang={lang} buyer={buyer} />
       </aside>
 
       {/* ── Contenu ── */}
@@ -97,7 +98,7 @@ export default async function DashboardLayout({
             <div className="flex items-center justify-between gap-3 h-20">
               {/* ── Gauche : menu mobile + logo identité (identique à la barre publique) ── */}
               <div className="flex items-center gap-3 min-w-0">
-                <MobileNav nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roleLabel={roleLabel} lang={lang} buyer={buyer} />
+                <MobileNav nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roles={roles} roleLabel={roleLabel} lang={lang} buyer={buyer} />
                 <Link href="/" aria-label="Accueil Arazzo" className="group flex items-center gap-3 shrink-0">
                   <span className="relative grid place-items-center">
                     <img src="/images/arazzo-icon.png" alt="Arazzo Formation" width={44} height={44} className="h-11 w-11 rounded-xl shadow-sm" />
