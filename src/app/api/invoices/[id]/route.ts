@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isFormateur } from "@/lib/roles";
+import { isFormateur, isAdmin } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import jsPDF from "jspdf";
 
@@ -14,14 +14,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const admin = createAdminClient();
   const { data: enr } = await admin
     .from("enrollments")
-    .select("id, amount, currency, paid_at, user_id, user:users(nom, email, ville, pays), course:courses(titre_fr)")
+    .select("id, amount, currency, paid_at, user_id, user:users(nom, email, ville, pays), course:courses(titre_fr, formateur_id)")
     .eq("id", params.id).single();
   if (!enr) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
-  // Accès : propriétaire ou staff
+  // Accès : propriétaire, admin, ou formateur PROPRIÉTAIRE du cours concerné.
+  // (Un formateur ne doit PAS voir les factures des élèves d'un autre formateur.)
   const { data: prof } = await admin.from("users").select("role, roles").eq("id", user.id).single();
-  const isStaff = isFormateur(prof);
-  if (enr.user_id !== user.id && !isStaff) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  const courseFormateurId = (enr.course as any)?.formateur_id ?? null;
+  const allowed =
+    enr.user_id === user.id ||
+    isAdmin(prof) ||
+    (isFormateur(prof) && courseFormateurId === user.id);
+  if (!allowed) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
   const u = enr.user as any;
   const course = enr.course as any;

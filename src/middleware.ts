@@ -38,7 +38,10 @@ export async function middleware(request: NextRequest) {
       if (pathname.startsWith("/api/auth")) key = "auth";
       else if (/\/(payment|paiement|proof|preuve|enroll)/.test(pathname)) key = "payment";
       else if (/\/(upload|upsert)/.test(pathname)) key = "upload";
-      const { ok } = await checkRateLimit(key, ip);
+      // Fail-closed (SEC-009) sur l'auth et le paiement : si Redis tombe, on refuse
+      // plutôt que de rouvrir la porte au brute-force / abus.
+      const failClosed = key === "auth" || key === "payment";
+      const { ok } = await checkRateLimit(key, ip, failClosed);
       if (!ok) {
         return NextResponse.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429 });
       }

@@ -1,9 +1,20 @@
 import Stripe from "stripe";
 
+// Le placeholder n'existe QUE pour permettre `next build` sans la vraie clé
+// (ce n'est pas un secret). En production, on refuse d'opérer avec ce stub.
+const PLACEHOLDER_KEY = "sk_test_placeholder_build_key";
+
 export const stripe = new Stripe(
-  process.env.STRIPE_SECRET_KEY || "sk_test_placeholder_build_key",
+  process.env.STRIPE_SECRET_KEY || PLACEHOLDER_KEY,
   { apiVersion: "2024-06-20" }
 );
+
+/** Garde runtime (SEC-013) : échoue clairement si la vraie clé Stripe manque. */
+function assertStripeConfigured() {
+  if (!process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY === PLACEHOLDER_KEY) {
+    throw new Error("Stripe non configuré : STRIPE_SECRET_KEY manquant.");
+  }
+}
 
 export async function createStripeCheckout({
   courseId,
@@ -22,6 +33,7 @@ export async function createStripeCheckout({
   successUrl: string;
   cancelUrl: string;
 }) {
+  assertStripeConfigured();
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     customer_email: userEmail,
@@ -68,6 +80,7 @@ export async function createStripePatronCheckout({
   successUrl: string;
   cancelUrl: string;
 }) {
+  assertStripeConfigured();
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     customer_email: userEmail,

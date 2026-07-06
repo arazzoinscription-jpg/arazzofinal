@@ -17,9 +17,11 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
 
   const admin = createAdminClient();
   const { data: link } = await admin
-    .from("access_links").select("user_id, redirect_to, expires_at").eq("token", token).maybeSingle();
+    .from("access_links").select("user_id, redirect_to, expires_at, used_at, single_use").eq("token", token).maybeSingle();
   if (!link) return fail("lien_invalide");
   if (new Date(link.expires_at).getTime() < Date.now()) return fail("lien_expire");
+  // Lien à usage unique déjà consommé → refus (ex. réinitialisation de mot de passe).
+  if (link.single_use && link.used_at) return fail("lien_deja_utilise");
 
   const { data: u } = await admin.from("users").select("email").eq("id", link.user_id).maybeSingle();
   if (!u?.email) return fail("lien_invalide");

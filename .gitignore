@@ -31,12 +31,15 @@ npm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Migration scripts contenant des secrets (clé service-role en dur)
+# Scripts de migration ponctuels (données/IDs sources — hors dépôt)
 scripts/import-arazzo-tutor.mjs
 scripts/organize-catalog.mjs
 scripts/build-levels.mjs
 scripts/import-enrollments.mjs
 eleves-sans-email.csv
+
+# Sauvegardes de données contenant des informations personnelles (PII) — jamais versionnées
+scripts/backup-*.json
 
 # Exports / données sources
 *.xml

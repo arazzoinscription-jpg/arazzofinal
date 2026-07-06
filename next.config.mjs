@@ -27,7 +27,10 @@ const nextConfig = {
     // styles inline). Un durcissement par nonce est recommandé (voir SECURITY_AUDIT.md).
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // 'unsafe-eval' retiré (SEC-008) : inutile au runtime Next.js en production.
+      // 'unsafe-inline' reste requis pour les scripts inline d'hydratation ;
+      // durcissement complet par nonce recommandé ultérieurement.
+      "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",

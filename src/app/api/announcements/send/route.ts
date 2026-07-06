@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { isFormateur } from "@/lib/roles";
+import { isFormateur, isAdmin } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { tplAnnouncement } from "@/lib/email-templates";
@@ -30,6 +30,15 @@ export async function POST(req: NextRequest) {
   const { titre, body, course_id, sendEmail: withEmail } = parsed.data;
 
   const admin = createAdminClient();
+
+  // Portée : un formateur ne peut annoncer QU'À SES cours. La diffusion à TOUS
+  // les élèves (sans course_id) est réservée à l'admin.
+  if (!isAdmin(prof)) {
+    if (!course_id) return NextResponse.json({ error: "Diffusion générale réservée à l'administration." }, { status: 403 });
+    const { data: course } = await admin.from("courses").select("formateur_id").eq("id", course_id).maybeSingle();
+    if (!course) return NextResponse.json({ error: "Cours introuvable" }, { status: 404 });
+    if (course.formateur_id !== user.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  }
 
   // 1) Enregistrer l'annonce
   await admin.from("announcements").insert({ author_id: user.id, course_id: course_id ?? null, titre, body });

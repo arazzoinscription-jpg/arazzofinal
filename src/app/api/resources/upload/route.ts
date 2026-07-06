@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isFormateur } from "@/lib/roles";
+import { isFormateur, isAdmin } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -31,6 +31,13 @@ export async function POST(req: NextRequest) {
   if (!TYPES.includes(type)) return NextResponse.json({ error: "Type invalide" }, { status: 400 });
 
   const admin = createAdminClient();
+
+  // Un formateur ne peut ajouter une ressource QU'À SES cours (l'admin, à tous).
+  if (courseId && !isAdmin(prof)) {
+    const { data: course } = await admin.from("courses").select("formateur_id").eq("id", courseId).maybeSingle();
+    if (!course) return NextResponse.json({ error: "Cours introuvable" }, { status: 404 });
+    if (course.formateur_id !== user.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  }
   const safeName = file.name.replace(/[^\w.\-]+/g, "_");
   const path = `${courseId || "general"}/${randomUUID()}-${safeName}`;
   const buffer = Buffer.from(await file.arrayBuffer());

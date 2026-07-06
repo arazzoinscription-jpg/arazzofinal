@@ -19,6 +19,7 @@ import { PageTransition } from "./page-transition";
 import { LangSwitcher } from "./lang-switcher";
 import { normLang, isRtl } from "./dash-i18n";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
+import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
@@ -92,13 +93,14 @@ export default async function DashboardLayout({
       <main className="app-main flex-1 lg:ms-64 min-w-0">
         {/* Barre supérieure (même identité que la barre publique) + menu horizontal */}
         <div
-          className="sticky top-0 z-20 bg-white dark:bg-[#15102b] backdrop-blur-md border-b border-cream-200 dark:border-white/10"
+          className="sticky top-0 z-20 bg-white dark:bg-[#15102b] backdrop-blur-md border-b border-cream-200 dark:border-white/10 pt-[env(safe-area-inset-top)]"
           style={{ boxShadow: "0 4px 24px rgba(107,33,200,0.12)" }}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between gap-3 h-20">
               {/* ── Gauche : menu mobile + logo identité (identique à la barre publique) ── */}
               <div className="flex items-center gap-3 min-w-0">
+                <PwaBackButton />
                 <MobileNav nom={profile?.nom ?? null} avatarUrl={profile?.avatar_url ?? null} role={role} roles={roles} roleLabel={roleLabel} lang={lang} buyer={buyer} />
                 <Link href="/" aria-label="Accueil Arazzo" className="group flex items-center gap-3 shrink-0">
                   <span className="relative grid place-items-center">

@@ -18,6 +18,7 @@ import { AnimatedBackground } from "@/components/ui/animated-bg";
 import { isFormateur, isAdmin } from "@/lib/roles";
 import { SpaceSwitcher } from "@/components/pro/space-switcher";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
+import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 
 export default async function FormateurLayout({
   children,
@@ -99,8 +100,9 @@ export default async function FormateurLayout({
 
       {/* ── Contenu ── */}
       <main className="app-main flex-1 lg:ms-64 min-w-0">
-        <div className="sticky top-0 z-20 bg-white/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md border-b border-cream-200 dark:border-white/10">
+        <div className="sticky top-0 z-20 bg-white/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md border-b border-cream-200 dark:border-white/10 pt-[env(safe-area-inset-top)]">
           <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
+            <PwaBackButton />
             <ProMobileNav
               variant="formateur"
               nom={profile?.nom ?? null}

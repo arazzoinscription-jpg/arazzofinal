@@ -29,11 +29,14 @@ export const metadata: Metadata = {
   description:
     "Plateforme de formation en couture, broderie et modélisme pour le Maghreb et sa diaspora.",
   manifest: "/manifest.webmanifest",
-  // iOS : rend l'app en plein écran (mode standalone) une fois ajoutée à l'écran d'accueil.
+  // iOS : mode standalone une fois ajouté à l'écran d'accueil.
+  // statusBarStyle "default" (et non "black-translucent") : le contenu de l'app
+  // commence SOUS la barre de statut iOS au lieu de passer par-dessus (évite le
+  // chevauchement du contenu avec l'heure/la batterie du téléphone).
   appleWebApp: {
     capable: true,
     title: "Arazzo",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
   openGraph: {
     title: "Arazzo Formation",

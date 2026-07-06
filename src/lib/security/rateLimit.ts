@@ -27,20 +27,33 @@ export type LimiterKey = keyof typeof limiters;
 
 /** Extraction de l'IP cliente (ordre adapté à Vercel). */
 export function getClientIp(headers: Headers): string {
+  // `x-real-ip` est posé par la plateforme (Vercel) = valeur de confiance, non
+  // falsifiable par le client, contrairement au premier segment de x-forwarded-for
+  // que le client peut préfixer (SEC-012). On le privilégie donc.
+  const real = headers.get("x-real-ip");
+  if (real) return real.trim();
   const fwd = headers.get("x-forwarded-for");
   if (fwd) return fwd.split(",")[0].trim();
-  return headers.get("x-real-ip") || "unknown";
+  return "unknown";
 }
 
-/** Vérifie la limite. Si Upstash n'est pas configuré → autorisé (no-op). */
-export async function checkRateLimit(key: LimiterKey, ip: string): Promise<{ ok: boolean; remaining?: number }> {
+/**
+ * Vérifie la limite. Si Upstash n'est pas configuré → autorisé (no-op).
+ * `failClosed` (SEC-009) : en cas d'indisponibilité de Redis, refuser plutôt
+ * qu'autoriser — à activer pour les routes sensibles (auth, paiement).
+ */
+export async function checkRateLimit(
+  key: LimiterKey,
+  ip: string,
+  failClosed = false,
+): Promise<{ ok: boolean; remaining?: number }> {
   const limiter = limiters[key];
   if (!limiter) return { ok: true };
   try {
     const { success, remaining } = await limiter.limit(ip);
     return { ok: success, remaining };
   } catch {
-    // En cas d'indisponibilité de Redis, on n'enferme pas l'utilisateur (fail-open).
-    return { ok: true };
+    // Redis indisponible : fail-closed sur les routes sensibles, fail-open sinon.
+    return { ok: !failClosed };
   }
 }

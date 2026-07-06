@@ -11,6 +11,7 @@ import { HOME, type Lang } from "@/lib/home-i18n";
 import { LangSwitcherPublic } from "./lang-switcher-public";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CartIcon } from "./cart-icon";
+import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 
 const MotionLink = motion.create(Link);
 
@@ -78,7 +79,7 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
   return (
     <motion.nav
       style={solid ? { boxShadow: "0 4px 24px rgba(107,33,200,0.12)" } : { backgroundColor: navBg, boxShadow: navShadow }}
-      className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md transition-colors duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md transition-colors duration-300 pt-[env(safe-area-inset-top)] ${
         solid
           ? "bg-white dark:bg-[#15102b] border-b border-cream-200 dark:border-white/10"
           : onLight
@@ -88,8 +89,10 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div variants={row} initial="hidden" animate="show" className="flex items-center justify-between h-20">
-          {/* ── Logo ── */}
-          <motion.div variants={itemV}>
+          {/* ── Retour (PWA installée uniquement) + Logo ── */}
+          <div className="flex items-center gap-1 min-w-0">
+            <PwaBackButton />
+            <motion.div variants={itemV}>
             <MotionLink href="/" whileHover="hover" initial="rest" animate="rest" className="group flex items-center gap-3">
               <motion.span
                 variants={{ rest: { rotate: 0 }, hover: reduce ? {} : { rotate: -8, scale: 1.06 } }}
@@ -109,7 +112,8 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
                 </span>
               </span>
             </MotionLink>
-          </motion.div>
+            </motion.div>
+          </div>
 
           {/* ── Nav desktop ── */}
           <div className="hidden md:flex items-center gap-7 lg:gap-9">

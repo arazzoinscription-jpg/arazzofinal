@@ -8,6 +8,8 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Session persistante « à la Instagram » : cookies conservés 400 jours (max navigateur).
+      cookieOptions: { maxAge: 60 * 60 * 24 * 400 },
       cookies: {
         getAll() {
           return request.cookies.getAll();

@@ -18,6 +18,7 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { isAdmin } from "@/lib/roles";
 import { SpaceSwitcher } from "@/components/pro/space-switcher";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
+import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 
 // Identité « Atelier » : sidebar sombre #1e0a3c, fond #faf7ff, header épuré.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -80,8 +81,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* ── Contenu ── */}
       <main className="app-main flex-1 lg:ms-64 min-w-0">
-        <div className="sticky top-0 z-20 bg-[#faf7ff]/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md">
+        <div className="sticky top-0 z-20 bg-[#faf7ff]/85 dark:bg-[#0d0a1c]/85 backdrop-blur-md pt-[env(safe-area-inset-top)]">
           <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3 sm:gap-4">
+            <PwaBackButton />
             <ProMobileNav
               variant="admin"
               nom={profile?.nom ?? null}
