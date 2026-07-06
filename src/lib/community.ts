@@ -95,11 +95,13 @@ export async function loadUserMedia(userId: string): Promise<{ me: { id: string 
 /** Nombre d'abonnés d'un membre + si l'utilisateur courant le suit. */
 export async function loadFollowInfo(targetId: string, meId: string) {
   const admin = createAdminClient();
-  const { count } = await admin
-    .from("follows").select("*", { count: "exact", head: true }).eq("following_id", targetId);
-  const { data } = await admin
-    .from("follows").select("follower_id").eq("follower_id", meId).eq("following_id", targetId).maybeSingle();
-  return { followers: count ?? 0, isFollowing: !!data };
+  // Abonnés = qui suit la cible ; Abonnements = qui la cible suit.
+  const [{ count: followers }, { count: following }, { data }] = await Promise.all([
+    admin.from("follows").select("*", { count: "exact", head: true }).eq("following_id", targetId),
+    admin.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", targetId),
+    admin.from("follows").select("follower_id").eq("follower_id", meId).eq("following_id", targetId).maybeSingle(),
+  ]);
+  return { followers: followers ?? 0, following: following ?? 0, isFollowing: !!data };
 }
 
 /** Profil public de base. */

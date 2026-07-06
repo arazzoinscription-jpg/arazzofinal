@@ -154,6 +154,18 @@ export async function toggleFollow(targetId: string) {
   } else {
     const { error } = await admin.from("follows").insert({ follower_id: user.id, following_id: targetId });
     if (error) return { ok: false as const, error: error.message };
+    // Notifie la personne suivie qu'elle a un nouvel abonné (best-effort).
+    try {
+      const { data: me } = await admin.from("users").select("nom, username").eq("id", user.id).maybeSingle();
+      const label = me?.username ? `@${me.username}` : (me?.nom ?? "Un membre");
+      await admin.from("notifications").insert({
+        user_id: targetId,
+        type: "follow",
+        title: `${label} suit votre aventure`,
+        body: "Vous avez un nouvel abonné dans la communauté.",
+        link: `/communaute/u/${user.id}`,
+      });
+    } catch { /* la notif ne doit jamais bloquer le suivi */ }
   }
 
   const { count } = await admin
@@ -161,6 +173,75 @@ export async function toggleFollow(targetId: string) {
 
   revalidatePath(`/communaute/u/${targetId}`);
   return { ok: true as const, following: !existing, followers: count ?? 0 };
+}
+
+// ── Listes « qui suit / qui je suis / qui a aimé » ──────────────────────────
+
+export interface CommunityPerson {
+  id: string;
+  nom: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  role: string | null;
+}
+
+/** Récupère des profils par IDs en conservant l'ordre fourni. */
+async function fetchPeopleOrdered(admin: ReturnType<typeof createAdminClient>, ids: string[]): Promise<CommunityPerson[]> {
+  if (ids.length === 0) return [];
+  const { data } = await admin
+    .from("users").select("id, nom, username, avatar_url, role").in("id", ids);
+  const byId = new Map((data ?? []).map((u) => [u.id, u as CommunityPerson]));
+  return ids.map((id) => byId.get(id)).filter(Boolean) as CommunityPerson[];
+}
+
+/** Abonnés de la cible (qui la suit), du plus récent au plus ancien. */
+export async function listFollowers(targetId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié.", people: [] as CommunityPerson[] };
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("follows").select("follower_id, created_at")
+    .eq("following_id", targetId).order("created_at", { ascending: false }).limit(300);
+  const people = await fetchPeopleOrdered(admin, (rows ?? []).map((r) => r.follower_id));
+  return { ok: true as const, people };
+}
+
+/** Abonnements de la cible (qui elle suit), du plus récent au plus ancien. */
+export async function listFollowing(targetId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié.", people: [] as CommunityPerson[] };
+  const admin = createAdminClient();
+  const { data: rows } = await admin
+    .from("follows").select("following_id, created_at")
+    .eq("follower_id", targetId).order("created_at", { ascending: false }).limit(300);
+  const people = await fetchPeopleOrdered(admin, (rows ?? []).map((r) => r.following_id));
+  return { ok: true as const, people };
+}
+
+/** Membres ayant aimé les publications de la cible (dédupliqués, récents d'abord). */
+export async function listProfileLikers(targetId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié.", people: [] as CommunityPerson[] };
+  const admin = createAdminClient();
+  const { data: posts } = await admin.from("posts").select("id").eq("author_id", targetId);
+  const postIds = (posts ?? []).map((p) => p.id);
+  if (postIds.length === 0) return { ok: true as const, people: [] as CommunityPerson[] };
+  const { data: likes } = await admin
+    .from("likes").select("user_id, created_at")
+    .in("post_id", postIds).order("created_at", { ascending: false }).limit(500);
+  // Déduplique en conservant l'ordre de récence, exclut l'auteur lui-même.
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const l of likes ?? []) {
+    if (l.user_id === targetId || seen.has(l.user_id)) continue;
+    seen.add(l.user_id); ids.push(l.user_id);
+    if (ids.length >= 200) break;
+  }
+  const people = await fetchPeopleOrdered(admin, ids);
+  return { ok: true as const, people };
 }
 
 /** Charge les commentaires d'un post (panneau commentaires du feed). */

@@ -17,6 +17,7 @@ type Notif = {
 const ICONS: Record<string, string> = {
   new_content: "✨", announcement: "📢", reply: "💬",
   ticket: "🎫", session: "🎥", badge: "🏅", system: "🔔",
+  follow: "👥", like: "❤️", community: "🧵",
 };
 
 export function NotificationBell({ userId }: { userId: string }) {

@@ -60,6 +60,10 @@ async function doUpdate(formData: FormData) {
     avatarUrl = admin.storage.from("posts").getPublicUrl(path).data.publicUrl;
   }
 
+  // ── État précédent (pour ne notifier que sur un vrai changement) ──
+  const { data: before } = await admin
+    .from("users").select("username, avatar_url, nom").eq("id", user.id).maybeSingle();
+
   // ── Mise à jour ──
   const patch: Record<string, unknown> = { username, bio };
   if (avatarUrl) patch.avatar_url = avatarUrl;
@@ -71,6 +75,31 @@ async function doUpdate(formData: FormData) {
     }
     return { ok: false as const, error: error.message };
   }
+
+  // ── Notifie les abonnés SEULEMENT sur un changement significatif (nouvel avatar
+  // ou nouveau @username) — pas à chaque petite modification (anti-spam). ──
+  try {
+    const avatarChanged = !!avatarUrl && avatarUrl !== before?.avatar_url;
+    const usernameChanged = !!username && username !== before?.username;
+    if (avatarChanged || usernameChanged) {
+      const { data: followers } = await admin
+        .from("follows").select("follower_id").eq("following_id", user.id);
+      const ids = (followers ?? []).map((f) => f.follower_id);
+      if (ids.length > 0) {
+        const label = username ? `@${username}` : (before?.nom ?? "Un membre que vous suivez");
+        const what = avatarChanged && usernameChanged ? "sa photo et son nom d'utilisateur"
+          : avatarChanged ? "sa photo de profil" : "son nom d'utilisateur";
+        const rows = ids.map((fid) => ({
+          user_id: fid,
+          type: "community",
+          title: `${label} a mis à jour ${what}`,
+          body: null as string | null,
+          link: `/communaute/u/${user.id}`,
+        }));
+        await admin.from("notifications").insert(rows);
+      }
+    }
+  } catch { /* la notif ne doit jamais bloquer l'enregistrement du profil */ }
 
   revalidatePath(`/communaute/u/${user.id}`);
   revalidatePath("/communaute/profil");

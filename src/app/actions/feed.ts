@@ -120,6 +120,22 @@ export async function toggleLike(postId: string) {
   } else {
     const { error } = await supabase.from("likes").insert({ post_id: postId, user_id: user.id });
     if (error) return { ok: false, error: error.message };
+    // Notifie l'auteur de la publication (sauf auto-like). Best-effort.
+    try {
+      const admin = createAdminClient();
+      const { data: post } = await admin.from("posts").select("author_id").eq("id", postId).maybeSingle();
+      if (post?.author_id && post.author_id !== user.id) {
+        const { data: me } = await admin.from("users").select("nom, username").eq("id", user.id).maybeSingle();
+        const label = me?.username ? `@${me.username}` : (me?.nom ?? "Un membre");
+        await admin.from("notifications").insert({
+          user_id: post.author_id,
+          type: "like",
+          title: `${label} a aimé votre publication`,
+          body: null,
+          link: `/communaute/u/${post.author_id}`,
+        });
+      }
+    } catch { /* la notif ne doit jamais bloquer le like */ }
   }
 
   const { count } = await supabase

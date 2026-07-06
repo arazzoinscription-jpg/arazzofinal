@@ -24,7 +24,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
   const isMe = me.id === params.id;
 
   const likes = items.reduce((s, i) => s + i.likeCount, 0);
-  const { followers, isFollowing } = await loadFollowInfo(params.id, me.id);
+  const { followers, following, isFollowing } = await loadFollowInfo(params.id, me.id);
 
   // Créateur (formateur / patronniste / admin) → portfolio de ses créations.
   // Élève → parcours d'apprentissage.
@@ -58,6 +58,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           likes={likes}
           posts={items.length}
           followers={followers}
+          following={following}
           isMe={isMe}
           isFollowing={isFollowing}
           lang={lang}

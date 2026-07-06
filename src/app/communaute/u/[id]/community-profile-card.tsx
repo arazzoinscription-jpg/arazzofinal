@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { UserPlus, Check } from "lucide-react";
-import { toggleFollow } from "@/app/actions/community";
+import { toggleFollow, listFollowers, listFollowing, listProfileLikers, type CommunityPerson } from "@/app/actions/community";
 import { toast } from "@/components/ui/toast";
+import { PeopleModal } from "./people-modal";
 
 interface Props {
   userId: string;
@@ -15,20 +16,29 @@ interface Props {
   likes: number;
   posts: number;
   followers: number;
+  following: number;
   isMe: boolean;
   isFollowing: boolean;
   lang?: "fr" | "ar" | "en";
 }
 
 const FOLLOW_T = {
-  fr: { follow: "Suivre l'aventure", following: "Aventure suivie", posts: "Publications", followers: "Abonnés", likes: "J'aime" },
-  ar: { follow: "تابع الرحلة", following: "تتابع الرحلة", posts: "المنشورات", followers: "المتابِعون", likes: "إعجاب" },
-  en: { follow: "Follow the journey", following: "Following journey", posts: "Posts", followers: "Followers", likes: "Likes" },
+  fr: { follow: "Suivre l'aventure", following: "Aventure suivie", posts: "Publications", followers: "Abonnés", followingLabel: "Abonnements", likes: "J'aime",
+        followersTitle: "Abonnés", followingTitle: "Abonnements", likesTitle: "Ont aimé",
+        emptyFollowers: "Aucun abonné pour le moment.", emptyFollowing: "N'suit personne pour le moment.", emptyLikes: "Aucun j'aime pour le moment." },
+  ar: { follow: "تابع الرحلة", following: "تتابع الرحلة", posts: "المنشورات", followers: "المتابِعون", followingLabel: "المتابَعون", likes: "إعجاب",
+        followersTitle: "المتابِعون", followingTitle: "يتابِع", likesTitle: "أعجبهم",
+        emptyFollowers: "لا يوجد متابِعون بعد.", emptyFollowing: "لا يتابع أحداً بعد.", emptyLikes: "لا إعجابات بعد." },
+  en: { follow: "Follow the journey", following: "Following journey", posts: "Posts", followers: "Followers", followingLabel: "Following", likes: "Likes",
+        followersTitle: "Followers", followingTitle: "Following", likesTitle: "Liked by",
+        emptyFollowers: "No followers yet.", emptyFollowing: "Not following anyone yet.", emptyLikes: "No likes yet." },
 } as const;
 
-/** Carte de profil communauté — stats animées + bouton d'abonnement. */
+type ModalKind = "followers" | "following" | "likes" | null;
+
+/** Carte de profil communauté — stats animées + bouton d'abonnement + listes cliquables. */
 export function CommunityProfileCard({
-  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, isMe, isFollowing, lang = "fr",
+  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, lang = "fr",
 }: Props) {
   const ft = FOLLOW_T[lang];
   const [aLikes, setALikes] = useState(0);
@@ -36,6 +46,29 @@ export function CommunityProfileCard({
   const [following, setFollowing] = useState(isFollowing);
   const [followerCount, setFollowerCount] = useState(followers);
   const [pending, startTransition] = useTransition();
+
+  // ── Modale « qui suit / qui je suis / qui a aimé » ──
+  const [modal, setModal] = useState<ModalKind>(null);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [people, setPeople] = useState<CommunityPerson[]>([]);
+
+  function openModal(kind: Exclude<ModalKind, null>) {
+    setModal(kind);
+    setModalLoading(true);
+    setPeople([]);
+    const loader =
+      kind === "followers" ? listFollowers(userId)
+      : kind === "following" ? listFollowing(userId)
+      : listProfileLikers(userId);
+    loader.then((res) => {
+      setPeople(res.ok ? res.people : []);
+      setModalLoading(false);
+      if (!res.ok) toast(res.error ?? "Erreur", "error");
+    });
+  }
+
+  const modalTitle = modal === "followers" ? ft.followersTitle : modal === "following" ? ft.followingTitle : ft.likesTitle;
+  const modalEmpty = modal === "followers" ? ft.emptyFollowers : modal === "following" ? ft.emptyFollowing : ft.emptyLikes;
 
   useEffect(() => {
     const steps = 40;
@@ -90,23 +123,39 @@ export function CommunityProfileCard({
           <p className="text-orange-600 dark:text-orange-300 text-sm font-semibold mt-1 font-dm">{roleLabel}</p>
           {bio && <p className="text-gray-500 dark:text-white/60 text-sm leading-relaxed mt-3 font-dm">{bio}</p>}
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 mt-6 py-4 border-t border-b border-cream-200 dark:border-white/10">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{aPosts}</div>
-              <div className="text-xs text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.posts}</div>
+          {/* Stats — Abonnés / Abonnements / J'aime sont cliquables (voir qui). */}
+          <div className="grid grid-cols-4 gap-1 mt-6 py-4 border-t border-b border-cream-200 dark:border-white/10">
+            <div className="text-center px-1">
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{aPosts}</div>
+              <div className="text-[11px] text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.posts}</div>
             </div>
-            <div className="text-center border-l border-r border-cream-200 dark:border-white/10">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(followerCount)}</div>
-              <div className="text-xs text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.followers}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-white">{fmt(aLikes)}</div>
-              <div className="text-xs text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.likes}</div>
-            </div>
+            <button type="button" onClick={() => openModal("followers")}
+              className="text-center px-1 rounded-xl hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{fmt(followerCount)}</div>
+              <div className="text-[11px] text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.followers}</div>
+            </button>
+            <button type="button" onClick={() => openModal("following")}
+              className="text-center px-1 rounded-xl hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{fmt(followingCountInit)}</div>
+              <div className="text-[11px] text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.followingLabel}</div>
+            </button>
+            <button type="button" onClick={() => openModal("likes")}
+              className="text-center px-1 rounded-xl hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{fmt(aLikes)}</div>
+              <div className="text-[11px] text-gray-400 dark:text-white/50 font-dm mt-0.5">{ft.likes}</div>
+            </button>
           </div>
         </div>
       </div>
+
+      <PeopleModal
+        open={modal !== null}
+        title={modalTitle}
+        loading={modalLoading}
+        people={people}
+        emptyLabel={modalEmpty}
+        onClose={() => setModal(null)}
+      />
     </div>
   );
 }
