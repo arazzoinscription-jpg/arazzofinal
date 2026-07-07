@@ -127,6 +127,7 @@ export async function toggleLike(postId: string) {
       if (post?.author_id && post.author_id !== user.id) {
         const { data: me } = await admin.from("users").select("nom, username").eq("id", user.id).maybeSingle();
         const label = me?.username ? `@${me.username}` : (me?.nom ?? "Un membre");
+        // Le push système est envoyé par le webhook /api/webhooks/push.
         await admin.from("notifications").insert({
           user_id: post.author_id,
           type: "like",

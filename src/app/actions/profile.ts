@@ -89,13 +89,13 @@ async function doUpdate(formData: FormData) {
         const label = username ? `@${username}` : (before?.nom ?? "Un membre que vous suivez");
         const what = avatarChanged && usernameChanged ? "sa photo et son nom d'utilisateur"
           : avatarChanged ? "sa photo de profil" : "son nom d'utilisateur";
+        const title = `${label} a mis à jour ${what}`;
+        const link = `/communaute/u/${user.id}`;
         const rows = ids.map((fid) => ({
-          user_id: fid,
-          type: "community",
-          title: `${label} a mis à jour ${what}`,
-          body: null as string | null,
-          link: `/communaute/u/${user.id}`,
+          user_id: fid, type: "community", title, body: null as string | null, link,
         }));
+        // Le push système est envoyé par le webhook /api/webhooks/push (une fois
+        // par ligne insérée) → aucune duplication.
         await admin.from("notifications").insert(rows);
       }
     }

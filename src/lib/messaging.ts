@@ -1,6 +1,5 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendPushToUsers } from "@/lib/push";
 
 type Admin = ReturnType<typeof createAdminClient>;
 export type Role = "eleve" | "formateur" | "patronniste" | "admin";
@@ -239,11 +238,9 @@ export async function sendMessageCore(
   try {
     const { data: sender } = await admin.from("users").select("nom").eq("id", me.id).maybeSingle();
     const title = `Nouveau message de ${sender?.nom ?? "un membre"}`;
+    // Le push système est envoyé par le webhook /api/webhooks/push.
     await admin.from("notifications").insert({
-      user_id: toId, type: "message", title, body: body.slice(0, 120), link: null,
-    });
-    await sendPushToUsers(admin, [toId], {
-      title, body: body.slice(0, 120), url: "/dashboard", tag: `msg-${me.id}`,
+      user_id: toId, type: "message", title, body: body.slice(0, 120), link: "/dashboard",
     });
   } catch { /* ignore */ }
 

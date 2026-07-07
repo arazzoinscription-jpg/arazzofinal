@@ -154,10 +154,12 @@ export async function toggleFollow(targetId: string) {
   } else {
     const { error } = await admin.from("follows").insert({ follower_id: user.id, following_id: targetId });
     if (error) return { ok: false as const, error: error.message };
-    // Notifie la personne suivie qu'elle a un nouvel abonné (best-effort).
+    // Notifie la personne suivie qu'elle a un nouvel abonné (in-app + push système).
     try {
       const { data: me } = await admin.from("users").select("nom, username").eq("id", user.id).maybeSingle();
       const label = me?.username ? `@${me.username}` : (me?.nom ?? "Un membre");
+      // Le push système est envoyé par le webhook /api/webhooks/push (déclenché
+      // par cette insertion) → un seul émetteur, aucune duplication.
       await admin.from("notifications").insert({
         user_id: targetId,
         type: "follow",

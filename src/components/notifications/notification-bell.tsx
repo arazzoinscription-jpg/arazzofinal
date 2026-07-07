@@ -51,6 +51,26 @@ export function NotificationBell({ userId }: { userId: string }) {
     return () => { active = false; supabase.removeChannel(channel); };
   }, [userId]);
 
+  // Badge chiffré sur l'icône de l'app (« 2, 3, 5 » comme les apps natives).
+  // Piloté par le nombre de non-lus, mis à jour en temps réel. Couvre TOUTES les
+  // notifications quelle que soit leur source. (Non supporté sur iOS Safari.)
+  useEffect(() => {
+    try {
+      const nav = navigator as Navigator & {
+        setAppBadge?: (n?: number) => Promise<void>;
+        clearAppBadge?: () => Promise<void>;
+      };
+      if (typeof nav.setAppBadge === "function") {
+        if (unread > 0) nav.setAppBadge(unread).catch(() => {});
+        else nav.clearAppBadge?.().catch(() => {});
+      }
+      // Informe aussi le service worker (utile si l'app repasse en arrière-plan).
+      navigator.serviceWorker?.ready.then((reg) => {
+        reg.active?.postMessage({ type: "SET_BADGE", count: unread });
+      }).catch(() => {});
+    } catch { /* Badging non supporté : ignore */ }
+  }, [unread]);
+
   // Fermer au clic extérieur
   useEffect(() => {
     function onClick(e: MouseEvent) {

@@ -29,6 +29,8 @@ export type PushPayload = {
   icon?: string;
   /** Regroupe les notifications (une même `tag` remplace la précédente). */
   tag?: string;
+  /** Nombre à afficher en badge sur l'icône de l'app (App Badging API). */
+  badgeCount?: number;
 };
 
 type SubRow = { id: string; endpoint: string; p256dh: string; auth: string };
@@ -59,6 +61,7 @@ export async function sendPushToUsers(
     url: payload.url ?? "/dashboard",
     icon: payload.icon,
     tag: payload.tag,
+    badgeCount: payload.badgeCount,
   });
 
   const dead: string[] = [];
@@ -79,4 +82,24 @@ export async function sendPushToUsers(
   if (dead.length) {
     await admin.from("push_subscriptions").delete().in("id", dead);
   }
+}
+
+/**
+ * Envoie un push à UN utilisateur en calculant automatiquement son badge
+ * (= nombre de notifications non lues) → l'icône de l'app affiche le bon chiffre
+ * même app fermée. Best-effort : n'échoue jamais l'appelant.
+ */
+export async function pushToUserWithBadge(
+  admin: SupabaseClient,
+  userId: string,
+  payload: Omit<PushPayload, "badgeCount">,
+): Promise<void> {
+  try {
+    const { count } = await admin
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .is("read_at", null);
+    await sendPushToUsers(admin, [userId], { ...payload, badgeCount: count ?? undefined });
+  } catch { /* ignore */ }
 }

@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sendPushToUsers } from "@/lib/push";
+// Le push système est envoyé par le webhook /api/webhooks/push (déclenché par
+// l'insertion dans public.notifications) → plus d'envoi explicite ici.
 
 /** Crée une notification in-app pour chaque patronniste (+ admin) — alerte commande sur mesure. */
 export async function notifyPatronnistes(admin: SupabaseClient, n: { title: string; body: string }) {
@@ -12,7 +13,6 @@ export async function notifyPatronnistes(admin: SupabaseClient, n: { title: stri
   await admin.from("notifications").insert(
     ids.map((id) => ({ user_id: id, type: "system", title: n.title, body: n.body, link })),
   );
-  await sendPushToUsers(admin, ids, { title: n.title, body: n.body, url: link, tag: "sur-mesure" });
 }
 
 /** Notifie un utilisateur précis (ex. le client d'une commande sur mesure). */
@@ -26,7 +26,6 @@ export async function notifyUser(
   await admin.from("notifications").insert({
     user_id: userId, type: "system", title: n.title, body: n.body, link,
   });
-  await sendPushToUsers(admin, [userId], { title: n.title, body: n.body, url: link });
 }
 
 /** Notifie tous les administrateurs (ex. demande de prix / preuve de paiement à valider). */
@@ -38,5 +37,4 @@ export async function notifyAdmins(admin: SupabaseClient, n: { title: string; bo
   await admin.from("notifications").insert(
     ids.map((id) => ({ user_id: id, type: "system", title: n.title, body: n.body, link })),
   );
-  await sendPushToUsers(admin, ids, { title: n.title, body: n.body, url: link });
 }
