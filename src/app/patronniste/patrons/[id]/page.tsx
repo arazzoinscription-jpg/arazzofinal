@@ -11,7 +11,7 @@ export default async function EditPatronPage({ params }: { params: Promise<{ id:
   const admin = createAdminClient();
   const { data: patron } = await admin
     .from("patrons")
-    .select("id, titre, description, prix_dzd, prix_eur, tailles, tissu, taille_table, nb_pages, format, preview_url, fichier_url, video_url, conseils, course_id, images, numero, dessin_technique_url")
+    .select("id, titre, description, prix_dzd, prix_eur, tailles, tissu, taille_table, nb_pages, format, preview_url, fichier_url, video_url, conseils, course_id, images, numero, dessin_technique_url, genre, type_vetement")
     .eq("id", id)
     .single();
 

@@ -81,6 +81,14 @@ export async function POST(req: NextRequest) {
     numero: str("numero"),
   };
 
+  // Catégories (genre × type de vêtement) — validées contre la liste autorisée.
+  const GENRE_OK = ["femme", "homme", "enfant", "mixte"];
+  const TYPE_OK = ["robe", "jupe", "pantalon", "haut", "veste", "ensemble", "traditionnel", "accessoire"];
+  const genre = str("genre");
+  const typeVet = str("type_vetement");
+  row.genre = genre && GENRE_OK.includes(genre) ? genre : null;
+  row.type_vetement = typeVet && TYPE_OK.includes(typeVet) ? typeVet : null;
+
   // Dessin technique : URL IA déjà uploadée (champ caché). Un fichier `dessin`
   // téléversé manuellement (remplacement) écrase cette valeur plus bas.
   const dessinUrl = str("dessin_technique_url");

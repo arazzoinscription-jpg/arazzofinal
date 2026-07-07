@@ -24,7 +24,17 @@ export interface PatronInit {
   images?: string[] | null;
   numero?: string | null;
   dessin_technique_url?: string | null;
+  genre?: string | null;
+  type_vetement?: string | null;
 }
+
+const GENRE_OPTS = [
+  { v: "femme", l: "Femme" }, { v: "homme", l: "Homme" }, { v: "enfant", l: "Enfant" }, { v: "mixte", l: "Mixte" },
+];
+const TYPE_OPTS = [
+  { v: "robe", l: "Robes" }, { v: "jupe", l: "Jupes" }, { v: "pantalon", l: "Pantalons" }, { v: "haut", l: "Hauts & blouses" },
+  { v: "veste", l: "Vestes & manteaux" }, { v: "ensemble", l: "Ensembles" }, { v: "traditionnel", l: "Traditionnel" }, { v: "accessoire", l: "Accessoires" },
+];
 
 export interface CourseOption { id: string; titre_fr: string | null }
 
@@ -88,6 +98,27 @@ export function PatronForm({ init = {}, courses = [], nextNumero }: { init?: Pat
           <div>
             <label className={label}>Prix (€)</label>
             <input name="prix_eur" type="number" min="0" step="0.01" defaultValue={init.prix_eur ?? 0} className={field} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white dark:bg-white/[0.04] border border-cream-200 dark:border-white/10 p-5 sm:p-6 space-y-4">
+        <h2 className="font-semibold text-gray-900 dark:text-white">Catégorie (boutique)</h2>
+        <p className="text-xs text-gray-400 dark:text-white/40 -mt-2">Classe le patron dans la boutique publique (filtres Genre × Type de vêtement).</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={label}>Genre</label>
+            <select name="genre" defaultValue={init.genre ?? ""} className={field}>
+              <option value="">— Non classé —</option>
+              {GENRE_OPTS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={label}>Type de vêtement</label>
+            <select name="type_vetement" defaultValue={init.type_vetement ?? ""} className={field}>
+              <option value="">— Non classé —</option>
+              {TYPE_OPTS.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+            </select>
           </div>
         </div>
       </div>
