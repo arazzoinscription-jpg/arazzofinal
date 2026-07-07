@@ -70,7 +70,7 @@ export function TestimonialsSection({ lang = "fr" }: { lang?: Lang }) {
               <div className="relative flex-shrink-0">
                 <div className="absolute inset-0 -m-2 rounded-[1.75rem] stitch-border border-white/30 rotate-3" />
                 <div className="w-44 h-44 rounded-[1.5rem] overflow-hidden border-4 border-white/20 shadow-2xl">
-                  <Image src="/images/hero-modelisme-1.jpg" alt="Arazzo" width={176} height={176} className="w-full h-full object-cover" />
+                  <Image src="/images/founder.jpg" alt="Fondatrice — Arazzo Formation" width={176} height={176} className="w-full h-full object-cover" />
                 </div>
               </div>
               <div className="text-center md:text-left">

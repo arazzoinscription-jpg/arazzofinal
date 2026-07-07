@@ -59,15 +59,21 @@ export function CommunityCtaSection({ lang = "fr" }: { lang?: "fr" | "ar" | "en"
               </Link>
             </div>
 
-            {/* Mockup feed */}
+            {/* Mockup feed — photo communauté (Nano Banana) façon story */}
             <div className="relative hidden lg:block">
               <div className="mx-auto w-56 h-[22rem] rounded-[2rem] bg-black/30 border border-white/20 backdrop-blur-md shadow-2xl overflow-hidden rotate-3">
-                <div className="h-full flex flex-col items-center justify-center gap-4 text-white/90">
-                  <Play size={40} className="opacity-80" />
-                  <div className="flex gap-5">
-                    <span className="inline-flex flex-col items-center gap-1 text-xs"><Heart size={20} /> 1.2K</span>
-                    <span className="inline-flex flex-col items-center gap-1 text-xs"><Users size={20} /> 162</span>
-                  </div>
+                <img src="/images/community.jpg" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+                <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+                {/* Bouton lecture central */}
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-14 h-14 rounded-full bg-white/25 backdrop-blur flex items-center justify-center text-white shadow-lg">
+                    <Play size={26} className="ms-0.5" />
+                  </span>
+                </span>
+                {/* Barre d'engagement en bas */}
+                <div className="absolute bottom-4 inset-x-0 flex justify-center gap-5 text-white">
+                  <span className="inline-flex flex-col items-center gap-1 text-xs font-semibold"><Heart size={20} className="fill-white" /> 1.2K</span>
+                  <span className="inline-flex flex-col items-center gap-1 text-xs font-semibold"><Users size={20} /> 162</span>
                 </div>
               </div>
             </div>

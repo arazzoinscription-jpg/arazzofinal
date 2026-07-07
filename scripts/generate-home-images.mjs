@@ -37,6 +37,12 @@ const WIDE = [
   { out: "home/cta.jpg", w: 1600, h: 900, subject: "a warm inviting couture atelier: a woman sewing at a machine near a large window with soft daylight, fabric and dress forms around, wide cinematic composition" },
 ];
 
+// Portraits / visuels ponctuels — clés = nom de fichier sans extension.
+const MISC = [
+  { key: "founder", out: "founder.jpg", w: 640, h: 640, subject: "a warm confident portrait of an elegant Algerian woman, fashion atelier founder in her early forties, gentle genuine smile, refined modest clothing, standing in a bright couture atelier with fabric bolts and a dress form softly blurred behind her, natural window light, waist-up" },
+  { key: "community", out: "community.jpg", w: 560, h: 880, subject: "several happy women of different ages together in a bright sewing atelier, proudly showing handmade garments they created, warm friendly community moment, candid, vertical composition" },
+];
+
 const argv = process.argv.slice(2);
 const only = (argv.find((a) => a.startsWith("--only=")) ?? "").replace("--only=", "").split(",").filter(Boolean);
 const force = argv.includes("--force");
@@ -70,6 +76,10 @@ async function main() {
   for (const wImg of WIDE) {
     if (only.length && !only.includes("cta")) continue;
     try { await make(wImg.out, wImg.subject, wImg.w, wImg.h); } catch (e) { console.log(`❌ ${wImg.out}: ${e.message}`); }
+  }
+  for (const m of MISC) {
+    if (only.length && !only.includes(m.key)) continue;
+    try { await make(m.out, m.subject, m.w, m.h); } catch (e) { console.log(`❌ ${m.out}: ${e.message}`); }
   }
   console.log("Terminé.");
 }

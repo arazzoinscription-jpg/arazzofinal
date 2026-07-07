@@ -181,7 +181,7 @@ function Hero({ lang }: { lang: Lang }) {
         >
           <div className="absolute -inset-3 bg-gradient-to-tr from-violet-500/40 via-blush-300/30 to-orange-400/40 rounded-[2.2rem] blur-2xl" />
           <div className="relative rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/10 shadow-2xl aspect-[4/5]">
-            <img src="/images/mannequin-couture.png" alt={t.instructorName} loading="eager" className="w-full h-full object-cover" />
+            <img src="/images/founder.jpg" alt={t.instructorName} loading="eager" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/60 via-transparent to-transparent" />
             <div className="absolute bottom-4 start-4 end-4 bg-white/90 dark:bg-black/50 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/40">
               <p className="font-playfair font-bold text-gray-900 dark:text-white">{t.instructorName}</p>
