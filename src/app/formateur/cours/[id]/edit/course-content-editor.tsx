@@ -7,7 +7,7 @@ import { LessonVideoUploader } from "@/components/courses/lesson-video-uploader"
 import { saveCourseContent } from "../content-actions";
 import { toast } from "@/components/ui/toast";
 
-export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; devoir: string; duree_minutes: string; is_preview: boolean; }
+export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; devoir: string; devoir_obligatoire: boolean; duree_minutes: string; is_preview: boolean; }
 export interface EditChapter { id: string | null; titre: string; unlockMonth: string; lessons: EditLesson[]; }
 
 function move<T>(arr: T[], from: number, to: number): T[] {
@@ -50,7 +50,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
 
   function addLesson(ci: number) {
     const next = [...chapters];
-    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", devoir: "", duree_minutes: "", is_preview: false }] };
+    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", devoir: "Résumer le cours + dessiner le patron + vidéo de montage d'une pièce.", devoir_obligatoire: false, duree_minutes: "", is_preview: false }] };
     update(next);
   }
   function removeLesson(ci: number, li: number) {
@@ -94,6 +94,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
             titre: l.titre.trim(),
             video_url_bunny: l.video_url_bunny.trim(),
             devoir: l.devoir.trim(),
+            devoir_obligatoire: l.devoir_obligatoire,
             duree_minutes: l.duree_minutes ? Number(l.duree_minutes) : null,
             is_preview: l.is_preview,
           })),
@@ -216,6 +217,12 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
                       rows={2}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 resize-y"
                     />
+                    <label className="flex items-center gap-2 text-sm mt-2 text-gray-700">
+                      <input type="checkbox" checked={l.devoir_obligatoire}
+                        onChange={(e) => setLessonField(ci, li, { devoir_obligatoire: e.target.checked })} />
+                      <span className="font-semibold text-orange-700">Obligatoire pour le diplôme</span>
+                      <span className="text-xs text-gray-400">(doit être validé pour débloquer le diplôme)</span>
+                    </label>
                   </div>
                   <label className="flex items-center gap-2 text-sm text-gray-600">
                     <input type="checkbox" checked={l.is_preview}

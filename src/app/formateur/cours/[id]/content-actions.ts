@@ -25,6 +25,7 @@ const LessonInput = z.object({
   titre: z.string().trim().min(1, "Titre de leçon requis."),
   video_url_bunny: z.string().trim().default(""),
   devoir: z.string().trim().max(5000).default(""),
+  devoir_obligatoire: z.boolean().default(false),
   duree_minutes: z.number().int().min(0).nullable().optional(),
   is_preview: z.boolean().default(false),
 });
@@ -134,7 +135,7 @@ export async function saveCourseContent(input: SaveCourseContentInput) {
       // « Devoir à faire » de la leçon (colonne migration 046) — écriture résiliente :
       // si la colonne n'existe pas encore, on ignore l'erreur (le reste du contenu est sauvé).
       if (lessonId) {
-        await admin.from("lessons").update({ devoir: l.devoir || null }).eq("id", lessonId);
+        await admin.from("lessons").update({ devoir: l.devoir || null, devoir_obligatoire: !!l.devoir_obligatoire }).eq("id", lessonId);
       }
     }
   }

@@ -6,13 +6,13 @@ type Admin = ReturnType<typeof createAdminClient>;
 export const DEFAULT_REQUIRED = 9;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 
-/** Ids des leçons d'un cours (via chapitres). */
-async function courseLessonIds(admin: Admin, courseId: string): Promise<string[]> {
+/** Leçons d'un cours (id + titre + obligatoire), via chapitres. */
+async function courseLessons(admin: Admin, courseId: string): Promise<{ id: string; titre: string; obligatoire: boolean }[]> {
   const { data } = await admin
     .from("lessons")
-    .select("id, chapters!inner(course_id)")
+    .select("id, titre, devoir_obligatoire, chapters!inner(course_id)")
     .eq("chapters.course_id", courseId);
-  return (data ?? []).map((l: { id: string }) => l.id);
+  return (data ?? []).map((l: any) => ({ id: l.id, titre: l.titre ?? "", obligatoire: !!l.devoir_obligatoire }));
 }
 
 export interface DiplomaProgress {
@@ -20,22 +20,42 @@ export interface DiplomaProgress {
   required: number;
   eligible: boolean;
   courseTitre: string;
+  /** Titres des leçons OBLIGATOIRES encore non validées (pour l'explication à l'élève). */
+  missingMandatory: string[];
 }
 
-/** Progression diplôme d'une élève pour un cours = nb de leçons avec un travail pratique approuvé. */
+/**
+ * Progression diplôme d'une élève pour un cours.
+ * Règle : si le cours a des leçons dont le devoir est marqué OBLIGATOIRE, le
+ * diplôme exige que TOUTES ces leçons obligatoires aient un travail pratique
+ * approuvé. Sinon (aucune leçon obligatoire), on retombe sur l'ancienne règle
+ * (nombre de pratiques approuvées ≥ diploma_practicals_required).
+ */
 export async function getDiplomaProgress(admin: Admin, userId: string, courseId: string): Promise<DiplomaProgress> {
   const { data: course } = await admin
     .from("courses").select("titre_fr, diploma_practicals_required").eq("id", courseId).maybeSingle();
-  const required = (course as { diploma_practicals_required?: number } | null)?.diploma_practicals_required ?? DEFAULT_REQUIRED;
   const courseTitre = (course as { titre_fr?: string } | null)?.titre_fr ?? "";
+  const fallbackRequired = (course as { diploma_practicals_required?: number } | null)?.diploma_practicals_required ?? DEFAULT_REQUIRED;
 
-  const lessonIds = await courseLessonIds(admin, courseId);
-  if (lessonIds.length === 0) return { approved: 0, required, eligible: false, courseTitre };
+  const lessons = await courseLessons(admin, courseId);
+  if (lessons.length === 0) return { approved: 0, required: fallbackRequired, eligible: false, courseTitre, missingMandatory: [] };
 
+  // Ensemble des leçons validées (travail pratique approuvé).
   const { data: pr } = await admin
-    .from("lesson_practicals").select("lesson_id").eq("user_id", userId).eq("status", "approved").in("lesson_id", lessonIds);
-  const approved = new Set((pr ?? []).map((p: { lesson_id: string }) => p.lesson_id)).size;
-  return { approved, required, eligible: approved >= required, courseTitre };
+    .from("lesson_practicals").select("lesson_id").eq("user_id", userId).eq("status", "approved")
+    .in("lesson_id", lessons.map((l) => l.id));
+  const approvedSet = new Set((pr ?? []).map((p: { lesson_id: string }) => p.lesson_id));
+
+  const mandatory = lessons.filter((l) => l.obligatoire);
+  if (mandatory.length > 0) {
+    const missingMandatory = mandatory.filter((l) => !approvedSet.has(l.id)).map((l) => l.titre);
+    const approved = mandatory.length - missingMandatory.length;
+    return { approved, required: mandatory.length, eligible: missingMandatory.length === 0, courseTitre, missingMandatory };
+  }
+
+  // Repli : ancienne règle par seuil.
+  const approved = approvedSet.size;
+  return { approved, required: fallbackRequired, eligible: approved >= fallbackRequired, courseTitre, missingMandatory: [] };
 }
 
 /** Cours auquel appartient une leçon. */
@@ -81,9 +101,16 @@ export async function handleApprovalProgress(admin: Admin, userId: string, lesso
     return;
   }
 
-  // Pas encore éligible : encouragements quand il reste peu
+  // Pas encore éligible.
   const remaining = prog.required - prog.approved;
-  if (remaining > 0 && remaining <= 3) {
+  if (prog.missingMandatory.length > 0) {
+    // Des devoirs OBLIGATOIRES manquent → diplôme en attente + explication précise.
+    const liste = prog.missingMandatory.slice(0, 5).map((t) => `« ${t} »`).join(", ");
+    const suite = prog.missingMandatory.length > 5 ? `, et ${prog.missingMandatory.length - 5} autre(s)` : "";
+    await notify(admin, userId,
+      "🎓 Diplôme en attente — devoir obligatoire",
+      `Votre diplôme de « ${prog.courseTitre} » reste en attente : il vous reste ${prog.missingMandatory.length} devoir(s) OBLIGATOIRE(S) à faire valider — ${liste}${suite}. Ces leçons sont requises pour débloquer le diplôme.`);
+  } else if (remaining > 0 && remaining <= 3) {
     await notify(admin, userId,
       remaining === 1 ? "Plus qu'un seul ! 🔥" : `Bravo, presque fini ! 🎉`,
       `Il vous reste ${remaining} travail/travaux pratique(s) à faire approuver pour débloquer votre diplôme de « ${prog.courseTitre} ».`);

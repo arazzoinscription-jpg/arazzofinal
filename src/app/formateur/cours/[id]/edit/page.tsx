@@ -45,11 +45,13 @@ export default async function EditCoursePage({ params }: { params: { id: string 
   // Lecture résiliente du « devoir » par leçon (colonne ajoutée par la migration 046).
   // Si la colonne n'existe pas encore, la requête échoue silencieusement → devoir vide.
   const devoirByLesson = new Map<string, string>();
+  const mandatoryByLesson = new Set<string>();
   const allLessonIds = (chapterRows ?? []).flatMap((ch: any) => ((ch.lessons as any[]) ?? []).map((l) => l.id));
   if (allLessonIds.length) {
-    const { data: devoirs } = await admin.from("lessons").select("id, devoir").in("id", allLessonIds);
-    for (const d of (devoirs as { id: string; devoir?: string | null }[] | null) ?? []) {
+    const { data: devoirs } = await admin.from("lessons").select("id, devoir, devoir_obligatoire").in("id", allLessonIds);
+    for (const d of (devoirs as { id: string; devoir?: string | null; devoir_obligatoire?: boolean | null }[] | null) ?? []) {
       if (d.devoir) devoirByLesson.set(d.id, d.devoir);
+      if (d.devoir_obligatoire) mandatoryByLesson.add(d.id);
     }
   }
 
@@ -74,6 +76,7 @@ export default async function EditCoursePage({ params }: { params: { id: string 
         titre: l.titre ?? "",
         video_url_bunny: l.video_url_bunny ?? "",
         devoir: devoirByLesson.get(l.id) ?? "",
+        devoir_obligatoire: mandatoryByLesson.has(l.id),
         duree_minutes: l.duree_minutes != null ? String(l.duree_minutes) : "",
         is_preview: !!l.is_preview,
       })),

@@ -66,9 +66,27 @@ export default async function DiplomePage() {
                 </div>
 
                 {!progress.eligible && !diploma && (
-                  <p className="text-sm text-gray-500 dark:text-white/50 font-dm mt-3">
-                    Plus que <strong>{progress.required - progress.approved}</strong> travaux pratiques approuvés pour débloquer votre diplôme 🎓
-                  </p>
+                  progress.missingMandatory.length > 0 ? (
+                    <div className="mt-3 rounded-xl bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 p-3">
+                      <p className="text-sm text-orange-800 dark:text-orange-300 font-dm">
+                        🎓 Diplôme <strong>en attente</strong> : {progress.missingMandatory.length} devoir(s) <strong>obligatoire(s)</strong> à faire valider.
+                      </p>
+                      <ul className="mt-2 space-y-1">
+                        {progress.missingMandatory.slice(0, 6).map((titre, k) => (
+                          <li key={k} className="text-xs text-orange-700/90 dark:text-orange-300/80 font-dm flex items-center gap-1.5">
+                            <span className="text-orange-500">★</span> {titre}
+                          </li>
+                        ))}
+                        {progress.missingMandatory.length > 6 && (
+                          <li className="text-xs text-orange-700/70 dark:text-orange-300/60 font-dm">… et {progress.missingMandatory.length - 6} autre(s)</li>
+                        )}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-white/50 font-dm mt-3">
+                      Plus que <strong>{progress.required - progress.approved}</strong> travaux pratiques approuvés pour débloquer votre diplôme 🎓
+                    </p>
+                  )
                 )}
 
                 {status === "eligible" && (
