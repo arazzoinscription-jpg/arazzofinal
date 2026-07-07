@@ -19,6 +19,10 @@ export function CtaSection({ lang = "fr" }: { lang?: Lang }) {
       <div className="max-w-5xl mx-auto px-4">
         <Reveal animation="zoom">
           <div className="relative bg-gradient-to-br from-violet-DEFAULT via-violet-600 to-violet-800 rounded-3xl p-10 md:p-16 overflow-hidden text-center shadow-glow">
+            {/* Photo d'atelier en fond (Nano Banana) + voile violet pour la lisibilité */}
+            <img aria-hidden src="/images/home/cta.jpg" alt="" loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover opacity-30 mix-blend-luminosity" />
+            <span aria-hidden className="absolute inset-0 bg-gradient-to-br from-violet-DEFAULT/80 via-violet-700/85 to-violet-900/90" />
             {/* Fond qui "respire" */}
             <motion.div
               aria-hidden
