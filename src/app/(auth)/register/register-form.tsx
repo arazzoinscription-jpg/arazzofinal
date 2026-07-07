@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { GraduationCap, Scissors, ArrowRight, ArrowLeft, Check, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -59,7 +58,6 @@ const PAYS = [
 
 export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
   const t = T[lang];
-  const router = useRouter();
 
   const initialType = ((): AccountType | null => {
     if (typeof window === "undefined") return null;
@@ -116,7 +114,10 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
 
     await mergeCartOnLogin().catch(() => {});
     const redirect = new URLSearchParams(window.location.search).get("redirect");
-    router.push(redirect && redirect.startsWith("/") ? redirect : "/dashboard");
+    const target = redirect && redirect.startsWith("/") ? redirect : "/dashboard";
+    // Navigation « dure » (rechargement) : garantit que le serveur reçoit la
+    // session fraîche → évite le gel en PWA après router.push().
+    window.location.assign(target);
   }
 
   const inputCls =

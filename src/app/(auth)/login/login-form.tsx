@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
@@ -46,7 +45,6 @@ const T = {
 
 export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
   const t = T[lang];
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
@@ -80,7 +78,12 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     await mergeCartOnLogin().catch(() => {});
 
     const redirect = new URLSearchParams(window.location.search).get("redirect");
-    router.push(redirect && redirect.startsWith("/") ? redirect : "/dashboard");
+    const target = redirect && redirect.startsWith("/") ? redirect : "/dashboard";
+    // Navigation « dure » (rechargement complet) plutôt que router.push() :
+    // garantit que le middleware/serveur reçoivent immédiatement les cookies de
+    // session fraîchement posés. Corrige le blocage en PWA où l'app restait figée
+    // après la saisie des identifiants jusqu'à une fermeture/réouverture.
+    window.location.assign(target);
   }
 
   async function handleMagicLink() {

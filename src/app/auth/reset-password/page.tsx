@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, Lock, ShieldCheck, AlertTriangle } from "lucide-react";
 
@@ -12,7 +11,6 @@ import { Loader2, Lock, ShieldCheck, AlertTriangle } from "lucide-react";
  * On lit donc le fragment manuellement et on pose la session via setSession().
  */
 export default function ResetPasswordPage() {
-  const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,8 +62,9 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (error) { setErr(error.message); return; }
-    router.push("/dashboard");
-    router.refresh();
+    // Navigation « dure » : le serveur voit tout de suite la session (évite le
+    // gel en PWA constaté après router.push()).
+    window.location.assign("/dashboard");
   }
 
   return (
