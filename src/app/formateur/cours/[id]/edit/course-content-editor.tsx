@@ -50,7 +50,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
 
   function addLesson(ci: number) {
     const next = [...chapters];
-    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", devoir: "Résumer le cours + dessiner le patron + vidéo de montage d'une pièce.", devoir_obligatoire: false, duree_minutes: "", is_preview: false }] };
+    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", devoir: "Résumé du cours + dessin du patron (s'il y en a un dans la leçon) + vidéo d'une pièce que vous avez cousue.\nتلخيص الدرس مع رسم الباترون إن وُجد في الدرس مع فيديو لقطعة قمت بخياطتها.", devoir_obligatoire: false, duree_minutes: "", is_preview: false }] };
     update(next);
   }
   function removeLesson(ci: number, li: number) {

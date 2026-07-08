@@ -23,12 +23,12 @@ export default async function PratiquesPage() {
   //    Les validés RESTENT visibles afin de pouvoir les partager sur le feed à tout moment.
   const { data: pendingSubs } = await admin
     .from("lesson_practicals")
-    .select("id, photo_url, video_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
+    .select("id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
     .in("status", ["submitted", "reviewed"])
     .order("created_at", { ascending: true });
   const { data: approvedSubs } = await admin
     .from("lesson_practicals")
-    .select("id, photo_url, video_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
+    .select("id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(120);
@@ -78,6 +78,7 @@ export default async function PratiquesPage() {
     id: s.id,
     photo_url: s.photo_url,
     video_url: s.video_url,
+    annotation_url: s.annotation_url ?? null,
     note: s.note,
     feedback: s.feedback,
     created_at: s.created_at,

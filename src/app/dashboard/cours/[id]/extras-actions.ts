@@ -197,6 +197,39 @@ export async function bulkDeletePracticals(ids: string[]) {
   return { ok: true, count: allowedIds.length };
 }
 
+/**
+ * Enregistre l'IMAGE ANNOTÉE d'un travail pratique (staff) : la photo de l'élève
+ * sur laquelle le formateur a dessiné ses remarques (façon Telegram). Reçoit un
+ * data URL (image/jpeg base64), l'upload sur Bunny et stocke l'URL.
+ */
+export async function savePracticalAnnotation(id: string, dataUrl: string) {
+  const c = await ctx();
+  if (!c || !c.isStaff) return { ok: false as const, error: "Accès refusé." };
+  if (!isPracticalsConfigured()) return { ok: false as const, error: "Stockage Bunny non configuré." };
+  const m = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
+  if (!m) return { ok: false as const, error: "Image d'annotation invalide." };
+
+  const buffer = Buffer.from(m[2], "base64");
+  if (buffer.byteLength > 10 * 1024 * 1024) return { ok: false as const, error: "Annotation trop lourde (max 10 Mo)." };
+
+  const admin = createAdminClient();
+  const { data: row } = await admin.from("lesson_practicals").select("lesson_id").eq("id", id).maybeSingle();
+  if (!row) return { ok: false as const, error: "Travail introuvable." };
+
+  try {
+    const path = `annotations/${id}/${crypto.randomUUID()}.jpg`;
+    const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    const url = await bunnyUpload(ab, path, "image/jpeg");
+    const { error } = await admin.from("lesson_practicals").update({ annotation_url: url }).eq("id", id);
+    if (error) return { ok: false as const, error: error.message };
+    revalidatePath(`/dashboard/cours/${row.lesson_id}`);
+    revalidatePath("/formateur/pratiques");
+    return { ok: true as const, url };
+  } catch (e) {
+    return { ok: false as const, error: (e as Error).message };
+  }
+}
+
 /** Retour de la formatrice sur un travail pratique (staff). */
 export async function setPracticalFeedback(id: string, feedback: string, status: "reviewed" | "approved") {
   const c = await ctx();

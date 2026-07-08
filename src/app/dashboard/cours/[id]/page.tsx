@@ -180,13 +180,13 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
   let pQuery = extrasAdmin
     .from("lesson_practicals")
-    .select("id, user_id, photo_url, video_url, note, feedback, status, created_at, author:users(nom)")
+    .select("id, user_id, photo_url, video_url, annotation_url, note, feedback, status, created_at, author:users(nom)")
     .eq("lesson_id", lesson.id)
     .order("created_at", { ascending: false });
   if (!canViewAllPracticals) pQuery = pQuery.eq("user_id", user.id);
   const { data: pRows } = await pQuery;
   const practicals: Practical[] = (pRows ?? []).map((p: any) => ({
-    id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, note: p.note,
+    id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, annotation_url: p.annotation_url ?? null, note: p.note,
     feedback: p.feedback, status: p.status, created_at: p.created_at, authorName: p.author?.nom ?? "Élève",
   }));
 

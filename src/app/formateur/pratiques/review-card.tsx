@@ -2,15 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, RotateCcw, Loader2, Clapperboard, Trash2 } from "lucide-react";
+import { Check, RotateCcw, Loader2, Clapperboard, Trash2, Pencil } from "lucide-react";
 import { setPracticalFeedback, deletePractical } from "@/app/dashboard/cours/[id]/extras-actions";
 import { sharePracticalToFeedAsStaff } from "@/app/actions/community";
 import { toast } from "@/components/ui/toast";
+import { ImageAnnotator } from "./image-annotator";
 
 export interface PracticalRow {
   id: string;
   photo_url: string | null;
   video_url: string | null;
+  annotation_url: string | null;
   note: string | null;
   feedback: string | null;
   created_at: string;
@@ -31,6 +33,7 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
   const [err, setErr] = useState("");
   const [approved, setApproved] = useState(defaultApproved); // validé → propose le partage
   const [shared, setShared] = useState(defaultShared);
+  const [annotating, setAnnotating] = useState(false);
   const isReviewed = row.status === "reviewed";
 
   function decide(status: "approved" | "reviewed") {
@@ -93,9 +96,21 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
       )}
 
       {row.photo_url && (
-        <a href={row.photo_url} target="_blank" rel="noreferrer">
-          <img src={row.photo_url} alt="Travail soumis" className="w-full max-h-72 object-contain rounded-xl border border-cream-200 dark:border-white/10 mb-3 bg-cream-50 dark:bg-white/5" />
-        </a>
+        <div className="mb-3">
+          <a href={row.annotation_url || row.photo_url} target="_blank" rel="noreferrer">
+            <img src={row.annotation_url || row.photo_url} alt="Travail soumis" className="w-full max-h-72 object-contain rounded-xl border border-cream-200 dark:border-white/10 bg-cream-50 dark:bg-white/5" />
+          </a>
+          <div className="flex items-center gap-3 mt-2">
+            <button onClick={() => setAnnotating(true)}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-700 dark:text-violet-300 hover:underline">
+              <Pencil size={14} /> {row.annotation_url ? "Modifier l'annotation" : "Annoter la photo (corriger)"}
+            </button>
+            {row.annotation_url && <span className="text-xs text-green-600 dark:text-green-400 font-semibold">✓ photo annotée</span>}
+          </div>
+        </div>
+      )}
+      {annotating && row.photo_url && (
+        <ImageAnnotator practicalId={row.id} imageUrl={row.photo_url} onClose={() => setAnnotating(false)} />
       )}
       {row.video_url && (
         <video src={row.video_url} controls className="w-full rounded-xl border border-cream-200 dark:border-white/10 mb-3" />

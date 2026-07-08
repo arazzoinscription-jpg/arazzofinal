@@ -14,6 +14,7 @@ export interface Practical {
   user_id: string;
   photo_url: string | null;
   video_url: string | null;
+  annotation_url: string | null;
   note: string | null;
   feedback: string | null;
   status: string;
@@ -212,6 +213,14 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
                 {s.photo_url && <a href={s.photo_url} target="_blank" rel="noreferrer"><img src={s.photo_url} alt="" className="w-28 h-28 object-cover rounded-lg border border-cream-200" /></a>}
                 {s.video_url && <video src={s.video_url} controls className="w-48 rounded-lg border border-cream-200" />}
               </div>
+              {s.annotation_url && (
+                <div className="mt-2">
+                  <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1">✏️ Photo annotée par la formatrice :</p>
+                  <a href={s.annotation_url} target="_blank" rel="noreferrer">
+                    <img src={s.annotation_url} alt="Correction annotée" className="w-full max-h-72 object-contain rounded-lg border-2 border-violet-200 dark:border-violet-500/30 bg-white" />
+                  </a>
+                </div>
+              )}
               {s.feedback && (
                 <div className="mt-2 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 p-2.5 text-sm text-violet-800 dark:text-violet-200">
                   <span className="font-semibold">Retour formatrice :</span> {s.feedback}
