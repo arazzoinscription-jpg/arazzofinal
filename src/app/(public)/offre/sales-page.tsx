@@ -1130,25 +1130,26 @@ function Inscription({
             {subOn && (
               <div>
                 <label className="block text-sm font-medium text-gray-600 dark:text-white/70 mb-2">{t.planChoose} *</label>
-                <div className="grid sm:grid-cols-2 gap-3">
+                {/* Cartes de PAIEMENT en VIOLET pour les distinguer des cartes de formation (orange). */}
+                <div className="grid grid-cols-2 gap-3">
                   <button type="button" onClick={() => setPlan("full")}
-                    className={`text-start rounded-2xl border-2 p-4 transition-all ${plan === "full" ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
+                    className={`text-start rounded-2xl border-2 p-4 transition-all ${plan === "full" ? "border-violet-DEFAULT bg-violet-50 dark:bg-violet-500/10 shadow-lg" : "border-violet-200/70 dark:border-white/10 hover:border-violet-400 bg-violet-50/30 dark:bg-white/[0.02]"}`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide bg-green-100 text-green-700 rounded-full px-2 py-0.5 dark:bg-green-500/15 dark:text-green-300">🎁 {t.planFullBadge}</span>
-                      {plan === "full" && <CheckCircle2 size={16} className="text-orange-DEFAULT" />}
+                      {plan === "full" && <CheckCircle2 size={16} className="text-violet-DEFAULT" />}
                     </div>
                     <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.planFull}</p>
-                    <p className="font-bold text-orange-600 mt-1 text-sm">{fmt(fullDiscDzd)}</p>
+                    <p className="font-bold text-violet-700 dark:text-violet-300 mt-1 text-sm">{fmt(fullDiscDzd)}</p>
                     <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5 leading-snug">{t.planFullHint}</p>
                   </button>
                   <button type="button" onClick={() => setPlan("installments")}
-                    className={`text-start rounded-2xl border-2 p-4 transition-all ${plan === "installments" ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 shadow-glow" : "border-cream-200 dark:border-white/10 hover:border-orange-300"}`}>
+                    className={`text-start rounded-2xl border-2 p-4 transition-all ${plan === "installments" ? "border-violet-DEFAULT bg-violet-50 dark:bg-violet-500/10 shadow-lg" : "border-violet-200/70 dark:border-white/10 hover:border-violet-400 bg-violet-50/30 dark:bg-white/[0.02]"}`}>
                     <div className="flex items-center justify-between mb-1">
                       <Wallet size={18} className="text-violet-600 dark:text-violet-300" />
-                      {plan === "installments" && <CheckCircle2 size={16} className="text-orange-DEFAULT" />}
+                      {plan === "installments" && <CheckCircle2 size={16} className="text-violet-DEFAULT" />}
                     </div>
                     <p className="font-semibold text-sm text-gray-900 dark:text-white">{t.planInstallments}</p>
-                    <p className="font-bold text-orange-600 mt-1 text-sm">{fmt(monthlyDzd)} {t.planPerMonth} × {subMonths}</p>
+                    <p className="font-bold text-violet-700 dark:text-violet-300 mt-1 text-sm">{fmt(monthlyDzd)} {t.planPerMonth} × {subMonths}</p>
                     <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5 leading-snug">{t.planInstallmentsHint}</p>
                   </button>
                 </div>
