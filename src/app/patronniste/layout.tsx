@@ -17,6 +17,7 @@ import { PRO_UI } from "@/components/pro/pro-data";
 import { AnimatedBackground } from "@/components/ui/animated-bg";
 import { isPatronniste, isAdmin } from "@/lib/roles";
 import { SpaceSwitcher } from "@/components/pro/space-switcher";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
 
 export default async function PatronnisteLayout({ children }: { children: React.ReactNode }) {
@@ -101,6 +102,7 @@ export default async function PatronnisteLayout({ children }: { children: React.
             </Link>
             <div className="flex-1" />
             <SpaceSwitcher role={profile?.role ?? null} roles={profile?.roles ?? []} current="patronniste" lang={lang} />
+            <NotificationBell userId={user.id} />
             <LangSwitcher current={lang} />
             <ThemeToggle />
           </div>
