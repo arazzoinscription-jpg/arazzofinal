@@ -27,7 +27,8 @@ self.addEventListener("push", (event) => {
     lang: "fr",
     dir: "auto",
     tag: data.tag || undefined,
-    renotify: Boolean(data.tag),
+    renotify: Boolean(data.tag) && !data.silent,
+    silent: Boolean(data.silent),
     data: { url: data.url || "/dashboard" },
   };
 

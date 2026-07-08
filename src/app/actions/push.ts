@@ -38,6 +38,17 @@ export async function savePushSubscription(sub: SubInput, userAgent?: string) {
   return { ok: true };
 }
 
+/** Active/désactive les notifications SILENCIEUSES (sans son ni vibration). */
+export async function setPushSilent(silent: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+  const admin = createAdminClient();
+  const { error } = await admin.from("users").update({ push_silent: !!silent }).eq("id", user.id);
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const, silent: !!silent };
+}
+
 /** Supprime l'abonnement push de l'appareil courant (désactivation). */
 export async function deletePushSubscription(endpoint: string) {
   const supabase = await createClient();

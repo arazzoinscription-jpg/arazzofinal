@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { setPushSilent } from "@/app/actions/push";
 
 type Notif = {
   id: string;
@@ -23,8 +24,23 @@ const ICONS: Record<string, string> = {
 export function NotificationBell({ userId }: { userId: string }) {
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
+  const [silent, setSilent] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+
+  // Préférence « notifications silencieuses ».
+  useEffect(() => {
+    supabase.from("users").select("push_silent").eq("id", userId).maybeSingle()
+      .then(({ data }) => { if (data) setSilent(!!(data as { push_silent?: boolean }).push_silent); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  async function toggleSilent() {
+    const next = !silent;
+    setSilent(next);
+    const res = await setPushSilent(next);
+    if (!res.ok) setSilent(!next);
+  }
 
   const unread = notifs.filter((n) => !n.read_at).length;
 
@@ -146,6 +162,17 @@ export function NotificationBell({ userId }: { userId: string }) {
               })
             )}
           </div>
+
+          {/* Réglage : notifications silencieuses (sans son ni vibration) */}
+          <button onClick={toggleSilent}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 border-t border-cream-100 hover:bg-cream-50 transition-colors">
+            <span className="flex items-center gap-2 text-sm text-gray-700 font-dm">
+              <span className="text-base">{silent ? "🔕" : "🔔"}</span> Notifications silencieuses
+            </span>
+            <span className={`relative w-10 h-6 rounded-full transition-colors ${silent ? "bg-violet-600" : "bg-cream-300"}`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${silent ? "start-[1.125rem]" : "start-0.5"}`} />
+            </span>
+          </button>
         </div>
       )}
     </div>

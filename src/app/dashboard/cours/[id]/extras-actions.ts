@@ -25,6 +25,25 @@ async function lessonCourse(admin: ReturnType<typeof createAdminClient>, lessonI
   return { courseId: (data.chapter as any)?.course_id as string | undefined, isPreview: !!data.is_preview };
 }
 
+/** Formateur propriétaire + titres, pour notifier lors d'une question / d'un travail. */
+async function courseOwner(admin: ReturnType<typeof createAdminClient>, lessonId: string) {
+  const { data: l } = await admin.from("lessons").select("titre, chapter:chapters(course_id)").eq("id", lessonId).maybeSingle();
+  const courseId = (l?.chapter as any)?.course_id as string | undefined;
+  if (!courseId) return null;
+  const { data: course } = await admin.from("courses").select("formateur_id, titre_fr").eq("id", courseId).maybeSingle();
+  return { formateurId: (course?.formateur_id as string | null) ?? null, courseTitre: course?.titre_fr ?? "", lessonTitre: (l as any)?.titre ?? "Leçon" };
+}
+
+/** Notifie le formateur du cours (in-app → push via webhook). Best-effort. */
+async function notifyFormateur(admin: ReturnType<typeof createAdminClient>, lessonId: string, studentId: string, title: string, body: string, link: string) {
+  try {
+    const owner = await courseOwner(admin, lessonId);
+    if (owner?.formateurId && owner.formateurId !== studentId) {
+      await admin.from("notifications").insert({ user_id: owner.formateurId, type: "reply", title, body: body.slice(0, 140) || null, link });
+    }
+  } catch { /* ne bloque jamais l'action élève */ }
+}
+
 async function hasAccess(admin: ReturnType<typeof createAdminClient>, userId: string, isStaff: boolean, lessonId: string) {
   const lc = await lessonCourse(admin, lessonId);
   if (!lc) return false;
@@ -48,6 +67,14 @@ export async function askQuestion(lessonId: string, content: string, parentId?: 
     lesson_id: lessonId, user_id: c.user.id, content: text, parent_id: parentId ?? null,
   });
   if (error) return { ok: false, error: error.message };
+
+  // Une question posée par une ÉLÈVE notifie le formateur du cours (push).
+  if (!c.isStaff) {
+    const { data: me } = await admin.from("users").select("nom").eq("id", c.user.id).maybeSingle();
+    await notifyFormateur(admin, lessonId, c.user.id,
+      `❓ Question de ${me?.nom ?? "une élève"}`, text, `/dashboard/cours/${lessonId}`);
+  }
+
   revalidatePath(`/dashboard/cours/${lessonId}`);
   return { ok: true };
 }
@@ -127,6 +154,14 @@ export async function recordPractical(lessonId: string, photoUrl: string | null,
       lesson_id: lessonId, user_id: c.user.id, photo_url: photoUrl, video_url: videoUrl, note: sanitizeText(note).slice(0, 1000) || null,
     });
     if (error) return { ok: false, error: error.message };
+
+    // Un travail pratique déposé par une ÉLÈVE notifie le formateur (push) → à corriger.
+    if (!c.isStaff) {
+      const { data: me } = await admin.from("users").select("nom").eq("id", c.user.id).maybeSingle();
+      await notifyFormateur(admin, lessonId, c.user.id,
+        `🪡 Nouveau travail de ${me?.nom ?? "une élève"}`, "Un travail pratique attend votre correction.", `/formateur/pratiques`);
+    }
+
     revalidatePath(`/dashboard/cours/${lessonId}`);
     return { ok: true };
   } catch (e) {
