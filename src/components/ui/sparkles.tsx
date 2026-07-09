@@ -3,6 +3,7 @@
 import { useEffect, useId, useState, type ComponentProps } from "react";
 import Particles, { initParticlesEngine } from "@tsparticles/react";
 import { loadSlim } from "@tsparticles/slim";
+import { useLiteMode } from "@/lib/use-lite-mode";
 
 type SparklesProps = {
   className?: string;
@@ -34,14 +35,17 @@ export function Sparkles({
   options = {},
 }: SparklesProps) {
   const [isReady, setIsReady] = useState(false);
+  // Mobile / faible CPU : on ne charge PAS le moteur de particules (très lourd).
+  const lite = useLiteMode();
 
   useEffect(() => {
+    if (lite) return;
     initParticlesEngine(async (engine) => {
       await loadSlim(engine);
     }).then(() => {
       setIsReady(true);
     });
-  }, []);
+  }, [lite]);
 
   const id = useId();
 
@@ -67,7 +71,7 @@ export function Sparkles({
     detectRetina: true,
   };
 
-  if (!isReady) return null;
+  if (lite || !isReady) return null;
   return (
     <Particles
       id={id}

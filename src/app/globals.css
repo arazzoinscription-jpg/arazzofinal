@@ -126,6 +126,12 @@ p {
 @media (prefers-reduced-motion: reduce) {
   .animate-blob { animation: none; }
 }
+/* Mobile / petit écran : on coupe l'animation des halos (repaint du flou très
+   coûteux pour le GPU des téléphones → navigation qui rame). Le fond reste
+   peint une seule fois. */
+@media (max-width: 820px) {
+  .animate-blob { animation: none; }
+}
 
 /* ── Bunny player ───────────────────────────────────────────── */
 .bunny-player-wrapper {

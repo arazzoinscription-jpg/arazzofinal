@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import { useLiteMode } from "@/lib/use-lite-mode";
 
 interface FlickeringGridProps extends React.HTMLAttributes<HTMLDivElement> {
   squareSize?: number;
@@ -35,6 +36,8 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInView, setIsInView] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  // Mobile / faible CPU / reduced-motion : on NE peint PAS le canvas animé.
+  const lite = useLiteMode();
 
   const memoizedColor = useMemo(() => {
     const toRGBA = (color: string) => {
@@ -179,6 +182,11 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
       intersectionObserver.disconnect();
     };
   }, [setupCanvas, updateSquares, drawGrid, width, height, isInView]);
+
+  // En mode léger : conteneur vide (aucun canvas → aucune boucle d'animation).
+  if (lite) {
+    return <div ref={containerRef} className={cn("h-full w-full", className)} {...props} />;
+  }
 
   return (
     <div

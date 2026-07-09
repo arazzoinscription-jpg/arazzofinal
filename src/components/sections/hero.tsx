@@ -173,7 +173,7 @@ export function HeroSection({ lang = "fr" }: { lang?: Lang }) {
             {/* Passe-partout */}
             <div className="relative rounded-[1.75rem] bg-cream-100 dark:bg-white/[0.04] p-3 ring-1 ring-violet-950/10 dark:ring-white/10 shadow-[0_34px_70px_-26px_rgba(43,18,69,0.55)]">
               <div className="relative overflow-hidden rounded-[1.25rem] aspect-[4/5]">
-                <video className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline preload="auto"
+                <video className="absolute inset-0 w-full h-full object-cover" autoPlay muted loop playsInline preload="metadata"
                   poster="/images/hero-modelisme-1.jpg" aria-hidden="true"
                   style={lang === "ar" ? { transform: "scaleX(-1)" } : undefined}>
                   <source src="/videos/hero-couture.mp4" type="video/mp4" />

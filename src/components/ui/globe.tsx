@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import createGlobe from "cobe";
+import { useLiteMode } from "@/lib/use-lite-mode";
 
 /** Villes-clés : Maghreb + diaspora francophone. */
 const MARKERS: { location: [number, number]; size: number }[] = [
@@ -23,8 +24,11 @@ export function Globe({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerMovement = useRef(0);
+  // Mobile / faible CPU : WebGL (cobe, 16000 échantillons) trop lourd → repli statique.
+  const lite = useLiteMode();
 
   useEffect(() => {
+    if (lite) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -61,7 +65,20 @@ export function Globe({ className = "" }: { className?: string }) {
 
     const t = setTimeout(() => { canvas.style.opacity = "1"; }, 0);
     return () => { clearTimeout(t); cancelAnimationFrame(raf); globe.destroy(); window.removeEventListener("resize", onResize); };
-  }, []);
+  }, [lite]);
+
+  // Repli léger (mobile) : sphère pointillée statique, sans WebGL ni animation.
+  if (lite) {
+    return (
+      <div className={`relative aspect-square w-full ${className}`} role="img" aria-label="Communauté Arazzo">
+        <div className="absolute inset-0 rounded-full shadow-2xl ring-1 ring-white/10"
+          style={{ backgroundImage: "radial-gradient(circle at 35% 30%, #6B4FD0, #2a1245 72%)" }} />
+        <div aria-hidden className="absolute inset-0 rounded-full opacity-30"
+          style={{ backgroundImage: "radial-gradient(rgba(255,255,255,.55) 1px, transparent 1px)", backgroundSize: "14px 14px" }} />
+        <div aria-hidden className="absolute left-1/2 top-1/3 w-2.5 h-2.5 -translate-x-1/2 rounded-full bg-orange-500 shadow-[0_0_10px_2px_rgba(254,114,35,.7)]" />
+      </div>
+    );
+  }
 
   return (
     <div className={`relative aspect-square w-full ${className}`}>
