@@ -1,6 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { brandedSiteUrl } from "@/lib/site-url";
 import { SessionForm } from "./session-form";
 import { DeleteSessionButton } from "./delete-button";
+import { GoLivePanel } from "./go-live-panel";
 
 export const metadata = { title: "Sessions live — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -11,6 +14,17 @@ export default async function FormateurSessionsPage() {
 
   const { data: courses } = await supabase
     .from("courses").select("id, titre_fr").eq("formateur_id", user!.id).order("titre_fr");
+
+  // Groupes disponibles + direct en cours (pour le panneau « Passer en direct »).
+  const admin = createAdminClient();
+  const { data: groups } = await admin.from("groups").select("id, name").order("name");
+  const { data: liveRow } = await admin
+    .from("live_sessions").select("id, titre, audience, access_token")
+    .eq("formateur_id", user!.id).eq("is_live", true)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const current = liveRow
+    ? { id: liveRow.id as string, titre: (liveRow.titre as string) ?? "Direct", audience: (liveRow.audience as string) ?? "public", shareUrl: `${brandedSiteUrl()}/live/${liveRow.access_token}` }
+    : null;
 
   const { data: sessions } = await supabase
     .from("live_sessions")
@@ -30,7 +44,12 @@ export default async function FormateurSessionsPage() {
     <div className="max-w-3xl">
       <div className="mb-8">
         <h1 className="font-playfair text-3xl font-bold text-gray-900">Sessions live</h1>
-        <p className="text-gray-500 mt-1 font-dm">Planifiez vos directs Zoom/Meet. Les étudiantes sont prévenues automatiquement (J-1, H-1).</p>
+        <p className="text-gray-500 mt-1 font-dm">Passez en direct maintenant, ou planifiez vos directs. Les étudiantes sont prévenues automatiquement.</p>
+      </div>
+
+      {/* Passer en direct MAINTENANT (YouTube/Facebook intégré + audience) */}
+      <div className="mb-10">
+        <GoLivePanel groups={groups ?? []} current={current} />
       </div>
 
       <SessionForm courses={courses ?? []} />
