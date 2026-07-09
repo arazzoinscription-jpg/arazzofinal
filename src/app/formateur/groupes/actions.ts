@@ -208,11 +208,15 @@ export async function searchStudents(query: string) {
   const q = query.trim();
   if (q.length < 2) return { ok: true, results: [] };
   const admin = createAdminClient();
+  // Multi-rôles : on cherche sur le TABLEAU `roles` (qui contient toujours 'eleve')
+  // au lieu de la colonne `role` (rôle principal) — sinon un élève inscrit dont le
+  // rôle principal a changé (ex. patronniste) n'apparaissait pas. Repli sur `role`
+  // pour les comptes non encore migrés.
   const { data } = await admin
     .from("users")
     .select("id, nom, email, avatar_url")
-    .eq("role", "eleve")
+    .or("roles.cs.{eleve},role.eq.eleve")
     .or(`nom.ilike.%${q}%,email.ilike.%${q}%`)
-    .limit(10);
+    .limit(20);
   return { ok: true, results: data ?? [] };
 }
