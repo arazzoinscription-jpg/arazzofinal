@@ -1,18 +1,14 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail } from "@/lib/email";
-import { tplContinueCourse, tplDoPractical } from "@/lib/email-templates";
 
 type Admin = ReturnType<typeof createAdminClient>;
 const DAY = 1000 * 60 * 60 * 24;
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 
 // Réglages (jours d'inactivité / d'attente avant relance)
 const CONTINUE_AFTER_DAYS = 3; // vidéo commencée mais laissée depuis 3 jours
 const PRACTICAL_AFTER_DAYS = 2; // leçon terminée depuis 2 jours sans travail envoyé
-const MAX_PER_RUN = 120;        // plafond d'emails par passage (Resend + durée cron)
+const MAX_PER_RUN = 300;        // plafond de relances par passage
 
-const firstName = (n: string | null | undefined) => (n || "").trim().split(/\s+/)[0] || "chère élève";
 const key = (u: string, l: string) => `${u}|${l}`;
 function chunk<T>(a: T[], n: number): T[][] { const o: T[][] = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; }
 
@@ -91,9 +87,14 @@ export async function runLearningReminders(admin: Admin) {
         const s = sInfo.get(c.u); const l = lInfo.get(c.l);
         if (!s || !l) continue;
         if (!(await claim(admin, c.u, c.l, "continue"))) continue; // déjà pris
-        const tpl = tplContinueCourse(firstName(s.nom), l.coursTitre, `${SITE}/dashboard/cours/${c.l}`);
-        const r = await sendEmail({ userId: c.u, to: s.email, category: tpl.category, subject: tpl.subject, html: tpl.html });
-        if (r.skipped) result.skipped++; else result.continue++;
+        // Notification uniquement (in-app + push via webhook) — plus d'email (quota).
+        await admin.from("notifications").insert({
+          user_id: c.u, type: "system",
+          title: "🎯 Continuez votre formation — vous y êtes presque !",
+          body: `Reprenez « ${l.coursTitre} » là où vous vous êtes arrêtée.`,
+          link: `/dashboard/cours/${c.l}`,
+        });
+        result.continue++;
         budget--;
       }
     }
@@ -128,9 +129,14 @@ export async function runLearningReminders(admin: Admin) {
           const s = sInfo.get(c.u); const l = lInfo.get(c.l);
           if (!s || !l) continue;
           if (!(await claim(admin, c.u, c.l, "practical"))) continue;
-          const tpl = tplDoPractical(firstName(s.nom), l.coursTitre, `${SITE}/dashboard/cours/${c.l}`);
-          const r = await sendEmail({ userId: c.u, to: s.email, category: tpl.category, subject: tpl.subject, html: tpl.html });
-          if (r.skipped) result.skipped++; else result.practical++;
+          // Notification uniquement (in-app + push via webhook) — plus d'email (quota).
+          await admin.from("notifications").insert({
+            user_id: c.u, type: "system",
+            title: "✂️ Envoyez votre travail pratique et gagnez des points",
+            body: `Leçon « ${l.titre} » terminée : envoyez votre travail pour « ${l.coursTitre} ».`,
+            link: `/dashboard/cours/${c.l}`,
+          });
+          result.practical++;
           budget--;
         }
       }
