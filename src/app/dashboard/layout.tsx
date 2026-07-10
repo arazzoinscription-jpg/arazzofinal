@@ -20,6 +20,8 @@ import { LangSwitcher } from "./lang-switcher";
 import { normLang, isRtl } from "./dash-i18n";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
 import { PwaBackButton } from "@/components/pwa/pwa-back-button";
+import { CelebrationListener } from "@/components/celebration/celebration-listener";
+import { PseudoPrompt } from "@/components/community/pseudo-prompt";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
@@ -68,7 +70,7 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("nom, role, roles, avatar_url")
+    .select("nom, role, roles, avatar_url, username")
     .eq("id", user.id)
     .single();
 
@@ -141,6 +143,9 @@ export default async function DashboardLayout({
       {/* Menu flottant unique (mêmes 5 entrées que le reste du site) + visite guidée 1er accès */}
       <MobileQuickNav />
       {role === "eleve" && <OnboardingTour lang={lang} />}
+      {/* Popup « Bravo » temps réel (diplôme obtenu) + invitation pseudo (1 fois) */}
+      <CelebrationListener />
+      {role === "eleve" && <PseudoPrompt hasUsername={!!profile?.username} />}
       <ChatWidget />
     </div>
   );

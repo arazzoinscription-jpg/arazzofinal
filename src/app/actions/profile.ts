@@ -105,3 +105,30 @@ async function doUpdate(formData: FormData) {
   revalidatePath("/communaute/profil");
   return { ok: true as const, avatarUrl };
 }
+
+/**
+ * Définit rapidement le PSEUDO communauté (popup d'onboarding). Sert à utiliser
+ * un pseudonyme au lieu du vrai nom dans la communauté.
+ */
+export async function setCommunityUsername(raw: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+
+  const username = String(raw ?? "").trim().replace(/^@/, "");
+  if (!USERNAME_RE.test(username)) {
+    return { ok: false as const, error: "Pseudo : 3 à 20 caractères (lettres, chiffres, _)." };
+  }
+  const admin = createAdminClient();
+  const { data: clash } = await admin
+    .from("users").select("id").ilike("username", username).neq("id", user.id).maybeSingle();
+  if (clash) return { ok: false as const, error: "Ce pseudo est déjà pris." };
+
+  const { error } = await admin.from("users").update({ username }).eq("id", user.id);
+  if (error) {
+    if ((error as any).code === "23505") return { ok: false as const, error: "Ce pseudo est déjà pris." };
+    return { ok: false as const, error: error.message };
+  }
+  revalidatePath("/communaute/profil");
+  return { ok: true as const, username };
+}
