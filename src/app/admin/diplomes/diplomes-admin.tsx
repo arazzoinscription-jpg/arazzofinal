@@ -23,6 +23,44 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
   const router = useRouter();
   const [busy, start] = useTransition();
 
+  // ── Sélection en masse pour l'export ──
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const allSelected = rows.length > 0 && selected.size === rows.length;
+  function toggleOne(id: string) {
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
+  }
+  /** Exporte UNIQUEMENT les diplômes cochés (mêmes colonnes que la feuille de livraison). */
+  function exportSelection() {
+    const picked = rows.filter((r) => selected.has(r.id));
+    if (!picked.length) { toast("Cochez au moins un diplôme à exporter.", "error"); return; }
+    const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const header = ["Nom", "Prénom", "Téléphone", "Wilaya", "Adresse exacte", "Formation", "N° diplôme", "Statut"];
+    const lines = [header.map(cell).join(";")];
+    for (const d of picked) {
+      const full = (d.fullName ?? "").trim();
+      const parts = full.split(/\s+/);
+      const prenom = parts.length > 1 ? parts[0] : "";
+      const nom = parts.length > 1 ? parts.slice(1).join(" ") : full;
+      lines.push([nom, prenom, d.phone ?? "", d.wilaya ?? "", d.address ?? "", d.course, d.numero ?? "", STATUS[d.status]?.label ?? d.status]
+        .map(cell).join(";"));
+    }
+    const csv = "﻿" + lines.join("\r\n"); // BOM UTF-8 pour Excel/arabe
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `diplomes-selection-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(`${picked.length} diplôme(s) exporté(s) ✅`, "success");
+  }
+
   // ── Génération manuelle ──
   const [q, setQ] = useState("");
   const [results, setResults] = useState<{ id: string; nom: string; email: string }[]>([]);
@@ -109,12 +147,27 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
         )}
       </div>
 
-      {/* ── Feuille de livraison ── */}
+      {/* ── Feuille de livraison + export de la sélection ── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="font-semibold text-gray-900 dark:text-white">Diplômes ({rows.length})</h2>
-        <a href="/api/diplomes/export-sheet" className="inline-flex items-center gap-1.5 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700">
-          <Download size={15} /> Exporter la feuille de livraison (CSV)
-        </a>
+        <div className="flex items-center gap-3">
+          <h2 className="font-semibold text-gray-900 dark:text-white">Diplômes ({rows.length})</h2>
+          {rows.length > 0 && (
+            <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-white/60 cursor-pointer select-none">
+              <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-violet-600 w-4 h-4" />
+              Tout sélectionner
+            </label>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* N'exporte QUE les diplômes cochés dans la liste ci-dessous */}
+          <button onClick={exportSelection} disabled={selected.size === 0}
+            className="inline-flex items-center gap-1.5 bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-800 disabled:opacity-40">
+            <Download size={15} /> Exporter la sélection ({selected.size})
+          </button>
+          <a href="/api/diplomes/export-sheet" className="inline-flex items-center gap-1.5 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700">
+            <Download size={15} /> Exporter tout (CSV)
+          </a>
+        </div>
       </div>
 
       {/* ── Liste ── */}
@@ -124,13 +177,18 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
         ) : rows.map((d) => {
           const st = STATUS[d.status] ?? { label: d.status, cls: "bg-gray-100 text-gray-600" };
           return (
-            <div key={d.id} className="rounded-2xl border border-cream-200 dark:border-white/10 bg-white dark:bg-white/[0.04] p-4">
+            <div key={d.id} className={`rounded-2xl border bg-white dark:bg-white/[0.04] p-4 ${selected.has(d.id) ? "border-violet-300 ring-1 ring-violet-200" : "border-cream-200 dark:border-white/10"}`}>
               <div className="flex items-start justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 dark:text-white">{d.fullName} <span className="text-xs text-gray-400 font-normal">· {d.course}</span></p>
-                  <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">
-                    {d.numero ?? "—"} · 📞 {d.phone ?? "?"} · {d.wilaya ?? "?"} · {d.address ?? "adresse ?"}
-                  </p>
+                <div className="min-w-0 flex items-start gap-3">
+                  <input type="checkbox" checked={selected.has(d.id)} onChange={() => toggleOne(d.id)}
+                    aria-label={`Sélectionner le diplôme de ${d.fullName}`}
+                    className="accent-violet-600 w-4 h-4 mt-1 shrink-0 cursor-pointer" />
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white">{d.fullName} <span className="text-xs text-gray-400 font-normal">· {d.course}</span></p>
+                    <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">
+                      {d.numero ?? "—"} · 📞 {d.phone ?? "?"} · {d.wilaya ?? "?"} · {d.address ?? "adresse ?"}
+                    </p>
+                  </div>
                 </div>
                 <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${st.cls}`}>{st.label}</span>
               </div>

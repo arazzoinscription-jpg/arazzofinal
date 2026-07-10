@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- Page de secours locale : l'app charge le site en ligne (capacitor.config.ts → server.url).
+     Cette page ne s'affiche que si la configuration serveur est absente. -->
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Arazzo Formation</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0d0a1c; color: #fff; font-family: Georgia, serif; }
+      .box { text-align: center; padding: 24px; }
+      a { color: #E07840; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>✂ Arazzo Formation</h1>
+      <p>Chargement… <br /><a href="https://www.formation-arazzo.store">www.formation-arazzo.store</a></p>
+      <script>location.replace("https://www.formation-arazzo.store");</script>
+    </div>
+  </body>
+</html>

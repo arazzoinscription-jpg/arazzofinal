@@ -41,7 +41,13 @@ eleves-sans-email.csv
 # Sauvegardes de données contenant des informations personnelles (PII) — jamais versionnées
 scripts/backup-*.json
 
-# Exports / données sources
-*.xml
+# Exports / données sources (racine uniquement — ne PAS ignorer les .xml
+# du projet Android : AndroidManifest.xml, res/…)
+/*.xml
 
 .vercel
+
+# Capacitor — clés de signature Android (JAMAIS versionnées, à sauvegarder à part)
+*.keystore
+*.jks
+android/keystore.properties

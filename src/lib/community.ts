@@ -75,7 +75,7 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
 export async function loadUserMedia(userId: string): Promise<{ me: { id: string } | null; items: CommunityItem[] }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { me: null, items: [] };
+  // Profil PUBLIC : consultable sans connexion (me = null pour un visiteur).
 
   const admin = createAdminClient();
   const { data: rows } = await admin
@@ -87,19 +87,22 @@ export async function loadUserMedia(userId: string): Promise<{ me: { id: string 
 
   const items = (rows ?? [])
     .filter((r: any) => r.post && (r.post.published ?? true))
-    .map((r: any) => mapRow(r, user.id));
+    .map((r: any) => mapRow(r, user?.id ?? ""));
 
-  return { me: { id: user.id }, items };
+  return { me: user ? { id: user.id } : null, items };
 }
 
 /** Nombre d'abonnés d'un membre + si l'utilisateur courant le suit. */
-export async function loadFollowInfo(targetId: string, meId: string) {
+export async function loadFollowInfo(targetId: string, meId: string | null) {
   const admin = createAdminClient();
   // Abonnés = qui suit la cible ; Abonnements = qui la cible suit.
+  // meId null/vide (visiteur) → on ne teste pas isFollowing (UUID requis par PostgREST).
   const [{ count: followers }, { count: following }, { data }] = await Promise.all([
     admin.from("follows").select("*", { count: "exact", head: true }).eq("following_id", targetId),
     admin.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", targetId),
-    admin.from("follows").select("follower_id").eq("follower_id", meId).eq("following_id", targetId).maybeSingle(),
+    meId
+      ? admin.from("follows").select("follower_id").eq("follower_id", meId).eq("following_id", targetId).maybeSingle()
+      : Promise.resolve({ data: null } as { data: null }),
   ]);
   return { followers: followers ?? 0, following: following ?? 0, isFollowing: !!data };
 }

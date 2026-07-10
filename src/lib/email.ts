@@ -24,6 +24,26 @@ interface SendArgs {
 export async function sendEmail({ userId, to, category, subject, html, force }: SendArgs) {
   const admin = createAdminClient();
 
+  // 0) Préférences ADMIN globales : catégorie désactivée dans /admin/preferences
+  //    → aucun envoi (sauf force = emails critiques). Résilient : si la colonne
+  //    email_categories n'existe pas (migration 069 non appliquée), tout passe.
+  if (!force) {
+    try {
+      const { data: cfg, error } = await admin
+        .from("platform_config").select("email_categories").eq("id", 1).maybeSingle();
+      if (!error) {
+        const cats = (cfg as { email_categories?: Record<string, boolean> } | null)?.email_categories ?? {};
+        if (cats[category] === false) {
+          await admin.from("email_log").insert({
+            user_id: userId ?? null, to_email: to, category, subject, status: "skipped",
+            error: "Catégorie désactivée par l'admin (Préférences)",
+          });
+          return { ok: false, skipped: true as const };
+        }
+      }
+    } catch { /* pré-migration 069 : on n'empêche pas l'envoi */ }
+  }
+
   // 1) Vérifier l'opt-out (sauf force)
   if (userId && !force) {
     const { data: prefs } = await admin

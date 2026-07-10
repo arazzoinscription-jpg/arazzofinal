@@ -19,6 +19,8 @@ interface Props {
   following: number;
   isMe: boolean;
   isFollowing: boolean;
+  /** Visiteur non connecté : le profil reste visible, les interactions invitent à se connecter. */
+  isGuest?: boolean;
   lang?: "fr" | "ar" | "en";
 }
 
@@ -38,7 +40,7 @@ type ModalKind = "followers" | "following" | "likes" | null;
 
 /** Carte de profil communauté — stats animées + bouton d'abonnement + listes cliquables. */
 export function CommunityProfileCard({
-  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, lang = "fr",
+  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, isGuest = false, lang = "fr",
 }: Props) {
   const ft = FOLLOW_T[lang];
   const [aLikes, setALikes] = useState(0);
@@ -84,6 +86,11 @@ export function CommunityProfileCard({
   }, [likes, posts]);
 
   function onFollow() {
+    if (isGuest) {
+      // Invitation à se connecter, sans bloquer la consultation du profil.
+      window.location.href = `/login?redirect=/communaute/u/${userId}`;
+      return;
+    }
     setFollowing((f) => !f);
     setFollowerCount((c) => c + (following ? -1 : 1));
     startTransition(async () => {

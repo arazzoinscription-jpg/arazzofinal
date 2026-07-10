@@ -261,9 +261,13 @@ export default async function LessonPage({ params }: { params: { id: string } })
             <div className="flex items-center flex-wrap gap-2.5 mb-2">
               <span className="w-9 h-9 rounded-xl bg-violet-DEFAULT/15 text-violet-700 flex items-center justify-center"><ClipboardList size={18} /></span>
               <h3 className="font-playfair text-xl font-bold text-gray-900">Devoir à faire — cette leçon</h3>
-              {(lesson as { devoir_obligatoire?: boolean | null }).devoir_obligatoire && (
+              {(lesson as { devoir_obligatoire?: boolean | null }).devoir_obligatoire ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full">
                   ★ Obligatoire pour le diplôme
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">
+                  Facultatif
                 </span>
               )}
             </div>

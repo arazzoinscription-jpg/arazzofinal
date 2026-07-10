@@ -12,8 +12,8 @@ export const metadata = { title: "Communauté — Arazzo" };
 export const dynamic = "force-dynamic";
 
 export default async function CommunautePage() {
-  // Feed accessible aux VISITEURS (sans inscription). L'invitation à s'inscrire
-  // est gérée côté client (popup toutes les 3 vidéos, blocage à la 10ᵉ).
+  // Feed 100 % PUBLIC (visiteurs inclus, sans limite ni blocage). Une invitation
+  // à se connecter, toujours refermable, est gérée côté client.
   const { me, items } = await loadCommunityFeed();
 
   let role = "guest";

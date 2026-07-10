@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail } from "@/lib/email";
-import { tplReactivation } from "@/lib/email-templates";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const DAY = 1000 * 60 * 60 * 24;
+
+// Textes des relances d'inactivité, envoyées en NOTIFICATION (cloche + push),
+// plus jamais par email.
+const REACTIVATION_NOTIF = {
+  reminder_7: {
+    title: "On ne vous a pas vue depuis 7 jours 🌸",
+    body: (nom: string) => `${nom}, votre atelier vous attend ! Reprenez là où vous vous êtes arrêtée, quelques minutes suffisent.`,
+  },
+  motivation_14: {
+    title: "Votre talent mérite que vous continuiez ✨",
+    body: (nom: string) => `${nom}, 2 semaines sans couture ? Chaque leçon vous rapproche de votre objectif. Offrez-vous 10 minutes aujourd'hui.`,
+  },
+  direct_30: {
+    title: "Reprenez exactement où vous étiez 🧵",
+    body: (nom: string) => `${nom}, votre dernière leçon vous attend. Un clic et c'est reparti !`,
+  },
+} as const;
 
 type Stage = "reminder_7" | "motivation_14" | "direct_30" | "notify_teacher_60";
 
@@ -101,7 +115,7 @@ export async function GET(req: NextRequest) {
       result.notify_teacher_60++;
     } else {
       // Lien : direct vers la dernière leçon au palier 30j, sinon dashboard
-      let lien = `${SITE}/dashboard`;
+      let lien = "/dashboard";
       if (stage === "direct_30") {
         const { data: last } = await admin
           .from("progress")
@@ -110,15 +124,20 @@ export async function GET(req: NextRequest) {
           .order("completed_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (last?.lesson_id) lien = `${SITE}/dashboard/cours/${last.lesson_id}`;
+        if (last?.lesson_id) lien = `/dashboard/cours/${last.lesson_id}`;
       }
-      const tpl = tplReactivation(prenom, stage, lien);
-      const res = await sendEmail({
-        userId: au.id, to: profile.email, category: "reactivation",
-        subject: tpl.subject, html: tpl.html,
+      // NOTIFICATION uniquement (in-app + push) — plus d'email de relance
+      // (décision utilisateur 2026-07-10 : « On ne vous a pas vue depuis 7 jours »
+      //  et consorts partent en notification, pas par email).
+      const notif = REACTIVATION_NOTIF[stage];
+      await admin.from("notifications").insert({
+        user_id: au.id,
+        type: "system",
+        title: notif.title,
+        body: notif.body(prenom),
+        link: lien,
       });
-      if (res.skipped) result.skipped++;
-      else result[stage]++;
+      result[stage]++;
     }
 
     // Journaliser le palier (évite tout renvoi)

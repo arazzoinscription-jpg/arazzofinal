@@ -649,6 +649,30 @@ export async function remindSubscriber(userId: string) {
   return { ok: true };
 }
 
+/**
+ * Fixe le taux de commission INDIVIDUEL d'un formateur (en %, 0–100).
+ * `rate = null` → retour au taux global. Réservé à l'admin. (Migration 068.)
+ */
+export async function setFormateurIndividualRate(userId: string, rate: number | null) {
+  const { ok, admin } = await requireAdmin();
+  if (!ok || !admin) return { ok: false, error: "Accès refusé." };
+  let value: number | null = null;
+  if (rate !== null && rate !== undefined && String(rate) !== "") {
+    const r = Number(rate);
+    if (!Number.isFinite(r) || r < 0 || r > 100) return { ok: false, error: "Taux invalide (0–100)." };
+    value = Math.round(r * 100) / 100;
+  }
+  const { error } = await admin.from("users").update({ formateur_commission_rate: value }).eq("id", userId);
+  if (error) {
+    const msg = /formateur_commission_rate/.test(error.message)
+      ? "Migration 068 non appliquée (colonne manquante) — lancez 068_formateur_rate_individuel.sql dans Supabase."
+      : error.message;
+    return { ok: false, error: msg };
+  }
+  revalidatePath("/admin/formateurs");
+  return { ok: true };
+}
+
 /** Fixe le taux de commission FORMATEUR (en %, 0–100). Réservé à l'admin. */
 export async function setFormateurCommissionRate(rate: number) {
   const r = Number(rate);

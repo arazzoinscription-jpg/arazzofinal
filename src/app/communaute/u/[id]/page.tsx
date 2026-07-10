@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { loadProfile, loadUserMedia, loadFollowInfo, loadStudentJourney, loadCreatorPortfolio } from "@/lib/community";
 import { normLang } from "@/lib/store-i18n";
@@ -15,16 +14,17 @@ export const dynamic = "force-dynamic";
 const ROLE_LABEL: Record<string, string> = { admin: "Arazzo", formateur: "Formatrice", patronniste: "Patronniste", eleve: "Membre" };
 
 export default async function CommunityProfilePage({ params }: { params: { id: string } }) {
+  // Profil PUBLIC : consultable par les visiteurs (me = null), qui sont invités
+  // à se connecter au moment d'interagir (bouton Suivre).
   const { me, items } = await loadUserMedia(params.id);
-  if (!me) redirect(`/login?redirect=/communaute/u/${params.id}`);
 
   const lang = normLang((await cookies()).get("lang")?.value) as "fr" | "ar" | "en";
   const profile = await loadProfile(params.id);
   const name = profile?.nom ?? "Membre";
-  const isMe = me.id === params.id;
+  const isMe = me?.id === params.id;
 
   const likes = items.reduce((s, i) => s + i.likeCount, 0);
-  const { followers, following, isFollowing } = await loadFollowInfo(params.id, me.id);
+  const { followers, following, isFollowing } = await loadFollowInfo(params.id, me?.id ?? null);
 
   // Créateur (formateur / patronniste / admin) → portfolio de ses créations.
   // Élève → parcours d'apprentissage.
@@ -40,7 +40,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           <Link href="/communaute" className="inline-flex items-center gap-1.5 text-white/70 hover:text-white text-sm">
             <ArrowLeft size={16} /> Retour au feed
           </Link>
-          {me.id === params.id && (
+          {isMe && (
             <Link href="/communaute/profil"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-300 hover:text-orange-200 border border-white/15 rounded-full px-3 py-1.5">
               <Pencil size={14} /> Éditer mon profil
@@ -61,6 +61,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           following={following}
           isMe={isMe}
           isFollowing={isFollowing}
+          isGuest={!me}
           lang={lang}
         />
 

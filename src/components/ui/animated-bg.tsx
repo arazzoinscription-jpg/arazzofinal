@@ -1,9 +1,27 @@
+"use client";
+
+import { useLiteMode } from "@/lib/use-lite-mode";
+
 /**
- * Fond animé clair : 3 halos dégradés flous qui dérivent lentement.
- * À placer comme premier enfant d'un conteneur `relative` (les espaces / le dashboard).
- * Purement décoratif, sans interaction, et désactivé si prefers-reduced-motion.
+ * Fond animé clair : halos dégradés flous qui dérivent lentement.
+ * À placer comme premier enfant d'un conteneur `relative`.
+ *
+ * ⚡ Sur mobile / faible CPU / prefers-reduced-motion (useLiteMode) : version
+ * ALLÉGÉE — 2 halos STATIQUES (aucune animation → pas de repaint GPU continu),
+ * ce qui évite la lenteur et les à-coups lors de la navigation sur téléphone.
  */
 export function AnimatedBackground() {
+  const lite = useLiteMode();
+
+  if (lite) {
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-40 -start-32 w-[30rem] h-[30rem] rounded-full bg-orange-200/25 dark:bg-orange-600/10 blur-2xl" />
+        <div className="absolute -bottom-48 end-1/4 w-[28rem] h-[28rem] rounded-full bg-violet-200/25 dark:bg-violet-700/10 blur-2xl" />
+      </div>
+    );
+  }
+
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       <div className="absolute -top-40 -start-32 w-[42rem] h-[42rem] rounded-full bg-orange-200/35 dark:bg-orange-600/10 blur-3xl animate-blob" />

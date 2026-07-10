@@ -18,6 +18,44 @@ export async function getFormateurCommissionRate(admin: Admin): Promise<number> 
 }
 
 /**
+ * Taux de commission effectif d'UN formateur : son taux individuel
+ * (users.formateur_commission_rate, réglé par l'admin — migration 068),
+ * sinon le taux global. Résilient : si la colonne n'existe pas encore,
+ * on retombe sur le taux global.
+ */
+export async function getFormateurRateFor(admin: Admin, formateurId: string): Promise<number> {
+  try {
+    const { data, error } = await admin
+      .from("users").select("formateur_commission_rate").eq("id", formateurId).maybeSingle();
+    if (!error) {
+      const r = Number((data as { formateur_commission_rate?: number | null } | null)?.formateur_commission_rate);
+      if (Number.isFinite(r)) return r;
+    }
+  } catch { /* colonne absente (migration 068 non appliquée) → taux global */ }
+  return getFormateurCommissionRate(admin);
+}
+
+/**
+ * Taux individuels d'un LOT de formateurs (Map id → taux|null). Résilient :
+ * Map vide si la colonne n'existe pas encore.
+ */
+export async function getFormateurRateOverrides(admin: Admin, ids: string[]): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (!ids.length) return map;
+  try {
+    const { data, error } = await admin
+      .from("users").select("id, formateur_commission_rate").in("id", ids);
+    if (!error) {
+      for (const u of (data ?? []) as { id: string; formateur_commission_rate?: number | null }[]) {
+        const r = Number(u.formateur_commission_rate);
+        if (Number.isFinite(r)) map.set(u.id, r);
+      }
+    }
+  } catch { /* migration 068 non appliquée */ }
+  return map;
+}
+
+/**
  * Date de départ des gains (YYYY-MM-DD) ou null. Les paiements ANTÉRIEURS à
  * cette date comptent 0 DA dans les calculs de gains / CA.
  */
@@ -147,7 +185,8 @@ export interface FormateurEarnings {
  * Gain net = montant payé × (1 − taux formateur). Calcul à la volée.
  */
 export async function getFormateurEarnings(admin: Admin, formateurId: string): Promise<FormateurEarnings> {
-  const rate = await getFormateurCommissionRate(admin);
+  // Taux effectif = taux individuel du formateur (réglé par l'admin) sinon global.
+  const rate = await getFormateurRateFor(admin, formateurId);
   const gainsStart = await getGainsStartDate(admin);
 
   const { data: courses } = await admin

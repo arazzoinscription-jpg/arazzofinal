@@ -1,9 +1,10 @@
 ﻿import Link from "next/link";
 import { GraduationCap, BookOpen, Users, MapPin } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getFormateurCommissionRate, netForPrice, getGainsStartDate, countsForGains } from "@/lib/commissions";
+import { getFormateurCommissionRate, getFormateurRateOverrides, netForPrice, getGainsStartDate, countsForGains } from "@/lib/commissions";
 import { CommissionForm } from "../patronnistes/commission-form";
 import { GainsDateForm } from "./gains-date-form";
+import { FormateurRateForm } from "./formateur-rate-form";
 
 export const metadata = { title: "Formateurs — Admin" };
 export const dynamic = "force-dynamic";
@@ -23,6 +24,9 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
   // Cours + inscrits + revenu (montant payé DZD) par formateur
   const rate = await getFormateurCommissionRate(admin);
   const gainsStart = await getGainsStartDate(admin);
+  // Taux individuels (migration 068) : le gain net de chaque formateur est
+  // calculé avec SON taux (sinon le taux global).
+  const overrides = await getFormateurRateOverrides(admin, (formateurs ?? []).map((f) => f.id));
   const { data: courses } = await admin.from("courses").select("formateur_id, enrollments(amount, currency, paid_at)");
   const nbCours = new Map<string, number>();
   const nbEleves = new Map<string, number>();
@@ -37,7 +41,7 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
     const grossDzd = enrs
       .filter((e) => e.currency !== "EUR" && countsForGains(e.paid_at, gainsStart))
       .reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    netByFormateur.set(fid, (netByFormateur.get(fid) ?? 0) + netForPrice(grossDzd, rate));
+    netByFormateur.set(fid, (netByFormateur.get(fid) ?? 0) + netForPrice(grossDzd, overrides.get(fid) ?? rate));
   }
 
   return (
@@ -75,7 +79,13 @@ export default async function AdminFormateursPage({ searchParams }: { searchPara
                   <span className="inline-flex items-center gap-1.5 text-violet-700 font-semibold"><BookOpen size={15} /> {nbCours.get(f.id) ?? 0} cours</span>
                   <span className="inline-flex items-center gap-1.5 text-gray-500"><Users size={15} /> {nbEleves.get(f.id) ?? 0} inscrits</span>
                 </div>
-                <p className="mt-2 text-sm"><span className="text-xs text-gray-400">Gains nets : </span><strong className="text-green-600">{(netByFormateur.get(f.id) ?? 0).toLocaleString("fr-DZ")} DA</strong></p>
+                <p className="mt-2 text-sm">
+                  <span className="text-xs text-gray-400">Gains nets : </span>
+                  <strong className="text-green-600">{(netByFormateur.get(f.id) ?? 0).toLocaleString("fr-DZ")} DA</strong>
+                  <span className="text-xs text-gray-400"> (taux {overrides.get(f.id) ?? rate}%{overrides.has(f.id) ? " — individuel" : ""})</span>
+                </p>
+                {/* Réglage du taux de gains PROPRE à ce formateur (vide = taux global) */}
+                <FormateurRateForm userId={f.id} current={overrides.get(f.id) ?? null} globalRate={rate} />
               </div>
             </div>
           ))}

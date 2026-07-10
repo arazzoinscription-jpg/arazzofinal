@@ -8,9 +8,16 @@
     "start": "next start",
     "lint": "next lint",
     "migrate:csv": "tsx scripts/import-csv-students.ts",
-    "migrate:courses": "tsx scripts/import-tutor-courses.ts"
+    "migrate:courses": "tsx scripts/import-tutor-courses.ts",
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@radix-ui/react-slot": "^1.2.5",
     "@react-pdf/renderer": "^4.5.1",
     "@stripe/stripe-js": "^4.0.0",

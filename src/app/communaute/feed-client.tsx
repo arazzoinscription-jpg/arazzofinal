@@ -23,17 +23,17 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
   const [muted, setMuted] = useState(true);
   const [commentPost, setCommentPost] = useState<string | null>(null);
   const [fbOpen, setFbOpen] = useState(false);
-  const [gate, setGate] = useState<null | "soft" | "hard">(null);
+  const [gate, setGate] = useState<null | "soft">(null);
 
-  // Visiteur non connecté : feed limité à 10 vidéos, invitation toutes les 3.
-  const shown = isGuest ? items.slice(0, 10) : items;
+  // Feed 100 % PUBLIC : les visiteurs voient tout, sans limite ni blocage.
+  // Une invitation à se connecter (toujours refermable) apparaît de temps en temps.
+  const shown = items;
 
   function activate(id: string) {
     setActiveId(id);
     if (!isGuest) return;
     const idx = shown.findIndex((x) => x.id === id);
-    if (idx >= 9) setGate("hard");                        // 10ᵉ vidéo → blocage
-    else if (idx >= 2 && (idx - 2) % 3 === 0) setGate("soft"); // 3ᵉ, 6ᵉ, 9ᵉ → invitation
+    if (idx >= 3 && (idx - 3) % 5 === 0) setGate("soft"); // 4ᵉ, 9ᵉ, 14ᵉ… → invitation douce
   }
 
   // Barre du haut : Retour · logo→site · dashboard · son + onglets bascule.
@@ -99,7 +99,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
 
       {fbOpen && <Portal><FacebookAddSheet onClose={() => setFbOpen(false)} /></Portal>}
 
-      {gate && <Portal><GuestGate kind={gate} onClose={() => setGate(null)} /></Portal>}
+      {gate && <Portal><GuestGate onClose={() => setGate(null)} /></Portal>}
     </div>
   );
 }
@@ -112,22 +112,19 @@ function Portal({ children }: { children: ReactNode }) {
   return createPortal(children, document.body);
 }
 
-/** Invitation à s'inscrire pour les visiteurs : douce (toutes les 3 vidéos) ou bloquante (10ᵉ vidéo). */
-function GuestGate({ kind, onClose }: { kind: "soft" | "hard"; onClose: () => void }) {
-  const hard = kind === "hard";
+/** Invitation à se connecter pour les visiteurs : douce et TOUJOURS refermable (le feed n'est jamais bloqué). */
+function GuestGate({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center sm:justify-center" onClick={hard ? undefined : onClose}>
-      <div className={`absolute inset-0 ${hard ? "bg-black/80 backdrop-blur-sm" : "bg-black/55"}`} />
+    <div className="fixed inset-0 z-[70] flex items-end sm:items-center sm:justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/55" />
       <div onClick={(e) => e.stopPropagation()}
         className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-6 pb-[max(24px,env(safe-area-inset-bottom))] text-center">
         <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-orange-DEFAULT text-white mb-4"><Scissors size={26} /></span>
         <h3 className="font-playfair text-2xl font-bold text-violet-950 mb-2">
-          {hard ? "Continue avec Arazzo" : "Rejoins la communauté Arazzo"}
+          Rejoins la communauté Arazzo
         </h3>
         <p className="text-gray-600 font-dm text-sm mb-5">
-          {hard
-            ? "Tu as parcouru l'aperçu gratuit. Connecte-toi pour continuer à regarder, commenter et publier."
-            : "Inscris-toi gratuitement pour profiter de patrons offerts, des cours de modélisme et de toute la communauté."}
+          Inscris-toi gratuitement pour aimer, commenter, publier tes travaux et profiter des cours de modélisme.
         </p>
         <div className="flex flex-col gap-2.5">
           <Link href="/register" className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-3 rounded-2xl font-bold hover:bg-orange-600 transition-colors">
@@ -136,9 +133,7 @@ function GuestGate({ kind, onClose }: { kind: "soft" | "hard"; onClose: () => vo
           <Link href="/login?redirect=/communaute" className="w-full inline-flex items-center justify-center gap-2 border-2 border-violet-200 text-violet-700 py-2.5 rounded-2xl font-semibold hover:bg-violet-50 transition-colors">
             J'ai déjà un compte
           </Link>
-          {!hard && (
-            <button onClick={onClose} className="text-sm text-gray-400 font-dm mt-1 hover:text-gray-600">Plus tard</button>
-          )}
+          <button onClick={onClose} className="text-sm text-gray-400 font-dm mt-1 hover:text-gray-600">Plus tard</button>
         </div>
       </div>
     </div>

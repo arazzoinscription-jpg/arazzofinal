@@ -3,7 +3,7 @@ import {
   Users, UsersRound, Newspaper, Megaphone, UserMinus, LifeBuoy, UserCog, UserPlus, UserSearch,
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
-  Settings, Mail, ScrollText, MessageCircle,
+  Settings, Mail, ScrollText, MessageCircle, SlidersHorizontal,
   Shapes, Ruler, Clapperboard, FileText,
   type LucideIcon,
 } from "lucide-react";
@@ -132,6 +132,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Système", ar: "النظام", en: "System" },
     items: [
       { href: "/admin/emails", icon: Mail, label: { fr: "Emails", ar: "الرسائل", en: "Emails" } },
+      { href: "/admin/preferences", icon: SlidersHorizontal, label: { fr: "Préférences", ar: "التفضيلات", en: "Preferences" } },
       { href: "/admin/whatsapp", icon: MessageCircle, label: { fr: "WhatsApp", ar: "واتساب", en: "WhatsApp" } },
       { href: "/admin/activite", icon: ScrollText, label: { fr: "Journal", ar: "السجلّ", en: "Activity log" } },
     ],
