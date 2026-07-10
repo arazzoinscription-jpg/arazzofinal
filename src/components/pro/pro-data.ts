@@ -117,6 +117,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
     items: [
       { href: "/admin/commandes", icon: Receipt, label: { fr: "Commandes", ar: "الطلبات", en: "Orders" } },
       { href: "/admin/livraison", icon: Package, label: { fr: "Livraison (التوصيل)", ar: "الدفع عند الاستلام", en: "Delivery (COD)" } },
+      { href: "/admin/diplomes", icon: GraduationCap, label: { fr: "Diplômes", ar: "الشهادات", en: "Diplomas" } },
       { href: "/admin/paiements", icon: CreditCard, label: { fr: "Paiements", ar: "المدفوعات", en: "Payments" } },
       { href: "/admin/preuves", icon: BadgeCheck, label: { fr: "Preuves", ar: "الإثباتات", en: "Proofs" } },
       { href: "/admin/coupons", icon: Ticket, label: { fr: "Coupons", ar: "الكوبونات", en: "Coupons" } },

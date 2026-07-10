@@ -117,6 +117,36 @@ export async function handleApprovalProgress(admin: Admin, userId: string, lesso
   }
 }
 
+/**
+ * Génération MANUELLE d'un diplôme par l'admin, indépendamment du seuil : crée le
+ * diplôme (statut eligible) s'il n'existe pas, notifie l'élève et envoie l'email CNI.
+ */
+export async function ensureDiploma(admin: Admin, userId: string, courseId: string): Promise<{ ok: boolean; created: boolean; error?: string }> {
+  const { data: course } = await admin.from("courses").select("titre_fr").eq("id", courseId).maybeSingle();
+  const courseTitre = (course as { titre_fr?: string } | null)?.titre_fr ?? "votre formation";
+
+  const { data: existing } = await admin.from("diplomas").select("id").eq("user_id", userId).eq("course_id", courseId).maybeSingle();
+  if (existing) return { ok: true, created: false };
+
+  const { data: u } = await admin.from("users").select("nom, email").eq("id", userId).maybeSingle();
+  const { error } = await admin.from("diplomas").insert({
+    user_id: userId, course_id: courseId, status: "eligible",
+    full_name: u?.nom ?? null, numero: `ARZ-${Date.now().toString(36).toUpperCase()}`,
+  });
+  if (error) return { ok: false, created: false, error: error.message };
+
+  await notify(admin, userId, "🎓 Diplôme débloqué !",
+    `Félicitations ! Envoyez votre CNI et votre adresse pour recevoir votre diplôme officiel de « ${courseTitre} ».`);
+  if (u?.email) {
+    try {
+      const html = diplomaCniEmail(u.nom ?? "chère élève", courseTitre);
+      await sendEmail({ userId, to: u.email, category: "welcome", force: true,
+        subject: "🎓 Votre diplôme Arazzo — dernière étape (CNI)", html });
+    } catch { /* l'email ne doit pas bloquer la création */ }
+  }
+  return { ok: true, created: true };
+}
+
 /** Email officiel demandant la CNI pour générer le diplôme physique. */
 function diplomaCniEmail(nom: string, courseTitre: string): string {
   const prenom = nom.split(" ")[0] || "chère élève";

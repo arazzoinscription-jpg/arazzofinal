@@ -11,18 +11,27 @@ export function CniUpload({ diplomaId }: { diplomaId: string }) {
   const router = useRouter();
   const ref = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [phone, setPhone] = useState("");
+  const [wilaya, setWilaya] = useState("");
+  const [address, setAddress] = useState("");
   const [pending, start] = useTransition();
 
   function submit() {
     if (!file) { toast("Choisissez une photo de votre CNI", "error"); return; }
+    if (!phone.trim() || !address.trim()) { toast("Téléphone et adresse requis pour la livraison.", "error"); return; }
     start(async () => {
       const fd = new FormData();
       fd.append("cni", file);
+      fd.append("phone", phone.trim());
+      fd.append("wilaya", wilaya.trim());
+      fd.append("address", address.trim());
       const res = await uploadCni(diplomaId, fd);
-      if (res.ok) { toast("CNI envoyée ✓ — votre diplôme sera généré après vérification.", "success"); router.refresh(); }
+      if (res.ok) { toast("CNI + adresse envoyées ✓ — votre diplôme sera généré et livré.", "success"); router.refresh(); }
       else toast(res.error ?? "Erreur", "error");
     });
   }
+
+  const inp = "w-full border border-gray-200 dark:border-white/15 bg-white dark:bg-white/5 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500";
 
   return (
     <div className="mt-4 rounded-xl border border-cream-200 dark:border-white/10 p-4 bg-white dark:bg-white/[0.04]">
@@ -30,8 +39,16 @@ export function CniUpload({ diplomaId }: { diplomaId: string }) {
         <IdCard size={16} className="text-violet-600" /> Envoyer ma CNI
       </div>
       <p className="text-xs text-gray-500 dark:text-white/50 mb-3">
-        Une photo de votre carte nationale d'identité pour vérifier vos informations et générer votre diplôme officiel (envoyé physiquement).
+        Une photo de votre CNI + vos coordonnées de livraison pour générer et vous <strong>envoyer</strong> votre diplôme officiel par société de livraison.
       </p>
+
+      {/* Coordonnées de livraison */}
+      <div className="grid sm:grid-cols-2 gap-2 mb-3">
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone *" dir="ltr" className={inp} />
+        <input value={wilaya} onChange={(e) => setWilaya(e.target.value)} placeholder="Wilaya" className={inp} />
+        <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Adresse exacte de livraison *" className={`${inp} sm:col-span-2`} />
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         <button type="button" onClick={() => ref.current?.click()} disabled={pending}

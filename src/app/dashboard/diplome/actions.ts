@@ -27,7 +27,12 @@ export async function uploadCni(diplomaId: string, formData: FormData) {
     const { error: upErr } = await admin.storage.from("proofs").upload(path, bytes, { contentType: file.type, upsert: false });
     if (upErr) return { ok: false as const, error: "Envoi échoué : " + upErr.message };
 
-    await admin.from("diplomas").update({ cni_path: path, status: "cni_uploaded", updated_at: new Date().toISOString() }).eq("id", diplomaId);
+    // Infos de livraison (pour l'export vers la société de livraison).
+    const str = (k: string) => { const v = String(formData.get(k) ?? "").trim(); return v ? v.slice(0, 300) : null; };
+    await admin.from("diplomas").update({
+      cni_path: path, status: "cni_uploaded", updated_at: new Date().toISOString(),
+      phone: str("phone"), wilaya: str("wilaya"), address: str("address"),
+    }).eq("id", diplomaId);
     revalidatePath("/dashboard/diplome");
     return { ok: true as const };
   } catch (e) {
