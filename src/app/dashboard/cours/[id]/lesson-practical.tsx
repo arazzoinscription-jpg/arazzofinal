@@ -209,18 +209,13 @@ export function LessonPractical({ lessonId, meId, isStaff, submissions }: { less
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_BADGE[s.status] ?? ""}`}>{STATUS_LABEL[s.status] ?? s.status}</span>
               </div>
               {s.note && <p className="text-sm text-gray-600 dark:text-white/70 mb-2">{s.note}</p>}
+              {s.annotation_url && (
+                <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1.5 inline-flex items-center gap-1">✏️ Photo corrigée par la formatrice</p>
+              )}
               <div className="flex flex-wrap gap-3 mb-2">
                 {s.photo_url && <a href={s.photo_url} target="_blank" rel="noreferrer"><img src={s.photo_url} alt="" className="w-28 h-28 object-cover rounded-lg border border-cream-200" /></a>}
                 {s.video_url && <video src={s.video_url} controls className="w-48 rounded-lg border border-cream-200" />}
               </div>
-              {s.annotation_url && (
-                <div className="mt-2">
-                  <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 mb-1">✏️ Photo annotée par la formatrice :</p>
-                  <a href={s.annotation_url} target="_blank" rel="noreferrer">
-                    <img src={s.annotation_url} alt="Correction annotée" className="w-full max-h-72 object-contain rounded-lg border-2 border-violet-200 dark:border-violet-500/30 bg-white" />
-                  </a>
-                </div>
-              )}
               {s.feedback && (
                 <div className="mt-2 rounded-lg bg-violet-50 dark:bg-violet-500/10 border border-violet-100 dark:border-violet-500/20 p-2.5 text-sm text-violet-800 dark:text-violet-200">
                   <span className="font-semibold">Retour formatrice :</span> {s.feedback}

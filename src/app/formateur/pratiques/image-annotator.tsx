@@ -42,7 +42,9 @@ export function ImageAnnotator({ practicalId, imageUrl, onClose }: { practicalId
       setReady(true);
     };
     img.onerror = () => toast("Impossible de charger l'image (CORS).", "error");
-    img.src = imageUrl;
+    // Cache-bust : force une requête CORS fraîche (évite un cache non-CORS qui
+    // « teinterait » le canvas et empêcherait l'export).
+    img.src = imageUrl + (imageUrl.includes("?") ? "&" : "?") + "_cb=" + Date.now();
   }, [imageUrl]);
 
   // Redessine à chaque changement (photo + tous les traits).

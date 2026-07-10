@@ -234,32 +234,55 @@ export async function bulkDeletePracticals(ids: string[]) {
 
 /**
  * Enregistre l'IMAGE ANNOTÉE d'un travail pratique (staff) : la photo de l'élève
- * sur laquelle le formateur a dessiné ses remarques (façon Telegram). Reçoit un
- * data URL (image/jpeg base64), l'upload sur Bunny et stocke l'URL.
+ * sur laquelle le formateur a dessiné ses remarques (façon Telegram).
+ *
+ * ⚠️ REMPLACE la photo d'origine EN PLACE dans Supabase Storage (bucket public
+ * `practicals`, le même où l'élève dépose ses photos) → aucun doublon, pas de
+ * saturation du stockage. Un paramètre `?v=` force l'affichage de la version à jour.
  */
 export async function savePracticalAnnotation(id: string, dataUrl: string) {
   const c = await ctx();
   if (!c || !c.isStaff) return { ok: false as const, error: "Accès refusé." };
-  if (!isPracticalsConfigured()) return { ok: false as const, error: "Stockage Bunny non configuré." };
   const m = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
   if (!m) return { ok: false as const, error: "Image d'annotation invalide." };
 
-  const buffer = Buffer.from(m[2], "base64");
-  if (buffer.byteLength > 10 * 1024 * 1024) return { ok: false as const, error: "Annotation trop lourde (max 10 Mo)." };
+  const bytes = Buffer.from(m[2], "base64");
+  if (bytes.byteLength > 10 * 1024 * 1024) return { ok: false as const, error: "Annotation trop lourde (max 10 Mo)." };
 
   const admin = createAdminClient();
-  const { data: row } = await admin.from("lesson_practicals").select("lesson_id").eq("id", id).maybeSingle();
+  const { data: row } = await admin.from("lesson_practicals").select("lesson_id, photo_url").eq("id", id).maybeSingle();
   if (!row) return { ok: false as const, error: "Travail introuvable." };
+  const photoUrl = (row.photo_url as string | null) ?? null;
+  if (!photoUrl) return { ok: false as const, error: "Ce travail n'a pas de photo à annoter." };
+
+  // Chemin du fichier dans le bucket Supabase `practicals`.
+  const MARKER = "/storage/v1/object/public/practicals/";
+  const clean = photoUrl.split("?")[0];
+  const idx = clean.indexOf(MARKER);
 
   try {
-    const path = `annotations/${id}/${crypto.randomUUID()}.jpg`;
-    const ab = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    const url = await bunnyUpload(ab, path, "image/jpeg");
-    const { error } = await admin.from("lesson_practicals").update({ annotation_url: url }).eq("id", id);
+    let baseUrl: string;
+    if (idx >= 0) {
+      // Écrase le fichier d'origine (upsert) → même URL, pas de doublon.
+      const path = decodeURIComponent(clean.slice(idx + MARKER.length));
+      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: true, contentType: "image/jpeg" });
+      if (upErr) return { ok: false as const, error: upErr.message };
+      baseUrl = admin.storage.from("practicals").getPublicUrl(path).data.publicUrl;
+    } else {
+      // Repli (photo hébergée ailleurs) : un seul nouvel objet dans `practicals`.
+      const path = `annotations/${id}/${crypto.randomUUID()}.jpg`;
+      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: false, contentType: "image/jpeg" });
+      if (upErr) return { ok: false as const, error: upErr.message };
+      baseUrl = admin.storage.from("practicals").getPublicUrl(path).data.publicUrl;
+    }
+    // Cache-bust pour forcer l'affichage de la version annotée. `annotation_url`
+    // sert de marqueur « corrigée » (même image que photo_url désormais).
+    const busted = `${baseUrl}?v=${Date.now()}`;
+    const { error } = await admin.from("lesson_practicals").update({ photo_url: busted, annotation_url: busted }).eq("id", id);
     if (error) return { ok: false as const, error: error.message };
     revalidatePath(`/dashboard/cours/${row.lesson_id}`);
     revalidatePath("/formateur/pratiques");
-    return { ok: true as const, url };
+    return { ok: true as const, url: busted };
   } catch (e) {
     return { ok: false as const, error: (e as Error).message };
   }
