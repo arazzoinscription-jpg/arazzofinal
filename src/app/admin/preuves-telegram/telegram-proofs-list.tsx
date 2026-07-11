@@ -2,9 +2,9 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, CheckCircle2, XCircle, Loader2, RotateCcw } from "lucide-react";
+import { FileText, CheckCircle2, XCircle, Loader2, RotateCcw, CreditCard, CalendarClock } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { getTelegramProofSignedUrl, setTelegramProofStatus } from "@/app/dashboard/telegram-proof-actions";
+import { getTelegramProofUrls, setTelegramProofStatus } from "@/app/dashboard/telegram-proof-actions";
 
 export interface TgProofRow {
   id: string;
@@ -12,6 +12,8 @@ export interface TgProofRow {
   note: string | null;
   createdAt: string;
   fileType: string | null;
+  paymentType: "total" | "abonnement";
+  photoCount: number;
   studentName: string;
   studentEmail: string;
   courses: string[];
@@ -23,13 +25,18 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   rejected: { label: "Rejetée", cls: "bg-red-100 text-red-700" },
 };
 
+const PAY: Record<string, { label: string; cls: string; Icon: typeof CreditCard }> = {
+  total: { label: "Paiement total", cls: "bg-orange-50 text-orange-700", Icon: CreditCard },
+  abonnement: { label: "Abonnement", cls: "bg-violet-50 text-violet-700", Icon: CalendarClock },
+};
+
 export function TelegramProofsList({ rows }: { rows: TgProofRow[] }) {
   const router = useRouter();
   const [busy, start] = useTransition();
 
   async function view(id: string) {
-    const r = await getTelegramProofSignedUrl(id);
-    if (r.ok) window.open(r.url, "_blank");
+    const r = await getTelegramProofUrls(id);
+    if (r.ok) r.urls.forEach((u) => window.open(u, "_blank"));
     else toast(r.error ?? "Erreur", "error");
   }
   function setStatus(id: string, status: "verified" | "rejected" | "received") {
@@ -61,12 +68,22 @@ export function TelegramProofsList({ rows }: { rows: TgProofRow[] }) {
                 </p>
                 {d.note && <p className="text-xs text-gray-400 mt-1 italic">« {d.note} »</p>}
               </div>
-              <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${st.cls}`}>{st.label}</span>
+              <div className="flex items-center gap-2 shrink-0">
+                {(() => {
+                  const pt = PAY[d.paymentType] ?? PAY.total;
+                  return (
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full ${pt.cls}`}>
+                      <pt.Icon size={12} /> {pt.label}{d.photoCount > 1 ? ` · ${d.photoCount} photos` : ""}
+                    </span>
+                  );
+                })()}
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${st.cls}`}>{st.label}</span>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-3">
               <button onClick={() => view(d.id)}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold bg-sky-50 text-sky-700 px-3 py-1.5 rounded-lg hover:bg-sky-100">
-                <FileText size={14} /> Voir la preuve
+                <FileText size={14} /> {d.photoCount > 1 ? `Voir les ${d.photoCount} photos` : "Voir la preuve"}
               </button>
               {d.status !== "verified" && (
                 <button onClick={() => setStatus(d.id, "verified")} disabled={busy}

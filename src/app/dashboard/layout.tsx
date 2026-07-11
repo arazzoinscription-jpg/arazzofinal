@@ -18,6 +18,8 @@ import { TopbarIcon } from "./topbar-icon";
 import { PageTransition } from "./page-transition";
 import { LangSwitcher } from "./lang-switcher";
 import { normLang, isRtl } from "./dash-i18n";
+import { TelegramProofPopup } from "./telegram-proof-popup";
+import { getTelegramProofState } from "./telegram-proof-actions";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
 import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 import { CelebrationListener } from "@/components/celebration/celebration-listener";
@@ -66,6 +68,17 @@ export default async function DashboardLayout({
   const acctStatus = (user.app_metadata?.status as string) ?? "actif";
   if (acctStatus === "bloque" || acctStatus === "veille") {
     return <SuspendedScreen status={acctStatus as "bloque" | "veille"} />;
+  }
+
+  // Étudiante importée (0 DA) sans preuve Telegram, au-delà de 7 jours → compte
+  // fermé jusqu'à l'envoi de la preuve finale (gate plein écran, non refermable).
+  const tgProof = await getTelegramProofState(user.id);
+  if (tgProof.blocked) {
+    return (
+      <div className="min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c]">
+        <TelegramProofPopup blocking />
+      </div>
+    );
   }
 
   const { data: profile } = await supabase

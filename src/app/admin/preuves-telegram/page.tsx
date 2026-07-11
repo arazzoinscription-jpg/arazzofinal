@@ -20,7 +20,7 @@ export default async function AdminTelegramProofsPage() {
   try {
     const { data: proofs } = await admin
       .from("telegram_payment_proofs")
-      .select("id, status, note, created_at, file_type, user:users(id, nom, email)")
+      .select("id, status, note, created_at, file_type, payment_type, file_paths, file_path, user:users(id, nom, email)")
       .order("created_at", { ascending: false });
 
     const userIds = [...new Set((proofs ?? []).map((p: any) => p.user?.id).filter(Boolean))];
@@ -45,6 +45,8 @@ export default async function AdminTelegramProofsPage() {
       note: p.note ?? null,
       createdAt: p.created_at,
       fileType: p.file_type ?? null,
+      paymentType: (p.payment_type ?? "total") as "total" | "abonnement",
+      photoCount: Array.isArray(p.file_paths) && p.file_paths.length ? p.file_paths.length : (p.file_path ? 1 : 0),
       studentName: p.user?.nom ?? "—",
       studentEmail: p.user?.email ?? "",
       courses: coursesByUser.get(p.user?.id) ?? [],
