@@ -1,10 +1,12 @@
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = {
   title: "À propos — Arazzo Formation",
-  description: "L'académie en ligne du Maghreb pour la couture, le modélisme et le patronage.",
+  description:
+    "Arazzo Formation, fondée par Noudjoud Mezaghcha : l'académie en ligne du Maghreb pour la couture, le modélisme et le patronage.",
 };
 
 export default function AProposPage() {
@@ -41,6 +43,65 @@ export default function AProposPage() {
               pour transmettre un savoir-faire artisanal d'exception — du
               premier point de couture jusqu'à la création de pièces haute couture.
             </p>
+          </div>
+
+          {/* Fondatrice */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 border border-cream-200 mb-8">
+            <div className="flex flex-col sm:flex-row gap-6 sm:gap-8 items-center sm:items-start">
+              <div className="shrink-0">
+                <div className="relative w-40 h-40 sm:w-48 sm:h-48 rounded-3xl overflow-hidden ring-4 ring-violet-100 shadow-lg">
+                  <Image
+                    src="/images/fondatrice.png"
+                    alt="Noudjoud Mezaghcha, fondatrice d'Arazzo Formation"
+                    fill
+                    sizes="192px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="text-center mt-3">
+                  <p className="font-playfair font-bold text-gray-900">Noudjoud Mezaghcha</p>
+                  <p className="text-sm text-violet-700 font-dm">Fondatrice &amp; formatrice</p>
+                </div>
+              </div>
+              <div className="flex-1">
+                <span className="inline-block text-xs font-bold uppercase tracking-wider text-orange-DEFAULT bg-orange-50 px-3 py-1 rounded-full mb-3">
+                  Le mot de la fondatrice
+                </span>
+                <h2 className="font-playfair text-2xl font-bold text-gray-900 mb-4">
+                  Entre le fil et le code
+                </h2>
+                <div className="space-y-4 text-gray-700 leading-relaxed font-dm">
+                  <p>
+                    Mon chemin m'a menée, à pas feutrés, vers ma place entre deux
+                    mondes : celui de la technologie, aux lignes précises, et celui
+                    de la couture, aux fils délicats. Avec le temps, j'ai compris que
+                    je n'avais pas à choisir — je pouvais appartenir aux deux à la fois.
+                  </p>
+                  <p>
+                    J'ai étudié l'ingénierie en informatique, et j'y ai découvert, en
+                    parallèle, ma véritable passion : le stylisme, là où la logique
+                    rencontre la créativité. De ce mélange est née ma marque,{" "}
+                    <strong>Arazzo</strong>, inspirée de mon prénom : « Noudjoud »
+                    signifie à l'origine <em>l'étoffe</em>, comme si le destin avait
+                    tissé mon chemin pour me révéler que le fil faisait partie de mon
+                    identité depuis le tout début.
+                  </p>
+                  <p>
+                    Convaincue que la créativité s'épanouit lorsqu'elle se partage,
+                    j'ai d'abord ouvert un centre de formation en présentiel, puis
+                    élargi ma vision à une plateforme numérique de formation à
+                    distance — pour que l'opportunité soit accessible à toutes,
+                    où qu'elles soient.
+                  </p>
+                  <p>
+                    Avec Arazzo, j'aspire à offrir une expérience unique qui mêle la
+                    technique et l'art, la modernité et l'authenticité, pour offrir aux
+                    passionnées de couture et de design un voyage différent, plein de
+                    passion et d'inspiration.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Valeurs */}

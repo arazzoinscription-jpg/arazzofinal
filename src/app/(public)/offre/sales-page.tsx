@@ -10,7 +10,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, UploadCloud, Trophy, Wallet, IdCard,
   Instagram, BadgeCheck, LayoutDashboard, MonitorPlay, Smartphone, GraduationCap,
   X, Check, PlayCircle, Lock, FileText, Award, Infinity as InfinityIcon, ShieldCheck, BarChart3, MapPin,
-  CreditCard, CalendarClock,
+  CreditCard, CalendarClock, ChevronDown, PencilRuler,
   type LucideIcon,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
@@ -25,6 +25,8 @@ import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 export type Level = "debutant" | "intermediaire" | "avance";
 export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; fullDiscount?: boolean; isPack?: boolean; detailSlug?: string | null; }
 export interface PayInfo { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string; }
+export interface ModelismeNiveau { name: string; courses: { id: string; titre: string; prixDzd: number; slug: string }[] }
+export interface ModelismeGroup { slug: string; title: string; image: string; niveaux: ModelismeNiveau[] }
 
 const LEVELS: Level[] = ["debutant", "intermediaire", "avance"];
 const levelIndex = (n: string) => { const i = LEVELS.indexOf(n as Level); return i < 0 ? 0 : i; };
@@ -91,7 +93,7 @@ function Section({ children, className = "" }: { children: React.ReactNode; clas
   );
 }
 
-export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCourseId = null }: { lang?: Lang; courses?: CourseOption[]; pay?: PayInfo | null; preselectCourseId?: string | null }) {
+export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCourseId = null, modelismeGroups = [] }: { lang?: Lang; courses?: CourseOption[]; pay?: PayInfo | null; preselectCourseId?: string | null; modelismeGroups?: ModelismeGroup[] }) {
   const t = OFFRE[lang];
 
   // État partagé Quiz → Parcours → Inscription
@@ -128,6 +130,9 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
       <Navbar lang={lang} solid />
       <Hero lang={lang} />
       <Why lang={lang} />
+      {modelismeGroups.length > 0 && (
+        <ModelismeFormations lang={lang} groups={modelismeGroups} onEnroll={(cid) => enroll(null, cid)} />
+      )}
       <Paths lang={lang} courses={courses} onEnroll={(cid) => enroll(null, cid)} onFiche={setFicheId} onPackFiche={setPackFicheId} />
       {/* « Réserve ta place » placée juste après « Choisis ton parcours ». */}
       {courses.length > 0 && (
@@ -158,6 +163,109 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
         © {new Date().getFullYear()} Arazzo Formation — {t.hero.eyebrow}
       </footer>
     </div>
+  );
+}
+
+/* ── Organisation Modélisme : 3 cartes Femme / Homme / Enfants ───────────── */
+const MODELISME_T = {
+  fr: { badge: "Modélisme", title: "3 parcours, pour qui créez-vous ?", sub: "Choisissez votre spécialité — femme, homme ou enfants — puis découvrez les niveaux disponibles.", levels: (n: number) => `${n} niveau${n > 1 ? "x" : ""} en vente`, soon: "Bientôt disponible", see: "Voir les niveaux", enroll: "S'inscrire", from: "" },
+  ar: { badge: "المودلیزم", title: "3 مسارات، لمن تصمّمين؟", sub: "اختاري تخصّصك — نساء، رجال أو أطفال — ثم اكتشفي المستويات المتاحة.", levels: (n: number) => `${n} مستوى متاح`, soon: "قريبًا", see: "عرض المستويات", enroll: "سجّلي", from: "" },
+  en: { badge: "Patternmaking", title: "3 tracks — who are you creating for?", sub: "Pick your specialty — women, men or children — then explore the available levels.", levels: (n: number) => `${n} level${n > 1 ? "s" : ""} on sale`, soon: "Coming soon", see: "See levels", enroll: "Enroll", from: "" },
+} as const;
+
+function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: ModelismeGroup[]; onEnroll: (courseId: string) => void }) {
+  const t = MODELISME_T[lang] ?? MODELISME_T.fr;
+  const [active, setActive] = useState<string | null>(null);
+  const fmt = (n: number) => `${Number(n).toLocaleString(lang === "ar" ? "ar-DZ" : "fr-DZ")} DA`;
+
+  return (
+    <Section className="bg-cream-DEFAULT dark:bg-[#0b0818]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10">
+          <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400 mb-3">
+            <PencilRuler size={15} /> {t.badge}
+          </span>
+          <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-violet-950 dark:text-white">{t.title}</h2>
+          <p className="text-violet-950/60 dark:text-white/60 font-dm mt-3 max-w-xl mx-auto">{t.sub}</p>
+        </div>
+
+        {/* 3 cartes */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {groups.map((g) => {
+            const nb = g.niveaux.length;
+            const isActive = active === g.slug;
+            return (
+              <button
+                key={g.slug}
+                onClick={() => setActive(isActive ? null : g.slug)}
+                aria-expanded={isActive}
+                className={`group relative text-start rounded-3xl overflow-hidden ring-1 transition-all duration-300 ${
+                  isActive ? "ring-2 ring-orange-DEFAULT shadow-2xl -translate-y-1" : "ring-violet-950/10 dark:ring-white/10 hover:-translate-y-1 hover:shadow-xl"
+                }`}
+              >
+                <div className="relative aspect-[4/5]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g.image} alt={g.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-violet-950/85 via-violet-950/25 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5">
+                    <h3 className="font-playfair text-2xl font-bold text-white">{g.title}</h3>
+                    <p className="text-white/80 text-sm font-dm mt-1">{nb > 0 ? t.levels(nb) : t.soon}</p>
+                    <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
+                      {t.see} <ChevronDown size={15} className={`transition-transform ${isActive ? "rotate-180" : ""}`} />
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Panneau des niveaux du groupe sélectionné */}
+        <AnimatePresence initial={false}>
+          {active && (() => {
+            const g = groups.find((x) => x.slug === active);
+            if (!g) return null;
+            return (
+              <motion.div key={g.slug} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
+                <div className="mt-6 rounded-3xl border border-violet-950/10 dark:border-white/10 bg-white dark:bg-white/[0.04] p-5 sm:p-7">
+                  <h3 className="font-playfair text-2xl font-bold text-violet-950 dark:text-white mb-5 flex items-center gap-2">
+                    <GraduationCap size={22} className="text-orange-DEFAULT" /> {g.title}
+                  </h3>
+                  {g.niveaux.length === 0 ? (
+                    <p className="text-violet-950/60 dark:text-white/60 font-dm py-6 text-center">{t.soon} ✂️</p>
+                  ) : (
+                    <div className="space-y-6">
+                      {g.niveaux.map((n) => (
+                        <div key={n.name}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-orange-600 dark:text-orange-400 whitespace-nowrap">{n.name}</span>
+                            <span className="h-px flex-1 bg-violet-950/10 dark:bg-white/10" />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {n.courses.map((c) => (
+                              <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-violet-950/10 dark:border-white/10 bg-cream-50 dark:bg-white/[0.03] p-4">
+                                <div className="min-w-0">
+                                  <p className="font-semibold text-violet-950 dark:text-white truncate">{c.titre}</p>
+                                  {c.prixDzd > 0 && <p className="text-sm text-orange-600 dark:text-orange-400 font-dm mt-0.5">{fmt(c.prixDzd)}</p>}
+                                </div>
+                                <button onClick={() => onEnroll(c.id)}
+                                  className="shrink-0 inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors">
+                                  {t.enroll} <ArrowRight size={15} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })()}
+        </AnimatePresence>
+      </div>
+    </Section>
   );
 }
 

@@ -5,6 +5,8 @@ import { DICT, normLang } from "./dash-i18n";
 import { RoleRequestCTA } from "./role-request/cta";
 import { BuyerHome } from "./buyer-home";
 import { CommunityGlobe } from "./community-globe";
+import { TelegramProofPopup } from "./telegram-proof-popup";
+import { getTelegramProofState } from "./telegram-proof-actions";
 import {
   Reveal, StaggerGroup, StaggerItem, StaggerLink, CtaLink, AnimatedBadge, HoverTile, Counter,
 } from "./anim";
@@ -89,12 +91,18 @@ export default async function DashboardPage() {
   const lang = normLang((await cookies()).get("lang")?.value);
   const t = DICT[lang];
 
+  // Étudiante importée (inscription 0 DA) sans preuve Telegram → popup obligatoire.
+  const tgProof = await getTelegramProofState(user!.id);
+
   // Styles réutilisés — surface « atelier » (clair / sombre)
   const card = "bg-white dark:bg-white/[0.04] ring-1 ring-violet-950/[0.07] dark:ring-white/10 shadow-[0_14px_34px_-22px_rgba(43,18,69,0.32)] dark:shadow-none";
   const muted = "text-violet-950/55 dark:text-white/50";
 
   return (
     <div className="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-4 sm:-mt-6 lg:-mt-8 -mb-4 sm:-mb-6 lg:-mb-8 px-4 sm:px-5 lg:px-8 py-7 min-h-[calc(100vh-4rem)] bg-cream-DEFAULT text-violet-950 dark:bg-[#0d0a1c] dark:text-white">
+      {/* Popup preuve de paiement Telegram (étudiantes importées, inscription 0 DA) */}
+      {tgProof.isImported && !tgProof.hasProof && <TelegramProofPopup />}
+
       {/* Texture papier à patron */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-0 opacity-70 dark:opacity-100"
         style={{

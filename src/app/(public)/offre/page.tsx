@@ -1,7 +1,15 @@
 import { cookies } from "next/headers";
-import { SalesPage, type CourseOption, type PayInfo } from "./sales-page";
+import { SalesPage, type CourseOption, type PayInfo, type ModelismeGroup } from "./sales-page";
 import { normLang, isRtl } from "./offre-i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+// Les 3 grandes formations de Modélisme présentées en cartes sur l'offre.
+// (slug de la catégorie racine → titre affiché + photo « Nano Banana »).
+const MODELISME_CARDS: { slug: string; title: string; image: string }[] = [
+  { slug: "modelisme-femme", title: "Modélisme Femme", image: "/images/offre-modelisme-femme.jpg" },
+  { slug: "modelisme-homme", title: "Modélisme Homme", image: "/images/offre-modelisme-homme.jpg" },
+  { slug: "modelisme-enfants", title: "Modélisme Enfants", image: "/images/offre-modelisme-enfants.jpg" },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +41,49 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
     durationMonths: (c as { duration_months?: number | null }).duration_months ?? null,
     fullDiscount: (c as { full_payment_discount?: boolean }).full_payment_discount !== false,
   }));
+
+  // ── Organisation « Modélisme » : 3 cartes (Femme / Homme / Enfants) → niveaux ──
+  // Chaque niveau liste les formations EN VENTE (publiées + visible_inscription)
+  // que l'admin y a rangées via la page Catégorie. Lecture résiliente.
+  const modelismeGroups: ModelismeGroup[] = [];
+  try {
+    const optById = new Map(options.map((o) => [o.id, o]));
+    const { data: cats } = await admin
+      .from("categories").select("id, parent_id, name_fr, slug, ordre").order("ordre", { ascending: true });
+    const all = cats ?? [];
+    const niveauIds: string[] = [];
+    const niveauxByGroup = new Map<string, { id: string; name: string }[]>();
+    for (const card of MODELISME_CARDS) {
+      const root = all.find((c) => c.slug === card.slug);
+      if (!root) continue;
+      const niveaux = all.filter((c) => c.parent_id === root.id).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
+      niveauxByGroup.set(card.slug, niveaux.map((n) => ({ id: n.id, name: n.name_fr ?? "Niveau" })));
+      niveauIds.push(...niveaux.map((n) => n.id));
+    }
+
+    // course_id ↔ category_id, restreint aux niveaux de modélisme concernés.
+    const linksByCat = new Map<string, string[]>();
+    if (niveauIds.length) {
+      const { data: cc } = await admin
+        .from("course_categories").select("course_id, category_id").in("category_id", niveauIds);
+      for (const r of cc ?? []) {
+        if (!linksByCat.has(r.category_id)) linksByCat.set(r.category_id, []);
+        linksByCat.get(r.category_id)!.push(r.course_id);
+      }
+    }
+
+    for (const card of MODELISME_CARDS) {
+      const niveaux = (niveauxByGroup.get(card.slug) ?? []).map((n) => {
+        const courseIds = linksByCat.get(n.id) ?? [];
+        const courses = courseIds
+          .map((id) => optById.get(id))
+          .filter((o): o is CourseOption => !!o)
+          .map((o) => ({ id: o.id, titre: o.titre, prixDzd: o.prixDzd, slug: o.slug }));
+        return { name: n.name, courses };
+      }).filter((n) => n.courses.length > 0); // on n'affiche que les niveaux avec des formations en vente
+      modelismeGroups.push({ slug: card.slug, title: card.title, image: card.image, niveaux });
+    }
+  } catch { /* taxonomie absente : pas de cartes modélisme */ }
 
   // Packs proposés en abonnement (publiés + mode abonnement). Lecture résiliente :
   // si la migration 047 n'est pas appliquée, la requête échoue → aucun pack ajouté.
@@ -76,7 +127,7 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"}>
-      <SalesPage lang={lang} courses={options} pay={pay} preselectCourseId={preselectCourseId} />
+      <SalesPage lang={lang} courses={options} pay={pay} preselectCourseId={preselectCourseId} modelismeGroups={modelismeGroups} />
     </div>
   );
 }

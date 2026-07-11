@@ -6,8 +6,8 @@ import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
 import { ArrowDown, Scissors } from "lucide-react";
 
 const PHOTOS = [
-  { src: "/images/hero-modelisme-2.jpg", alt: "Atelier de modélisme : tracé d'un patron sur la table de coupe" },
-  { src: "/images/cours-modelisme11-feminin.jpg", alt: "Cours de couture féminine en atelier" },
+  { src: "/images/formations-hero-1.jpg", alt: "Couturière traçant un patron sur la table de coupe en atelier" },
+  { src: "/images/formations-hero-2.jpg", alt: "Machine à coudre, bobines de fil et tissus dans un atelier de couture" },
 ];
 
 /**
