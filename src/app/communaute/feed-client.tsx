@@ -24,6 +24,10 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
   const [commentPost, setCommentPost] = useState<string | null>(null);
   const [fbOpen, setFbOpen] = useState(false);
   const [gate, setGate] = useState<null | "soft">(null);
+  // Slides ayant déjà déclenché l'invitation : évite qu'elle se rouvre en boucle
+  // (l'IntersectionObserver rappelle onActive plusieurs fois pour la même slide,
+  //  ce qui rouvrait le popup juste après « Plus tard »).
+  const promptedRef = useRef<Set<number>>(new Set());
 
   // Feed 100 % PUBLIC : les visiteurs voient tout, sans limite ni blocage.
   // Une invitation à se connecter (toujours refermable) apparaît de temps en temps.
@@ -33,7 +37,11 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
     setActiveId(id);
     if (!isGuest) return;
     const idx = shown.findIndex((x) => x.id === id);
-    if (idx >= 3 && (idx - 3) % 5 === 0) setGate("soft"); // 4ᵉ, 9ᵉ, 14ᵉ… → invitation douce
+    // 4ᵉ, 9ᵉ, 14ᵉ… slide → invitation douce, UNE seule fois par slide.
+    if (idx >= 3 && (idx - 3) % 5 === 0 && !promptedRef.current.has(idx)) {
+      promptedRef.current.add(idx);
+      setGate("soft");
+    }
   }
 
   // Barre du haut : Retour · logo→site · dashboard · son + onglets bascule.
