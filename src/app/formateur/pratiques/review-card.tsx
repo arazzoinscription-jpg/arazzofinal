@@ -45,8 +45,12 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
     startTransition(async () => {
       const res = await setPracticalFeedback(row.id, feedback.trim(), status);
       if (res.ok) {
-        if (status === "approved") { toast("Travail validé ✅", "success"); setApproved(true); }
-        else { toast("Retour envoyé à l'élève — à retravailler ↩️", "success"); router.refresh(); }
+        if (status === "approved") {
+          // Validé → l'item quitte « À corriger » et rejoint « À partager sur le feed ».
+          toast("Travail validé ✅ — déplacé vers « À partager sur le feed »", "success");
+          setApproved(true);
+          router.refresh();
+        } else { toast("Retour envoyé à l'élève — à retravailler ↩️", "success"); router.refresh(); }
       } else {
         toast(res.error ?? "Erreur", "error");
         setErr(res.error ?? "Erreur");
