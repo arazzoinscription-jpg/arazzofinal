@@ -17,7 +17,8 @@ const config: CapacitorConfig = {
   // NE PAS mettre "public" ici : ses ~80 Mo de vidéos gonfleraient l'APK.
   webDir: "capacitor-web",
   server: {
-    url: "https://www.formation-arazzo.store",
+    // L'app s'ouvre directement sur le feed communauté (public : visible connecté ou non).
+    url: "https://www.formation-arazzo.store/communaute",
     // Autorise la navigation interne sur le domaine (les liens externes
     // s'ouvrent dans le navigateur du téléphone).
     allowNavigation: ["www.formation-arazzo.store", "formation-arazzo.store"],

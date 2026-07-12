@@ -6,15 +6,13 @@ import { UploadCloud, Loader2, Film } from "lucide-react";
 import { startCommunityVideo, finalizeCommunityVideo } from "@/app/actions/community-upload";
 import { toast } from "@/components/ui/toast";
 
-type Source = "admin" | "course_teaser" | "patron_demo";
+type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
 
-const MAX_SECONDS = 180; // 3 minutes
-
-/** Uploader de vidéo communauté (0–3 min) vers Bunny Stream via TUS résumable. */
+/** Uploader de vidéo communauté vers Bunny Stream via TUS résumable. */
 export function CommunityVideoUploader({
-  sourceType, courseId, patronId, onDone,
+  sourceType, courseId, patronId, onDone, maxSeconds = 180,
 }: {
-  sourceType: Source; courseId?: string; patronId?: string; onDone?: () => void;
+  sourceType: Source; courseId?: string; patronId?: string; onDone?: () => void; maxSeconds?: number;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -22,6 +20,8 @@ export function CommunityVideoUploader({
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  const maxLabel = maxSeconds >= 120 ? `${Math.round(maxSeconds / 60)} minutes` : `${maxSeconds}s`;
 
   function pick(f: File | null) {
     setErr(null); setDuration(null); setFile(null);
@@ -33,7 +33,7 @@ export function CommunityVideoUploader({
       URL.revokeObjectURL(v.src);
       const d = Math.round(v.duration);
       if (!d || d < 1) { setErr("Vidéo illisible."); return; }
-      if (d > MAX_SECONDS) { setErr(`Vidéo trop longue (${d}s) — maximum 3 minutes (180s).`); return; }
+      if (d > maxSeconds) { setErr(`Vidéo trop longue (${d}s) — maximum ${maxLabel} (${maxSeconds}s).`); return; }
       setDuration(d); setFile(f);
     };
     v.onerror = () => setErr("Impossible de lire cette vidéo.");
@@ -96,7 +96,7 @@ export function CommunityVideoUploader({
         {file ? (
           <p className="text-sm text-gray-700 font-dm">{file.name} {duration ? `· ${duration}s` : ""}</p>
         ) : (
-          <p className="text-sm text-gray-500 font-dm">Cliquez pour choisir une vidéo (max 3 minutes)</p>
+          <p className="text-sm text-gray-500 font-dm">Cliquez pour choisir une vidéo (max {maxLabel})</p>
         )}
       </div>
 

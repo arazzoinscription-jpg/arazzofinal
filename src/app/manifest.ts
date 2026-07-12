@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description:
       "Formations couture, broderie et modélisme + patrons pour le Maghreb et sa diaspora.",
     id: "/",
-    start_url: "/dashboard",
+    start_url: "/communaute",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

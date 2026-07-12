@@ -24,7 +24,6 @@ export default async function CommunautePage() {
     role = prof?.role ?? "eleve";
     live = await getActiveLiveForViewer(admin, me.id);
   }
-  const isStaff = role === "formateur" || role === "patronniste" || role === "admin";
 
   return (
     <>
@@ -36,8 +35,9 @@ export default async function CommunautePage() {
         </Link>
       )}
       <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} />
-      {/* Bouton « + » flottant : publier une vidéo / une actualité (staff uniquement). */}
-      {isStaff && <CommunityFab role={role} />}
+      {/* Bouton « + » flottant : staff → vidéo/actualité ; élève → reel (≤ 2 min).
+          Visible pour tout membre CONNECTÉ ; les visiteurs sont invités à se connecter. */}
+      {me && <CommunityFab role={role} />}
       {/* Menu du bas en version COMPACTE (pilule centrée, icônes seules) : il reste
           accessible sur le feed sans masquer le « + », les actions ni les popups. */}
       <MobileQuickNav compact />

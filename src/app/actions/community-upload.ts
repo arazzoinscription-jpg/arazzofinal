@@ -7,13 +7,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createBunnyVideo, bunnyTusAuth, bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl } from "@/lib/community-types";
 
-type Source = "admin" | "course_teaser" | "patron_demo";
+type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
+
+// Durée maximale d'un reel élève : 2 minutes.
+const STUDENT_REEL_MAX_SECONDS = 120;
 
 /**
  * Autorise la publication selon la source :
  *  - admin          → rôle admin
  *  - course_teaser  → admin OU formateur propriétaire du cours (courses.formateur_id)
  *  - patron_demo    → admin OU propriétaire du patron (patrons.formateur_id)
+ *  - student_reel   → tout membre connecté (élève inclus) — reel ≤ 2 min
  */
 async function authorize(source: Source, courseId: string | null, patronId: string | null) {
   const supabase = await createClient();
@@ -24,7 +28,9 @@ async function authorize(source: Source, courseId: string | null, patronId: stri
   const { data: prof } = await admin.from("users").select("role").eq("id", user.id).single();
   const isAdmin = (prof?.role ?? "eleve") === "admin";
 
-  if (source === "admin") {
+  if (source === "student_reel") {
+    // Ouvert à tout membre connecté : aucune vérification de rôle supplémentaire.
+  } else if (source === "admin") {
     if (!isAdmin) return { ok: false as const, error: "Réservé à l'administration." };
   } else if (source === "course_teaser") {
     if (!courseId) return { ok: false as const, error: "Cours manquant." };
@@ -41,7 +47,7 @@ async function authorize(source: Source, courseId: string | null, patronId: stri
 }
 
 const StartSchema = z.object({
-  sourceType: z.enum(["admin", "course_teaser", "patron_demo"]),
+  sourceType: z.enum(["admin", "course_teaser", "patron_demo", "student_reel"]),
   courseId: z.string().uuid().nullable().optional(),
   patronId: z.string().uuid().nullable().optional(),
   title: z.string().max(120).optional(),
@@ -64,7 +70,7 @@ export async function startCommunityVideo(input: unknown) {
 
 const FinalizeSchema = z.object({
   videoId: z.string().min(8),
-  sourceType: z.enum(["admin", "course_teaser", "patron_demo"]),
+  sourceType: z.enum(["admin", "course_teaser", "patron_demo", "student_reel"]),
   caption: z.string().max(500).optional(),
   durationSeconds: z.number().int().min(1).max(180),
   courseId: z.string().uuid().nullable().optional(),
@@ -76,6 +82,11 @@ export async function finalizeCommunityVideo(input: unknown) {
   const parsed = FinalizeSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Paramètres invalides." };
   const { videoId, sourceType, caption, durationSeconds, courseId = null, patronId = null } = parsed.data;
+
+  // Reel élève : durée plafonnée à 2 minutes.
+  if (sourceType === "student_reel" && durationSeconds > STUDENT_REEL_MAX_SECONDS) {
+    return { ok: false as const, error: "Le reel ne doit pas dépasser 2 minutes (120s)." };
+  }
 
   const auth = await authorize(sourceType, courseId ?? null, patronId ?? null);
   if (!auth.ok) return auth;

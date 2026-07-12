@@ -1,7 +1,7 @@
 // Types & helpers communauté SANS dépendance serveur — importables côté client.
 // (Le chargement des données vit dans community.ts, qui importe du code server-only.)
 
-export type SourceType = "admin" | "course_teaser" | "practical" | "patron_demo" | "facebook";
+export type SourceType = "admin" | "course_teaser" | "practical" | "patron_demo" | "facebook" | "student_reel";
 
 /** Vrai si l'URL pointe vers une vidéo Facebook (facebook.com / fb.watch). */
 export function isFacebookVideoUrl(url: string | null | undefined): boolean {
@@ -43,6 +43,7 @@ const SOURCE_LABEL: Record<SourceType, string> = {
   practical: "Travail d'élève",
   patron_demo: "Patron",
   facebook: "Facebook",
+  student_reel: "Reel élève",
 };
 
 export function sourceLabel(s: SourceType): string {

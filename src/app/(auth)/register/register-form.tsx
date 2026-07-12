@@ -88,7 +88,7 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
       password: form.password,
       options: {
         data: { nom: form.nom, ville: form.ville, pays: form.pays, account_type: accountType },
-        emailRedirectTo: `${location.origin}/dashboard`,
+        emailRedirectTo: `${location.origin}/communaute`,
       },
     });
 
@@ -114,7 +114,8 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
 
     await mergeCartOnLogin().catch(() => {});
     const redirect = new URLSearchParams(window.location.search).get("redirect");
-    const target = redirect && redirect.startsWith("/") ? redirect : "/dashboard";
+    // Le feed communauté est la première page vue après inscription.
+    const target = redirect && redirect.startsWith("/") ? redirect : "/communaute";
     // Navigation « dure » (rechargement) : garantit que le serveur reçoit la
     // session fraîche → évite le gel en PWA après router.push().
     window.location.assign(target);
@@ -279,7 +280,7 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
                 <span className="mx-3 text-xs text-violet-950/40 font-dm">ou</span>
                 <div className="flex-grow border-t border-dashed border-cream-300" />
               </div>
-              <OAuthButtons next="/dashboard" />
+              <OAuthButtons next="/communaute" />
 
               <p className="text-center text-sm text-violet-950/50 mt-5">
                 {t.haveAccount} <Link href="/login" className="text-orange-600 font-semibold hover:underline">{t.signIn}</Link>

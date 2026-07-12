@@ -22,14 +22,18 @@ export function CommunityFab({ role }: { role: Role }) {
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
+  const isStaff = role === "admin" || role === "formateur" || role === "patronniste";
+
   // Destination « vidéo » selon le rôle (espace de publication dédié).
+  // L'élève publie un reel court (≤ 2 min) via la page dédiée.
   const videoHref =
     role === "admin" ? "/admin/communaute"
     : role === "formateur" ? "/formateur/communaute"
     : role === "patronniste" ? "/patronniste/communaute"
-    : null; // élève : pas encore
+    : "/communaute/publier"; // élève : reel ≤ 2 min
 
-  const canVideo = videoHref !== null;
+  const canVideo = true;
+  const videoLabel = isStaff ? "Publier une vidéo" : "Publier un reel (≤ 2 min)";
 
   return (
     <div ref={ref} className="fixed bottom-20 lg:bottom-8 end-5 z-40 flex flex-col items-end gap-2.5">
@@ -37,17 +41,20 @@ export function CommunityFab({ role }: { role: Role }) {
       {open && (
         <div className="flex flex-col items-end gap-2.5 mb-1">
           {canVideo && (
-            <Link href={videoHref!} onClick={() => setOpen(false)}
+            <Link href={videoHref} onClick={() => setOpen(false)}
               className="group inline-flex items-center gap-2.5 bg-white dark:bg-[#1a1330] text-violet-950 dark:text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg ring-1 ring-violet-950/10 dark:ring-white/10 hover:bg-cream-50 transition-colors">
-              <span className="text-sm font-semibold">Publier une vidéo</span>
+              <span className="text-sm font-semibold">{videoLabel}</span>
               <span className="w-9 h-9 rounded-full bg-violet-600 text-white flex items-center justify-center"><Clapperboard size={17} /></span>
             </Link>
           )}
-          <Link href="/communaute/actualites" onClick={() => setOpen(false)}
-            className="group inline-flex items-center gap-2.5 bg-white dark:bg-[#1a1330] text-violet-950 dark:text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg ring-1 ring-violet-950/10 dark:ring-white/10 hover:bg-cream-50 transition-colors">
-            <span className="text-sm font-semibold">Publier une actualité</span>
-            <span className="w-9 h-9 rounded-full bg-orange-DEFAULT text-white flex items-center justify-center"><Newspaper size={17} /></span>
-          </Link>
+          {/* Actualité (texte) réservée au staff ; l'élève publie des reels vidéo. */}
+          {isStaff && (
+            <Link href="/communaute/actualites" onClick={() => setOpen(false)}
+              className="group inline-flex items-center gap-2.5 bg-white dark:bg-[#1a1330] text-violet-950 dark:text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg ring-1 ring-violet-950/10 dark:ring-white/10 hover:bg-cream-50 transition-colors">
+              <span className="text-sm font-semibold">Publier une actualité</span>
+              <span className="w-9 h-9 rounded-full bg-orange-DEFAULT text-white flex items-center justify-center"><Newspaper size={17} /></span>
+            </Link>
+          )}
         </div>
       )}
 

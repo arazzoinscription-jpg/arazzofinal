@@ -64,7 +64,7 @@ export default function ResetPasswordPage() {
     if (error) { setErr(error.message); return; }
     // Navigation « dure » : le serveur voit tout de suite la session (évite le
     // gel en PWA constaté après router.push()).
-    window.location.assign("/dashboard");
+    window.location.assign("/communaute");
   }
 
   return (

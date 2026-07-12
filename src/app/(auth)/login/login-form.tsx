@@ -78,7 +78,8 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     await mergeCartOnLogin().catch(() => {});
 
     const redirect = new URLSearchParams(window.location.search).get("redirect");
-    const target = redirect && redirect.startsWith("/") ? redirect : "/dashboard";
+    // Le feed communauté est la première page vue après connexion.
+    const target = redirect && redirect.startsWith("/") ? redirect : "/communaute";
     // Navigation « dure » (rechargement complet) plutôt que router.push() :
     // garantit que le middleware/serveur reçoivent immédiatement les cookies de
     // session fraîchement posés. Corrige le blocage en PWA où l'app restait figée
@@ -185,7 +186,7 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
               <div className="flex-grow border-t border-dashed border-cream-300" />
             </div>
 
-            <OAuthButtons next="/dashboard" />
+            <OAuthButtons next="/communaute" />
 
             <button type="button" onClick={handleMagicLink} disabled={loading}
               className="w-full inline-flex items-center justify-center gap-2 border-2 border-cream-200 text-violet-950/80 font-semibold py-2.5 rounded-xl hover:border-violet-400 hover:text-violet-700 transition-colors disabled:opacity-50">
