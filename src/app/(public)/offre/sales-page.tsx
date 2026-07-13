@@ -129,12 +129,15 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
     <div className="bg-cream-DEFAULT dark:bg-[#0b0818] text-gray-900 dark:text-white overflow-x-hidden">
       <Navbar lang={lang} solid />
       <Hero lang={lang} />
-      <Why lang={lang} />
+      {/* Choisir sa formation : 3 parcours Modélisme (Femme / Homme / Enfants). */}
       {modelismeGroups.length > 0 && (
         <ModelismeFormations lang={lang} groups={modelismeGroups} onEnroll={(cid) => enroll(null, cid)} />
       )}
-      <Paths lang={lang} courses={courses} onEnroll={(cid) => enroll(null, cid)} onFiche={setFicheId} onPackFiche={setPackFicheId} />
-      {/* « Réserve ta place » placée juste après « Choisis ton parcours ». */}
+      {/* Repli si la taxonomie Modélisme n'est pas configurée : cartes « parcours ». */}
+      {modelismeGroups.length === 0 && (
+        <Paths lang={lang} courses={courses} onEnroll={(cid) => enroll(null, cid)} onFiche={setFicheId} onPackFiche={setPackFicheId} />
+      )}
+      {/* Réserver sa place (inscription + paiement). */}
       {courses.length > 0 && (
         <Inscription
           lang={lang} courses={courses} pay={pay}
@@ -144,14 +147,11 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
           onFiche={setFicheId}
         />
       )}
-      <TestBand lang={lang} />
-      <Testimonials lang={lang} />
-      <Gallery lang={lang} />
-      <Platform lang={lang} />
-      <TikTokCouture lang={lang} />
-      <PaymentMethodsSection lang={lang} />
-      <DiplomaSection lang={lang} />
+      <Why lang={lang} />
       <Quiz lang={lang} courses={courses} onEnroll={(lvl) => enroll(lvl)} />
+      <Testimonials lang={lang} />
+      <DiplomaSection lang={lang} />
+      <PaymentMethodsSection lang={lang} />
       <FinalCta lang={lang} />
 
       <CourseFicheModal courseId={ficheId} lang={lang} onClose={() => setFicheId(null)} onEnroll={(cid) => enroll(null, cid)} fmt={ficheFmt} />
@@ -189,8 +189,8 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
           <p className="text-violet-950/60 dark:text-white/60 font-dm mt-3 max-w-xl mx-auto">{t.sub}</p>
         </div>
 
-        {/* 3 cartes */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        {/* 3 cartes — compactes (rangée horizontale sur mobile, carte verticale sur desktop) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
           {groups.map((g) => {
             const nb = g.niveaux.length;
             const isActive = active === g.slug;
@@ -199,21 +199,23 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
                 key={g.slug}
                 onClick={() => setActive(isActive ? null : g.slug)}
                 aria-expanded={isActive}
-                className={`group relative text-start rounded-3xl overflow-hidden ring-1 transition-all duration-300 ${
-                  isActive ? "ring-2 ring-orange-DEFAULT shadow-2xl -translate-y-1" : "ring-violet-950/10 dark:ring-white/10 hover:-translate-y-1 hover:shadow-xl"
+                className={`group text-start rounded-2xl overflow-hidden bg-white dark:bg-white/[0.04] ring-1 transition-all duration-300 flex flex-row sm:flex-col ${
+                  isActive ? "ring-2 ring-orange-DEFAULT shadow-xl" : "ring-violet-950/10 dark:ring-white/10 hover:shadow-lg hover:-translate-y-0.5"
                 }`}
               >
-                <div className="relative aspect-[4/5]">
+                <div className="relative w-28 h-28 sm:w-full sm:h-auto sm:aspect-[16/10] shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={g.image} alt={g.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-violet-950/85 via-violet-950/25 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-5">
-                    <h3 className="font-playfair text-2xl font-bold text-white">{g.title}</h3>
-                    <p className="text-white/80 text-sm font-dm mt-1">{nb > 0 ? t.levels(nb) : t.soon}</p>
-                    <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-white/15 backdrop-blur px-3 py-1.5 rounded-full">
-                      {t.see} <ChevronDown size={15} className={`transition-transform ${isActive ? "rotate-180" : ""}`} />
-                    </span>
-                  </div>
+                  <div aria-hidden className="hidden sm:block absolute inset-0 bg-gradient-to-t from-violet-950/45 to-transparent" />
+                </div>
+                <div className="flex-1 min-w-0 p-3.5 sm:p-4 flex flex-col justify-center">
+                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-violet-950 dark:text-white leading-tight">{g.title}</h3>
+                  <p className={`text-xs font-dm mt-0.5 ${nb > 0 ? "text-orange-600 dark:text-orange-400 font-semibold" : "text-violet-950/45 dark:text-white/45"}`}>
+                    {nb > 0 ? t.levels(nb) : t.soon}
+                  </p>
+                  <span className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold ${isActive ? "text-orange-600 dark:text-orange-400" : "text-violet-700 dark:text-violet-300"}`}>
+                    {t.see} <ChevronDown size={14} className={`transition-transform ${isActive ? "rotate-180" : ""}`} />
+                  </span>
                 </div>
               </button>
             );
