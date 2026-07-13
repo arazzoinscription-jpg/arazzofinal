@@ -31,10 +31,16 @@ export const SECTIONS: NavSection[] = [
       { href: "/dashboard/certificats", icon: Award, label: { fr: "Certificats", ar: "الشهادات", en: "Certificates" } },
       { href: "/dashboard/diplome", icon: GraduationCap, label: { fr: "Mon diplôme", ar: "شهادتي", en: "My diploma" } },
       { href: "/dashboard/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "الأعمال التطبيقية", en: "Practical work" } },
-      { href: "/dashboard/projet", icon: Trophy, label: { fr: "Projet de fin de stage", ar: "مشروع نهاية التربّص", en: "Final project" } },
-      { href: "/dashboard/espace-atelier", icon: Lock, label: { fr: "Espace Atelier 🔒", ar: "🔒 فضاء الورشة", en: "Atelier space 🔒" } },
       { href: "/dashboard/questions", icon: MessageCircle, label: { fr: "Questions / Réponses", ar: "الأسئلة والأجوبة", en: "Q&A" } },
     ],
+  },
+  {
+    key: "projet", icon: Trophy, home: "/dashboard/projet", items: [],
+    label: { fr: "Projet de fin de stage", ar: "مشروع نهاية التربّص", en: "Final project" },
+  },
+  {
+    key: "atelier", icon: Lock, home: "/dashboard/espace-atelier", items: [],
+    label: { fr: "Espace Atelier 🔒", ar: "🔒 فضاء الورشة", en: "Atelier space 🔒" },
   },
   {
     key: "shop", icon: ShoppingBag, home: "/dashboard/commandes", match: ["/boutique"],
