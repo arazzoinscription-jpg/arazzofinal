@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
+import { confirmAccountByEmail } from "@/app/actions/auth";
 import { requestPasswordReset } from "@/app/actions/forgot-password";
 import { requestMagicLink } from "@/app/actions/magic-link";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
@@ -66,7 +67,14 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    let { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    // Compte « non confirmé » (ancienne inscription bloquée) → on confirme
+    // automatiquement puis on retente. Le mot de passe est revalidé à la 2ᵉ tentative.
+    if (error && /confirm/i.test(error.message)) {
+      const r = await confirmAccountByEmail(email);
+      if (r.ok) ({ error } = await supabase.auth.signInWithPassword({ email, password }));
+    }
 
     if (error) {
       setError(t.errCreds);

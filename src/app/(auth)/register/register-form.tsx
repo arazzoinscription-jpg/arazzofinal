@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { GraduationCap, Scissors, ArrowRight, ArrowLeft, Check, Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
+import { autoConfirmNewAccount } from "@/app/actions/auth";
 import { notifyAdminSignup } from "@/app/actions/admin-notify";
 import { onProspectSignup } from "@/app/actions/prospect";
 import { DotMap } from "@/components/ui/dot-map";
@@ -96,6 +97,25 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
       setError(authError.message);
       setLoading(false);
       return;
+    }
+
+    // Inscription SANS friction : si la confirmation d'email est activée (aucune
+    // session retournée), on confirme automatiquement le compte puis on connecte
+    // tout de suite — l'élève n'a pas à cliquer un lien dans sa boîte mail.
+    if (data.user && !data.session) {
+      const conf = await autoConfirmNewAccount(data.user.id);
+      if (conf.ok) {
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        if (signInErr) {
+          setError("Compte créé ✅ Connectez-vous avec votre email et votre mot de passe.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        setError("Compte créé ✅ Connectez-vous avec votre email et votre mot de passe.");
+        setLoading(false);
+        return;
+      }
     }
 
     if (data.user) {
