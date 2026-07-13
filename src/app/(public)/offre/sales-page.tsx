@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, useEffect } from "react";
+import { Fragment, useRef, useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { useReducedMotionSafe } from "@/lib/use-reduced-motion-safe";
@@ -189,83 +189,81 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
           <p className="text-violet-950/60 dark:text-white/60 font-dm mt-3 max-w-xl mx-auto">{t.sub}</p>
         </div>
 
-        {/* 3 cartes — compactes (rangée horizontale sur mobile, carte verticale sur desktop) */}
+        {/* 3 cartes — compactes ; le détail s'ouvre JUSTE SOUS la carte cliquée. */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
           {groups.map((g) => {
             const nb = g.niveaux.length;
             const isActive = active === g.slug;
             return (
-              <button
-                key={g.slug}
-                onClick={() => setActive(isActive ? null : g.slug)}
-                aria-expanded={isActive}
-                className={`group text-start rounded-2xl overflow-hidden bg-white dark:bg-white/[0.04] ring-1 transition-all duration-300 flex flex-row sm:flex-col ${
-                  isActive ? "ring-2 ring-orange-DEFAULT shadow-xl" : "ring-violet-950/10 dark:ring-white/10 hover:shadow-lg hover:-translate-y-0.5"
-                }`}
-              >
-                <div className="relative w-28 h-28 sm:w-full sm:h-auto sm:aspect-[16/10] shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={g.image} alt={g.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
-                  <div aria-hidden className="hidden sm:block absolute inset-0 bg-gradient-to-t from-violet-950/45 to-transparent" />
-                </div>
-                <div className="flex-1 min-w-0 p-3.5 sm:p-4 flex flex-col justify-center">
-                  <h3 className="font-playfair text-lg sm:text-xl font-bold text-violet-950 dark:text-white leading-tight">{g.title}</h3>
-                  <p className={`text-xs font-dm mt-0.5 ${nb > 0 ? "text-orange-600 dark:text-orange-400 font-semibold" : "text-violet-950/45 dark:text-white/45"}`}>
-                    {nb > 0 ? t.levels(nb) : t.soon}
-                  </p>
-                  <span className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold ${isActive ? "text-orange-600 dark:text-orange-400" : "text-violet-700 dark:text-violet-300"}`}>
-                    {t.see} <ChevronDown size={14} className={`transition-transform ${isActive ? "rotate-180" : ""}`} />
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+              <Fragment key={g.slug}>
+                <button
+                  onClick={() => setActive(isActive ? null : g.slug)}
+                  aria-expanded={isActive}
+                  className={`group text-start rounded-2xl overflow-hidden bg-white dark:bg-white/[0.04] ring-1 transition-all duration-300 flex flex-row sm:flex-col ${
+                    isActive ? "ring-2 ring-orange-DEFAULT shadow-xl" : "ring-violet-950/10 dark:ring-white/10 hover:shadow-lg hover:-translate-y-0.5"
+                  }`}
+                >
+                  <div className="relative w-28 h-28 sm:w-full sm:h-auto sm:aspect-[16/10] shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.image} alt={g.title} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                    <div aria-hidden className="hidden sm:block absolute inset-0 bg-gradient-to-t from-violet-950/45 to-transparent" />
+                  </div>
+                  <div className="flex-1 min-w-0 p-3.5 sm:p-4 flex flex-col justify-center">
+                    <h3 className="font-playfair text-lg sm:text-xl font-bold text-violet-950 dark:text-white leading-tight">{g.title}</h3>
+                    <p className={`text-xs font-dm mt-0.5 ${nb > 0 ? "text-orange-600 dark:text-orange-400 font-semibold" : "text-violet-950/45 dark:text-white/45"}`}>
+                      {nb > 0 ? t.levels(nb) : t.soon}
+                    </p>
+                    <span className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold ${isActive ? "text-orange-600 dark:text-orange-400" : "text-violet-700 dark:text-violet-300"}`}>
+                      {t.see} <ChevronDown size={14} className={`transition-transform ${isActive ? "rotate-180" : ""}`} />
+                    </span>
+                  </div>
+                </button>
 
-        {/* Panneau des niveaux du groupe sélectionné */}
-        <AnimatePresence initial={false}>
-          {active && (() => {
-            const g = groups.find((x) => x.slug === active);
-            if (!g) return null;
-            return (
-              <motion.div key={g.slug} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                <div className="mt-6 rounded-3xl border border-violet-950/10 dark:border-white/10 bg-white dark:bg-white/[0.04] p-5 sm:p-7">
-                  <h3 className="font-playfair text-2xl font-bold text-violet-950 dark:text-white mb-5 flex items-center gap-2">
-                    <GraduationCap size={22} className="text-orange-DEFAULT" /> {g.title}
-                  </h3>
-                  {g.niveaux.length === 0 ? (
-                    <p className="text-violet-950/60 dark:text-white/60 font-dm py-6 text-center">{t.soon} ✂️</p>
-                  ) : (
-                    <div className="space-y-6">
-                      {g.niveaux.map((n) => (
-                        <div key={n.name}>
-                          <div className="flex items-center gap-3 mb-3">
-                            <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-orange-600 dark:text-orange-400 whitespace-nowrap">{n.name}</span>
-                            <span className="h-px flex-1 bg-violet-950/10 dark:bg-white/10" />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {n.courses.map((c) => (
-                              <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-violet-950/10 dark:border-white/10 bg-cream-50 dark:bg-white/[0.03] p-4">
-                                <div className="min-w-0">
-                                  <p className="font-semibold text-violet-950 dark:text-white truncate">{c.titre}</p>
-                                  {c.prixDzd > 0 && <p className="text-sm text-orange-600 dark:text-orange-400 font-dm mt-0.5">{fmt(c.prixDzd)}</p>}
+                {/* Détail de CETTE catégorie — pleine largeur, directement sous la carte cliquée */}
+                <AnimatePresence initial={false}>
+                  {isActive && (
+                    <motion.div key={`panel-${g.slug}`} className="sm:col-span-3 overflow-hidden"
+                      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
+                      <div className="rounded-3xl border border-violet-950/10 dark:border-white/10 bg-white dark:bg-white/[0.04] p-5 sm:p-7">
+                        <h3 className="font-playfair text-2xl font-bold text-violet-950 dark:text-white mb-5 flex items-center gap-2">
+                          <GraduationCap size={22} className="text-orange-DEFAULT" /> {g.title}
+                        </h3>
+                        {g.niveaux.length === 0 ? (
+                          <p className="text-violet-950/60 dark:text-white/60 font-dm py-6 text-center">{t.soon} ✂️</p>
+                        ) : (
+                          <div className="space-y-6">
+                            {g.niveaux.map((n) => (
+                              <div key={n.name}>
+                                <div className="flex items-center gap-3 mb-3">
+                                  <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-orange-600 dark:text-orange-400 whitespace-nowrap">{n.name}</span>
+                                  <span className="h-px flex-1 bg-violet-950/10 dark:bg-white/10" />
                                 </div>
-                                <button onClick={() => onEnroll(c.id)}
-                                  className="shrink-0 inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors">
-                                  {t.enroll} <ArrowRight size={15} />
-                                </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {n.courses.map((c) => (
+                                    <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-violet-950/10 dark:border-white/10 bg-cream-50 dark:bg-white/[0.03] p-4">
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-violet-950 dark:text-white truncate">{c.titre}</p>
+                                        {c.prixDzd > 0 && <p className="text-sm text-orange-600 dark:text-orange-400 font-dm mt-0.5">{fmt(c.prixDzd)}</p>}
+                                      </div>
+                                      <button onClick={() => onEnroll(c.id)}
+                                        className="shrink-0 inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-orange-600 transition-colors">
+                                        {t.enroll} <ArrowRight size={15} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             ))}
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
-                </div>
-              </motion.div>
+                </AnimatePresence>
+              </Fragment>
             );
-          })()}
-        </AnimatePresence>
+          })}
+        </div>
       </div>
     </Section>
   );
@@ -291,7 +289,7 @@ function Hero({ lang }: { lang: Lang }) {
         >
           <div className="absolute -inset-3 bg-gradient-to-tr from-violet-500/40 via-blush-300/30 to-orange-400/40 rounded-[2.2rem] blur-2xl" />
           <div className="relative rounded-[2rem] overflow-hidden border-4 border-white dark:border-white/10 shadow-2xl aspect-[4/5]">
-            <img src="/images/founder.jpg" alt={t.instructorName} loading="eager" className="w-full h-full object-cover" />
+            <img src="/images/fondatrice.png" alt={t.instructorName} loading="eager" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/60 via-transparent to-transparent" />
             <div className="absolute bottom-4 start-4 end-4 bg-white/90 dark:bg-black/50 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/40">
               <p className="font-playfair font-bold text-gray-900 dark:text-white">{t.instructorName}</p>
