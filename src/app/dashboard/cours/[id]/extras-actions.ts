@@ -300,6 +300,12 @@ export async function setPracticalFeedback(id: string, feedback: string, status:
     .eq("id", id);
   if (error) return { ok: false, error: error.message };
 
+  // Horodate la validation/correction (migration 076) → tri « À partager » par
+  // validation récente. Résilient : ignore si la colonne n'existe pas encore.
+  await admin.from("lesson_practicals").update({ reviewed_at: new Date().toISOString() }).eq("id", id).then(
+    () => {}, () => {},
+  );
+
   // Progression diplôme : à l'approbation, notifs d'encouragement + éligibilité (best-effort).
   if (status === "approved" && row?.user_id && row?.lesson_id) {
     try {

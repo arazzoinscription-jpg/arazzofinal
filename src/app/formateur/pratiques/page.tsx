@@ -26,12 +26,25 @@ export default async function PratiquesPage() {
     .select("id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
     .in("status", ["submitted", "reviewed"])
     .order("created_at", { ascending: true });
-  const { data: approvedSubs } = await admin
+  // Validés : triés par VALIDATION récente (reviewed_at) pour que le travail
+  // qu'on vient de valider apparaisse tout en haut de « À partager ». Fallback
+  // sur created_at si la colonne reviewed_at n'existe pas encore (migration 076).
+  const APPROVED_SELECT = "id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)";
+  let { data: approvedSubs, error: approvedErr } = await admin
     .from("lesson_practicals")
-    .select("id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
+    .select(APPROVED_SELECT)
     .eq("status", "approved")
+    .order("reviewed_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
-    .limit(120);
+    .limit(500);
+  if (approvedErr) {
+    ({ data: approvedSubs } = await admin
+      .from("lesson_practicals")
+      .select(APPROVED_SELECT)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(300));
+  }
   const subs = [...(pendingSubs ?? []), ...(approvedSubs ?? [])];
 
   // 2) Leçon → cours → formateur, uniquement pour les leçons concernées.
