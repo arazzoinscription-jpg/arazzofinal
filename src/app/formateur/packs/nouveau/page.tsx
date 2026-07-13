@@ -26,13 +26,19 @@ export default async function NewPackPage() {
       .map((cc) => cc.category?.name_fr).filter(Boolean) as string[],
   }));
 
+  // Catégories « Modélisme » (Femme / Homme / Enfants) proposées pour ranger le pack dans l'offre.
+  const { data: cats } = await admin
+    .from("categories").select("id, name_fr, slug")
+    .in("slug", ["modelisme-femme", "modelisme-homme", "modelisme-enfants"]);
+  const categoryOptions = (cats ?? []).map((c) => ({ id: c.id, name: c.name_fr ?? c.slug }));
+
   return (
     <div className="max-w-3xl">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-2">Créer un pack de cours</h1>
       <p className="text-gray-500 mb-8 font-dm">
         Regroupez plusieurs cours en un seul pack vendu à tarif avantageux.
       </p>
-      <PackCreateForm courses={options} />
+      <PackCreateForm courses={options} categoryOptions={categoryOptions} />
     </div>
   );
 }

@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, GraduationCap, IdCard, Download, Truck, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, GraduationCap, IdCard, Download, Truck, CheckCircle2, Mail } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { searchStudentsForDiploma, studentCourses, manualGenerateDiploma, setDiplomaStatus, getCniSignedUrl } from "./actions";
+import { searchStudentsForDiploma, studentCourses, manualGenerateDiploma, setDiplomaStatus, getCniSignedUrl, resendDiplomaEmail } from "./actions";
 
 export interface DiplomaRow {
   id: string; status: string; fullName: string; email: string;
@@ -103,6 +103,13 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
     if (r.ok) window.open(r.url, "_blank");
     else toast(r.error ?? "Erreur", "error");
   }
+  function resendEmail(id: string) {
+    start(async () => {
+      const r = await resendDiplomaEmail(id);
+      if (r.ok) toast(`Email de diplôme renvoyé à ${r.to} ✅`, "success");
+      else toast(r.error ?? "Erreur", "error");
+    });
+  }
 
   return (
     <div className="space-y-8">
@@ -198,6 +205,10 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
                     <IdCard size={14} /> Voir la CNI
                   </button>
                 )}
+                {/* Renvoi manuel de l'email de diplôme (demande de CNI), autant de fois que voulu */}
+                <button onClick={() => resendEmail(d.id)} disabled={busy} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg hover:bg-orange-100 disabled:opacity-50">
+                  <Mail size={14} /> Renvoyer l'email
+                </button>
                 {d.status !== "generated" && d.status !== "shipped" && (
                   <button onClick={() => changeStatus(d.id, "generated")} disabled={busy} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 disabled:opacity-50">
                     <CheckCircle2 size={14} /> Marquer généré

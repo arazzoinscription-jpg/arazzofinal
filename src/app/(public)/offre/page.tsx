@@ -53,9 +53,11 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
     const all = cats ?? [];
     const niveauIds: string[] = [];
     const niveauxByGroup = new Map<string, { id: string; name: string }[]>();
+    const rootIdBySlug = new Map<string, string>();
     for (const card of MODELISME_CARDS) {
       const root = all.find((c) => c.slug === card.slug);
       if (!root) continue;
+      rootIdBySlug.set(card.slug, root.id);
       const niveaux = all.filter((c) => c.parent_id === root.id).sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0));
       niveauxByGroup.set(card.slug, niveaux.map((n) => ({ id: n.id, name: n.name_fr ?? "Niveau" })));
       niveauIds.push(...niveaux.map((n) => n.id));
@@ -72,6 +74,34 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
       }
     }
 
+    // Packs rangés dans une catégorie racine (migration 074) → affichés dans l'offre + enrôlables.
+    const packsByRoot = new Map<string, { id: string; titre: string; prixDzd: number; slug: string }[]>();
+    const rootIds = [...rootIdBySlug.values()];
+    if (rootIds.length) {
+      try {
+        const { data: pks } = await admin
+          .from("course_packs")
+          .select("id, titre_fr, prix_dzd, thumbnail, slug, category_id, subscription_enabled, duration_months, full_payment_discount")
+          .eq("published", true).in("category_id", rootIds);
+        for (const p of (pks ?? []) as any[]) {
+          if (!p.category_id) continue;
+          if (!packsByRoot.has(p.category_id)) packsByRoot.set(p.category_id, []);
+          packsByRoot.get(p.category_id)!.push({ id: p.id, titre: p.titre_fr ?? "Pack", prixDzd: Number(p.prix_dzd) || 0, slug: p.slug ?? "" });
+          // Rendre le pack sélectionnable dans le formulaire d'inscription.
+          if (!options.some((o) => o.id === p.id)) {
+            options.push({
+              id: p.id, titre: p.titre_fr ?? "Pack", niveau: "pack",
+              prixDzd: Number(p.prix_dzd) || 0, thumbnail: p.thumbnail ?? null, slug: p.slug ?? "",
+              subscriptionEnabled: p.subscription_enabled === true,
+              durationMonths: p.duration_months ?? null,
+              fullDiscount: p.full_payment_discount !== false,
+              isPack: true,
+            });
+          }
+        }
+      } catch { /* migration 074 non appliquée */ }
+    }
+
     for (const card of MODELISME_CARDS) {
       const niveaux = (niveauxByGroup.get(card.slug) ?? []).map((n) => {
         const courseIds = linksByCat.get(n.id) ?? [];
@@ -81,7 +111,8 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
           .map((o) => ({ id: o.id, titre: o.titre, prixDzd: o.prixDzd, slug: o.slug }));
         return { name: n.name, courses };
       }).filter((n) => n.courses.length > 0); // on n'affiche que les niveaux avec des formations en vente
-      modelismeGroups.push({ slug: card.slug, title: card.title, image: card.image, niveaux });
+      const packs = packsByRoot.get(rootIdBySlug.get(card.slug) ?? "") ?? [];
+      modelismeGroups.push({ slug: card.slug, title: card.title, image: card.image, niveaux, packs });
     }
   } catch { /* taxonomie absente : pas de cartes modélisme */ }
 
@@ -103,6 +134,7 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
   }
 
   for (const p of subPacks ?? []) {
+    if (options.some((o) => o.id === p.id)) continue; // déjà ajouté via une catégorie modélisme
     options.push({
       id: p.id,
       titre: p.titre_fr ?? "Pack",

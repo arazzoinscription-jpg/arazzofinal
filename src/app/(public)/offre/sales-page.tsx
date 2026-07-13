@@ -26,7 +26,8 @@ export type Level = "debutant" | "intermediaire" | "avance";
 export interface CourseOption { id: string; titre: string; niveau: string; prixDzd: number; thumbnail: string | null; slug: string; subscriptionEnabled?: boolean; durationMonths?: number | null; fullDiscount?: boolean; isPack?: boolean; detailSlug?: string | null; }
 export interface PayInfo { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string; }
 export interface ModelismeNiveau { name: string; courses: { id: string; titre: string; prixDzd: number; slug: string }[] }
-export interface ModelismeGroup { slug: string; title: string; image: string; niveaux: ModelismeNiveau[] }
+export interface ModelismePack { id: string; titre: string; prixDzd: number; slug: string }
+export interface ModelismeGroup { slug: string; title: string; image: string; niveaux: ModelismeNiveau[]; packs?: ModelismePack[] }
 
 const LEVELS: Level[] = ["debutant", "intermediaire", "avance"];
 const levelIndex = (n: string) => { const i = LEVELS.indexOf(n as Level); return i < 0 ? 0 : i; };
@@ -193,6 +194,9 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
           {groups.map((g) => {
             const nb = g.niveaux.length;
+            const nbPacks = g.packs?.length ?? 0;
+            const hasContent = nb > 0 || nbPacks > 0;
+            const label = nb > 0 ? t.levels(nb) : nbPacks > 0 ? `${nbPacks} pack${nbPacks > 1 ? "s" : ""}` : t.soon;
             const isActive = active === g.slug;
             return (
               <Fragment key={g.slug}>
@@ -210,8 +214,8 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
                   </div>
                   <div className="flex-1 min-w-0 p-3.5 sm:p-4 flex flex-col justify-center">
                     <h3 className="font-playfair text-lg sm:text-xl font-bold text-violet-950 dark:text-white leading-tight">{g.title}</h3>
-                    <p className={`text-xs font-dm mt-0.5 ${nb > 0 ? "text-orange-600 dark:text-orange-400 font-semibold" : "text-violet-950/45 dark:text-white/45"}`}>
-                      {nb > 0 ? t.levels(nb) : t.soon}
+                    <p className={`text-xs font-dm mt-0.5 ${hasContent ? "text-orange-600 dark:text-orange-400 font-semibold" : "text-violet-950/45 dark:text-white/45"}`}>
+                      {label}
                     </p>
                     <span className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold ${isActive ? "text-orange-600 dark:text-orange-400" : "text-violet-700 dark:text-violet-300"}`}>
                       {t.see} <ChevronDown size={14} className={`transition-transform ${isActive ? "rotate-180" : ""}`} />
@@ -228,7 +232,7 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
                         <h3 className="font-playfair text-2xl font-bold text-violet-950 dark:text-white mb-5 flex items-center gap-2">
                           <GraduationCap size={22} className="text-orange-DEFAULT" /> {g.title}
                         </h3>
-                        {g.niveaux.length === 0 ? (
+                        {g.niveaux.length === 0 && !(g.packs && g.packs.length) ? (
                           <p className="text-violet-950/60 dark:text-white/60 font-dm py-6 text-center">{t.soon} ✂️</p>
                         ) : (
                           <div className="space-y-6">
@@ -254,6 +258,30 @@ function ModelismeFormations({ lang, groups, onEnroll }: { lang: Lang; groups: M
                                 </div>
                               </div>
                             ))}
+
+                            {/* Packs de formation rangés dans cette catégorie */}
+                            {g.packs && g.packs.length > 0 && (
+                              <div>
+                                <div className="flex items-center gap-3 mb-3">
+                                  <span className="font-mono text-[11px] tracking-[0.2em] uppercase text-violet-700 dark:text-violet-300 whitespace-nowrap">📦 Packs de formation</span>
+                                  <span className="h-px flex-1 bg-violet-950/10 dark:bg-white/10" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {g.packs.map((p) => (
+                                    <div key={p.id} className="flex items-center justify-between gap-3 rounded-2xl border border-violet-300/60 dark:border-violet-500/30 bg-violet-50/60 dark:bg-violet-500/10 p-4">
+                                      <div className="min-w-0">
+                                        <p className="font-semibold text-violet-950 dark:text-white truncate">{p.titre}</p>
+                                        {p.prixDzd > 0 && <p className="text-sm text-violet-700 dark:text-violet-300 font-dm mt-0.5">{fmt(p.prixDzd)}</p>}
+                                      </div>
+                                      <button onClick={() => onEnroll(p.id)}
+                                        className="shrink-0 inline-flex items-center gap-1.5 bg-violet-700 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-violet-800 transition-colors">
+                                        {t.enroll} <ArrowRight size={15} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

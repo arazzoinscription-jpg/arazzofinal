@@ -39,6 +39,18 @@ export default async function EditPackPage({ params }: { params: { id: string } 
     categories: ((c.course_categories as any[]) ?? []).map((cc) => cc.category?.name_fr).filter(Boolean) as string[],
   }));
 
+  // Catégorie du pack (migration 074) — lecture résiliente si la colonne n'existe pas encore.
+  let packCategoryId: string | null = null;
+  try {
+    const { data: pc } = await admin.from("course_packs").select("category_id").eq("id", params.id).maybeSingle();
+    packCategoryId = (pc as { category_id?: string | null } | null)?.category_id ?? null;
+  } catch { /* migration 074 non appliquée */ }
+
+  const { data: cats } = await admin
+    .from("categories").select("id, name_fr, slug")
+    .in("slug", ["modelisme-femme", "modelisme-homme", "modelisme-enfants"]);
+  const categoryOptions = (cats ?? []).map((c) => ({ id: c.id, name: c.name_fr ?? c.slug }));
+
   const initial: PackInitial = {
     titre_fr: pack.titre_fr ?? "",
     titre_ar: pack.titre_ar ?? "",
@@ -47,13 +59,14 @@ export default async function EditPackPage({ params }: { params: { id: string } 
     prix_eur: pack.prix_eur != null ? String(pack.prix_eur) : "",
     thumbnail: pack.thumbnail ?? "",
     courseIds: ((pack.items as any[]) ?? []).map((it) => it.course_id as string),
+    category_id: packCategoryId,
   };
 
   return (
     <div className="max-w-3xl">
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-2">Modifier le pack</h1>
       <p className="text-gray-500 mb-8 font-dm">Mettez à jour « {pack.titre_fr} » : infos, prix et cours inclus.</p>
-      <PackCreateForm courses={options} packId={pack.id} initial={initial} />
+      <PackCreateForm courses={options} packId={pack.id} initial={initial} categoryOptions={categoryOptions} />
     </div>
   );
 }

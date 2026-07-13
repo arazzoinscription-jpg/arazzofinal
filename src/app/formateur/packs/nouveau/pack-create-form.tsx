@@ -13,6 +13,8 @@ export interface PackCourseOption {
   categories?: string[];
 }
 
+export interface PackCategoryOption { id: string; name: string }
+
 export interface PackInitial {
   titre_fr: string;
   titre_ar: string;
@@ -21,10 +23,11 @@ export interface PackInitial {
   prix_eur: string;
   thumbnail: string;
   courseIds: string[];
+  category_id?: string | null;
 }
 
 /** Formulaire de création OU d'édition d'un pack de cours (sélection multiple de cours). */
-export function PackCreateForm({ courses, packId, initial }: { courses: PackCourseOption[]; packId?: string; initial?: PackInitial }) {
+export function PackCreateForm({ courses, packId, initial, categoryOptions = [] }: { courses: PackCourseOption[]; packId?: string; initial?: PackInitial; categoryOptions?: PackCategoryOption[] }) {
   const router = useRouter();
   const isEdit = !!packId;
   const [loading, setLoading] = useState(false);
@@ -36,6 +39,7 @@ export function PackCreateForm({ courses, packId, initial }: { courses: PackCour
     prix_dzd: initial?.prix_dzd ?? "",
     prix_eur: initial?.prix_eur ?? "",
     thumbnail: initial?.thumbnail ?? "",
+    category_id: initial?.category_id ?? "",
   });
   const [selected, setSelected] = useState<Set<string>>(new Set(initial?.courseIds ?? []));
   const [uploading, startUpload] = useTransition();
@@ -84,6 +88,7 @@ export function PackCreateForm({ courses, packId, initial }: { courses: PackCour
       prix_eur: Number(form.prix_eur) || 0,
       thumbnail: form.thumbnail.trim() || null,
       published: publish,
+      category_id: form.category_id || null,
       courseIds: [...selected],
     };
     const res = isEdit
@@ -120,6 +125,19 @@ export function PackCreateForm({ courses, packId, initial }: { courses: PackCour
             placeholder="Décrivez ce que contient le pack…"
             className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
         </div>
+
+        {/* Catégorie du pack : détermine dans quelle catégorie il apparaît sur la page Offre. */}
+        {categoryOptions.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Catégorie (page Offre)</label>
+            <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+              <option value="">— Aucune (n'apparaît pas dans une catégorie de l'offre) —</option>
+              {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Ex. « Modélisme femme » → le pack s'affiche quand on clique sur cette catégorie dans la page Offre.</p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>

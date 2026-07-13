@@ -55,8 +55,17 @@ const PackSchema = z.object({
   prix_eur: z.number().int().min(0),
   thumbnail: z.string().nullable().optional(),
   published: z.boolean(),
+  category_id: z.string().uuid().nullable().optional(),
   courseIds: z.array(z.string().uuid()).min(1, "Sélectionnez au moins un cours."),
 });
+
+// Écriture tolérante de la catégorie du pack (colonne migration 074). Si la
+// colonne n'existe pas encore, on ignore l'erreur — la création/màj réussit
+// quand même (la catégorie ne s'affichera dans l'offre qu'après la migration).
+async function setPackCategorySafe(admin: ReturnType<typeof createAdminClient>, packId: string, categoryId: string | null | undefined) {
+  try { await admin.from("course_packs").update({ category_id: categoryId ?? null }).eq("id", packId); }
+  catch { /* migration 074 non appliquée */ }
+}
 
 /** Crée un pack de cours (bundle) appartenant au formateur courant. */
 export async function createPack(input: z.infer<typeof PackSchema>) {
@@ -92,7 +101,10 @@ export async function createPack(input: z.infer<typeof PackSchema>) {
   const { error: itemsError } = await supabase.from("course_pack_items").insert(items);
   if (itemsError) return { ok: false, error: itemsError.message };
 
+  await setPackCategorySafe(createAdminClient(), pack.id, d.category_id);
+
   revalidatePath("/formateur/packs");
+  revalidatePath("/offre");
   return { ok: true, id: pack.id };
 }
 
@@ -136,8 +148,11 @@ export async function updatePack(input: z.infer<typeof PackUpdateSchema>) {
   const { error: insErr } = await admin.from("course_pack_items").insert(items);
   if (insErr) return { ok: false, error: insErr.message };
 
+  await setPackCategorySafe(admin, d.id, d.category_id);
+
   revalidatePath("/formateur/packs");
   revalidatePath(`/formateur/packs/${d.id}/edit`);
+  revalidatePath("/offre");
   return { ok: true, id: d.id };
 }
 

@@ -4,7 +4,8 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ensureDiploma } from "@/lib/diplomas";
+import { ensureDiploma, diplomaCniEmail } from "@/lib/diplomas";
+import { sendEmail } from "@/lib/email";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -45,6 +46,36 @@ export async function manualGenerateDiploma(input: { userId: string; courseId: s
   if (!res.ok) return { ok: false as const, error: res.error ?? "Erreur." };
   revalidatePath("/admin/diplomes");
   return { ok: true as const, created: res.created };
+}
+
+/**
+ * RENVOI MANUEL de l'email de diplôme (demande de CNI) à l'étudiante, à la
+ * demande de l'admin, autant de fois que nécessaire.
+ */
+export async function resendDiplomaEmail(diplomaId: string) {
+  const parsed = z.string().uuid().safeParse(diplomaId);
+  if (!parsed.success) return { ok: false as const, error: "Diplôme invalide." };
+  const a = await requireAdmin();
+  if (!a.ok) return { ok: false as const, error: "Accès refusé." };
+
+  const { data: dip } = await a.admin
+    .from("diplomas")
+    .select("user_id, user:users(nom, email), course:courses(titre_fr)")
+    .eq("id", parsed.data)
+    .maybeSingle();
+  const email = (dip as { user?: { email?: string } } | null)?.user?.email;
+  const nom = (dip as { user?: { nom?: string } } | null)?.user?.nom ?? "";
+  const courseTitre = (dip as { course?: { titre_fr?: string } } | null)?.course?.titre_fr ?? "votre formation";
+  if (!email) return { ok: false as const, error: "Cette étudiante n'a pas d'email enregistré." };
+
+  const res = await sendEmail({
+    userId: (dip as { user_id?: string } | null)?.user_id ?? null,
+    to: email, category: "certificates", force: true,
+    subject: "🎓 Votre diplôme Arazzo — dernière étape (CNI)",
+    html: diplomaCniEmail(nom, courseTitre),
+  });
+  if (!res.ok) return { ok: false as const, error: res.error ?? "Envoi impossible." };
+  return { ok: true as const, to: email };
 }
 
 /** Change le statut d'un diplôme (eligible → cni_uploaded → generated → shipped). */

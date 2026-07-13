@@ -148,7 +148,7 @@ export async function ensureDiploma(admin: Admin, userId: string, courseId: stri
 }
 
 /** Email officiel demandant la CNI pour générer le diplôme physique. */
-function diplomaCniEmail(nom: string, courseTitre: string): string {
+export function diplomaCniEmail(nom: string, courseTitre: string): string {
   const prenom = nom.split(" ")[0] || "chère élève";
   return `
   <div style="font-family:'DM Sans',Arial,sans-serif;background:#F5F0EB;padding:32px 16px;">
