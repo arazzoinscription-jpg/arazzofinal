@@ -102,7 +102,7 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
       {row.photo_url && (
         <div className="mb-3">
           <a href={row.annotation_url || row.photo_url} target="_blank" rel="noreferrer">
-            <img src={row.annotation_url || row.photo_url} alt="Travail soumis" className="w-full max-h-72 object-contain rounded-xl border border-cream-200 dark:border-white/10 bg-cream-50 dark:bg-white/5" />
+            <img src={row.annotation_url || row.photo_url} alt="Travail soumis" loading="lazy" decoding="async" className="w-full max-h-72 object-contain rounded-xl border border-cream-200 dark:border-white/10 bg-cream-50 dark:bg-white/5" />
           </a>
           <div className="flex items-center gap-3 mt-2">
             <button onClick={() => setAnnotating(true)}
@@ -117,7 +117,7 @@ export function ReviewCard({ row, defaultApproved = false, defaultShared = false
         <ImageAnnotator practicalId={row.id} imageUrl={row.photo_url} onClose={() => setAnnotating(false)} />
       )}
       {row.video_url && (
-        <video src={row.video_url} controls className="w-full rounded-xl border border-cream-200 dark:border-white/10 mb-3" />
+        <video src={row.video_url} controls preload="none" className="w-full rounded-xl border border-cream-200 dark:border-white/10 mb-3" />
       )}
 
       {row.note && <p className="text-sm text-gray-600 dark:text-white/70 font-dm mb-3 italic">« {row.note} »</p>}

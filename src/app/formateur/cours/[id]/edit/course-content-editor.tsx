@@ -6,7 +6,7 @@ import { Plus, Trash2, ChevronUp, ChevronDown, Loader2, Save, GripVertical } fro
 import { LessonVideoUploader } from "@/components/courses/lesson-video-uploader";
 import { saveCourseContent } from "../content-actions";
 import { toast } from "@/components/ui/toast";
-import { DEVOIRS_LIBRARY } from "@/lib/devoirs-library";
+import { DevoirPicker } from "@/components/courses/devoir-picker";
 
 export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; devoir: string; devoir_obligatoire: boolean; duree_minutes: string; is_preview: boolean; }
 export interface EditChapter { id: string | null; titre: string; unlockMonth: string; lessons: EditLesson[]; }
@@ -211,17 +211,8 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
                   />
                   <div>
                     <label className="block text-xs font-semibold text-violet-700 mb-1">📋 Devoir à faire (cette leçon)</label>
-                    {/* Liste déroulante de devoirs prêts à l'emploi : choisir → remplit le champ (modifiable ensuite). */}
-                    <select
-                      value=""
-                      onChange={(e) => { const t = e.target.value; if (t) setLessonField(ci, li, { devoir: t }); e.target.value = ""; }}
-                      className="w-full border border-violet-200 bg-violet-50/60 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-violet-400"
-                    >
-                      <option value="">➕ Choisir un devoir prêt à l'emploi…</option>
-                      {DEVOIRS_LIBRARY.map((d) => (
-                        <option key={d.label} value={d.text}>{d.label}</option>
-                      ))}
-                    </select>
+                    {/* Liste déroulante (modèles + devoirs perso) → remplit le champ, modifiable ensuite. */}
+                    <DevoirPicker onPick={(t) => setLessonField(ci, li, { devoir: t })} />
                     <textarea
                       value={l.devoir}
                       onChange={(e) => setLessonField(ci, li, { devoir: e.target.value })}

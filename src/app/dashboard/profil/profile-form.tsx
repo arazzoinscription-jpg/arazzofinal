@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { setCommunityUsername } from "@/app/actions/profile";
 
 type Initial = {
   nom: string;
@@ -12,6 +13,7 @@ type Initial = {
   avatar_url: string;
   role: string;
   whatsapp: string;
+  username: string;
 };
 
 const PAYS = [
@@ -47,6 +49,17 @@ export function ProfileForm({ initial }: { initial: Initial }) {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+
+    // ── Pseudo (username) : via l'action serveur (validation + unicité) ──
+    const wantUsername = form.username.trim().replace(/^@/, "");
+    if (wantUsername !== (initial.username ?? "").trim()) {
+      if (wantUsername === "") {
+        await supabase.from("users").update({ username: null }).eq("id", user.id); // effacer le pseudo
+      } else {
+        const res = await setCommunityUsername(wantUsername);
+        if (!res.ok) { setSavingP(false); setMsgP({ ok: false, text: res.error }); return; }
+      }
+    }
 
     const isStaff = form.role === "formateur" || form.role === "admin";
     const { error } = await supabase
@@ -124,6 +137,21 @@ export function ProfileForm({ initial }: { initial: Initial }) {
               required
               className="w-full border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pseudo (nom d'utilisateur)</label>
+            <div className="flex items-center border border-gray-200 rounded-xl px-4 focus-within:ring-2 focus-within:ring-orange-500">
+              <span className="text-gray-400 select-none">@</span>
+              <input
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value.replace(/^@/, "") })}
+                placeholder="mon_pseudo"
+                maxLength={20}
+                className="flex-1 px-2 py-3 focus:outline-none bg-transparent"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Affiché dans la communauté à la place de votre nom. 3 à 20 caractères (lettres, chiffres, _). Laissez vide pour utiliser votre nom.</p>
           </div>
 
           <div>

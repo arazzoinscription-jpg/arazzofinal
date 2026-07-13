@@ -132,10 +132,20 @@ export async function saveCourseContent(input: SaveCourseContentInput) {
         if (error) return { ok: false as const, error: error.message };
         lessonId = (created as { id: string } | null)?.id ?? null;
       }
-      // « Devoir à faire » de la leçon (colonne migration 046) — écriture résiliente :
-      // si la colonne n'existe pas encore, on ignore l'erreur (le reste du contenu est sauvé).
+      // « Devoir à faire » de la leçon — deux écritures SÉPARÉES et résilientes :
+      //  • devoir (texte, migration 046)
+      //  • devoir_obligatoire (booléen, migration 062)
+      // Les séparer garantit que le texte du devoir est enregistré même si la
+      // colonne `devoir_obligatoire` n'existe pas encore (sinon l'UPDATE combiné
+      // échouait EN ENTIER → ni le texte ni le flag n'étaient sauvés).
       if (lessonId) {
-        await admin.from("lessons").update({ devoir: l.devoir || null, devoir_obligatoire: !!l.devoir_obligatoire }).eq("id", lessonId);
+        await admin.from("lessons").update({ devoir: l.devoir || null }).eq("id", lessonId);
+        const { error: obligErr } = await admin
+          .from("lessons").update({ devoir_obligatoire: !!l.devoir_obligatoire }).eq("id", lessonId);
+        if (obligErr && /devoir_obligatoire/.test(obligErr.message)) {
+          // Colonne absente (migration 062 non appliquée) → on signale clairement.
+          return { ok: false as const, error: "La colonne « devoir_obligatoire » n'existe pas encore : appliquez la migration 062 (voir _APPLIQUER_MIGRATIONS.sql) pour activer « Obligatoire pour le diplôme »." };
+        }
       }
     }
   }
