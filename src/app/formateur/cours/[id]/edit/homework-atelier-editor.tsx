@@ -74,10 +74,10 @@ export function HomeworkAtelierEditor({
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 mb-1">
               <span className="w-9 h-9 rounded-xl bg-violet-DEFAULT/10 text-violet-700 flex items-center justify-center"><Sparkles size={18} /></span>
-              <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white">Récompense Atelier 🎁</h2>
+              <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white">Projet de fin de stage 🎓</h2>
             </div>
             <p className="text-sm text-gray-600 dark:text-white/60 font-dm">
-              Cochez si ce cours fait partie des cours à terminer pour <strong>débloquer le tableau de bord Atelier</strong>.
+              Cochez si ce cours fait partie des cours à terminer pour le <strong>projet de fin de stage</strong>, qui débloque le cadeau <strong>Espace Atelier</strong> (1 an offert).
             </p>
           </div>
           <button
