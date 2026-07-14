@@ -81,7 +81,7 @@ export async function uploadProjectImage(formData: FormData) {
   const ext = webp ? "webp" : ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg");
   const path = `projects/${user.id}/${randomUUID()}.${ext}`;
 
-  const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, { contentType, upsert: false });
+  const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, { contentType, upsert: false, cacheControl: "31536000" });
   if (upErr) return { ok: false as const, error: "Envoi impossible." };
   const url = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 

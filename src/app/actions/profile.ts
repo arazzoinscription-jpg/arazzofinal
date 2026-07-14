@@ -60,7 +60,7 @@ async function doUpdate(formData: FormData) {
     const contentType = webp ? "image/webp" : avatar.type;
     const ext = webp ? "webp" : ((avatar.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg");
     const path = `avatars/${user.id}/${randomUUID()}.${ext}`;
-    const { error: upErr } = await admin.storage.from("posts").upload(path, bytes, { contentType, upsert: false });
+    const { error: upErr } = await admin.storage.from("posts").upload(path, bytes, { contentType, upsert: false, cacheControl: "31536000" });
     if (upErr) return { ok: false as const, error: "Envoi de l'avatar échoué : " + upErr.message };
     avatarUrl = admin.storage.from("posts").getPublicUrl(path).data.publicUrl;
   }

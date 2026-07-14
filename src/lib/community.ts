@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl, type CommunityItem } from "@/lib/community-types";
+import { cdnImage } from "@/lib/storage-cdn";
 
 export type { CommunityItem, SourceType } from "@/lib/community-types";
 export { sourceLabel } from "@/lib/community-types";
@@ -32,7 +33,7 @@ function mapRow(r: any, meId: string): CommunityItem {
     author: {
       id: post.author?.id ?? "",
       nom: post.author?.nom ?? "Utilisateur",
-      avatar_url: post.author?.avatar_url ?? null,
+      avatar_url: cdnImage(post.author?.avatar_url ?? null),
       role: post.author?.role ?? "eleve",
     },
     likeCount: likes.length,
@@ -112,6 +113,7 @@ export async function loadProfile(userId: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("users").select("id, nom, username, avatar_url, role, bio").eq("id", userId).maybeSingle();
+  if (data) data.avatar_url = cdnImage(data.avatar_url ?? null);
   return data;
 }
 

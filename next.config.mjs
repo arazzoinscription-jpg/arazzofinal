@@ -8,6 +8,17 @@ const nextConfig = {
     // Tree-shaking agressif des gros barrels → bundle par page plus léger.
     optimizePackageImports: ["framer-motion", "recharts", "lucide-react"],
   },
+  // ── Proxy CDN des images du Storage Supabase ────────────────────────────────
+  // Sert les fichiers publics du Storage via NOTRE domaine (/media/...) au lieu
+  // de <ref>.supabase.co. Avec Cloudflare (gratuit) devant le domaine, ces images
+  // sont mises en cache au bord → l'egress Supabase n'est touché qu'au 1ᵉʳ chargement.
+  // (Voir CDN_CACHE.md. Le passage des URLs vers /media est piloté par
+  //  NEXT_PUBLIC_USE_MEDIA_CDN pour n'activer qu'une fois Cloudflare en place.)
+  async rewrites() {
+    const sb = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!sb) return [];
+    return [{ source: "/media/:path*", destination: `${sb}/storage/v1/object/public/:path*` }];
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
@@ -55,6 +66,11 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "Content-Security-Policy", value: csp },
         ],
+      },
+      {
+        // Images du Storage proxifiées : cache très long (immuable, nom unique par upload).
+        source: "/media/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
     ];
   },

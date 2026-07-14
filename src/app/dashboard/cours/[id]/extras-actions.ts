@@ -277,13 +277,13 @@ export async function savePracticalAnnotation(id: string, dataUrl: string) {
     if (idx >= 0) {
       // Écrase le fichier d'origine (upsert) → même URL, pas de doublon.
       const path = decodeURIComponent(clean.slice(idx + MARKER.length));
-      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: true, contentType: annotContentType });
+      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: true, contentType: annotContentType, cacheControl: "31536000" });
       if (upErr) return { ok: false as const, error: upErr.message };
       baseUrl = admin.storage.from("practicals").getPublicUrl(path).data.publicUrl;
     } else {
       // Repli (photo hébergée ailleurs) : un seul nouvel objet dans `practicals`.
       const path = `annotations/${id}/${crypto.randomUUID()}.jpg`;
-      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: false, contentType: annotContentType });
+      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: false, contentType: annotContentType, cacheControl: "31536000" });
       if (upErr) return { ok: false as const, error: upErr.message };
       baseUrl = admin.storage.from("practicals").getPublicUrl(path).data.publicUrl;
     }
