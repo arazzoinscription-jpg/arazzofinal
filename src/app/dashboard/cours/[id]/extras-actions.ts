@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { compressImageToWebp } from "@/lib/images";
 import { uploadPracticalFile as bunnyUpload, isPracticalsConfigured } from "@/lib/bunny/practicals-storage";
 import { MAX_PRACTICAL_PHOTOS, MAX_PRACTICAL_VIDEOS } from "@/lib/practicals-limits";
 import { ensureNextInstallmentOrder } from "@/lib/subscriptions";
@@ -111,11 +112,18 @@ export async function uploadPracticalToBunny(formData: FormData) {
   if (file.size > MAX) return { ok: false as const, error: `Fichier trop volumineux (max ${type === "photo" ? "8 Mo" : "100 Mo"}).` };
 
   const ext = (file.name.split(".").pop() ?? "bin").toLowerCase();
-  const path = `${lessonId}/${c.user.id}/${type}-${crypto.randomUUID()}.${ext}`;
 
   try {
-    const buffer = await file.arrayBuffer();
-    const url = await bunnyUpload(buffer, path, file.type || "application/octet-stream");
+    let buffer: ArrayBuffer | Uint8Array = await file.arrayBuffer();
+    let outExt = ext;
+    let contentType = file.type || "application/octet-stream";
+    // Photo → compression WebP (poids & bande passante réduits, upload plus rapide).
+    if (type === "photo") {
+      const webp = await compressImageToWebp(buffer, 1600, 75);
+      if (webp) { buffer = webp; outExt = "webp"; contentType = "image/webp"; }
+    }
+    const path = `${lessonId}/${c.user.id}/${type}-${crypto.randomUUID()}.${outExt}`;
+    const url = await bunnyUpload(buffer, path, contentType);
     return { ok: true as const, url };
   } catch (e) {
     return { ok: false as const, error: (e as Error).message };
@@ -246,8 +254,12 @@ export async function savePracticalAnnotation(id: string, dataUrl: string) {
   const m = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl ?? "");
   if (!m) return { ok: false as const, error: "Image d'annotation invalide." };
 
-  const bytes = Buffer.from(m[2], "base64");
-  if (bytes.byteLength > 10 * 1024 * 1024) return { ok: false as const, error: "Annotation trop lourde (max 10 Mo)." };
+  const original = Buffer.from(m[2], "base64");
+  if (original.byteLength > 10 * 1024 * 1024) return { ok: false as const, error: "Annotation trop lourde (max 10 Mo)." };
+  // Compression WebP → allège le bucket Supabase « practicals ».
+  const webp = await compressImageToWebp(original, 1600, 78);
+  const bytes = webp ?? original;
+  const annotContentType = webp ? "image/webp" : "image/jpeg";
 
   const admin = createAdminClient();
   const { data: row } = await admin.from("lesson_practicals").select("lesson_id, photo_url").eq("id", id).maybeSingle();
@@ -265,13 +277,13 @@ export async function savePracticalAnnotation(id: string, dataUrl: string) {
     if (idx >= 0) {
       // Écrase le fichier d'origine (upsert) → même URL, pas de doublon.
       const path = decodeURIComponent(clean.slice(idx + MARKER.length));
-      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: true, contentType: "image/jpeg" });
+      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: true, contentType: annotContentType });
       if (upErr) return { ok: false as const, error: upErr.message };
       baseUrl = admin.storage.from("practicals").getPublicUrl(path).data.publicUrl;
     } else {
       // Repli (photo hébergée ailleurs) : un seul nouvel objet dans `practicals`.
       const path = `annotations/${id}/${crypto.randomUUID()}.jpg`;
-      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: false, contentType: "image/jpeg" });
+      const { error: upErr } = await admin.storage.from("practicals").upload(path, bytes, { upsert: false, contentType: annotContentType });
       if (upErr) return { ok: false as const, error: upErr.message };
       baseUrl = admin.storage.from("practicals").getPublicUrl(path).data.publicUrl;
     }

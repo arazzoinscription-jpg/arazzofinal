@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitizeText } from "@/lib/security/sanitize";
+import { compressImageToWebp } from "@/lib/images";
 
 const MAX_AVATAR = 3 * 1024 * 1024; // 3 Mo
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
@@ -52,10 +53,14 @@ async function doUpdate(formData: FormData) {
   if (avatar instanceof File && avatar.size > 0) {
     if (!avatar.type.startsWith("image/")) return { ok: false as const, error: "L'avatar doit être une image." };
     if (avatar.size > MAX_AVATAR) return { ok: false as const, error: "Image trop lourde (max 3 Mo)." };
-    const ext = (avatar.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+    // Compression WebP (avatar 512px) → stockage & bande passante Supabase réduits.
+    const raw = await avatar.arrayBuffer();
+    const webp = await compressImageToWebp(raw, 512, 78);
+    const bytes = webp ? new Uint8Array(webp) : new Uint8Array(raw);
+    const contentType = webp ? "image/webp" : avatar.type;
+    const ext = webp ? "webp" : ((avatar.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg");
     const path = `avatars/${user.id}/${randomUUID()}.${ext}`;
-    const bytes = new Uint8Array(await avatar.arrayBuffer());
-    const { error: upErr } = await admin.storage.from("posts").upload(path, bytes, { contentType: avatar.type, upsert: false });
+    const { error: upErr } = await admin.storage.from("posts").upload(path, bytes, { contentType, upsert: false });
     if (upErr) return { ok: false as const, error: "Envoi de l'avatar échoué : " + upErr.message };
     avatarUrl = admin.storage.from("posts").getPublicUrl(path).data.publicUrl;
   }

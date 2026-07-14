@@ -4,7 +4,7 @@ import { useState } from "react";
 import { UploadCloud, Loader2, Trash2, Image as ImageIcon, Film } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toast";
-import { createProjectUploadUrl, recordProjectMedia, deleteProjectMedia, type ProjectMedia } from "./actions";
+import { createProjectUploadUrl, recordProjectMedia, deleteProjectMedia, uploadProjectImage, type ProjectMedia } from "./actions";
 
 /** Téléversement des photos / vidéos du projet de fin de stage + galerie. */
 export function ProjectUploader({ initial }: { initial: ProjectMedia[] }) {
@@ -18,6 +18,16 @@ export function ProjectUploader({ initial }: { initial: ProjectMedia[] }) {
     try {
       const supabase = createClient();
       for (const f of Array.from(files)) {
+        if (f.type.startsWith("image/")) {
+          // Image → serveur (compression WebP avant stockage).
+          const fd = new FormData();
+          fd.append("file", f);
+          const res = await uploadProjectImage(fd);
+          if (!res.ok) { setErr(res.error); continue; }
+          setItems((prev) => [{ id: crypto.randomUUID(), kind: "image", url: res.url, createdAt: new Date().toISOString() }, ...prev]);
+          continue;
+        }
+        // Vidéo → URL signée (trop lourde pour un Server Action).
         const ext = (f.name.split(".").pop() ?? "").toLowerCase();
         const prep = await createProjectUploadUrl(ext);
         if (!prep.ok) { setErr(prep.error); continue; }

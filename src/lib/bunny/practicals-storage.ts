@@ -14,15 +14,16 @@ export function isPracticalsConfigured(): boolean {
  * Renvoie l'URL CDN publique du fichier.
  */
 export async function uploadPracticalFile(
-  buffer: ArrayBuffer,
+  buffer: ArrayBuffer | Uint8Array,
   path: string,
   contentType: string
 ): Promise<string> {
   if (!isPracticalsConfigured()) throw new Error("Bunny Storage travaux-pratiques non configuré.");
+  const body: Uint8Array = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   const res = await fetch(`${API}/${ZONE}/${path}`, {
     method: "PUT",
     headers: { AccessKey: KEY, "Content-Type": contentType },
-    body: new Uint8Array(buffer),
+    body: body as unknown as BodyInit,
   });
   if (!res.ok) {
     const detail = await res.text().catch(() => "");

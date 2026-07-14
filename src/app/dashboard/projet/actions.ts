@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { compressImageToWebp } from "@/lib/images";
 
 const BUCKET = "posts";
 const IMG_EXT = ["jpg", "jpeg", "png", "webp"];
@@ -50,6 +51,43 @@ export async function recordProjectMedia(path: string, kind: "image" | "video", 
     user_id: user.id, kind, url, path, status: "submitted",
   });
   if (error) {
+    const msg = /final_project_media/.test(error.message)
+      ? "Migration 075 non appliquée — lancez 075_final_project.sql dans Supabase."
+      : error.message;
+    return { ok: false as const, error: msg };
+  }
+  revalidatePath("/dashboard/projet");
+  return { ok: true as const, url };
+}
+
+/**
+ * Upload d'une IMAGE du projet via le serveur : compression WebP (sharp) avant
+ * stockage → poids & bande passante Supabase fortement réduits. Les vidéos, elles,
+ * passent par l'URL signée (trop lourdes pour un Server Action).
+ */
+export async function uploadProjectImage(formData: FormData) {
+  const user = await me();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { ok: false as const, error: "Fichier manquant." };
+  if (!file.type.startsWith("image/")) return { ok: false as const, error: "Ce n'est pas une image." };
+  if (file.size > 20 * 1024 * 1024) return { ok: false as const, error: "Image trop lourde (max 20 Mo)." };
+
+  const admin = createAdminClient();
+  const raw = await file.arrayBuffer();
+  const webp = await compressImageToWebp(raw, 1280, 72);
+  const bytes = webp ? new Uint8Array(webp) : new Uint8Array(raw);
+  const contentType = webp ? "image/webp" : (file.type || "image/jpeg");
+  const ext = webp ? "webp" : ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg");
+  const path = `projects/${user.id}/${randomUUID()}.${ext}`;
+
+  const { error: upErr } = await admin.storage.from(BUCKET).upload(path, bytes, { contentType, upsert: false });
+  if (upErr) return { ok: false as const, error: "Envoi impossible." };
+  const url = admin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+
+  const { error } = await admin.from("final_project_media").insert({ user_id: user.id, kind: "image", url, path, status: "submitted" });
+  if (error) {
+    await admin.storage.from(BUCKET).remove([path]).catch(() => {});
     const msg = /final_project_media/.test(error.message)
       ? "Migration 075 non appliquée — lancez 075_final_project.sql dans Supabase."
       : error.message;
