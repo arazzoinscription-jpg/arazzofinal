@@ -4,6 +4,7 @@ import { GET as surMesureRealert } from "../sur-mesure-realert/route";
 import { GET as formateurDigest } from "../formateur-digest/route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runProspectInactivity } from "@/lib/prospects";
+import { cleanupOldLogs } from "@/lib/cleanup-logs";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -40,6 +41,14 @@ export async function GET(req: NextRequest) {
     results["prospect-inactivity"] = await runProspectInactivity(createAdminClient());
   } catch (e) {
     results["prospect-inactivity"] = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Purge des vieux journaux (analytics, emails, notifications, activité) →
+  // garde la base sous le quota Supabase Free (500 Mo).
+  try {
+    results["cleanup-logs"] = await cleanupOldLogs();
+  } catch (e) {
+    results["cleanup-logs"] = { error: e instanceof Error ? e.message : String(e) };
   }
 
   return NextResponse.json({ ok: true, results });
