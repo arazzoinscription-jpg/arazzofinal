@@ -89,7 +89,9 @@ export async function sharePracticalToFeedAsStaff(practicalId: string) {
   }
 
   const { data: already } = await admin.from("community_media").select("id").eq("practical_id", practicalId).maybeSingle();
-  if (already) return { ok: false, error: "Déjà publié sur la communauté." };
+  // Idempotent : si le travail est déjà sur le feed, l'état voulu est atteint → succès
+  // (et non une erreur « Déjà publié » qui ressemblait à un échec côté formateur).
+  if (already) return { ok: true, already: true };
 
   const mediaUrl = prac.video_url || prac.photo_url;
   if (!mediaUrl) return { ok: false, error: "Ce travail n'a ni photo ni vidéo." };

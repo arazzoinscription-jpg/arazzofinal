@@ -8,6 +8,20 @@ import { PracticalsBoard } from "./practicals-board";
 export const metadata = { title: "Travaux pratiques — Arazzo Formation" };
 export const dynamic = "force-dynamic";
 
+// Récupère des lignes par `.in(col, ids)` en LOTS : un `.in()` avec des centaines
+// d'ids produit une URL trop longue et fait échouer la requête (fetch failed).
+async function fetchInChunks(
+  admin: any,
+  table: string, cols: string, col: string, ids: string[], size = 150,
+): Promise<any[]> {
+  const out: any[] = [];
+  for (let i = 0; i < ids.length; i += size) {
+    const { data } = await admin.from(table).select(cols).in(col, ids.slice(i, i + size));
+    if (data) out.push(...data);
+  }
+  return out;
+}
+
 export default async function PratiquesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -36,14 +50,14 @@ export default async function PratiquesPage() {
     .eq("status", "approved")
     .order("reviewed_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(2000);
   if (approvedErr) {
     ({ data: approvedSubs } = await admin
       .from("lesson_practicals")
       .select(APPROVED_SELECT)
       .eq("status", "approved")
       .order("created_at", { ascending: false })
-      .limit(300));
+      .limit(2000));
   }
   const subs = [...(pendingSubs ?? []), ...(approvedSubs ?? [])];
 
@@ -54,18 +68,15 @@ export default async function PratiquesPage() {
   const courseFormateur = new Map<string, string | null>();
   const lessonIds = [...new Set(subs.map((s: any) => s.lesson_id).filter(Boolean))];
   if (lessonIds.length) {
-    const { data: lessons } = await admin
-      .from("lessons").select("id, titre, chapter_id").in("id", lessonIds);
+    const lessons = await fetchInChunks(admin, "lessons", "id, titre, chapter_id", "id", lessonIds);
     const chapterIds = [...new Set((lessons ?? []).map((l: any) => l.chapter_id).filter(Boolean))];
     const chapterCourse = new Map<string, string>();
     if (chapterIds.length) {
-      const { data: chapters } = await admin
-        .from("chapters").select("id, course_id").in("id", chapterIds);
+      const chapters = await fetchInChunks(admin, "chapters", "id, course_id", "id", chapterIds);
       for (const ch of chapters ?? []) chapterCourse.set(ch.id, ch.course_id);
       const courseIds = [...new Set((chapters ?? []).map((c: any) => c.course_id).filter(Boolean))];
       if (courseIds.length) {
-        const { data: courses } = await admin
-          .from("courses").select("id, titre_fr, formateur_id").in("id", courseIds);
+        const courses = await fetchInChunks(admin, "courses", "id, titre_fr, formateur_id", "id", courseIds);
         for (const c of courses ?? []) { courseTitle.set(c.id, c.titre_fr ?? "Formation"); courseFormateur.set(c.id, c.formateur_id ?? null); }
       }
     }
@@ -80,10 +91,15 @@ export default async function PratiquesPage() {
   const owns = (s: any) => isAdmin || courseFormateur.get(lessonCourse.get(s.lesson_id) ?? "") === user.id;
 
   // 3) Travaux déjà publiés sur le feed (pour l'état « Publié » du bouton de partage).
+  //    On lit directement les community_media de source « practical » (petit ensemble)
+  //    au lieu d'un `.in()` sur des centaines d'ids : un `.in()` trop long fait échouer
+  //    la requête (URL trop longue) → sharedSet vidé → les travaux DÉJÀ publiés
+  //    affichaient « Partager », et l'action renvoyait ensuite « Déjà publié » (échec).
   const sharedSet = new Set<string>();
-  const approvedIds = (approvedSubs ?? []).filter(owns).map((s: any) => s.id);
-  if (approvedIds.length) {
-    const { data: cm } = await admin.from("community_media").select("practical_id").in("practical_id", approvedIds);
+  {
+    const { data: cm } = await admin
+      .from("community_media").select("practical_id")
+      .eq("source_type", "practical").not("practical_id", "is", null).limit(5000);
     (cm ?? []).forEach((m: { practical_id: string | null }) => m.practical_id && sharedSet.add(m.practical_id));
   }
 
