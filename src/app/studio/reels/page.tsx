@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Search, ExternalLink } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import {
-  StudioAPI, mediaThumb, editorUrl, type Reel, type Cat,
+  StudioAPI, mediaThumb, type Reel, type Cat,
 } from "@/lib/studio-api";
 
 type Axis = "pillar" | "rubric" | "source";
@@ -171,15 +171,10 @@ function Chip({ active, onClick, label, n }: { active: boolean; onClick: () => v
 function ReelCard({ reel }: { reel: Reel }) {
   const score = reel.ai_score ?? reel.score;
   return (
-    <a
-      href={editorUrl(reel.id)}
-      target="_blank"
-      rel="noreferrer"
+    <Link
+      href={`/studio/editor/${reel.id}`}
       className="group relative overflow-hidden rounded-xl border border-border bg-card transition hover:-translate-y-1 hover:shadow-md"
     >
-      <span className="absolute right-2 top-2 z-10 rounded-full bg-black/60 p-1 text-white opacity-0 transition group-hover:opacity-100">
-        <ExternalLink className="size-3.5" />
-      </span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={mediaThumb(reel.id)}
@@ -201,6 +196,6 @@ function ReelCard({ reel }: { reel: Reel }) {
           <span className="tabular-nums">{Math.round(reel.duration || 0)}s</span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
