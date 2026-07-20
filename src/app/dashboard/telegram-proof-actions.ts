@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -135,6 +136,35 @@ export async function setTelegramProofStatus(id: string, status: "verified" | "r
   const { error } = await admin.from("telegram_payment_proofs").update({ status }).eq("id", id);
   if (error) return { ok: false as const, error: error.message };
   return { ok: true as const };
+}
+
+/**
+ * Admin : (ré)ouvre le délai d'envoi de preuve Telegram pour un ou plusieurs
+ * élèves. Remet le compteur à AUJOURD'HUI → l'élève repart pour 7 jours pleins
+ * et son compte est débloqué immédiatement s'il l'était faute de preuve.
+ * Sert à la fois à « réactiver un compte bloqué par manque de preuve » et à
+ * « prolonger le délai d'attente ».
+ */
+export async function extendTelegramProofDeadline(userIds: string[]) {
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth;
+  const ids = z.array(z.string().uuid()).min(1).max(500).safeParse(userIds);
+  if (!ids.success) return { ok: false as const, error: "Données invalides." };
+
+  const admin = createAdminClient();
+  const list = [...new Set(ids.data)];
+  const { error } = await admin
+    .from("users")
+    .update({ telegram_notified_at: new Date().toISOString() })
+    .in("id", list);
+  if (error) {
+    const msg = /telegram_notified_at/.test(error.message)
+      ? "Migration 072 non appliquée — lancez 072_telegram_proof_deadline.sql dans Supabase."
+      : error.message;
+    return { ok: false as const, error: msg };
+  }
+  revalidatePath("/admin/etudiants");
+  return { ok: true as const, count: list.length };
 }
 
 /** Admin : URLs signées de TOUTES les photos d'une preuve Telegram. */

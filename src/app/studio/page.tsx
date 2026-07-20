@@ -12,9 +12,9 @@ type Status = "loading" | "on" | "off";
 
 const NAV = [
   { key: "reels", href: "/studio/reels", label: "Les Reels", desc: "Bibliothèque, dossiers, montage", icon: Film, soon: false },
-  { key: "analyze", href: "", label: "Analyse du cours", desc: "Timeline colorée, validation", icon: Wand2, soon: true },
+  { key: "analyze", href: "/studio/analyze", label: "Analyse du cours", desc: "Timeline colorée, validation", icon: Wand2, soon: false },
   { key: "search", href: "", label: "Recherche IA", desc: "Trouver un passage par sujet", icon: Search, soon: true },
-  { key: "agents", href: "", label: "AI Director", desc: "Chef d'orchestre & agents", icon: Bot, soon: true },
+  { key: "agents", href: "/studio/agents", label: "AI Director", desc: "Chef d'orchestre & agents", icon: Bot, soon: false },
   { key: "pillars", href: "/studio/reels", label: "Dossiers", desc: "Angle · Technique · Source", icon: FolderTree, soon: false },
 ] as const;
 
@@ -90,8 +90,8 @@ export default function StudioPage() {
           <section className="mt-12">
             <h2 className="mb-4 text-xl font-bold">Le Studio</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {NAV.map((n) => (
-                <NavCard key={n.key} {...n} />
+              {NAV.map(({ key, ...n }) => (
+                <NavCard key={key} {...n} />
               ))}
             </div>
           </section>

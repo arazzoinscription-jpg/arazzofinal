@@ -3,12 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { useRouter } from "next/navigation";
-import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail, UserX, ArrowUpDown, BellRing } from "lucide-react";
+import { Ban, PauseCircle, CheckCircle2, Trash2, X, Loader2, Mail, UserX, ArrowUpDown, BellRing, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { bulkSetUserStatus, bulkDeleteUsers, bulkActivateAndInvite, cancelStudentEnrollments, remindSubscriber } from "@/app/admin/actions";
+import { extendTelegramProofDeadline } from "@/app/dashboard/telegram-proof-actions";
 
 export type AccessStatus = "none" | "valid" | "used" | "expired";
+export type StatusKind = "bloque" | "preuve_bloque" | "veille" | "non_active" | "preuve_attente" | "actif";
 
 export interface StudentRowLite {
   id: string;
@@ -20,6 +22,9 @@ export interface StudentRowLite {
   formateurNom: string | null;
   formateurEmail: string | null;
   active: boolean;
+  statusKind: StatusKind;
+  proofDaysLeft: number | null;
+  canExtendProof: boolean;
   accessStatus: AccessStatus;
   payType: "abonnement" | "total";
   paidMonths: number;
@@ -28,7 +33,7 @@ export interface StudentRowLite {
 }
 
 type SortKey = "date_desc" | "date_asc" | "nom_asc" | "nom_desc";
-type ActiveFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | StatusKind;
 type AccessFilter = "all" | AccessStatus;
 
 const ACCESS_META: Record<AccessStatus, { label: string; cls: string }> = {
@@ -38,6 +43,16 @@ const ACCESS_META: Record<AccessStatus, { label: string; cls: string }> = {
   expired: { label: "Expiré", cls: "bg-red-100 text-red-700" },
 };
 
+// Statut RÉEL du compte : ● dot + libellé + couleur. Le rouge = compte bloqué.
+const STATUS_META: Record<StatusKind, { label: string; cls: string; dot: string }> = {
+  actif:          { label: "Actif",              cls: "bg-green-100 text-green-700",  dot: "🟢" },
+  non_active:     { label: "Non activé",         cls: "bg-gray-100 text-gray-500",    dot: "⚪" },
+  veille:         { label: "En veille",          cls: "bg-amber-100 text-amber-700",  dot: "🟠" },
+  preuve_attente: { label: "Preuve en attente",  cls: "bg-yellow-100 text-yellow-800", dot: "🟡" },
+  bloque:         { label: "Bloqué (manuel)",    cls: "bg-red-100 text-red-700",      dot: "🔴" },
+  preuve_bloque:  { label: "Bloqué — preuve manquante", cls: "bg-red-100 text-red-700", dot: "🔴" },
+};
+
 export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
   const router = useRouter();
   const [sel, setSel] = useState<Set<string>>(new Set());
@@ -45,13 +60,13 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
 
   // ── Tri & filtres (côté client, sur les lignes déjà chargées) ──────────────
   const [sort, setSort] = useState<SortKey>("date_desc");
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [accessFilter, setAccessFilter] = useState<AccessFilter>("all");
 
   const view = useMemo(() => {
     let r = rows.filter((row) => {
-      if (activeFilter === "active" && !row.active) return false;
-      if (activeFilter === "inactive" && row.active) return false;
+      if (statusFilter === "bloque" && row.statusKind !== "bloque" && row.statusKind !== "preuve_bloque") return false;
+      if (statusFilter !== "all" && statusFilter !== "bloque" && row.statusKind !== statusFilter) return false;
       if (accessFilter !== "all" && row.accessStatus !== accessFilter) return false;
       return true;
     });
@@ -65,7 +80,7 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
       }
     });
     return r;
-  }, [rows, sort, activeFilter, accessFilter]);
+  }, [rows, sort, statusFilter, accessFilter]);
 
   const ids = view.map((r) => r.id);
   const allSelected = ids.length > 0 && ids.every((id) => sel.has(id));
@@ -130,6 +145,27 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
     });
   }
 
+  // Repart pour 7 jours pleins : débloque un compte bloqué faute de preuve
+  // ET prolonge l'attente. S'applique à un élève (row) ou à la sélection.
+  function extendProof(r: StudentRowLite) {
+    if (!confirm(`Prolonger le délai de preuve de ${r.nom} ?\nSon compte repart pour 7 jours pleins et est débloqué immédiatement.`)) return;
+    start(async () => {
+      const res = await extendTelegramProofDeadline([r.id]);
+      if (res.ok) { toast(`Délai de preuve prolongé pour ${r.nom} (7 jours) ✅`, "success"); router.refresh(); }
+      else toast(res.error ?? "Erreur", "error");
+    });
+  }
+  function extendProofSelected() {
+    const list = [...sel];
+    if (!list.length) return;
+    if (!confirm(`Prolonger le délai de preuve de ${list.length} élève(s) ?\nLeurs comptes repartent pour 7 jours pleins et sont débloqués.`)) return;
+    start(async () => {
+      const res = await extendTelegramProofDeadline(list);
+      if (res.ok) { toast(`${res.count} délai(s) de preuve prolongé(s) ✅`, "success"); setSel(new Set()); router.refresh(); }
+      else toast(res.error ?? "Erreur", "error");
+    });
+  }
+
   const selCls = "border border-gray-200 rounded-xl px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500";
 
   return (
@@ -145,10 +181,14 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
           <option value="nom_asc">Nom : A → Z</option>
           <option value="nom_desc">Nom : Z → A</option>
         </select>
-        <select value={activeFilter} onChange={(e) => setActiveFilter(e.target.value as ActiveFilter)} className={selCls} aria-label="Filtrer actif">
-          <option value="all">Tous (actifs + inactifs)</option>
-          <option value="active">Actifs seulement</option>
-          <option value="inactive">Inactifs seulement</option>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} className={selCls} aria-label="Filtrer par statut">
+          <option value="all">Tous les statuts</option>
+          <option value="actif">🟢 Actifs</option>
+          <option value="non_active">⚪ Non activés</option>
+          <option value="veille">🟠 En veille</option>
+          <option value="preuve_attente">🟡 Preuve en attente</option>
+          <option value="bloque">🔴 Bloqués (manuel + preuve)</option>
+          <option value="preuve_bloque">🔴 Bloqués — preuve manquante</option>
         </select>
         <select value={accessFilter} onChange={(e) => setAccessFilter(e.target.value as AccessFilter)} className={selCls} aria-label="Filtrer accès">
           <option value="all">Tous les accès</option>
@@ -160,27 +200,52 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
         <span className="ms-auto text-xs text-gray-400 font-dm">{view.length} affiché(s)</span>
       </div>
 
+      {/* Légende des statuts (aide) */}
+      <details className="px-4 py-2.5 border-b border-gray-100 bg-white text-sm">
+        <summary className="cursor-pointer font-semibold text-gray-600 select-none">
+          Que veulent dire les statuts et les boutons&nbsp;?
+        </summary>
+        <div className="mt-3 grid gap-2 text-xs text-gray-600 sm:grid-cols-2">
+          <p><span className="font-semibold">🟢 Actif</span> — compte normal, l'élève peut se connecter.</p>
+          <p><span className="font-semibold">⚪ Non activé</span> — compte migré jamais connecté. Bouton <b>« Activer &amp; envoyer l'accès »</b>.</p>
+          <p><span className="font-semibold">🟠 En veille</span> — suspendu temporairement par vous. Bouton <b>« Réactiver »</b> pour rouvrir.</p>
+          <p><span className="font-semibold">🟡 Preuve en attente</span> — élève importé qui n'a pas encore envoyé sa preuve (délai de 7 j en cours, J-x affiché).</p>
+          <p><span className="font-semibold text-red-600">🔴 Bloqué (manuel)</span> — bloqué par vous. Bouton <b>« Réactiver »</b> pour rouvrir.</p>
+          <p><span className="font-semibold text-red-600">🔴 Bloqué — preuve manquante</span> — 7 j écoulés sans preuve. Bouton <b>« Prolonger la preuve »</b> (repart pour 7 j, débloque tout de suite).</p>
+        </div>
+      </details>
+
       {/* Barre d'actions groupées (apparaît dès qu'une sélection existe) */}
       {sel.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-violet-50 border-b border-violet-100">
           <span className="text-sm font-semibold text-violet-900 me-2">{sel.size} sélectionné(s)</span>
           <Button size="sm" disabled={pending} onClick={activateSelected}
+            title="Active le compte migré et envoie l'email de création de mot de passe (pour les élèves « Non activé »)."
             className="gap-2 bg-violet-600 text-white hover:bg-violet-700">
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />} Activer &amp; envoyer l'accès
           </Button>
           <Button size="sm" disabled={pending} onClick={() => applyStatus("bloque")}
+            title="Bloque le compte : l'élève ne peut plus se connecter (message « Compte bloqué »). Réversible avec « Réactiver »."
             className="gap-2 bg-red-600 text-white hover:bg-red-700">
             {pending ? <Loader2 className="size-4 animate-spin" /> : <Ban className="size-4" />} Bloquer
           </Button>
           <Button size="sm" disabled={pending} onClick={() => applyStatus("veille")}
+            title="Suspend temporairement le compte : l'élève voit « Compte en veille » et ne peut pas se connecter. Réversible avec « Réactiver »."
             className="gap-2 bg-amber-500 text-white hover:bg-amber-600">
             <PauseCircle className="size-4" /> Mettre en veille
           </Button>
           <Button size="sm" disabled={pending} onClick={() => applyStatus("actif")}
+            title="Réactive un compte que VOUS avez bloqué ou mis en veille. (Ne débloque pas un compte bloqué faute de preuve → utilisez « Prolonger la preuve ».)"
             className="gap-2 bg-green-600 text-white hover:bg-green-700">
             <CheckCircle2 className="size-4" /> Réactiver
           </Button>
+          <Button size="sm" disabled={pending} onClick={extendProofSelected}
+            title="Repart pour 7 jours pleins : débloque un compte bloqué faute de preuve et prolonge le délai d'attente."
+            className="gap-2 bg-sky-600 text-white hover:bg-sky-700">
+            <CalendarClock className="size-4" /> Prolonger la preuve
+          </Button>
           <Button size="sm" variant="destructive" disabled={pending} onClick={removeSelected}
+            title="Supprime définitivement le(s) compte(s) et toutes leurs données. Irréversible."
             className="gap-2 bg-gray-900 text-white hover:bg-black">
             <Trash2 className="size-4" /> Supprimer
           </Button>
@@ -214,8 +279,12 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
             ) : view.map((r) => {
               const checked = sel.has(r.id);
               const acc = ACCESS_META[r.accessStatus];
+              const stat = STATUS_META[r.statusKind];
+              const isBlocked = r.statusKind === "bloque" || r.statusKind === "preuve_bloque";
               return (
-                <TableRow key={r.id} className={`font-dm align-top ${checked ? "bg-orange-50/50" : "hover:bg-gray-50"}`}>
+                <TableRow key={r.id} className={`font-dm align-top ${
+                  checked ? "bg-orange-50/50" : isBlocked ? "bg-red-50 hover:bg-red-100/70" : "hover:bg-gray-50"
+                }`}>
                   <TableCell className="px-5 py-3">
                     <input type="checkbox" checked={checked} onChange={() => toggle(r.id)}
                       aria-label={`Sélectionner ${r.nom}`} className="w-4 h-4 accent-orange-600" />
@@ -272,14 +341,24 @@ export function StudentsBulkTable({ rows }: { rows: StudentRowLite[] }) {
                     </span>
                   </TableCell>
                   <TableCell className="px-5 py-3">
-                    <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      r.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                    }`}>
-                      {r.active ? "● Actif" : "○ Inactif"}
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${stat.cls}`}>
+                      {stat.dot} {stat.label}
                     </span>
+                    {r.statusKind === "preuve_attente" && r.proofDaysLeft !== null && (
+                      <div className="text-[11px] text-yellow-700 mt-0.5">
+                        {r.proofDaysLeft > 0 ? `blocage dans ${r.proofDaysLeft} j` : "dernier jour"}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="px-5 py-3 text-right">
                     <div className="flex flex-col items-end gap-1.5">
+                      {r.canExtendProof && (
+                        <button onClick={() => extendProof(r)} disabled={pending}
+                          title="Repart pour 7 jours pleins : débloque le compte s'il est bloqué faute de preuve et prolonge le délai."
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 hover:text-white hover:bg-sky-600 border border-sky-200 rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-50">
+                          <CalendarClock size={14} /> Prolonger la preuve
+                        </button>
+                      )}
                       {r.payType === "abonnement" && r.paidMonths < r.totalMonths && (
                         <button onClick={() => remind(r)} disabled={pending}
                           title="Envoyer un rappel de paiement d'échéance à l'abonné"

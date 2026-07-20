@@ -6,6 +6,7 @@ export const metadata = { title: "Étudiants inscrits — Admin" };
 export const dynamic = "force-dynamic";
 
 const DAY = 1000 * 60 * 60 * 24;
+const PROOF_DEADLINE_DAYS = 7; // délai d'envoi de preuve Telegram (cf. telegram-proof-actions.ts)
 
 const LEVEL_1_SLUG = "niveau-1-bases-vetements-quotidiens";
 const LEVEL_2_SLUG = "niveau-2-classique-soiree";
@@ -25,6 +26,7 @@ interface StudentRow {
   formateurNom: string | null;
   formateurEmail: string | null;
   active: boolean;
+  imported: boolean; // au moins une inscription à 0 DA (migrée de Telegram → doit envoyer une preuve)
 }
 
 function parseModuleNum(title: string | null): number | null {
@@ -85,7 +87,7 @@ export default async function AdminStudentsPage({
   // ── 2) Inscriptions + étudiant + cours ────────────────────────────────────
   const { data: enrolls } = await admin
     .from("enrollments")
-    .select("paid_at, course_id, course:courses(titre_fr, slug, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
+    .select("paid_at, amount, course_id, course:courses(titre_fr, slug, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
     .order("paid_at", { ascending: false })
     .limit(5000);
 
@@ -134,6 +136,7 @@ export default async function AdminStudentsPage({
       formateurNom: null,
       formateurEmail: null,
       active: false,
+      imported: false,
     };
 
     // Date d'inscription = la plus ancienne date rencontrée
@@ -142,6 +145,9 @@ export default async function AdminStudentsPage({
         row.dateInscription = e.paid_at;
       }
     }
+
+    // Élève « importé » de Telegram = au moins une inscription à 0 DA (doit envoyer sa preuve).
+    if (Number(e.amount) === 0) row.imported = true;
 
     // Déduire les niveaux depuis les modules 1-12
     if (isLevel1 || (isModule && moduleNum! >= 1 && moduleNum! <= 9)) row.hasLevel1 = true;
@@ -162,14 +168,19 @@ export default async function AdminStudentsPage({
     byStudent.set(s.id, row);
   });
 
-  // ── 4) Statut actif / inactif : dernière connexion < 30 jours ─────────────
+  // ── 4) Statut Auth de chaque compte : dernière connexion + blocage/veille ──
   const now = Date.now();
   const lastSignin = new Map<string, string | null>();
+  const acctStatus = new Map<string, "actif" | "veille" | "bloque">();
   let page = 1;
   while (true) {
     const { data } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
     if (!data || data.users.length === 0) break;
-    data.users.forEach((u) => lastSignin.set(u.id, u.last_sign_in_at ?? null));
+    data.users.forEach((u) => {
+      lastSignin.set(u.id, u.last_sign_in_at ?? null);
+      const s = (u.app_metadata?.status as string) ?? "actif";
+      acctStatus.set(u.id, s === "bloque" || s === "veille" ? s : "actif");
+    });
     if (data.users.length < 1000) break;
     page++;
   }
@@ -197,6 +208,26 @@ export default async function AdminStudentsPage({
       const expired = new Date(l.expires_at).getTime() < now;
       accessByUser.set(l.user_id, expired ? "expired" : l.used_at ? "used" : "valid");
     }
+  }
+
+  // ── 4 ter) Preuve de paiement Telegram (élèves importés à 0 DA) ────────────
+  // Qui a déjà envoyé sa preuve ? Et quel est le délai restant avant blocage ?
+  const hasProof = new Set<string>();
+  const proofNotifiedAt = new Map<string, string>();
+  if (studentIds.length) {
+    try {
+      const { data: proofs } = await admin
+        .from("telegram_payment_proofs").select("user_id").in("user_id", studentIds);
+      (proofs ?? []).forEach((p) => hasProof.add(p.user_id as string));
+    } catch { /* migration 070 non appliquée → aucune preuve connue */ }
+    try {
+      const { data: notif } = await admin
+        .from("users").select("id, telegram_notified_at").in("id", studentIds);
+      (notif ?? []).forEach((u) => {
+        const t = (u as { telegram_notified_at?: string | null }).telegram_notified_at;
+        if (t) proofNotifiedAt.set(u.id as string, t);
+      });
+    } catch { /* migration 072 non appliquée → pas de délai */ }
   }
 
   // Recherche nom / email / formation
@@ -240,6 +271,28 @@ export default async function AdminStudentsPage({
   const tableRows = rows.map((r) => {
     const formationParts: string[] = Array.from(r.otherCourses);
     const sub = subByStudent.get(r.id);
+
+    // ── Statut RÉEL du compte (priorité du plus grave au plus normal) ─────────
+    const status = acctStatus.get(r.id) ?? "actif";
+    const neverSignedIn = !lastSignin.get(r.id);
+    const notifiedAt = proofNotifiedAt.get(r.id) ?? null;
+    let proofBlocked = false;
+    let proofDaysLeft: number | null = null;
+    if (r.imported && !hasProof.has(r.id) && notifiedAt) {
+      const deadline = new Date(notifiedAt).getTime() + PROOF_DEADLINE_DAYS * DAY;
+      proofBlocked = now >= deadline;
+      proofDaysLeft = Math.max(0, Math.ceil((deadline - now) / DAY));
+    }
+    const proofPending = r.imported && !hasProof.has(r.id);
+
+    let statusKind: "bloque" | "preuve_bloque" | "veille" | "non_active" | "preuve_attente" | "actif";
+    if (status === "bloque") statusKind = "bloque";
+    else if (proofBlocked) statusKind = "preuve_bloque";
+    else if (status === "veille") statusKind = "veille";
+    else if (neverSignedIn) statusKind = "non_active";
+    else if (proofPending) statusKind = "preuve_attente";
+    else statusKind = "actif";
+
     return {
       id: r.id,
       nom: r.nom,
@@ -250,6 +303,9 @@ export default async function AdminStudentsPage({
       formateurNom: r.formateurNom,
       formateurEmail: r.formateurEmail,
       active: r.active,
+      statusKind,
+      proofDaysLeft,
+      canExtendProof: proofPending, // élève importé sans preuve → bouton « Prolonger la preuve »
       accessStatus: accessByUser.get(r.id) ?? "none",
       payType: (sub ? "abonnement" : "total") as "abonnement" | "total",
       paidMonths: sub?.paid ?? 0,
