@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Scissors, Sparkles, Film, Search, Wand2, Bot, FolderTree, Server,
-  CircleDot, ArrowUpRight, RefreshCw,
+  CircleDot, ArrowUpRight, RefreshCw, Settings2,
 } from "lucide-react";
-import { StudioAPI, mediaThumb, ENGINE_URL, type Reel } from "@/lib/studio-api";
+import { StudioAPI, mediaThumb, ENGINE_URL, setEngineUrl, type Reel } from "@/lib/studio-api";
 
 type Status = "loading" | "on" | "off";
 
@@ -40,6 +40,20 @@ export default function StudioPage() {
     void load();
   }, []);
 
+  // Configuration de l'URL du moteur (tunnel https ou localhost).
+  function configEngine() {
+    const v = window.prompt(
+      "URL de ton moteur Arazzo Engine\n\n" +
+        "• En local : http://127.0.0.1:5000\n" +
+        "• Site en ligne : colle l'URL du tunnel (https://xxxx.trycloudflare.com)",
+      ENGINE_URL,
+    );
+    if (v !== null) {
+      setEngineUrl(v);
+      void load();
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-5 pb-24 pt-10">
       {/* En-tête */}
@@ -56,10 +70,17 @@ export default function StudioPage() {
           </p>
         </div>
         <EnginePill status={status} onRetry={() => void load()} />
+        <button
+          onClick={configEngine}
+          title="Configurer l'URL du moteur (tunnel)"
+          className="grid size-8 place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground"
+        >
+          <Settings2 className="size-4" />
+        </button>
       </header>
 
       {status === "off" ? (
-        <EngineOff />
+        <EngineOff onConfig={configEngine} />
       ) : (
         <>
           {/* Résumé */}
@@ -119,7 +140,7 @@ function EnginePill({ status, onRetry }: { status: Status; onRetry: () => void }
   );
 }
 
-function EngineOff() {
+function EngineOff({ onConfig }: { onConfig: () => void }) {
   return (
     <div className="mt-10 rounded-2xl border border-border bg-card p-8 shadow-sm">
       <h2 className="text-xl font-bold">Démarre ton Arazzo Engine</h2>
@@ -132,6 +153,19 @@ function EngineOff() {
       <p className="mt-3 text-xs text-muted-foreground">
         En attente sur <code className="text-secondary">{ENGINE_URL}</code>. Rien ne quitte ton ordinateur.
       </p>
+      <div className="mt-4 rounded-xl border border-dashed border-border p-4 text-sm">
+        <p className="text-muted-foreground">
+          Tu es sur le <b className="text-foreground">site en ligne</b> ? Lance un tunnel sur ton PC
+          (<code className="text-secondary">cloudflared tunnel --url http://127.0.0.1:5000</code>)
+          puis colle l’URL <code>https://…trycloudflare.com</code> obtenue :
+        </p>
+        <button
+          onClick={onConfig}
+          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground hover:opacity-90"
+        >
+          <Settings2 className="size-4" /> Configurer l’URL du moteur
+        </button>
+      </div>
     </div>
   );
 }

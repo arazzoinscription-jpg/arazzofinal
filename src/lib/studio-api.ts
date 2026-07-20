@@ -6,8 +6,34 @@
 // Aucune vidéo ne transite par le cloud ; tout le traitement reste sur son PC.
 // -----------------------------------------------------------------------------
 
-export const ENGINE_URL =
+// L'URL du moteur peut être surchargée À CHAUD dans le navigateur (localStorage) :
+// indispensable car le tunnel https gratuit (cloudflared) change d'URL à chaque
+// redémarrage → la formatrice la colle dans le Studio sans redéployer le site.
+const DEFAULT_ENGINE_URL =
   (process.env.NEXT_PUBLIC_STUDIO_API || "http://127.0.0.1:5000").replace(/\/$/, "");
+const ENGINE_KEY = "arazzo_engine_url";
+
+function resolveEngineUrl(): string {
+  if (typeof window !== "undefined") {
+    const saved = window.localStorage.getItem(ENGINE_KEY);
+    if (saved) return saved.replace(/\/$/, "");
+  }
+  return DEFAULT_ENGINE_URL;
+}
+
+// `let` volontaire : réévalué quand la formatrice change l'URL du tunnel.
+export let ENGINE_URL = resolveEngineUrl();
+
+/** Enregistre (ou efface si vide) l'URL du moteur et la renvoie. */
+export function setEngineUrl(url: string): string {
+  const clean = url.trim().replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    if (clean) window.localStorage.setItem(ENGINE_KEY, clean);
+    else window.localStorage.removeItem(ENGINE_KEY);
+  }
+  ENGINE_URL = clean || DEFAULT_ENGINE_URL;
+  return ENGINE_URL;
+}
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${ENGINE_URL}${path}`, { cache: "no-store", ...init });
