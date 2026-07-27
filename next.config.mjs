@@ -46,7 +46,7 @@ const nextConfig = {
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.virustotal.com https://iframe.mediadelivery.net https://*.b-cdn.net https://video.bunnycdn.com https://*.trycloudflare.com https://engine.formation-arazzo.store,
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.virustotal.com https://iframe.mediadelivery.net https://*.b-cdn.net https://video.bunnycdn.com https://*.trycloudflare.com https://engine.formation-arazzo.store",
       "frame-src 'self' https://iframe.mediadelivery.net https://*.b-cdn.net https://www.youtube.com https://player.vimeo.com  https://www.facebook.com https://web.facebook.com https://*.facebook.com",
       "frame-ancestors 'none'",
       "worker-src 'self'",
