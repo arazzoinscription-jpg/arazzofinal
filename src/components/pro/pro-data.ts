@@ -37,6 +37,10 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     ],
   },
   {
+    key: "studio", icon: Clapperboard, home: "/studio", items: [], match: ["/studio"],
+    label: { fr: "Studio (Reels)", ar: "استوديو (ريلز)", en: "Studio (Reels)" },
+  },
+  {
     key: "community", icon: Users, home: "/formateur/groupes",
     label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
     items: [
