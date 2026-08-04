@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, GraduationCap, IdCard, Download, Truck, CheckCircle2, Mail } from "lucide-react";
+import { Search, Loader2, GraduationCap, IdCard, Download, Truck, CheckCircle2, Mail, MapPin, AlertTriangle } from "lucide-react";
 import { toast } from "@/components/ui/toast";
-import { searchStudentsForDiploma, studentCourses, manualGenerateDiploma, setDiplomaStatus, getCniSignedUrl, resendDiplomaEmail } from "./actions";
+import { searchStudentsForDiploma, studentCourses, manualGenerateDiploma, setDiplomaStatus, getCniSignedUrl, resendDiplomaEmail, updateDiplomaDelivery } from "./actions";
+import { WILAYAS, COMMUNES_BY_WILAYA } from "@/lib/algeria/wilayas";
+import { MISSING_LABELS, type MissingField } from "@/lib/algeria/normalize";
 
 export interface DiplomaRow {
   id: string; status: string; fullName: string; email: string;
   phone: string | null; wilaya: string | null; commune: string | null; address: string | null;
+  /** Champs bloquant l'export vers la société de livraison (vide = ligne exportable). */
+  missing: MissingField[];
   numero: string | null; hasCni: boolean; course: string; createdAt: string;
 }
 
@@ -24,8 +28,12 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
   const [busy, start] = useTransition();
 
   // ── Sélection en masse pour l'export ──
+  // Seules les lignes à l'adresse complète sont exportables : la société de
+  // livraison rejette tout le fichier dès la première ligne invalide.
+  const exportable = useMemo(() => rows.filter((r) => r.missing.length === 0), [rows]);
+  const incomplets = rows.length - exportable.length;
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const allSelected = rows.length > 0 && selected.size === rows.length;
+  const allSelected = exportable.length > 0 && selected.size === exportable.length;
   function toggleOne(id: string) {
     setSelected((s) => {
       const n = new Set(s);
@@ -34,15 +42,15 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
     });
   }
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
+    setSelected(allSelected ? new Set() : new Set(exportable.map((r) => r.id)));
   }
   /**
    * Exporte UNIQUEMENT les diplômes cochés. Le fichier XLSX (modèle officiel de la
    * société de livraison) est construit côté serveur : on lui passe juste les ids.
    */
   function exportSelection() {
-    if (!selected.size) { toast("Cochez au moins un diplôme à exporter.", "error"); return; }
-    const ids = rows.filter((r) => selected.has(r.id)).map((r) => r.id);
+    const ids = exportable.filter((r) => selected.has(r.id)).map((r) => r.id);
+    if (!ids.length) { toast("Cochez au moins un diplôme exportable.", "error"); return; }
     window.location.href = `/api/diplomes/export-sheet?ids=${encodeURIComponent(ids.join(","))}`;
     toast(`${ids.length} diplôme(s) exporté(s) ✅`, "success");
   }
@@ -141,10 +149,25 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
       </div>
 
       {/* ── Feuille de livraison + export de la sélection ── */}
+      {incomplets > 0 && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/30 p-4 flex gap-3">
+          <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-900 dark:text-amber-200 font-dm">
+            <p className="font-semibold">{incomplets} diplôme(s) ne peuvent pas être exportés.</p>
+            <p className="mt-1 text-amber-800/90 dark:text-amber-200/80">
+              La société de livraison refuse le fichier entier dès qu’une ligne a une commune ou une
+              wilaya non officielle. Ces lignes sont <strong>exclues de l’export</strong> : corrigez leur
+              adresse avec le bouton <strong>« Adresse de livraison »</strong> ci-dessous pour les inclure.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Diplômes ({rows.length})</h2>
-          {rows.length > 0 && (
+          <h2 className="font-semibold text-gray-900 dark:text-white">
+            Diplômes ({rows.length}){incomplets > 0 && <span className="text-amber-600 font-normal text-sm"> · {exportable.length} exportable(s)</span>}
+          </h2>
+          {exportable.length > 0 && (
             <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-white/60 cursor-pointer select-none">
               <input type="checkbox" checked={allSelected} onChange={toggleAll} className="accent-violet-600 w-4 h-4" />
               Tout sélectionner
@@ -174,17 +197,25 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div className="min-w-0 flex items-start gap-3">
                   <input type="checkbox" checked={selected.has(d.id)} onChange={() => toggleOne(d.id)}
+                    disabled={d.missing.length > 0}
+                    title={d.missing.length ? "Adresse incomplète — non exportable" : undefined}
                     aria-label={`Sélectionner le diplôme de ${d.fullName}`}
-                    className="accent-violet-600 w-4 h-4 mt-1 shrink-0 cursor-pointer" />
+                    className="accent-violet-600 w-4 h-4 mt-1 shrink-0 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed" />
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 dark:text-white">{d.fullName} <span className="text-xs text-gray-400 font-normal">· {d.course}</span></p>
                     <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">
                       {d.numero ?? "—"} · 📞 {d.phone ?? "?"} · {d.wilaya ?? "?"}{d.commune ? ` / ${d.commune}` : ""} · {d.address ?? "adresse ?"}
                     </p>
+                    {d.missing.length > 0 && (
+                      <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 mt-1 inline-flex items-center gap-1">
+                        <AlertTriangle size={12} /> Non exportable — à renseigner : {d.missing.map((m) => MISSING_LABELS[m]).join(", ")}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${st.cls}`}>{st.label}</span>
               </div>
+              <DeliveryEditor row={d} />
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 {d.hasCni && (
                   <button onClick={() => viewCni(d.id)} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-violet-50 text-violet-700 px-3 py-1.5 rounded-lg hover:bg-violet-100">
@@ -209,6 +240,72 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Correction de l'adresse de livraison d'un diplôme, avec les listes officielles
+ * de wilayas et communes. Indispensable pour les diplômes créés avant les menus
+ * déroulants : leur wilaya est en texte libre (souvent en arabe) et la commune
+ * n'a jamais été demandée.
+ */
+function DeliveryEditor({ row }: { row: DiplomaRow }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [phone, setPhone] = useState(row.phone ?? "");
+  const [wilaya, setWilaya] = useState(row.wilaya ?? "");
+  const [commune, setCommune] = useState(row.commune ?? "");
+  const [address, setAddress] = useState(row.address ?? "");
+  const [saving, start] = useTransition();
+
+  const communes = useMemo(() => COMMUNES_BY_WILAYA[wilaya] ?? [], [wilaya]);
+  const inp = "w-full border border-gray-200 dark:border-white/15 bg-white dark:bg-white/5 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500";
+
+  function save() {
+    start(async () => {
+      const res = await updateDiplomaDelivery(row.id, { phone, wilaya, commune, address });
+      if (res.ok) { toast("Adresse de livraison enregistrée ✓", "success"); setOpen(false); router.refresh(); }
+      else toast(res.error ?? "Erreur", "error");
+    });
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        className={`mt-3 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg ${
+          row.missing.length
+            ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+            : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-white/10 dark:text-white/70"
+        }`}>
+        <MapPin size={14} /> Adresse de livraison
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-violet-200 dark:border-violet-500/30 bg-violet-50/50 dark:bg-violet-500/5 p-3">
+      <div className="grid sm:grid-cols-2 gap-2">
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Téléphone *" dir="ltr" className={`${inp} sm:col-span-2`} />
+        <select value={wilaya} onChange={(e) => { setWilaya(e.target.value); setCommune(""); }} className={inp} aria-label="Wilaya">
+          <option value="">Wilaya *</option>
+          {WILAYAS.map((w) => (
+            <option key={w.id} value={w.nom}>{String(w.id).padStart(2, "0")} — {w.nom}</option>
+          ))}
+        </select>
+        <select value={commune} onChange={(e) => setCommune(e.target.value)} disabled={!wilaya} className={`${inp} disabled:opacity-50`} aria-label="Commune">
+          <option value="">{wilaya ? "Commune *" : "Choisissez d'abord la wilaya"}</option>
+          {communes.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Adresse exacte *" className={`${inp} sm:col-span-2`} />
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <button onClick={save} disabled={saving}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold bg-violet-700 text-white px-4 py-2 rounded-lg hover:bg-violet-800 disabled:opacity-50">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Enregistrer
+        </button>
+        <button onClick={() => setOpen(false)} disabled={saving} className="text-xs text-gray-500 hover:underline px-2">Annuler</button>
       </div>
     </div>
   );

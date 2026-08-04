@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ensureDiploma, diplomaCniEmail } from "@/lib/diplomas";
 import { sendEmail } from "@/lib/email";
+import { normalizeWilaya, normalizeCommune } from "@/lib/algeria/normalize";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -112,4 +113,35 @@ export async function getCniSignedUrl(id: string) {
   const { data, error } = await a.admin.storage.from("proofs").createSignedUrl(dip.cni_path as string, 60 * 10);
   if (error || !data) return { ok: false as const, error: "Lien indisponible." };
   return { ok: true as const, url: data.signedUrl };
+}
+
+/**
+ * Correction de l'adresse de livraison par l'admin. Sert surtout à rattraper les
+ * diplômes saisis AVANT les menus déroulants (wilaya en arabe, commune absente) :
+ * sans wilaya + commune officielles, la société de livraison refuse le fichier.
+ */
+export async function updateDiplomaDelivery(
+  id: string,
+  input: { phone: string; wilaya: string; commune: string; address: string },
+) {
+  const a = await requireAdmin();
+  if (!a.ok) return { ok: false as const, error: "Accès refusé." };
+
+  const phone = String(input.phone ?? "").trim().slice(0, 300);
+  const address = String(input.address ?? "").trim().slice(0, 300);
+  const wilaya = normalizeWilaya(input.wilaya);
+  const commune = normalizeCommune(wilaya, input.commune);
+  if (!phone) return { ok: false as const, error: "Téléphone requis." };
+  if (!address) return { ok: false as const, error: "Adresse requise." };
+  if (!wilaya) return { ok: false as const, error: "Wilaya invalide : choisissez-la dans la liste." };
+  if (!commune) return { ok: false as const, error: "Commune invalide : choisissez-la dans la liste." };
+
+  const { error } = await a.admin
+    .from("diplomas")
+    .update({ phone, wilaya, commune, address, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath("/admin/diplomes");
+  return { ok: true as const };
 }

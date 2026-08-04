@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { DiplomesAdmin, type DiplomaRow } from "./diplomes-admin";
+import { checkDeliveryAddress } from "@/lib/algeria/normalize";
 
 export const metadata = { title: "Diplômes — Admin Arazzo" };
 export const dynamic = "force-dynamic";
@@ -20,20 +21,26 @@ export default async function AdminDiplomesPage() {
     .order("created_at", { ascending: false })
     .limit(500);
 
-  const rows: DiplomaRow[] = (data ?? []).map((d: any) => ({
-    id: d.id,
-    status: d.status ?? "eligible",
-    fullName: d.full_name ?? d.user?.nom ?? "—",
-    email: d.user?.nom ? (d.user?.email ?? "") : "",
-    phone: d.phone ?? null,
-    wilaya: d.wilaya ?? null,
-    commune: d.commune ?? null,
-    address: d.address ?? null,
-    numero: d.numero ?? null,
-    hasCni: !!d.cni_path,
-    course: d.course?.titre_fr ?? "",
-    createdAt: d.created_at,
-  }));
+  const rows: DiplomaRow[] = (data ?? []).map((d: any) => {
+    // Les anciennes lignes ont une wilaya en texte libre (arabe, sans accent) et
+    // aucune commune : on affiche le nom officiel retrouvé + ce qui reste à corriger.
+    const check = checkDeliveryAddress(d);
+    return {
+      id: d.id,
+      status: d.status ?? "eligible",
+      fullName: d.full_name ?? d.user?.nom ?? "—",
+      email: d.user?.nom ? (d.user?.email ?? "") : "",
+      phone: d.phone ?? null,
+      wilaya: check.wilaya ?? d.wilaya ?? null,
+      commune: check.commune ?? null,
+      address: d.address ?? null,
+      missing: check.missing,
+      numero: d.numero ?? null,
+      hasCni: !!d.cni_path,
+      course: d.course?.titre_fr ?? "",
+      createdAt: d.created_at,
+    };
+  });
 
   return (
     <div className="max-w-5xl">

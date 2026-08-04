@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   buildDeliverySheet, splitFullName, XLSX_CONTENT_TYPE, type DeliveryRow,
 } from "@/lib/delivery-sheet";
+import { checkDeliveryAddress } from "@/lib/algeria/normalize";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -34,20 +35,28 @@ export async function GET(req: NextRequest) {
     : query.in("status", ["cni_uploaded", "generated"]);
   const { data: rows } = await query.order("updated_at", { ascending: false });
 
-  const sheet: DeliveryRow[] = ((rows ?? []) as any[]).map((d) => {
+  // La société de livraison refuse TOUT le fichier dès la 1re ligne invalide :
+  // on écarte les adresses incomplètes plutôt que de livrer un fichier rejeté.
+  // Les wilayas saisies en texte libre (arabe, sans accent…) sont ramenées au
+  // nom officiel au passage.
+  const sheet: DeliveryRow[] = [];
+  let skipped = 0;
+  for (const d of (rows ?? []) as any[]) {
+    const check = checkDeliveryAddress(d);
+    if (!check.ok) { skipped++; continue; }
     const { nom, prenom } = splitFullName(d.full_name ?? d.user?.nom);
-    return {
+    sheet.push({
       nom, prenom,
       telephone: d.phone ?? "",
       adresse: d.address ?? "",
-      commune: d.commune ?? "",
-      wilaya: d.wilaya ?? "",
+      commune: check.commune!,
+      wilaya: check.wilaya!,
       numeroCommande: d.numero ?? "",
       produit: `Diplôme${d.course?.titre_fr ? ` — ${d.course.titre_fr}` : ""}`,
       // Le diplôme est déjà payé avec la formation : rien à encaisser à la livraison.
       prix: 0,
-    };
-  });
+    });
+  }
 
   const file = await buildDeliverySheet(sheet);
   const date = new Date().toISOString().slice(0, 10);
@@ -58,6 +67,9 @@ export async function GET(req: NextRequest) {
       "Content-Type": XLSX_CONTENT_TYPE,
       "Content-Disposition": `attachment; filename="diplomes-livraison-${date}.xlsx"`,
       "Cache-Control": "no-store",
+      // Lus par l'interface admin pour prévenir si des lignes ont été écartées.
+      "X-Rows-Exported": String(sheet.length),
+      "X-Rows-Skipped": String(skipped),
     },
   });
 }
