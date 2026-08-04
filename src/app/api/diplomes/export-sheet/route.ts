@@ -1,52 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  buildDeliverySheet, splitFullName, XLSX_CONTENT_TYPE, type DeliveryRow,
+} from "@/lib/delivery-sheet";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-function cell(v: unknown): string {
-  return `"${String(v ?? "").replace(/"/g, '""')}"`;
-}
-
 /**
- * Feuille de livraison (CSV) des DIPLÔMES prêts à expédier (CNI reçue), à importer
- * dans le système de la société de livraison. Réservé à l'admin.
- * Colonnes : Nom, Prénom, Téléphone, Wilaya, Adresse, Formation, N° diplôme, Statut.
+ * Feuille de livraison (XLSX) des DIPLÔMES prêts à expédier (CNI reçue), au format
+ * exact du modèle de la société de livraison (`model_v5.1.xlsx`). Réservé à l'admin.
+ *
+ * `?ids=a,b,c` exporte uniquement ces diplômes ; sans `ids`, tous ceux dont le
+ * statut est « CNI reçue » ou « généré ».
  */
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
   if (prof?.role !== "admin") return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
+  const ids = (req.nextUrl.searchParams.get("ids") ?? "")
+    .split(",").map((s) => s.trim()).filter(Boolean).slice(0, 500);
+
   const admin = createAdminClient();
-  const { data: rows } = await admin
+  let query = admin
     .from("diplomas")
-    .select("full_name, phone, wilaya, address, numero, status, user:users(nom, ville, pays), course:courses(titre_fr)")
-    .in("status", ["cni_uploaded", "generated"])
-    .order("updated_at", { ascending: false });
+    .select("id, full_name, phone, wilaya, commune, address, numero, status, user:users(nom), course:courses(titre_fr)");
+  query = ids.length
+    ? query.in("id", ids)
+    : query.in("status", ["cni_uploaded", "generated"]);
+  const { data: rows } = await query.order("updated_at", { ascending: false });
 
-  const header = ["Nom", "Prénom", "Téléphone", "Wilaya", "Adresse exacte", "Formation", "N° diplôme", "Statut"];
-  const lines = [header.map(cell).join(";")];
-  for (const d of (rows ?? []) as any[]) {
-    const full = String(d.full_name ?? d.user?.nom ?? "").trim();
-    const parts = full.split(/\s+/);
-    const prenom = parts.length > 1 ? parts[0] : "";
-    const nom = parts.length > 1 ? parts.slice(1).join(" ") : full;
-    lines.push([
-      nom, prenom, d.phone ?? "", d.wilaya ?? d.user?.ville ?? "", d.address ?? "",
-      d.course?.titre_fr ?? "", d.numero ?? "", d.status ?? "",
-    ].map(cell).join(";"));
-  }
-  const csv = "﻿" + lines.join("\r\n"); // BOM UTF-8 pour Excel
+  const sheet: DeliveryRow[] = ((rows ?? []) as any[]).map((d) => {
+    const { nom, prenom } = splitFullName(d.full_name ?? d.user?.nom);
+    return {
+      nom, prenom,
+      telephone: d.phone ?? "",
+      adresse: d.address ?? "",
+      commune: d.commune ?? "",
+      wilaya: d.wilaya ?? "",
+      numeroCommande: d.numero ?? "",
+      produit: `Diplôme${d.course?.titre_fr ? ` — ${d.course.titre_fr}` : ""}`,
+      // Le diplôme est déjà payé avec la formation : rien à encaisser à la livraison.
+      prix: 0,
+    };
+  });
 
-  return new NextResponse(csv, {
+  const file = await buildDeliverySheet(sheet);
+  const date = new Date().toISOString().slice(0, 10);
+
+  return new NextResponse(new Uint8Array(file), {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="diplomes-livraison.csv"`,
+      "Content-Type": XLSX_CONTENT_TYPE,
+      "Content-Disposition": `attachment; filename="diplomes-livraison-${date}.xlsx"`,
+      "Cache-Control": "no-store",
     },
   });
 }

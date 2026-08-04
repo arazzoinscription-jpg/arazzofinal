@@ -8,7 +8,7 @@ import { searchStudentsForDiploma, studentCourses, manualGenerateDiploma, setDip
 
 export interface DiplomaRow {
   id: string; status: string; fullName: string; email: string;
-  phone: string | null; wilaya: string | null; address: string | null;
+  phone: string | null; wilaya: string | null; commune: string | null; address: string | null;
   numero: string | null; hasCni: boolean; course: string; createdAt: string;
 }
 
@@ -36,29 +36,15 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
   function toggleAll() {
     setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
   }
-  /** Exporte UNIQUEMENT les diplômes cochés (mêmes colonnes que la feuille de livraison). */
+  /**
+   * Exporte UNIQUEMENT les diplômes cochés. Le fichier XLSX (modèle officiel de la
+   * société de livraison) est construit côté serveur : on lui passe juste les ids.
+   */
   function exportSelection() {
-    const picked = rows.filter((r) => selected.has(r.id));
-    if (!picked.length) { toast("Cochez au moins un diplôme à exporter.", "error"); return; }
-    const cell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const header = ["Nom", "Prénom", "Téléphone", "Wilaya", "Adresse exacte", "Formation", "N° diplôme", "Statut"];
-    const lines = [header.map(cell).join(";")];
-    for (const d of picked) {
-      const full = (d.fullName ?? "").trim();
-      const parts = full.split(/\s+/);
-      const prenom = parts.length > 1 ? parts[0] : "";
-      const nom = parts.length > 1 ? parts.slice(1).join(" ") : full;
-      lines.push([nom, prenom, d.phone ?? "", d.wilaya ?? "", d.address ?? "", d.course, d.numero ?? "", STATUS[d.status]?.label ?? d.status]
-        .map(cell).join(";"));
-    }
-    const csv = "﻿" + lines.join("\r\n"); // BOM UTF-8 pour Excel/arabe
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `diplomes-selection-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-    toast(`${picked.length} diplôme(s) exporté(s) ✅`, "success");
+    if (!selected.size) { toast("Cochez au moins un diplôme à exporter.", "error"); return; }
+    const ids = rows.filter((r) => selected.has(r.id)).map((r) => r.id);
+    window.location.href = `/api/diplomes/export-sheet?ids=${encodeURIComponent(ids.join(","))}`;
+    toast(`${ids.length} diplôme(s) exporté(s) ✅`, "success");
   }
 
   // ── Génération manuelle ──
@@ -172,7 +158,7 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
             <Download size={15} /> Exporter la sélection ({selected.size})
           </button>
           <a href="/api/diplomes/export-sheet" className="inline-flex items-center gap-1.5 bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-700">
-            <Download size={15} /> Exporter tout (CSV)
+            <Download size={15} /> Exporter tout (XLSX)
           </a>
         </div>
       </div>
@@ -193,7 +179,7 @@ export function DiplomesAdmin({ rows }: { rows: DiplomaRow[] }) {
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 dark:text-white">{d.fullName} <span className="text-xs text-gray-400 font-normal">· {d.course}</span></p>
                     <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">
-                      {d.numero ?? "—"} · 📞 {d.phone ?? "?"} · {d.wilaya ?? "?"} · {d.address ?? "adresse ?"}
+                      {d.numero ?? "—"} · 📞 {d.phone ?? "?"} · {d.wilaya ?? "?"}{d.commune ? ` / ${d.commune}` : ""} · {d.address ?? "adresse ?"}
                     </p>
                   </div>
                 </div>

@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isOfficialWilaya, isOfficialCommune } from "@/lib/algeria/wilayas";
 
 /** L'élève téléverse sa CNI (photo) pour son diplôme. Stockée en privé (bucket proofs). */
 export async function uploadCni(diplomaId: string, formData: FormData) {
@@ -14,6 +15,13 @@ export async function uploadCni(diplomaId: string, formData: FormData) {
   const admin = createAdminClient();
   const { data: dip } = await admin.from("diplomas").select("id, user_id, status").eq("id", diplomaId).maybeSingle();
   if (!dip || dip.user_id !== user.id) return { ok: false as const, error: "Diplôme introuvable." };
+
+  // Wilaya + commune DOIVENT être des noms officiels : la feuille de livraison
+  // exportée en XLSX est rejetée par le transporteur si l'orthographe diffère.
+  const wilaya = String(formData.get("wilaya") ?? "").trim();
+  const commune = String(formData.get("commune") ?? "").trim();
+  if (!isOfficialWilaya(wilaya)) return { ok: false as const, error: "Wilaya invalide : choisissez-la dans la liste." };
+  if (!isOfficialCommune(wilaya, commune)) return { ok: false as const, error: "Commune invalide : choisissez-la dans la liste." };
 
   const file = formData.get("cni") as File | null;
   if (!file || file.size === 0) return { ok: false as const, error: "Photo manquante." };
@@ -31,7 +39,7 @@ export async function uploadCni(diplomaId: string, formData: FormData) {
     const str = (k: string) => { const v = String(formData.get(k) ?? "").trim(); return v ? v.slice(0, 300) : null; };
     await admin.from("diplomas").update({
       cni_path: path, status: "cni_uploaded", updated_at: new Date().toISOString(),
-      phone: str("phone"), wilaya: str("wilaya"), address: str("address"),
+      phone: str("phone"), wilaya, commune, address: str("address"),
     }).eq("id", diplomaId);
     revalidatePath("/dashboard/diplome");
     return { ok: true as const };

@@ -16,7 +16,7 @@ export default async function AdminDiplomesPage() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("diplomas")
-    .select("id, status, full_name, phone, wilaya, address, numero, cni_path, created_at, user:users(nom, email), course:courses(titre_fr)")
+    .select("id, status, full_name, phone, wilaya, commune, address, numero, cni_path, created_at, user:users(nom, email), course:courses(titre_fr)")
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -27,6 +27,7 @@ export default async function AdminDiplomesPage() {
     email: d.user?.nom ? (d.user?.email ?? "") : "",
     phone: d.phone ?? null,
     wilaya: d.wilaya ?? null,
+    commune: d.commune ?? null,
     address: d.address ?? null,
     numero: d.numero ?? null,
     hasCni: !!d.cni_path,
