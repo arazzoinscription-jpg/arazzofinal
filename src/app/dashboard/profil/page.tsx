@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileForm } from "./profile-form";
+import { PublicationConsent } from "./publication-consent";
 import { ACTION_LABELS } from "@/lib/activity";
 import { DashHeader, ATELIER_CARD } from "../dash-header";
 
@@ -19,6 +20,14 @@ export default async function ProfilPage() {
     .select("nom, email, ville, pays, avatar_url, role, whatsapp, username")
     .eq("id", user.id)
     .single();
+
+  // La décision la plus récente, s'il y en a une. La vue fait le tri : le
+  // faire ici aussi serait une seconde occasion de se tromper d'ordre.
+  const { data: consent } = await supabase
+    .from("publication_consent_status")
+    .select("granted, decided_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   const { data: activity } = await supabase
     .from("activity_log")
@@ -44,6 +53,21 @@ export default async function ProfilPage() {
           username: profile?.username ?? "",
         }}
       />
+
+      {/* Autorisation de publication — proposée aux élèves seulement : la
+          formatrice et les administratrices ne font l'objet d'aucune Story. */}
+      {(profile?.role ?? "eleve") === "eleve" && (
+        <div className="mt-8">
+          <PublicationConsent
+            userId={user.id}
+            initial={
+              consent
+                ? { granted: consent.granted, decided_at: consent.decided_at }
+                : null
+            }
+          />
+        </div>
+      )}
 
       {/* Activité récente */}
       <div className={`rounded-2xl p-6 mt-8 ${ATELIER_CARD}`}>
