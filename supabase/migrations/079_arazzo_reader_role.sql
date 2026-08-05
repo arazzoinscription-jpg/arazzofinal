@@ -68,6 +68,12 @@ GRANT SELECT (id, user_id, status, created_at)
 GRANT SELECT (id, user_id, lesson_id, completed_at)
   ON public.progress TO arazzo_reader;
 
+-- Medias de communaute : rattaches a un travail, donc a une etudiante. Ni
+-- `post_id` ni les identifiants de produit ne sont accordes : ce qui
+-- interesse une Story, c'est la realisation, pas le fil social autour.
+GRANT SELECT (id, practical_id, media_kind, media_url, status, created_at)
+  ON public.community_media TO arazzo_reader;
+
 GRANT SELECT (id, user_id, granted, consent_text, scope, created_at)
   ON public.publication_consents TO arazzo_reader;
 GRANT SELECT ON public.publication_consent_status TO arazzo_reader;
@@ -111,6 +117,14 @@ BEGIN
     AND tablename='progress' AND policyname='arazzo_reader_progression') THEN
     CREATE POLICY "arazzo_reader_progression" ON public.progress
       FOR SELECT TO arazzo_reader USING (true);
+  END IF;
+
+  -- Medias de communaute : seuls ceux prets. Un media encore en traitement
+  -- n'est pas publiable, et l'ecarter ICI evite de compter dessus.
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
+    AND tablename='community_media' AND policyname='arazzo_reader_communaute') THEN
+    CREATE POLICY "arazzo_reader_communaute" ON public.community_media
+      FOR SELECT TO arazzo_reader USING (status = 'ready');
   END IF;
 
   -- L'accord de publication : lisible, jamais modifiable. Aucune politique
