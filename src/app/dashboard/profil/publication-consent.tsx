@@ -7,9 +7,12 @@ import { createClient } from "@/lib/supabase/client";
  * Autorisation de publication sur les réseaux sociaux.
  *
  * Cette case est le seul endroit où une étudiante décide si l'école peut
- * montrer son prénom, sa photo et ses travaux à l'extérieur. Trois principes
- * la gouvernent, et ils sont dans le code plutôt que dans une note :
+ * montrer ses TRAVAUX à l'extérieur. Quatre principes la gouvernent, et ils
+ * sont dans le code plutôt que dans une note :
  *
+ *   - Ce qui est publié, c'est le PSEUDO et les travaux. Jamais le nom, le
+ *     prénom, la photo de profil ni les coordonnées : ces colonnes ne sont même
+ *     pas lisibles par le module qui écrit les Stories.
  *   - Elle est DÉCOCHÉE par défaut. Une case pré-cochée n'est pas un accord.
  *   - Chaque décision AJOUTE une ligne, elle n'en remplace aucune. L'historique
  *     est une preuve, dans les deux sens.
@@ -27,21 +30,26 @@ import { createClient } from "@/lib/supabase/client";
  * Ne le raccourcissez pas en « j'autorise Arazzo à utiliser mes données » :
  * un accord trop vague ne vaut rien, ni moralement ni juridiquement.
  * ──────────────────────────────────────────────────────────────────────────── */
-const CONSENT_TEXT = `J'autorise Arazzo Formation à publier, sur ses comptes Instagram et Facebook et sur son site, mon prénom, ma photo de profil, les photos et vidéos de mes travaux pratiques, ainsi que les commentaires que ma formatrice a écrits à leur sujet.
+const CONSENT_TEXT = `J'autorise Arazzo Formation à publier, sur ses comptes Instagram et Facebook et sur son site, les photos et vidéos de mes travaux pratiques, ainsi que les commentaires que ma formatrice a écrits à leur sujet.
+
+Je serai désignée uniquement par mon pseudo. Mon nom, mon prénom, ma photo de profil, mon adresse e-mail et mes coordonnées ne seront jamais publiés : ils ne sortent même pas de la plateforme.
 
 Ces publications servent à faire connaître la formation et à donner envie à d'autres femmes de s'y inscrire.
 
 Je peux refuser sans que cela change quoi que ce soit à ma formation, à mon suivi ou à mes résultats. Je peux revenir sur cette autorisation à tout moment depuis cette page : les publications déjà en ligne ne disparaîtront pas d'elles-mêmes, mais plus aucune nouvelle ne sera faite, et celles qui étaient programmées seront annulées.`;
 
 /** Ce que l'accord couvre. Enregistré avec la décision, pour rester vérifiable. */
-const SCOPE = ["prenom", "photo_profil", "photos_travaux", "commentaires_formatrice"];
+// Ni "prenom" ni "photo_profil" : ces donnees ne sortent pas de la plateforme.
+const SCOPE = ["pseudo", "photos_travaux", "commentaires_formatrice"];
 
 type Etat = {
   granted: boolean;
   decided_at: string;
 } | null;
 
-export function PublicationConsent({ userId, initial }: { userId: string; initial: Etat }) {
+export function PublicationConsent(
+  { userId, initial, username }: { userId: string; initial: Etat; username: string | null },
+) {
   const supabase = createClient();
   const [etat, setEtat] = useState<Etat>(initial);
   const [coche, setCoche] = useState(initial?.granted ?? false);
@@ -87,6 +95,19 @@ export function PublicationConsent({ userId, initial }: { userId: string; initia
         Votre choix, et vous pouvez en changer quand vous voulez.
       </p>
 
+      {!username?.trim() && (
+        /* Sans pseudo, l'accord serait sans effet : rien ne pourrait vous
+           designer. Le dire ICI evite d'accepter pour rien. */
+        <div className="rounded-xl bg-orange-50 border border-orange-200 p-4 mb-5">
+          <p className="text-sm text-gray-800 font-dm">
+            Vous n&apos;avez pas encore choisi de pseudo. Tant qu&apos;il
+            manque, rien ne pourra être publié à votre sujet — même si vous
+            acceptez ci-dessous. Choisissez-en un dans « Informations », plus
+            haut sur cette page.
+          </p>
+        </div>
+      )}
+
       <div className="rounded-xl bg-cream-50 border border-cream-200 p-5 mb-5">
         {CONSENT_TEXT.split("\n\n").map((para, i) => (
           <p key={i} className="text-sm text-gray-700 font-dm leading-relaxed mb-3 last:mb-0">
@@ -103,7 +124,7 @@ export function PublicationConsent({ userId, initial }: { userId: string; initia
           className="mt-1 w-5 h-5 rounded border-cream-300 text-orange-600 focus:ring-orange-500 flex-shrink-0"
         />
         <span className="text-sm text-gray-800 font-dm">
-          J&apos;ai lu et j&apos;accepte que mes travaux soient publiés dans ces conditions.
+          J&apos;ai lu et j&apos;accepte que mes travaux soient publiés sous mon pseudo, dans ces conditions.
         </span>
       </label>
 

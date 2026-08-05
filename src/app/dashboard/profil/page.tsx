@@ -60,6 +60,7 @@ export default async function ProfilPage() {
         <div className="mt-8">
           <PublicationConsent
             userId={user.id}
+            username={profile?.username ?? null}
             initial={
               consent
                 ? { granted: consent.granted, decided_at: consent.decided_at }

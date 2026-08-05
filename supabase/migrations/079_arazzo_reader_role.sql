@@ -20,7 +20,8 @@
 --
 -- ── CE QUI N'EST PAS ACCESSIBLE ──
 --
--- users.email · diplomas.full_name, .cni_path, .phone, .address, .wilaya ·
+-- users.email, users.nom, users.avatar_url ·
+-- diplomas.full_name, .cni_path, .phone, .address, .wilaya ·
 -- invoices · payments · payment_proofs · telegram_payment_proofs · messages ·
 -- login_history · user_2fa · et les 60 autres tables.
 --
@@ -44,7 +45,13 @@ GRANT USAGE ON SCHEMA public TO arazzo_reader;
 
 -- 3. Lecture, colonne par colonne. Rien d'autre n'est accordé — ni INSERT, ni
 --    UPDATE, ni DELETE, sur aucune table.
-GRANT SELECT (id, nom, avatar_url, ville, role, created_at)
+-- `username` (le pseudo), et surtout PAS `nom` ni `avatar_url`.
+--
+-- Une Story designe une etudiante par le pseudo qu'elle a choisi et par ses
+-- travaux — jamais par son etat civil ni par son visage. L'interdire ici
+-- signifie qu'aucune evolution du code lecteur ne pourra revenir dessus par
+-- commodite : la base refusera.
+GRANT SELECT (id, username, ville, role, created_at)
   ON public.users TO arazzo_reader;
 
 GRANT SELECT (id, user_id, photo_url, video_url, note, feedback, status, created_at)
