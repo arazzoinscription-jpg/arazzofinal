@@ -142,16 +142,26 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM arazzo_reade
 
 -- ─── APRÈS CETTE MIGRATION ──────────────────────────────────────────────────
 --
--- Il reste a fabriquer un jeton qui porte ce role. Ne recopiez pas de commande
--- a la main : cote arazzo-os, un fichier s'en charge.
+-- ATTENTION — LE CHEMIN PAR JETON NE MARCHE PAS SUR CE PROJET.
 --
---   double-cliquez   arazzo-os\poser-le-verrou-lms.bat
+-- Verifie le 2026-08-05 : ce projet publie deux cles ES256
+-- (/auth/v1/.well-known/jwks.json). Il signe donc ses jetons avec une cle
+-- privee qui ne quitte jamais Supabase. Il n'existe AUCUN secret partage
+-- permettant d'en fabriquer un depuis une autre machine, et le « JWT Secret »
+-- de l'ancienne interface n'y change rien.
 --
--- Il vous demandera le JWT Secret du projet (Supabase > Settings > API > JWT
--- Settings), fabriquera le jeton sans jamais l'afficher ni l'enregistrer,
--- proposera de remplacer ARAZZO_LMS_SUPABASE_KEY dans le .env apres
--- sauvegarde, puis verifiera que le verrou tient.
+-- Les GRANT et les politiques ci-dessus restent valables et utiles. C'est la
+-- FACON D'Y ACCEDER qui change : il faut une connexion Postgres directe.
 --
--- Le controle echoue si le jeton peut ecrire, ou lire un e-mail, un nom, une
--- photo de profil ou une piece d'identite — c'est-a-dire s'il reste une
--- `service_role`.
+--   1. donner un mot de passe au role :
+--        ALTER ROLE arazzo_reader LOGIN PASSWORD '<un mot de passe long>';
+--
+--   2. recuperer la chaine de connexion dans Supabase
+--        Settings > Database > Connection string > URI
+--      puis y remplacer l'utilisateur et le mot de passe par ceux du role.
+--
+--   3. la coller dans le .env d'arazzo-os sous ARAZZO_LMS_DATABASE_URL.
+--
+-- Cette voie est MEILLEURE que celle du jeton : les droits colonne par colonne
+-- sont appliques par la base elle-meme, sans passerelle intermediaire qui
+-- pourrait les contourner.
