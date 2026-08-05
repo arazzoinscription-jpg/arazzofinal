@@ -111,6 +111,12 @@ export function PublicationConsent(
             qu&apos;elles accepteront, et chaque accord en gardera une copie
             datée.
           </p>
+          <a
+            href="/dashboard/consentements"
+            className="inline-block mt-3 text-sm font-semibold text-blue-700 underline"
+          >
+            Voir qui a accepté et qui a refusé →
+          </a>
         </div>
       )}
 

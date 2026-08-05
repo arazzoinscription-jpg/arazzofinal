@@ -28,6 +28,21 @@ import { PublicationConsentPopup } from "@/components/community/publication-cons
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
+/**
+ * La fenêtre d'autorisation de publication est-elle posée aux élèves ?
+ *
+ * Coupée le 2026-08-05, le temps de finir le module Stories. Elle tournait
+ * devant de vraies élèves alors que rien ne pouvait encore être publié :
+ * demander un accord qu'on ne saurait pas honorer use la confiance pour rien,
+ * et une deuxième demande, plus tard, se heurterait à un « on m'a déjà
+ * demandé ».
+ *
+ * Ce qui a déjà été répondu reste enregistré et valable : couper la question
+ * n'efface aucune réponse. Remettre `true` la repose aux seules élèves qui
+ * n'ont pas encore décidé.
+ */
+const DEMANDE_CONSENTEMENT_ACTIVE = false;
+
 /** Écran affiché lorsqu'un compte est bloqué ou mis en veille. */
 function SuspendedScreen({ status }: { status: "bloque" | "veille" }) {
   const blocked = status === "bloque";
@@ -175,7 +190,7 @@ export default async function DashboardLayout({
           l'autre enregistree, la fenetre ne reparait plus. Continuer apres un
           refus serait une pression, et un accord obtenu par usure n'en est pas
           un. */}
-      {role === "eleve" && !accordPublication && (
+      {DEMANDE_CONSENTEMENT_ACTIVE && role === "eleve" && !accordPublication && (
         <PublicationConsentPopup userId={user.id} username={profile?.username ?? null} />
       )}
       <ChatWidget />
