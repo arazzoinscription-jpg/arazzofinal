@@ -69,7 +69,14 @@ END $$;
 -- Vue de l'état courant : la dernière décision de chacune.
 -- Elle existe pour éviter que chaque lecteur réinvente le « plus récent »,
 -- et se trompe un jour d'ordre de tri.
-CREATE OR REPLACE VIEW public.publication_consent_status AS
+--
+-- `security_invoker = true` n'est PAS un détail. Sans lui, une vue s'exécute
+-- avec les droits de son propriétaire et contourne donc le RLS de la table :
+-- toute personne connectée pourrait lire les décisions de toutes les autres à
+-- travers cette vue, alors que la table elle-même le lui refuse. Une vue est
+-- une porte, et celle-ci doit obéir aux mêmes règles que la pièce.
+CREATE OR REPLACE VIEW public.publication_consent_status
+WITH (security_invoker = true) AS
 SELECT DISTINCT ON (user_id)
   user_id, granted, consent_text, scope, source, created_at AS decided_at
 FROM public.publication_consents
