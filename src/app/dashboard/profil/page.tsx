@@ -54,21 +54,21 @@ export default async function ProfilPage() {
         }}
       />
 
-      {/* Autorisation de publication — proposée aux élèves seulement : la
-          formatrice et les administratrices ne font l'objet d'aucune Story. */}
-      {(profile?.role ?? "eleve") === "eleve" && (
-        <div className="mt-8">
-          <PublicationConsent
-            userId={user.id}
-            username={profile?.username ?? null}
-            initial={
-              consent
-                ? { granted: consent.granted, decided_at: consent.decided_at }
-                : null
-            }
-          />
-        </div>
-      )}
+      {/* Aux élèves, la case. Aux autres, l'APERÇU : elles ne font l'objet
+          d'aucune Story, mais elles doivent pouvoir relire le texte que leurs
+          élèves accepteront. */}
+      <div className="mt-8">
+        <PublicationConsent
+          apercu={(profile?.role ?? "eleve") !== "eleve"}
+          userId={user.id}
+          username={profile?.username ?? null}
+          initial={
+            consent
+              ? { granted: consent.granted, decided_at: consent.decided_at }
+              : null
+          }
+        />
+      </div>
 
       {/* Activité récente */}
       <div className={`rounded-2xl p-6 mt-8 ${ATELIER_CARD}`}>

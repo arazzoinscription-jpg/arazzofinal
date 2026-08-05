@@ -48,7 +48,8 @@ type Etat = {
 } | null;
 
 export function PublicationConsent(
-  { userId, initial, username }: { userId: string; initial: Etat; username: string | null },
+  { userId, initial, username, apercu = false }:
+  { userId: string; initial: Etat; username: string | null; apercu?: boolean },
 ) {
   const supabase = createClient();
   const [etat, setEtat] = useState<Etat>(initial);
@@ -89,13 +90,31 @@ export function PublicationConsent(
   return (
     <div className="bg-white rounded-2xl border border-cream-200 shadow-soft p-7">
       <h2 className="font-playfair text-xl font-bold text-gray-900 mb-1">
-        Vos travaux sur les réseaux sociaux
+        {apercu ? "Autorisation de publication — aperçu" : "Vos travaux sur les réseaux sociaux"}
       </h2>
       <p className="text-sm text-gray-500 font-dm mb-5">
-        Votre choix, et vous pouvez en changer quand vous voulez.
+        {apercu
+          ? "Voici exactement ce que voient vos élèves. Vous ne pouvez pas décider à leur place."
+          : "Votre choix, et vous pouvez en changer quand vous voulez."}
       </p>
 
-      {!username?.trim() && (
+      {apercu && (
+        /* La formatrice et les administratrices doivent pouvoir RELIRE ce
+           texte : ce sont leurs mots, et chaque accord en gardera une copie.
+           Mais elles ne cochent rien — la base le refuserait de toute facon,
+           la politique RLS exigeant user_id = auth.uid(). */
+        <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 mb-5">
+          <p className="text-sm text-gray-800 font-dm">
+            Vous consultez cette page en tant qu&apos;administratrice. La case
+            n&apos;apparaît que pour les élèves : personne ne peut donner cet
+            accord à leur place. Relisez le texte ci-dessous — c&apos;est celui
+            qu&apos;elles accepteront, et chaque accord en gardera une copie
+            datée.
+          </p>
+        </div>
+      )}
+
+      {!apercu && !username?.trim() && (
         /* Sans pseudo, l'accord serait sans effet : rien ne pourrait vous
            designer. Le dire ICI evite d'accepter pour rien. */
         <div className="rounded-xl bg-orange-50 border border-orange-200 p-4 mb-5">
@@ -116,6 +135,7 @@ export function PublicationConsent(
         ))}
       </div>
 
+      {apercu ? null : (
       <label className="flex items-start gap-3 cursor-pointer select-none">
         <input
           type="checkbox"
@@ -127,6 +147,7 @@ export function PublicationConsent(
           J&apos;ai lu et j&apos;accepte que mes travaux soient publiés sous mon pseudo, dans ces conditions.
         </span>
       </label>
+      )}
 
       {dejaDecide && (
         <p className="text-xs text-gray-400 font-dm mt-3">

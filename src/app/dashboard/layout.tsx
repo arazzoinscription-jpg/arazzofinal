@@ -24,6 +24,7 @@ import { PushOptIn } from "@/components/pwa/push-opt-in";
 import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 import { CelebrationListener } from "@/components/celebration/celebration-listener";
 import { PseudoPrompt } from "@/components/community/pseudo-prompt";
+import { PublicationConsentPopup } from "@/components/community/publication-consent-popup";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
@@ -86,6 +87,15 @@ export default async function DashboardLayout({
     .select("nom, role, roles, avatar_url, username")
     .eq("id", user.id)
     .single();
+
+  // Autorisation de publication : a-t-elle deja REPONDU ? L'etat vient de la
+  // base et non du navigateur — un consentement doit survivre a un changement
+  // d'appareil et a un vidage de cache.
+  const { data: accordPublication } = await supabase
+    .from("publication_consent_status")
+    .select("granted")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   const role = profile?.role ?? "eleve";
   const roles = profile?.roles ?? [];
@@ -159,6 +169,15 @@ export default async function DashboardLayout({
       {/* Popup « Bravo » temps réel (diplôme obtenu) + invitation pseudo (1 fois) */}
       <CelebrationListener />
       {role === "eleve" && <PseudoPrompt hasUsername={!!profile?.username} />}
+
+      {/* Tant qu'aucune reponse n'existe, la demande revient a chaque
+          connexion. Accepter ET refuser sont deux reponses : une fois l'une ou
+          l'autre enregistree, la fenetre ne reparait plus. Continuer apres un
+          refus serait une pression, et un accord obtenu par usure n'en est pas
+          un. */}
+      {role === "eleve" && !accordPublication && (
+        <PublicationConsentPopup userId={user.id} username={profile?.username ?? null} />
+      )}
       <ChatWidget />
     </div>
   );
