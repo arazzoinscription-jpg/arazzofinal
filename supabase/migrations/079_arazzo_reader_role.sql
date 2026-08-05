@@ -142,28 +142,16 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM arazzo_reade
 
 -- ─── APRÈS CETTE MIGRATION ──────────────────────────────────────────────────
 --
--- Il reste à fabriquer un jeton qui porte ce rôle. Il se signe avec le JWT
--- Secret du projet (Supabase → Settings → API → JWT Secret).
+-- Il reste a fabriquer un jeton qui porte ce role. Ne recopiez pas de commande
+-- a la main : cote arazzo-os, un fichier s'en charge.
 --
--- NE COLLEZ CE SECRET NULLE PART D'AUTRE que dans la commande ci-dessous,
--- exécutée sur votre machine. Il permet de signer n'importe quel jeton, y
--- compris un `service_role`.
+--   double-cliquez   arazzo-os\poser-le-verrou-lms.bat
 --
---   node -e "const c=require('crypto'),s=process.argv[1],
---     b=o=>Buffer.from(JSON.stringify(o)).toString('base64url'),
---     p=b({role:'arazzo_reader',iss:'supabase',
---          iat:Math.floor(Date.now()/1e3),
---          exp:Math.floor(Date.now()/1e3)+60*60*24*365}),
---     h=b({alg:'HS256',typ:'JWT'}),
---     g=c.createHmac('sha256',s).update(h+'.'+p).digest('base64url');
---     console.log(h+'.'+p+'.'+g)" "VOTRE_JWT_SECRET"
+-- Il vous demandera le JWT Secret du projet (Supabase > Settings > API > JWT
+-- Settings), fabriquera le jeton sans jamais l'afficher ni l'enregistrer,
+-- proposera de remplacer ARAZZO_LMS_SUPABASE_KEY dans le .env apres
+-- sauvegarde, puis verifiera que le verrou tient.
 --
--- Puis, dans le `.env` d'Arazzo OS, remplacez la valeur de
--- ARAZZO_LMS_SUPABASE_KEY par le jeton obtenu. L'URL ne change pas.
---
--- Pour vérifier que le verrou tient, une fois branché :
---
---   npm run verify:lms   (voir arazzo-os)
---
--- Ce contrôle échoue si le jeton peut lire un e-mail ou écrire quoi que ce
--- soit — c'est-à-dire s'il reste une `service_role`.
+-- Le controle echoue si le jeton peut ecrire, ou lire un e-mail, un nom, une
+-- photo de profil ou une piece d'identite — c'est-a-dire s'il reste une
+-- `service_role`.
