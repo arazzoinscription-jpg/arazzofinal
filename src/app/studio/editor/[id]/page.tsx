@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Download, Play, SlidersHorizontal, Sparkles, ExternalLink } from "lucide-react";
 import {
-  StudioAPI, sourceUrl, downloadUrl, editorUrl,
+  StudioAPI, engineMedia, downloadUrl, editorUrl,
   type ReelFull, type Segment, type ExportStatus, type ExportOpts,
 } from "@/lib/studio-api";
 
@@ -31,6 +31,13 @@ export default function StudioEditorPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const segsRef = useRef<Segment[]>([]);
 
+  // Aperçu léger servi par l'Engine. Les segments sont en temps SOURCE, le lecteur
+  // en temps fichier : `off` fait le pont (source = fichier + off).
+  const [src, setSrc] = useState<string | null>(null);
+  const [prevNote, setPrevNote] = useState("");
+  const offRef = useRef(0);
+  const prevTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // options d'export
   const [opts, setOpts] = useState<ExportOpts>({ codec: "h264", res: "1080", format: "reel" });
   const [exp, setExp] = useState<ExportStatus | null>(null);
@@ -46,32 +53,58 @@ export default function StudioEditorPage() {
           : [{ start: Number(r.start) || 0, end: Number(r.end) || 0 }];
       })
       .catch(() => setErr(true));
+    // Aperçu : l'Engine choisit l'extrait le plus léger disponible.
+    StudioAPI.preview(id)
+      .then((p) => {
+        offRef.current = p.offset || 0;
+        if (p.url) setSrc(engineMedia(p.url));
+        setPrevNote(p.light ? "Aperçu léger (480p)" : "Aperçu rapide — version plus légère en préparation…");
+        if (!p.key) return;
+        prevTimer.current = setInterval(async () => {
+          try {
+            const s = await StudioAPI.previewStatus(p.key!);
+            if (s.ready && s.url) {
+              if (prevTimer.current) clearInterval(prevTimer.current);
+              setSrc(engineMedia(s.url));
+              setPrevNote("Aperçu léger (480p)");
+            } else if (s.pct) setPrevNote(`Préparation de l’aperçu… ${s.pct}%`);
+          } catch { /* noop */ }
+        }, 2500);
+      })
+      .catch(() => { /* l'erreur de reel() suffit */ });
     return () => {
       if (timer.current) clearInterval(timer.current);
+      if (prevTimer.current) clearInterval(prevTimer.current);
     };
   }, [id]);
 
-  const onLoaded = useCallback(() => {
+  // Le lecteur reçoit du temps FICHIER, l'éditeur raisonne en temps SOURCE.
+  const seek = useCallback((tSource: number) => {
     const v = videoRef.current;
-    const s = segsRef.current[0];
-    if (v && s) try { v.currentTime = s.start; } catch { /* noop */ }
+    if (v) try { v.currentTime = Math.max(0, tSource - offRef.current); } catch { /* noop */ }
   }, []);
+
+  const onLoaded = useCallback(() => {
+    const s = segsRef.current[0];
+    if (s) seek(s.start);
+  }, [seek]);
 
   const onTime = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
     const segs = segsRef.current;
-    const t = v.currentTime;
+    if (!segs.length) return;             // fichier exporté : on le lit tel quel
+    const t = v.currentTime + offRef.current;
     const i = segs.findIndex((s) => t >= s.start - 0.05 && t < s.end);
     if (i === -1) {
       const nx = segs.find((s) => s.start > t);
-      if (nx) v.currentTime = nx.start;
+      if (nx) seek(nx.start);
       else v.pause();
     } else if (t >= segs[i].end - 0.05) {
-      if (i + 1 < segs.length) v.currentTime = segs[i + 1].start;
+      if (i + 1 < segs.length) seek(segs[i + 1].start);
       else v.pause();
     }
-  }, []);
+  }, [seek]);
 
   async function doExport() {
     setExp({ active: true, step: "…", pct: 0 });
@@ -127,15 +160,17 @@ export default function StudioEditorPage() {
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video
               ref={videoRef}
-              src={id ? sourceUrl(id) : undefined}
+              src={src ?? undefined}
               controls
+              preload="metadata"
               onLoadedMetadata={onLoaded}
               onTimeUpdate={onTime}
               className="max-h-[62vh] w-full bg-black"
             />
           </div>
-          <SegmentBar segs={segsRef.current} onSeek={(t) => { if (videoRef.current) videoRef.current.currentTime = t; }} />
+          <SegmentBar segs={segsRef.current} onSeek={seek} />
           <p className="mt-2 text-xs text-muted-foreground">
+            {prevNote && <span className="text-secondary">{prevNote} · </span>}
             Lecture par segments (les parties coupées sont sautées). Pour le découpage fin (trim, split, textes,
             photos, rotation), ouvre l’<span className="text-secondary">Éditeur avancé</span>.
           </p>
@@ -220,7 +255,14 @@ export default function StudioEditorPage() {
                       <Download className="size-3.5" /> Télécharger la vidéo
                     </a>
                     <button
-                      onClick={() => { if (videoRef.current && exp.file) { videoRef.current.src = downloadUrl(exp.file); videoRef.current.play().catch(() => {}); } }}
+                      onClick={() => {
+                        if (!exp.file) return;
+                        // le fichier exporté a sa propre timeline : plus de décalage ni de segments
+                        offRef.current = 0;
+                        segsRef.current = [];
+                        setSrc(downloadUrl(exp.file));
+                        setPrevNote("Résultat exporté");
+                      }}
                       className="inline-flex items-center gap-1.5 text-secondary"
                     >
                       <Play className="size-3.5" /> Prévisualiser le résultat

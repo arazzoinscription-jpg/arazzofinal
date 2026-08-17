@@ -43,9 +43,11 @@ export default function StudioPage() {
   // Configuration de l'URL du moteur (tunnel https ou localhost).
   function configEngine() {
     const v = window.prompt(
-      "URL de ton moteur Arazzo Engine\n\n" +
-        "• En local : http://127.0.0.1:5000\n" +
-        "• Site en ligne : colle l'URL du tunnel (https://xxxx.trycloudflare.com)",
+      "Adresse de ton moteur Arazzo Engine\n\n" +
+        "Normalement tu n'as RIEN à changer ici :\n" +
+        "• depuis le site : https://engine.formation-arazzo.store\n" +
+        "• sur ton PC : http://127.0.0.1:5000\n\n" +
+        "Laisse vide pour remettre l'adresse par défaut.",
       ENGINE_URL,
     );
     if (v !== null) {

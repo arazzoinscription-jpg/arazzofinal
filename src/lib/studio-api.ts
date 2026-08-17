@@ -6,9 +6,10 @@
 // Aucune vidéo ne transite par le cloud ; tout le traitement reste sur son PC.
 // -----------------------------------------------------------------------------
 
-// L'URL du moteur peut être surchargée À CHAUD dans le navigateur (localStorage) :
-// indispensable car le tunnel https gratuit (cloudflared) change d'URL à chaque
-// redémarrage → la formatrice la colle dans le Studio sans redéployer le site.
+// Le moteur a maintenant une adresse PERMANENTE (tunnel nommé Cloudflare sur le
+// domaine d'Arazzo). Depuis le site déployé, on la vise directement : plus rien
+// à copier-coller. L'URL reste surchargeable à chaud (localStorage) au cas où.
+const PERMANENT_ENGINE_URL = "https://engine.formation-arazzo.store";
 const DEFAULT_ENGINE_URL =
   (process.env.NEXT_PUBLIC_STUDIO_API || "http://127.0.0.1:5000").replace(/\/$/, "");
 const ENGINE_KEY = "arazzo_engine_url";
@@ -16,7 +17,16 @@ const ENGINE_KEY = "arazzo_engine_url";
 function resolveEngineUrl(): string {
   if (typeof window !== "undefined") {
     const saved = window.localStorage.getItem(ENGINE_KEY);
-    if (saved) return saved.replace(/\/$/, "");
+    // Les anciennes adresses « quick tunnel » étaient éphémères : une fois la
+    // session finie elles ne répondent plus, et celle restée en mémoire faisait
+    // croire à une panne du Studio. On les oublie d'office.
+    if (saved && saved.includes("trycloudflare.com")) {
+      window.localStorage.removeItem(ENGINE_KEY);
+    } else if (saved) {
+      return saved.replace(/\/$/, "");
+    }
+    // Site déployé (https) → l'adresse permanente. En dev local → 127.0.0.1.
+    if (window.location.protocol === "https:") return PERMANENT_ENGINE_URL;
   }
   return DEFAULT_ENGINE_URL;
 }
@@ -31,7 +41,9 @@ export function setEngineUrl(url: string): string {
     if (clean) window.localStorage.setItem(ENGINE_KEY, clean);
     else window.localStorage.removeItem(ENGINE_KEY);
   }
-  ENGINE_URL = clean || DEFAULT_ENGINE_URL;
+  // Vidé → on retombe sur l'adresse permanente (site) ou locale (dev), pas sur
+  // une valeur figée : c'est le bouton « remettre par défaut ».
+  ENGINE_URL = clean || resolveEngineUrl();
   return ENGINE_URL;
 }
 
@@ -95,6 +107,8 @@ export type RubricsResp = { rubrics: Cat[]; counts: Record<string, number> };
 export const mediaThumb = (id: string) => `${ENGINE_URL}/media/thumb/${id}`;
 export const mediaClip = (id: string) => `${ENGINE_URL}/media/clip/${id}`;
 export const sourceUrl = (id: string) => `${ENGINE_URL}/media/source/${id}`;
+/** Transforme un chemin renvoyé par l'Engine ("/media/preview/x.mp4") en URL complète. */
+export const engineMedia = (path: string) => `${ENGINE_URL}${path}`;
 export const videoUrl = (stem: string) => `${ENGINE_URL}/media/video/${encodeURIComponent(stem)}`;
 export const downloadUrl = (file: string) => `${ENGINE_URL}/download/${file}`;
 export const editorUrl = (id: string) => `${ENGINE_URL}/editor?id=${encodeURIComponent(id)}`;
@@ -137,6 +151,28 @@ export type ExportStatus = {
   error?: string | null;
 };
 
+/** Aperçu léger : l'Engine ne renvoie JAMAIS la source brute (4K HEVC, plusieurs Go),
+ *  mais un extrait 480p. `offset` = position de cet extrait dans le temps de la source. */
+export type PreviewResp = {
+  kind?: "clip" | "window";
+  url?: string | null;
+  offset?: number;
+  win_start?: number;
+  win_end?: number;
+  light?: boolean;
+  ready?: boolean;
+  key?: string;
+  have_source?: boolean;
+  error?: string;
+};
+export type PreviewStatus = {
+  ready: boolean;
+  url?: string | null;
+  pct?: number;
+  active?: boolean;
+  error?: string | null;
+};
+
 // ---- API ---------------------------------------------------------------------
 export const StudioAPI = {
   health: () => get<Health>("/api/health"),
@@ -147,6 +183,9 @@ export const StudioAPI = {
       `/api/search?q=${encodeURIComponent(q)}`,
     ),
   reel: (id: string) => get<ReelFull>(`/api/reel/${id}`),
+  preview: (id: string) => get<PreviewResp>(`/api/reels/${id}/preview`),
+  previewStatus: (key: string) =>
+    get<PreviewStatus>(`/api/preview/status?key=${encodeURIComponent(key)}`),
   exportReel: (id: string, opts: ExportOpts) =>
     post<{ ok?: boolean; error?: string }>(`/api/reels/${id}/export`, opts),
   exportStatus: () => get<ExportStatus>("/api/export"),
