@@ -53,6 +53,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // `.txt` exclu : les fichiers de verification de domaine (TikTok, et tout
+    // robots.txt a venir) sont servis depuis public/ et ne doivent pas passer
+    // par le controle d'authentification, sinon la plateforme recoit une page
+    // au lieu du code brut et refuse la verification.
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|txt)$).*)",
   ],
 };
