@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StudentsBulkTable } from "./students-bulk-table";
 import { AdminEnrollForm } from "./admin-enroll-form";
+import { TELEGRAM_IMPORT_CUTOFF } from "@/app/dashboard/telegram-proof-config";
 
 export const metadata = { title: "Étudiants inscrits — Admin" };
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ interface StudentRow {
   formateurNom: string | null;
   formateurEmail: string | null;
   active: boolean;
-  imported: boolean; // au moins une inscription à 0 DA (migrée de Telegram → doit envoyer une preuve)
+  imported: boolean; // inscription ancienne (< cutoff) sans commande = migrée de Telegram → doit envoyer une preuve
 }
 
 function parseModuleNum(title: string | null): number | null {
@@ -87,7 +88,7 @@ export default async function AdminStudentsPage({
   // ── 2) Inscriptions + étudiant + cours ────────────────────────────────────
   const { data: enrolls } = await admin
     .from("enrollments")
-    .select("paid_at, amount, course_id, course:courses(titre_fr, slug, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
+    .select("paid_at, amount, order_id, course_id, course:courses(titre_fr, slug, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
     .order("paid_at", { ascending: false })
     .limit(5000);
 
@@ -146,8 +147,12 @@ export default async function AdminStudentsPage({
       }
     }
 
-    // Élève « importé » de Telegram = au moins une inscription à 0 DA (doit envoyer sa preuve).
-    if (Number(e.amount) === 0) row.imported = true;
+    // Élève « importé » de Telegram = au moins une inscription ANCIENNE (avant le
+    // cutoff) et SANS commande. Le montant 0 DA n'est PAS fiable : les nouvelles
+    // inscriptions (achat boutique / inscription manuelle) sont aussi à 0 DA.
+    if (!e.order_id && e.paid_at && new Date(e.paid_at) < new Date(TELEGRAM_IMPORT_CUTOFF)) {
+      row.imported = true;
+    }
 
     // Déduire les niveaux depuis les modules 1-12
     if (isLevel1 || (isModule && moduleNum! >= 1 && moduleNum! <= 9)) row.hasLevel1 = true;

@@ -3,6 +3,7 @@ import { Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TelegramProofsList, type TgProofRow } from "./telegram-proofs-list";
+import { TELEGRAM_IMPORT_CUTOFF } from "@/app/dashboard/telegram-proof-config";
 
 export const metadata = { title: "Preuve paiement Telegram — Admin Arazzo" };
 export const dynamic = "force-dynamic";
@@ -26,12 +27,13 @@ export default async function AdminTelegramProofsPage() {
     const userIds = [...new Set((proofs ?? []).map((p: any) => p.user?.id).filter(Boolean))];
     const coursesByUser = new Map<string, string[]>();
     if (userIds.length) {
-      // Inscriptions migrées (0 DA) de ces étudiantes → formations concernées.
+      // Inscriptions migrées (anciennes, sans commande) de ces étudiantes → formations concernées.
       const { data: enr } = await admin
         .from("enrollments")
-        .select("user_id, amount, course:courses(titre_fr)")
+        .select("user_id, course:courses(titre_fr)")
         .in("user_id", userIds)
-        .eq("amount", 0);
+        .is("order_id", null)
+        .lt("paid_at", TELEGRAM_IMPORT_CUTOFF);
       for (const e of (enr ?? []) as any[]) {
         const arr = coursesByUser.get(e.user_id) ?? [];
         if (e.course?.titre_fr) arr.push(e.course.titre_fr);

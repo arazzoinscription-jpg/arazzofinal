@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
+import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
 import { Footer } from "@/components/layout/footer";
 import { createClient } from "@/lib/supabase/server";
 import { patronImage } from "@/lib/patron-images";
@@ -62,6 +63,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
 
   return (
     <>
+      <ViewContentPixel category="patron" name={patron.titre} id={patron.id} value={price} />
       <Navbar />
       <main className="min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] pt-28 pb-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

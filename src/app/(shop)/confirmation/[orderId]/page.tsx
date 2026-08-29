@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { InvoiceButton } from "./invoice-button";
 import { InvoiceEmailButton } from "./invoice-email-button";
 import { ProofUpload } from "./proof-upload";
+import { PurchasePixel } from "@/components/analytics/purchase-pixel";
 
 export const metadata = { title: "Merci pour votre commande — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -38,6 +39,12 @@ export default async function ConfirmationPage({ params }: { params: { orderId: 
   const invoice = (order.invoices ?? [])[0] ?? null;
   const isProcessing = PROCESSING.includes(order.status);
   const canSendProof = ["ccp", "transfer"].includes(order.payment_method) && PROCESSING.includes(order.status);
+  // Achat RÉEL = commande payée/confirmée. Une commande en attente (virement/CCP
+  // non encore validé) n'est PAS un achat pour Meta.
+  const isPaid = ["confirmed", "shipped", "delivered"].includes(order.status);
+  // Métier acheté : une formation si un cours est présent, sinon un patron.
+  const category: "formation" | "patron" =
+    (order.order_items ?? []).some((it: any) => it.course_id) ? "formation" : "patron";
 
   // Coordonnées de paiement (CCP / virement) à afficher pour guider le client.
   let payInfo: { account_number?: string; account_key?: string; beneficiary_name?: string; rip?: string } | null = null;
@@ -52,6 +59,10 @@ export default async function ConfirmationPage({ params }: { params: { orderId: 
 
   return (
     <div className="max-w-2xl mx-auto">
+      {/* Conversion Meta « Purchase » — uniquement si la commande est payée,
+          avec l'identifiant de commande comme eventID (déduplication future). */}
+      <PurchasePixel orderId={order.id} value={Number(order.total)} currency="DZD" paid={isPaid} category={category} />
+
       <div className="bg-white rounded-2xl border border-cream-200 p-8 text-center">
         <div className="text-6xl mb-3">🎉</div>
         <h1 className="font-playfair text-3xl font-bold text-gray-900">Merci pour votre commande !</h1>

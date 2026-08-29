@@ -20,6 +20,9 @@ export function CookieConsent() {
 
   function decide(value: "accepted" | "declined") {
     try { localStorage.setItem(KEY, value); } catch { /* ignore */ }
+    // Prévient les traceurs qui attendent le consentement (ex. Pixel Meta) de
+    // se charger immédiatement, sans attendre un rechargement de page.
+    try { window.dispatchEvent(new CustomEvent("arazzo-cookie-consent", { detail: value })); } catch { /* ignore */ }
     setShow(false);
   }
 

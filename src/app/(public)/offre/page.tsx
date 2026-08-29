@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { SalesPage, type CourseOption, type PayInfo, type ModelismeGroup } from "./sales-page";
 import { normLang, isRtl } from "./offre-i18n";
+import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Les 3 grandes formations de Modélisme présentées en cartes sur l'offre.
@@ -159,6 +160,7 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"}>
+      <ViewContentPixel category="formation" name="Offre formations" />
       <SalesPage lang={lang} courses={options} pay={pay} preselectCourseId={preselectCourseId} modelismeGroups={modelismeGroups} />
     </div>
   );

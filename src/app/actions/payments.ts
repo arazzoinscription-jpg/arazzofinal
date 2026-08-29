@@ -11,6 +11,7 @@ import { advanceSubscriptionForOrder } from "@/lib/subscriptions";
 import { advancePackSubscriptionForOrder } from "@/lib/pack-subscriptions";
 import { sendPaymentApproved, sendCourseAccess, sendPatronAccess } from "./emails";
 import { createChargilyCheckout } from "@/lib/chargily";
+import { notifierVenteArazzo } from "@/lib/arazzo-os";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const MAX_PROOF_SIZE = 10 * 1024 * 1024; // 10 Mo
@@ -577,6 +578,20 @@ export async function finalizeOrderConfirmation(orderId: string) {
       });
     } catch { /* ignore */ }
   }
+
+  // 7) Notifier Arazzo OS (best-effort) : revenu + fiche « cliente » + Purchase
+  //    Meta (Conversions API), dédupliqué avec le Pixel via l'id de commande.
+  //    Idempotent côté Arazzo (external_ref = id de commande). Ne bloque jamais.
+  try {
+    await notifierVenteArazzo({
+      orderId: order.id,
+      amount: Number(order.total) || 0,
+      email: (order as { email?: string | null }).email ?? null,
+      currency: "DZD",
+      // Métier : formation si un cours est présent, sinon patron.
+      category: items.some((it) => it.course_id) ? "formation" : "patron",
+    });
+  } catch { /* Arazzo injoignable ne doit jamais empêcher une confirmation */ }
 
   revalidatePath("/compte/commandes");
   revalidatePath("/dashboard/commandes");

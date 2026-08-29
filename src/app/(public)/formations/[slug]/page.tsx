@@ -7,6 +7,7 @@ import {
   GraduationCap, MapPin, Sparkles, Quote,
 } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
+import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
 import { Footer } from "@/components/layout/footer";
 import { Reveal } from "@/components/ui/reveal";
 import { createPublicClient } from "@/lib/supabase/public";
@@ -116,6 +117,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
 
   return (
     <div dir={rtl ? "rtl" : "ltr"}>
+      <ViewContentPixel category="formation" name={title} id={params.slug} />
       <Navbar lang={lang} />
       <main className="min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c]">
         {/* ── Héro ──────────────────────────────────────────────── */}

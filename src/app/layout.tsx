@@ -3,6 +3,7 @@ import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { validateEnv } from "@/lib/security/env";
 import { AnalyticsTracker } from "@/components/analytics/analytics-tracker";
+import { MetaPixel } from "@/components/analytics/meta-pixel";
 import { RecoveryRedirect } from "@/components/auth/recovery-redirect";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { PwaRegister } from "@/components/pwa/pwa-register";
@@ -76,6 +77,7 @@ export default function RootLayout({
         <PwaRegister />
         <RecoveryRedirect />
         <AnalyticsTracker />
+        <MetaPixel />
         <CookieConsent />
       </body>
     </html>

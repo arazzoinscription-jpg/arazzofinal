@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { TELEGRAM_IMPORT_CUTOFF } from "./telegram-proof-config";
 
 const PROOFS_BUCKET = "proofs";
 const MAX_PROOF = 10 * 1024 * 1024; // 10 Mo
@@ -19,17 +20,22 @@ async function currentUser() {
 const DEADLINE_DAYS = 7;
 
 /**
- * Un étudiant est « importé » (déjà payé sur Telegram) s'il a au moins une
- * inscription à 0 DA (migrée depuis l'ancien système). Renvoie aussi s'il a
- * déjà téléversé sa preuve Telegram, et si son compte doit être BLOQUÉ (plus de
- * 7 jours après le premier rappel, sans preuve). Le premier rappel est
- * horodaté automatiquement (telegram_notified_at) à la première visite.
+ * Un étudiant est « importé » (déjà payé sur Telegram) s'il possède au moins une
+ * inscription ANCIENNE (paid_at < cutoff) et SANS commande (order_id null),
+ * c.-à-d. migrée depuis l'ancien système. Renvoie aussi s'il a déjà téléversé sa
+ * preuve Telegram, et si son compte doit être BLOQUÉ (plus de 7 jours après le
+ * premier rappel, sans preuve). Le premier rappel est horodaté automatiquement
+ * (telegram_notified_at) à la première visite.
  */
 export async function getTelegramProofState(userId: string): Promise<{ isImported: boolean; hasProof: boolean; blocked: boolean }> {
   const admin = createAdminClient();
-  const { data: freeEnroll } = await admin
-    .from("enrollments").select("id").eq("user_id", userId).eq("amount", 0).limit(1);
-  const isImported = (freeEnroll?.length ?? 0) > 0;
+  const { data: importedEnroll } = await admin
+    .from("enrollments").select("id")
+    .eq("user_id", userId)
+    .is("order_id", null)
+    .lt("paid_at", TELEGRAM_IMPORT_CUTOFF)
+    .limit(1);
+  const isImported = (importedEnroll?.length ?? 0) > 0;
   if (!isImported) return { isImported: false, hasProof: false, blocked: false };
 
   let hasProof = false;
