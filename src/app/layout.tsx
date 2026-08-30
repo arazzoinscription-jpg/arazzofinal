@@ -4,6 +4,7 @@ import "./globals.css";
 import { validateEnv } from "@/lib/security/env";
 import { AnalyticsTracker } from "@/components/analytics/analytics-tracker";
 import { MetaPixel } from "@/components/analytics/meta-pixel";
+import { GoogleTag } from "@/components/analytics/google-tag";
 import { RecoveryRedirect } from "@/components/auth/recovery-redirect";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { PwaRegister } from "@/components/pwa/pwa-register";
@@ -78,6 +79,7 @@ export default function RootLayout({
         <RecoveryRedirect />
         <AnalyticsTracker />
         <MetaPixel />
+        <GoogleTag />
         <CookieConsent />
       </body>
     </html>
