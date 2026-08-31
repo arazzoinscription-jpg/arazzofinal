@@ -15,3 +15,14 @@ export function brandedSiteUrl(): string {
   if (/vercel\.app/i.test(env)) return CANONICAL; // preview ou ancien projet → domaine officiel
   return env.replace(/\/+$/, "");
 }
+
+/**
+ * URL pour le sitemap et robots.txt : comme `brandedSiteUrl`, mais ne renvoie
+ * JAMAIS localhost. Un sitemap est un fichier public destiné à Google — y
+ * mettre « http://localhost:3000 » (la valeur de dev) le rendrait inutile.
+ */
+export function canonicalSiteUrl(): string {
+  const url = brandedSiteUrl();
+  if (/localhost|127\.0\.0\.1/i.test(url)) return CANONICAL;
+  return url;
+}
