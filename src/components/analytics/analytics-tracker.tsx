@@ -38,7 +38,15 @@ export function AnalyticsTracker() {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: pathname, referrer: document.referrer || null, sessionId: getSessionId(), device }),
+      // `search` (les UTM) est transmis en plus du chemin : c'est lui qui permet
+      // à Arazzo de ranger la visite dans le bon canal (meta / google / …).
+      body: JSON.stringify({
+        path: pathname,
+        search: typeof window !== "undefined" ? window.location.search || null : null,
+        referrer: document.referrer || null,
+        sessionId: getSessionId(),
+        device,
+      }),
       keepalive: true,
     })
       .then((r) => r.json())

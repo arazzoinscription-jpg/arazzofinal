@@ -7,8 +7,9 @@ const SITE = brandedSiteUrl();
 const VALIDITY_MS = 48 * 60 * 60 * 1000; // 48 heures (défaut)
 /** Durée longue pour activation de compte / fiches physiques (~1 an). */
 export const LONG_VALIDITY_MS = 365 * 24 * 60 * 60 * 1000;
-/** Durée courte pour la réinitialisation de mot de passe (60 min). */
-export const RESET_VALIDITY_MS = 60 * 60 * 1000;
+/** Durée du lien de réinitialisation de mot de passe (48 h) : l'élève a deux
+ *  jours pleins pour cliquer depuis sa boîte mail. */
+export const RESET_VALIDITY_MS = 48 * 60 * 60 * 1000;
 
 /**
  * Crée un lien d'accès branché (domaine Arazzo). Valable 48h par défaut ;

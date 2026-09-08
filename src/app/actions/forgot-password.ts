@@ -20,8 +20,8 @@ export async function requestPasswordReset(email: string) {
     const { data: u } = await admin.from("users").select("id, nom").eq("email", clean).maybeSingle();
     if (!u) return { ok: true as const }; // ne pas révéler l'absence du compte
 
-    // Lien branché Arazzo (formation-arazzo.store/acces/…) à COURTE durée (60 min)
-    // et à USAGE UNIQUE : la route /acces/<token> connecte puis redirige vers la
+    // Lien branché Arazzo (formation-arazzo.store/acces/…) valable 48 h et à
+    // USAGE UNIQUE : la route /acces/<token> connecte puis redirige vers la
     // page « Créez votre mot de passe », et le lien est invalidé dès le premier clic.
     const al = await createAccessLink(u.id, "/auth/reset-password", RESET_VALIDITY_MS, true);
     const link = al.ok ? al.url : null;
