@@ -1001,6 +1001,19 @@ function Quiz({ lang, courses, onEnroll }: { lang: Lang; courses: CourseOption[]
                     {t.restart}
                   </button>
                 </div>
+
+                {/* #5 — Débutante totale (jamais utilisé une machine) : on propose
+                    plus d'options + un atelier « utilisation de la machine ». */}
+                {answers[0] === 0 ? (
+                  <div className="mt-6 text-left rounded-2xl border-2 border-dashed border-orange-300 bg-orange-50 dark:bg-orange-500/10 p-5 max-w-md mx-auto">
+                    <p className="font-bold text-orange-700 dark:text-orange-300">🧵 Vous débutez avec la machine ?</p>
+                    <p className="text-sm text-gray-600 dark:text-white/70 mt-1">C’est parfait — commencez en douceur. Nous proposons aussi une <strong>séance spéciale « utilisation de la machine à coudre »</strong> pour bien démarrer.</p>
+                    <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                      <Link href="/offres" className="flex-1 text-center bg-[#5B16F9] text-white py-2.5 rounded-xl font-semibold text-sm">Voir toutes nos formations</Link>
+                      <Link href="/presentiel/utilisation-machine-a-coudre-point-droite" className="flex-1 text-center border-2 border-[#FE7223] text-[#c2510a] py-2.5 rounded-xl font-semibold text-sm">Atelier : utilisation de la machine</Link>
+                    </div>
+                  </div>
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
