@@ -23,13 +23,21 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   // Lien à usage unique déjà consommé → refus (ex. réinitialisation de mot de passe).
   if (link.single_use && link.used_at) return fail("lien_deja_utilise");
 
+  // Email depuis le profil applicatif ; à défaut, depuis auth.users (source de
+  // vérité). Évite un « lien invalide » quand le profil public.users manque.
+  let email: string | null = null;
   const { data: u } = await admin.from("users").select("email").eq("id", link.user_id).maybeSingle();
-  if (!u?.email) return fail("lien_invalide");
+  email = u?.email ?? null;
+  if (!email) {
+    const { data: au } = await admin.auth.admin.getUserById(link.user_id);
+    email = au?.user?.email ?? null;
+  }
+  if (!email) return fail("lien_invalide");
 
   const next = link.redirect_to || "/dashboard";
   const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink",
-    email: u.email,
+    email,
     options: { redirectTo: `${SITE}/auth/callback?next=${encodeURIComponent(next)}` },
   });
   if (error || !data?.properties?.action_link) return fail("acces");

@@ -7,6 +7,35 @@ import { sendEmail } from "@/lib/email";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 
 /**
+ * Retrouve un compte par email, d'abord dans le profil applicatif `public.users`
+ * (rapide), puis, en secours, dans `auth.users` (la SOURCE DE VÉRITÉ des
+ * connexions). Indispensable : un compte peut exister côté Auth sans profil
+ * `public.users` (trigger non déclenché, import, etc.) — sans ce secours, le
+ * « mot de passe oublié » n'enverrait aucun email à ces comptes, en silence.
+ */
+async function resolveUserByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+): Promise<{ id: string; nom: string } | null> {
+  const { data: prof } = await admin.from("users").select("id, nom").eq("email", email).maybeSingle();
+  if (prof?.id) return { id: prof.id, nom: prof.nom ?? "" };
+
+  // Secours : parcourt auth.users (pages de 1000) et matche l'email.
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error || !data?.users?.length) break;
+    const found = data.users.find((u) => (u.email ?? "").toLowerCase() === email);
+    if (found) {
+      const meta = (found.user_metadata ?? {}) as Record<string, unknown>;
+      const nom = (meta.nom as string | undefined) ?? (meta.full_name as string | undefined) ?? "";
+      return { id: found.id, nom };
+    }
+    if (data.users.length < 1000) break;
+  }
+  return null;
+}
+
+/**
  * Mot de passe oublié : envoie un email (via Resend, PAS le système email
  * intégré de Supabase qui n'est pas configuré et n'envoie rien en silence).
  * Renvoie toujours { ok: true } pour ne pas révéler si l'email existe.
@@ -17,7 +46,7 @@ export async function requestPasswordReset(email: string) {
 
   try {
     const admin = createAdminClient();
-    const { data: u } = await admin.from("users").select("id, nom").eq("email", clean).maybeSingle();
+    const u = await resolveUserByEmail(admin, clean);
     if (!u) return { ok: true as const }; // ne pas révéler l'absence du compte
 
     // Lien branché Arazzo (formation-arazzo.store/acces/…) valable 48 h et à

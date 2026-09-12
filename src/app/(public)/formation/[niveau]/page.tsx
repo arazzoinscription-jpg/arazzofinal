@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import InscriptionForm from "./inscription-form";
+import ProgrammePopup from "./programme-popup";
 
 // Landing NATIVE (24/7 sur Vercel, base Supabase du LMS). Chaque niveau vendu
 // correspond à un cours du LMS (mapping confirmé par les vraies inscriptions).
@@ -65,36 +66,20 @@ export default async function Page({ params }: { params: Promise<{ niveau: strin
 
       <div className="max-w-2xl mx-auto px-6 pb-24">
         <div className="-mt-10 bg-white border border-[#eee] rounded-3xl shadow-xl p-6 md:p-10">
-          <details className="rounded-xl border-2 border-[#e0453a] bg-[#e0453a]/5 mb-3">
-            <summary className="cursor-pointer font-bold px-4 py-3 text-[#c23b30]">📌 Dossier obligatoire au centre</summary>
-            <div className="px-4 pb-4 text-sm leading-relaxed" dir="rtl">
-              <p className="font-bold my-1">الملف الإجباري للتسجيل في المركز</p>
-              <p className="my-1">يُشترط على كل متربصة إيداع ملف التسجيل كاملاً لدى مركز التكوين.</p>
-              <p className="my-1">Copie de la pièce d’identité · نسخة من بطاقة التعريف</p>
-              <p className="my-1">1 photo · صورة واحدة</p>
-              <p className="my-1">Frais d’inscription · حقوق التسجيل : <b>500 DA</b></p>
-            </div>
-          </details>
+          {/* EN LIGNE : pas de dossier ni d'options (ça, c'est le présentiel).
+              Juste la règle « paiement = place », en note cliquable. */}
           <details className="rounded-xl border border-[#e7e1f7] bg-[#faf8ff] mb-4">
-            <summary className="cursor-pointer font-bold px-4 py-3">➕ En plus (options) · خدمات إضافية</summary>
-            <div className="px-4 pb-4 text-sm leading-relaxed">
-              <p className="my-1">Pack vidéos de finition (accès à vie) — <b>4 000 DA</b></p>
-              <p className="my-1">Séance spéciale : machine à coudre — <b>2 000 DA</b></p>
-              <p className="my-1">Atelier spécialisé (modèle précis) — <b>1 500–2 500 DA</b>/séance</p>
-              <p className="my-2 text-gray-500">⭐ Selon vos choix · حسب اختياراتكم</p>
+            <summary className="cursor-pointer font-bold px-4 py-3">💡 Comment votre place est-elle gardée ?</summary>
+            <div className="px-4 pb-4 text-sm leading-relaxed text-gray-600">
+              Pour garder votre place, il faut terminer l’inscription par le paiement.
+              Dès que le paiement est envoyé, votre inscription est instantanée : votre
+              place est réservée immédiatement.
             </div>
           </details>
 
-          {/* #2 — Deux boutons côte à côte, sous les bénéfices/contenu. */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 my-4">
-            <a href="https://www.formation-arazzo.store/formations"
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-[#5B16F9] text-[#2A0880] font-semibold hover:bg-[#5B16F9]/5">
-              🖥️ Je préfère en ligne
-            </a>
-            <a href={programUrl}
-              className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-[#FE7223] text-[#c2510a] font-semibold hover:bg-[#FE7223]/5">
-              📋 Voir le programme
-            </a>
+          {/* Programme : bouton qui ouvre le programme en POP-UP (sans quitter). */}
+          <div className="grid grid-cols-1 gap-3 my-4">
+            <ProgrammePopup url={programUrl} />
           </div>
 
           <InscriptionForm courseId={courseId} />
