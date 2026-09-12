@@ -15,7 +15,6 @@ export const metadata = {
   description: "Ce qu’Arazzo OS lit, conserve, et ne fait pas",
   // Lien canonique EXPLICITE vers cette page (pas l'accueil du site).
   alternates: { canonical: "https://www.formation-arazzo.store/arazzo-os/confidentialite" },
-  other: { "fb:app_id": "1062409669599044" },
   // Open Graph propre à la page : Meta exige og:url et og:image EXPLICITES.
   openGraph: {
     title: "Politique de confidentialité — Arazzo OS",
@@ -35,6 +34,9 @@ export const metadata = {
 
 export default function ArazzoOsConfidentialitePage() {
   return (
+    <>
+      {/* fb:app_id en « property » (Meta ignore « name »). React 19 le remonte dans <head>. */}
+      <meta property="fb:app_id" content="1062409669599044" />
     <LegalShell
       title={"Politique de confidentialité"}
       subtitle={"Ce qu’Arazzo OS lit, conserve, et ne fait pas"}
@@ -88,5 +90,6 @@ export default function ArazzoOsConfidentialitePage() {
         <span dangerouslySetInnerHTML={{ __html: "Arazzo OS — arazzoinscription@gmail.com" }} />
       </p>
     </LegalShell>
+    </>
   );
 }

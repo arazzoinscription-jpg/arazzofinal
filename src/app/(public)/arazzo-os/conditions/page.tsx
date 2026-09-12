@@ -15,7 +15,6 @@ export const metadata = {
   description: "L’outil interne de publication de l’école",
   // Lien canonique EXPLICITE vers cette page (pas l'accueil du site).
   alternates: { canonical: "https://www.formation-arazzo.store/arazzo-os/conditions" },
-  other: { "fb:app_id": "1062409669599044" },
   // Open Graph propre à la page : Meta exige og:url et og:image EXPLICITES.
   openGraph: {
     title: "Conditions d’utilisation — Arazzo OS",
@@ -35,6 +34,9 @@ export const metadata = {
 
 export default function ArazzoOsConditionsPage() {
   return (
+    <>
+      {/* fb:app_id en « property » (Meta ignore « name »). React 19 le remonte dans <head>. */}
+      <meta property="fb:app_id" content="1062409669599044" />
     <LegalShell
       title={"Conditions d’utilisation"}
       subtitle={"L’outil interne de publication de l’école"}
@@ -76,5 +78,6 @@ export default function ArazzoOsConditionsPage() {
         <span dangerouslySetInnerHTML={{ __html: "Arazzo OS — arazzoinscription@gmail.com" }} />
       </p>
     </LegalShell>
+    </>
   );
 }
