@@ -115,13 +115,13 @@ export default async function Page() {
             </div>
           </section>
 
-          {/* Présentiel : géré côté Arazzo OS — on invite à nous contacter. */}
-          <Link href="/contact"
+          {/* Présentiel : landing native 24/7 (capture le prospect par e-mail). */}
+          <Link href="/presentiel/presentiel-niveau-1"
             className="flex items-center gap-4 p-4 mt-4 rounded-xl border border-[#cdeede] bg-[#f0fbf5] hover:border-[#128a4c] transition">
             <span className="text-2xl">🏫</span>
             <span className="flex-1">
               <strong className="block">Formation en présentiel à Sétif</strong>
-              <small className="text-gray-500">En groupe, au centre — contactez-nous pour les places</small>
+              <small className="text-gray-500">En groupe, au centre — laissez vos coordonnées</small>
             </span>
             <span className="text-[#128a4c]">→</span>
           </Link>
