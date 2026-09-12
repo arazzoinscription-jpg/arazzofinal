@@ -10,8 +10,26 @@
 import { LegalShell, LegalSection } from "@/components/legal/legal-shell";
 
 export const metadata = {
+  metadataBase: new URL("https://www.formation-arazzo.store"),
   title: "Conditions d’utilisation — Arazzo OS",
   description: "L’outil interne de publication de l’école",
+  // Lien canonique EXPLICITE vers cette page (pas l'accueil du site).
+  alternates: { canonical: "https://www.formation-arazzo.store/arazzo-os/conditions" },
+  // Open Graph propre à la page : Meta exige og:url et og:image EXPLICITES.
+  openGraph: {
+    title: "Conditions d’utilisation — Arazzo OS",
+    description: "L’outil interne de publication de l’école",
+    url: "https://www.formation-arazzo.store/arazzo-os/conditions",
+    siteName: "Arazzo OS",
+    type: "website",
+    images: [{ url: "https://www.formation-arazzo.store/images/arazzo-icon.png", alt: "Arazzo OS" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Conditions d’utilisation — Arazzo OS",
+    description: "L’outil interne de publication de l’école",
+    images: ["https://www.formation-arazzo.store/images/arazzo-icon.png"],
+  },
 };
 
 export default function ArazzoOsConditionsPage() {
@@ -19,7 +37,7 @@ export default function ArazzoOsConditionsPage() {
     <LegalShell
       title={"Conditions d’utilisation"}
       subtitle={"L’outil interne de publication de l’école"}
-      updated={"2026-08-17"}
+      updated={"2026-09-12"}
     >
       <div className="mb-8 border-s-4 border-amber-500 bg-amber-50 p-4 text-sm text-gray-700 font-dm">
         <span dangerouslySetInnerHTML={{ __html: "Ce texte décrit le fonctionnement réel du logiciel. Il n’est pas un avis juridique : faites-le relire avant de vous en prévaloir." }} />

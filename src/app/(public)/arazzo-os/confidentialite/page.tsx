@@ -10,8 +10,26 @@
 import { LegalShell, LegalSection } from "@/components/legal/legal-shell";
 
 export const metadata = {
+  metadataBase: new URL("https://www.formation-arazzo.store"),
   title: "Politique de confidentialité — Arazzo OS",
   description: "Ce qu’Arazzo OS lit, conserve, et ne fait pas",
+  // Lien canonique EXPLICITE vers cette page (pas l'accueil du site).
+  alternates: { canonical: "https://www.formation-arazzo.store/arazzo-os/confidentialite" },
+  // Open Graph propre à la page : Meta exige og:url et og:image EXPLICITES.
+  openGraph: {
+    title: "Politique de confidentialité — Arazzo OS",
+    description: "Ce qu’Arazzo OS lit, conserve, et ne fait pas",
+    url: "https://www.formation-arazzo.store/arazzo-os/confidentialite",
+    siteName: "Arazzo OS",
+    type: "website",
+    images: [{ url: "https://www.formation-arazzo.store/images/arazzo-icon.png", alt: "Arazzo OS" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Politique de confidentialité — Arazzo OS",
+    description: "Ce qu’Arazzo OS lit, conserve, et ne fait pas",
+    images: ["https://www.formation-arazzo.store/images/arazzo-icon.png"],
+  },
 };
 
 export default function ArazzoOsConfidentialitePage() {
@@ -19,7 +37,7 @@ export default function ArazzoOsConfidentialitePage() {
     <LegalShell
       title={"Politique de confidentialité"}
       subtitle={"Ce qu’Arazzo OS lit, conserve, et ne fait pas"}
-      updated={"2026-08-17"}
+      updated={"2026-09-12"}
     >
       <div className="mb-8 border-s-4 border-amber-500 bg-amber-50 p-4 text-sm text-gray-700 font-dm">
         <span dangerouslySetInnerHTML={{ __html: "Ce texte décrit le fonctionnement réel du logiciel. Il n’est pas un avis juridique : faites-le relire avant de vous en prévaloir." }} />
