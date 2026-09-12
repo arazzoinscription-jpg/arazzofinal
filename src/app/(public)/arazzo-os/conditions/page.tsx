@@ -15,6 +15,7 @@ export const metadata = {
   description: "L’outil interne de publication de l’école",
   // Lien canonique EXPLICITE vers cette page (pas l'accueil du site).
   alternates: { canonical: "https://www.formation-arazzo.store/arazzo-os/conditions" },
+  other: { "fb:app_id": "1062409669599044" },
   // Open Graph propre à la page : Meta exige og:url et og:image EXPLICITES.
   openGraph: {
     title: "Conditions d’utilisation — Arazzo OS",

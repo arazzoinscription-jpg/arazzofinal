@@ -15,6 +15,7 @@ export const metadata = {
   description: "Ce qu’Arazzo OS lit, conserve, et ne fait pas",
   // Lien canonique EXPLICITE vers cette page (pas l'accueil du site).
   alternates: { canonical: "https://www.formation-arazzo.store/arazzo-os/confidentialite" },
+  other: { "fb:app_id": "1062409669599044" },
   // Open Graph propre à la page : Meta exige og:url et og:image EXPLICITES.
   openGraph: {
     title: "Politique de confidentialité — Arazzo OS",
