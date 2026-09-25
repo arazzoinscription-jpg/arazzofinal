@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
 import PresentielLanding from "./presentiel-landing";
 
 // Landing PRÉSENTIELLE — identique à Arazzo OS, 24/7 sur Vercel (sans tunnel).
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabase = createAdminClient();
+  const supabase = createPublicClient();
   const { data: row } = await supabase
     .from("presentiel_snapshots")
     .select("data")

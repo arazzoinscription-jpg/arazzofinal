@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
 
 // Capture d'un PROSPECT présentiel (formation/atelier à Sétif), 24/7, sans
@@ -39,8 +39,10 @@ export async function submitPresentielLead(input: unknown) {
   const offerName = d.offer || d.slug;
 
   // 1. Écrit le prospect dans Supabase (source de vérité en attendant la synchro OS).
+  //    En anon (clé publique) : la policy `anon_insert_leads` autorise le DÉPÔT
+  //    seul — jamais lire/modifier les prospects déjà déposés.
   try {
-    const supabase = createAdminClient();
+    const supabase = createPublicClient();
     const { error } = await supabase.from("presentiel_leads").insert({
       slug: d.slug,
       first_name: d.first_name,

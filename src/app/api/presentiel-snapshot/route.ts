@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
 
 // Rafraîchissement léger de la jauge de places : la landing relit l'instantané
 // (`presentiel_snapshots`) toutes les 25 s. On ne renvoie QUE `seats` et
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug");
   if (!slug) return NextResponse.json({ error: "slug requis" }, { status: 400 });
 
-  const supabase = createAdminClient();
+  const supabase = createPublicClient();
   const { data: row } = await supabase
     .from("presentiel_snapshots")
     .select("data")
