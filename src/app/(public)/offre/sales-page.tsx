@@ -1010,7 +1010,7 @@ function Quiz({ lang, courses, onEnroll }: { lang: Lang; courses: CourseOption[]
                     <p className="text-sm text-gray-600 dark:text-white/70 mt-1">C’est parfait — commencez en douceur. Nous proposons aussi une <strong>séance spéciale « utilisation de la machine à coudre »</strong> pour bien démarrer.</p>
                     <div className="flex flex-col sm:flex-row gap-2 mt-4">
                       <Link href="/offres" className="flex-1 text-center bg-[#5B16F9] text-white py-2.5 rounded-xl font-semibold text-sm">Voir toutes nos formations</Link>
-                      <Link href="/presentiel/utilisation-machine-a-coudre-point-droite" className="flex-1 text-center border-2 border-[#FE7223] text-[#c2510a] py-2.5 rounded-xl font-semibold text-sm">Atelier : utilisation de la machine</Link>
+                      <Link href="/presentiel/utilisation-machine-a-coudre-point-droite" className="flex-1 text-center bg-[#128a4c] text-white py-2.5 rounded-xl font-semibold text-sm hover:brightness-110">🧵 Atelier : utilisation de la machine</Link>
                     </div>
                   </div>
                 ) : null}

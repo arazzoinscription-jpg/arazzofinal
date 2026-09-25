@@ -34,7 +34,9 @@ export default function ProgrammePopup({ url, label = "Voir le programme" }: { u
                 ✕
               </button>
             </div>
-            <iframe src={url} title="Programme détaillé" className="w-full flex-1 min-h-[60vh] border-0" />
+            <div className="flex-1 min-h-[30vh] grid place-items-center text-center p-6 text-gray-600">
+              <p>Cliquez ci-dessous pour voir le programme détaillé complet.</p>
+            </div>
             <a
               href={url}
               target="_blank"

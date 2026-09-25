@@ -35,10 +35,14 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   if (!email) return fail("lien_invalide");
 
   const next = link.redirect_to || "/dashboard";
+  // IMPORTANT : rediriger vers /auth/entrer (page CLIENT) et NON /auth/callback
+  // (route serveur). Le lien magique délivre la session dans le FRAGMENT d'URL
+  // (#access_token=…), que seul du code client peut lire — une route serveur n'y
+  // a pas accès et renverrait l'élève vers /login.
   const { data, error } = await admin.auth.admin.generateLink({
     type: "magiclink",
     email,
-    options: { redirectTo: `${SITE}/auth/callback?next=${encodeURIComponent(next)}` },
+    options: { redirectTo: `${SITE}/auth/entrer?next=${encodeURIComponent(next)}` },
   });
   if (error || !data?.properties?.action_link) return fail("acces");
 
