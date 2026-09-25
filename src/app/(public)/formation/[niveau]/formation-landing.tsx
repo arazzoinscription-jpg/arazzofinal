@@ -14,7 +14,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { LandingStyles } from "@/lib/landing-kit";
+import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
+import LevelTestPopup from "@/lib/level-test-popup";
 import { requestEnrollment } from "@/app/actions/enrollment-request";
 import { submitDeliveryOrder } from "@/app/actions/rejoindre";
 
@@ -40,6 +41,8 @@ const T: Record<"ar" | "fr", any> = {
     platformLink: "📚 تُقدَّم الدروس على منصّتنا أرازو فورماسيون →",
     presentielTitle: "أفضّل الحضور بسطيف", presentielSub: "تكوين وجهًا لوجه في المركز",
     programBtn: "📋 عرض البرنامج المفصّل", program: "البرنامج",
+    testPhrase: "لا تعرفين من أين تبدئين؟ لديكِ معرفة بسيطة وتريدين تطويرها؟ قومي باختبار المستوى.",
+    testBtn: "📝 اختبار المستوى",
     noteInscTitle: "💡 كيف يتم حجز مكانك؟",
     noteInscBody: "لحجز مكانك، أكملي التسجيل. سنتواصل معك لتأكيده، أو تختارين استلام وثيقة التسجيل مع الدفع عند التوصيل.",
     formTitle: "أريد التسجيل",
@@ -51,6 +54,7 @@ const T: Record<"ar" | "fr", any> = {
     phName: "الاسم واللقب", phPhone: "0X XX XX XX XX", phEmail: "you@example.com",
     phWilaya: "مثال: سطيف", phAddress: "الشارع، المدينة…",
     deliveryHint: "📦 تصلك وثيقة التسجيل (مع رمز الدخول) عبر شركة التوصيل، وتدفعين عند الاستلام.",
+    promoLabel: "كود الهدية / التخفيض", promoPh: "مثال: SARAH500", promoOptional: "(اختياري)",
     consent: "أوافق على أن يتم التواصل معي من طرف Arazzo Formation بخصوص تسجيلي.",
     errConsent: "يرجى الموافقة لكي نتمكن من التواصل معك.",
     errAddress: "يرجى إدخال عنوان التوصيل.",
@@ -68,6 +72,8 @@ const T: Record<"ar" | "fr", any> = {
     platformLink: "📚 Les cours se déroulent sur notre plateforme Arazzo Formation →",
     presentielTitle: "Je préfère en présentiel", presentielSub: "En groupe, au centre à Sétif",
     programBtn: "📋 Voir le programme détaillé", program: "Le programme",
+    testPhrase: "Vous ne savez pas par où commencer ? Vous avez quelques bases à développer ? Faites le test de niveau.",
+    testBtn: "📝 Faire le test de niveau",
     noteInscTitle: "💡 Comment votre place est-elle gardée ?",
     noteInscBody: "Pour garder votre place, terminez l’inscription. Nous vous recontactons pour la finaliser, ou vous choisissez de recevoir une fiche d’inscription avec paiement à la livraison.",
     formTitle: "Je veux m’inscrire",
@@ -79,6 +85,7 @@ const T: Record<"ar" | "fr", any> = {
     phName: "Votre prénom et nom", phPhone: "0X XX XX XX XX", phEmail: "vous@exemple.com",
     phWilaya: "ex. Sétif", phAddress: "Rue, ville…",
     deliveryHint: "📦 Vous recevrez votre fiche d’inscription (avec votre code d’accès) par la société de livraison, à régler à la réception.",
+    promoLabel: "Code cadeau / promo", promoPh: "Ex. SARAH500", promoOptional: "(optionnel)",
     consent: "J’accepte d’être recontactée par Arazzo Formation au sujet de mon inscription.",
     errConsent: "Merci de cocher la case pour qu’on puisse vous recontacter.",
     errAddress: "Merci d’indiquer votre adresse de livraison.",
@@ -103,9 +110,12 @@ export default function FormationLanding({ data }: { data: CourseView }) {
   const [valeurs, setValeurs] = useState({ full_name: "", phone: "", email: "", wilaya: "", address: "" });
   const [methode, setMethode] = useState<"contact" | "delivery">("contact");
   const [accepte, setAccepte] = useState(false);
+  const [coupon, setCoupon] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [fait, setFait] = useState<null | "contact" | "delivery">(null);
+  const [showTest, setShowTest] = useState(false);
+  const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
   useEffect(() => {
     try {
@@ -140,6 +150,7 @@ export default function FormationLanding({ data }: { data: CourseView }) {
           phone: valeurs.phone.trim(),
           wilaya: valeurs.wilaya.trim() || null,
           address: valeurs.address.trim(),
+          coupon_code: coupon.trim() || undefined,
         })
         : await requestEnrollment({
           courseId: data.courseId,
@@ -147,6 +158,7 @@ export default function FormationLanding({ data }: { data: CourseView }) {
           email: valeurs.email.trim(),
           phone: valeurs.phone.trim() || null,
           wilaya: valeurs.wilaya.trim() || null,
+          coupon_code: coupon.trim() || undefined,
         });
       if (r.ok) {
         setFait(methode);
@@ -228,6 +240,12 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                 ) : null}
               </div>
 
+              {/* Invitation au test de niveau — ouvre le POPUP (résultat → CRM OS). */}
+              <div className="pl-testbox" style={cssVar("--d", ".16s")}>
+                <p>{t.testPhrase}</p>
+                <button type="button" className="pl-testbtn" onClick={() => setShowTest(true)}>{t.testBtn}</button>
+              </div>
+
               {/* Note « comment votre place est gardée » — propre à l'en ligne. */}
               <details className="pl-acc" style={cssVar("--d", ".18s")}>
                 <summary>{t.noteInscTitle}</summary>
@@ -288,6 +306,14 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                   <p className="pl-note" style={{ marginTop: 8 }}>{t.deliveryHint}</p>
                 ) : null}
 
+                {/* Code cadeau / promo (Live) — capturé avec la demande. */}
+                <label className="pl-field pl-field-full" style={{ marginTop: 14 }}>
+                  <span>🎁 {t.promoLabel} <em>{t.promoOptional}</em></span>
+                  <input value={coupon} placeholder={t.promoPh}
+                    style={{ textTransform: "uppercase" }}
+                    onChange={(e) => setCoupon(e.target.value.toUpperCase())} />
+                </label>
+
                 <label className="pl-consent">
                   <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />
                   <span>{t.consent}</span>
@@ -304,6 +330,12 @@ export default function FormationLanding({ data }: { data: CourseView }) {
           <p className="pl-pied">{t.pied}</p>
         </div>
       </div>
+
+      {showTest ? (
+        <LevelTestPopup slug={testSlug} langue={langue} utm={utmDeLURL()}
+          onClose={() => setShowTest(false)}
+          onSubscribe={() => { const el = document.getElementById("pl-form"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }} />
+      ) : null}
     </div>
   );
 }

@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from "react";
 import { LandingStyles, SeatsBanner, utmDeLURL, type Seats } from "@/lib/landing-kit";
+import LevelTestPopup from "@/lib/level-test-popup";
 import { submitPresentielLead } from "@/app/actions/presentiel-lead";
 
 type OfferView = Record<string, any>;
@@ -31,6 +32,7 @@ const T: Record<"ar" | "fr", any> = {
     dir: "rtl",
     formation: "تكوين", atelier: "ورشة",
     eyebrowF: "🎓 تكوين حضوري", eyebrowA: "🧵 ورشة حضورية",
+    testPhrase: "لا تعرفين من أين تبدئين؟ قومي باختبار المستوى.", testBtn: "📝 اختبار المستوى",
     sessions: (n: number) => `🎓 ${n} حصة`,
     programTitle: "البرنامج المفصّل", programSub: "البرنامج كامل، وحدة بوحدة",
     onlineTitle: "أفضّل التكوين عن بُعد", onlineSub: "نفس التكوين، من المنزل",
@@ -68,6 +70,7 @@ const T: Record<"ar" | "fr", any> = {
     dir: "ltr",
     formation: "Formation", atelier: "Atelier",
     eyebrowF: "🎓 Formation présentielle", eyebrowA: "🧵 Atelier présentiel",
+    testPhrase: "Vous ne savez pas par où commencer ? Faites le test de niveau.", testBtn: "📝 Faire le test de niveau",
     sessions: (n: number) => `🎓 ${n} séances`,
     programTitle: "Programme détaillé", programSub: "Le programme complet, module par module",
     onlineTitle: "Je préfère en ligne", onlineSub: "La même formation, à distance",
@@ -160,6 +163,8 @@ export default function PresentielLanding({ data }: { data: OfferView }) {
   const [envoi, setEnvoi] = useState(false);
   const [dejaEnvoye, setDejaEnvoye] = useState(false);
   const [accepte, setAccepte] = useState(false);
+  const [showTest, setShowTest] = useState(false);
+  const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
   const slug = String(def.slug ?? "");
 
@@ -349,6 +354,12 @@ export default function PresentielLanding({ data }: { data: OfferView }) {
               {def.description ? (
                 <p className="pl-lede" style={cssVar("--d", ".05s")}>{def.description}</p>
               ) : null}
+
+              {/* Invitation au test de niveau — ouvre le POPUP (résultat → CRM OS). */}
+              <div className="pl-testbox" style={cssVar("--d", ".07s")}>
+                <p>{t.testPhrase}</p>
+                <button type="button" className="pl-testbtn" onClick={() => setShowTest(true)}>{t.testBtn}</button>
+              </div>
 
               {/* Dossier obligatoire — alerte rouge, s'ouvre au clic. */}
               <details className="pl-acc pl-acc-alert" style={cssVar("--d", ".08s")}>
@@ -545,6 +556,12 @@ export default function PresentielLanding({ data }: { data: OfferView }) {
 
         <p className="pl-pied">{t.pied}</p>
       </div>
+
+      {showTest ? (
+        <LevelTestPopup slug={testSlug} langue={langue} utm={utmDeLURL()}
+          onClose={() => setShowTest(false)}
+          onSubscribe={() => { const el = document.getElementById("pl-form"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }} />
+      ) : null}
     </div>
   );
 }

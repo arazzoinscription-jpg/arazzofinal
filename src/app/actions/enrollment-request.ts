@@ -10,6 +10,9 @@ const Schema = z.object({
   email: z.string().email("Email invalide."),
   phone: z.string().trim().max(40).optional().nullable(),
   wilaya: z.string().trim().max(80).optional().nullable(),
+  // Code promo / cadeau (Live) saisi sur la landing. Capturé et stocké ; la
+  // remise est honorée par l'école (validation Live gérée dans l'OS).
+  coupon_code: z.string().trim().max(60).optional().nullable(),
 });
 
 /**
@@ -21,8 +24,9 @@ const Schema = z.object({
 export async function requestEnrollment(input: unknown) {
   const parsed = Schema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
-  const { courseId, full_name, email, phone, wilaya } = parsed.data;
+  const { courseId, full_name, email, phone, wilaya, coupon_code } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
+  const coupon = coupon_code ? coupon_code.trim().toUpperCase() : null;
 
   const admin = createAdminClient();
   const { data: course } = await admin
@@ -32,7 +36,7 @@ export async function requestEnrollment(input: unknown) {
   const { error } = await admin
     .from("enrollment_requests")
     .upsert(
-      { course_id: courseId, full_name, email: cleanEmail, phone: phone ?? null, wilaya: wilaya ?? null, status: "pending" },
+      { course_id: courseId, full_name, email: cleanEmail, phone: phone ?? null, wilaya: wilaya ?? null, coupon_code: coupon, status: "pending" },
       { onConflict: "course_id,email" },
     );
   if (error) return { ok: false as const, error: "Envoi impossible. Réessayez." };
@@ -42,6 +46,7 @@ export async function requestEnrollment(input: unknown) {
     "Formation": c?.titre_fr || "—",
     "Nom": full_name, "Email": cleanEmail,
     "Téléphone": phone || "—", "Wilaya": wilaya || "—",
+    "Code promo": coupon || "—",
   }, { intro: "Une personne souhaite s'inscrire à une formation.", link: "/admin/demandes-enrolement" });
 
   return { ok: true as const };

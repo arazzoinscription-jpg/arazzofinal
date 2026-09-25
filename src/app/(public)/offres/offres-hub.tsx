@@ -10,7 +10,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { LandingStyles } from "@/lib/landing-kit";
+import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
+import LevelTestPopup from "@/lib/level-test-popup";
 
 export type Offre = { slug: string; name: string; sous?: string | null; prix?: string | null };
 
@@ -23,6 +24,7 @@ const T: Record<"ar" | "fr", any> = {
     titre: "اختاري تكوينكِ",
     lede: "كل تكويناتنا في مكان واحد — عن بُعد أو حضوريًا بسطيف. اختاري ما يناسبكِ.",
     doTest: "📝 قومي باختبار المستوى",
+    bPres: "🏫 تكوينات حضورية", bOnline: "🖥️ تكوينات عن بُعد", bPat: "🧵 باترونات رقمية",
     online: "التكوينات عن بُعد", onlineSub: "عبر المنصّة · بإيقاعك · وصول مدى الحياة",
     packs: "الحزم (Packs) بسعر مخفّض", packsSub: "تكوينان معًا · بسعر مخفّض",
     presentiel: "التكوينات الحضورية بسطيف", presentielSub: "في المركز · مجموعات صغيرة",
@@ -35,6 +37,7 @@ const T: Record<"ar" | "fr", any> = {
     titre: "Choisissez votre formation",
     lede: "Toutes nos formations au même endroit — en ligne ou en présentiel à Sétif. Choisissez ce qui vous convient.",
     doTest: "📝 Faire le test de niveau",
+    bPres: "🏫 Formations en présentiel", bOnline: "🖥️ Formations en ligne", bPat: "🧵 Patronage numérique",
     online: "Formations en ligne", onlineSub: "Sur la plateforme · à votre rythme · accès à vie",
     packs: "Packs à prix réduit", packsSub: "Deux formations réunies · à prix réduit",
     presentiel: "Formations en présentiel à Sétif", presentielSub: "Au centre · petits groupes",
@@ -58,6 +61,8 @@ function Carte({ href, icone, name, sous }: { href: string; icone: string; name:
 
 export default function OffresHub({ online, packs }: { online: Offre[]; packs: Offre[] }) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
+  const [showTest, setShowTest] = useState(false);
+  const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
   useEffect(() => {
     try {
@@ -98,11 +103,24 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
 
       <div className="pl-wrap">
         <div className="pl-card">
-          {/* Test de niveau (test natif du LMS). */}
-          <a className="pl-cta" href="/offre#quiz"
-            style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 0 }}>
+          {/* 3 accès rapides — présentiel · en ligne · patronage (comme l'OS). */}
+          <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 12 }}>
+            <a className="pl-ghost pl-ghost-alt" href="#sec-presentiel"
+              style={{ borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
+              <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bPres}</strong></span>
+            </a>
+            <a className="pl-ghost" href="#sec-online">
+              <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bOnline}</strong></span>
+            </a>
+            <a className="pl-ghost" href="/patrons-arazzo">
+              <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bPat}</strong></span>
+            </a>
+          </div>
+
+          {/* Test de niveau — ouvre le POPUP (résultat renvoyé au CRM de l'OS). */}
+          <button type="button" className="pl-cta" style={{ marginTop: 0 }} onClick={() => setShowTest(true)}>
             {t.doTest}
-          </a>
+          </button>
 
           {/* Les PACKS d'abord (prix réduit). */}
           {packs.length ? (
@@ -117,7 +135,7 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
 
           {/* Formations en ligne. */}
           {online.length ? (
-            <section className="pl-section" style={{ ["--d" as string]: ".09s" }}>
+            <section id="sec-online" className="pl-section" style={{ ["--d" as string]: ".09s" }}>
               <h2 className="pl-h2">🖥️ {t.online}</h2>
               <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.onlineSub}</p>
               {online.map((o) => (
@@ -128,7 +146,7 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
           ) : null}
 
           {/* Présentiel + patronage. */}
-          <section className="pl-section" style={{ ["--d" as string]: ".12s" }}>
+          <section id="sec-presentiel" className="pl-section" style={{ ["--d" as string]: ".12s" }}>
             <h2 className="pl-h2">🏫 {t.presentiel}</h2>
             <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.presentielSub}</p>
             <a className="pl-ghost pl-ghost-alt" href="/presentiel/presentiel-niveau-1"
@@ -137,12 +155,16 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
               <span style={{ flex: 1 }}><strong>{t.presentielCta}</strong></span>
               <span className="pl-ghost-ico" aria-hidden="true">→</span>
             </a>
-            <Carte href="/patrons" icone="🧵" name={t.patrons} />
+            <Carte href="/patrons-arazzo" icone="🧵" name={t.patrons} />
           </section>
 
           <p className="pl-pied">{t.pied}</p>
         </div>
       </div>
+
+      {showTest ? (
+        <LevelTestPopup slug={testSlug} langue={langue} utm={utmDeLURL()} onClose={() => setShowTest(false)} />
+      ) : null}
     </div>
   );
 }
