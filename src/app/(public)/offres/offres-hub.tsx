@@ -80,10 +80,6 @@ export default function OffresHub({ online, packs, presentiel = [] }: { online: 
   }
 
   const t = T[langue];
-  // Lien présentiel « direct » : la 1re landing synchronisée (niveau 1 en tête,
-  // car les offres sont triées par slug), sinon le niveau 1 par défaut. Le bouton
-  // du haut MÈNE à la page — plus besoin de passer par le bouton d'en bas.
-  const presentielHref = `/presentiel/${presentiel[0]?.slug ?? "presentiel-niveau-1"}`;
 
   return (
     <div className="pl" dir={t.dir}>
@@ -107,13 +103,13 @@ export default function OffresHub({ online, packs, presentiel = [] }: { online: 
 
       <div className="pl-wrap">
         <div className="pl-card">
-          {/* 3 accès rapides — présentiel · en ligne · patronage (comme l'OS). */}
+          {/* 3 accès rapides — chacun ouvre SA page (toutes les offres du service). */}
           <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 12 }}>
-            <a className="pl-ghost pl-ghost-alt" href={presentielHref}
+            <a className="pl-ghost pl-ghost-alt" href="/offres/presentiel"
               style={{ borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
               <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bPres}</strong></span>
             </a>
-            <a className="pl-ghost" href="#sec-online">
+            <a className="pl-ghost" href="/offres/en-ligne">
               <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bOnline}</strong></span>
             </a>
             <a className="pl-ghost" href="/patrons-arazzo">
