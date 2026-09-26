@@ -18,6 +18,8 @@ import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { requestEnrollment } from "@/app/actions/enrollment-request";
 import { submitDeliveryOrder } from "@/app/actions/rejoindre";
+import { uploadOnlineProof } from "@/lib/upload-online-proof";
+import { submitOnlineEnrollment } from "@/app/actions/online-enrollment";
 
 type CourseView = {
   courseId: string;
@@ -49,6 +51,12 @@ const T: Record<"ar" | "fr", any> = {
     methodTitle: "كيف تريدين التسجيل؟",
     methodContact: "☎️ يتم التواصل معي", methodContactSub: "نتصل بك لإتمام التسجيل",
     methodDelivery: "📦 وثيقة التسجيل + توصيل", methodDeliverySub: "الدفع عند الاستلام",
+    methodPaid: "💳 لقد دفعتُ — إرسال الإثبات", methodPaidSub: "CCP / BaridiMob",
+    paidHint: "قومي بالدفع عبر CCP أو BaridiMob، ثم أرفقي صورة الوصل. سنؤكّد الدفع ونفعّل دخولك.",
+    fProof: "وصل الدفع (صورة أو PDF)", proofChoose: "اضغطي لإرفاق الوصل (JPG · PNG · PDF)",
+    fAmount: "المبلغ المدفوع (دج)", phAmount: "مثال: 4500", fRef: "رقم العملية", phRef: "اختياري", refOptional: "(اختياري)",
+    errProof: "يرجى إرفاق وصل الدفع.",
+    doneProofTitle: "تم استلام إثبات الدفع 🌸", doneProofBody: "شكرًا لك! نتحقق من الدفع ثم نفعّل دخولك — ستصلك رسالة بمعلومات الاتصال. 🌸",
     fName: "الاسم الكامل", fPhone: "رقم واتساب", fEmail: "البريد الإلكتروني",
     fWilaya: "الولاية", fWilayaOpt: "الولاية (اختياري)", fAddress: "عنوان التوصيل الكامل",
     phName: "الاسم واللقب", phPhone: "0X XX XX XX XX", phEmail: "you@example.com",
@@ -80,6 +88,12 @@ const T: Record<"ar" | "fr", any> = {
     methodTitle: "Comment souhaitez-vous vous inscrire ?",
     methodContact: "☎️ On me recontacte", methodContactSub: "On vous appelle pour finaliser",
     methodDelivery: "📦 Fiche d’inscription + livraison", methodDeliverySub: "Paiement à la réception",
+    methodPaid: "💳 J’ai payé — envoyer ma preuve", methodPaidSub: "CCP / BaridiMob",
+    paidHint: "Effectuez votre versement CCP ou BaridiMob, puis joignez le reçu. Nous confirmons le paiement et activons votre accès.",
+    fProof: "Reçu de paiement (photo ou PDF)", proofChoose: "Cliquez pour joindre le reçu (JPG · PNG · PDF)",
+    fAmount: "Montant versé (DA)", phAmount: "ex. 4500", fRef: "N° de transaction", phRef: "optionnel", refOptional: "(optionnel)",
+    errProof: "Merci de joindre votre reçu de paiement.",
+    doneProofTitle: "Preuve de paiement reçue 🌸", doneProofBody: "Merci ! Nous vérifions le paiement puis activons votre accès — vous recevrez vos identifiants par e-mail. 🌸",
     fName: "Prénom et nom", fPhone: "WhatsApp", fEmail: "E-mail",
     fWilaya: "Wilaya", fWilayaOpt: "Wilaya (optionnel)", fAddress: "Adresse de livraison complète",
     phName: "Votre prénom et nom", phPhone: "0X XX XX XX XX", phEmail: "vous@exemple.com",
@@ -107,13 +121,14 @@ const cssVar = (k: string, v: string) => ({ [k]: v }) as React.CSSProperties;
 
 export default function FormationLanding({ data }: { data: CourseView }) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
-  const [valeurs, setValeurs] = useState({ full_name: "", phone: "", email: "", wilaya: "", address: "" });
-  const [methode, setMethode] = useState<"contact" | "delivery">("contact");
+  const [valeurs, setValeurs] = useState({ full_name: "", phone: "", email: "", wilaya: "", address: "", amount: "", reference: "" });
+  const [methode, setMethode] = useState<"contact" | "delivery" | "paid">("contact");
+  const [preuve, setPreuve] = useState<File | null>(null);
   const [accepte, setAccepte] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [fait, setFait] = useState<null | "contact" | "delivery">(null);
+  const [fait, setFait] = useState<null | "contact" | "delivery" | "paid">(null);
   const [showTest, setShowTest] = useState(false);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
@@ -140,8 +155,35 @@ export default function FormationLanding({ data }: { data: CourseView }) {
     setErreur(null);
     if (!accepte) { setErreur(t.errConsent); return; }
     if (methode === "delivery" && valeurs.address.trim().length < 4) { setErreur(t.errAddress); return; }
+    if (methode === "paid" && !preuve) { setErreur(t.errProof); return; }
     setEnvoi(true);
     try {
+      // « J'ai payé » : on téléverse le reçu, puis on dépose la demande + la preuve.
+      // Arazzo OS la rapatrie et la valide (accès activé, e-mail de bienvenue).
+      if (methode === "paid") {
+        const up = await uploadOnlineProof(preuve as File);
+        if (!up.ok || !up.path) { setErreur(up.error || "Envoi du reçu échoué."); setEnvoi(false); return; }
+        const r = await submitOnlineEnrollment({
+          level: data.niveau,
+          course_id: data.courseId,
+          full_name: valeurs.full_name.trim(),
+          email: valeurs.email.trim() || "",
+          phone: valeurs.phone.trim() || "",
+          wilaya: valeurs.wilaya.trim() || "",
+          amount: valeurs.amount.trim() || null,
+          method: "ccp",
+          reference: valeurs.reference.trim() || "",
+          coupon_code: coupon.trim() || "",
+          proof_path: up.path,
+          consent: accepte,
+          lang: langue,
+          utm: utmDeLURL(),
+        });
+        if (r.ok) { setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+        else setErreur(r.error === "validation_failed" ? "Merci de vérifier vos informations." : (r.error || "Envoi impossible. Réessayez."));
+        setEnvoi(false);
+        return;
+      }
       const r = methode === "delivery"
         ? await submitDeliveryOrder({
           courseId: data.courseId,
@@ -214,9 +256,9 @@ export default function FormationLanding({ data }: { data: CourseView }) {
         <div className="pl-card">
           {fait ? (
             <div className="pl-merci">
-              <div className="pl-check" aria-hidden="true">{fait === "delivery" ? "📦" : "✓"}</div>
-              <h1 className="pl-titre pl-titre-dark">{fait === "delivery" ? t.doneDeliveryTitle : t.doneContactTitle}</h1>
-              <p>{fait === "delivery" ? t.doneDeliveryBody : t.doneContactBody}</p>
+              <div className="pl-check" aria-hidden="true">{fait === "delivery" ? "📦" : fait === "paid" ? "💳" : "✓"}</div>
+              <h1 className="pl-titre pl-titre-dark">{fait === "delivery" ? t.doneDeliveryTitle : fait === "paid" ? t.doneProofTitle : t.doneContactTitle}</h1>
+              <p>{fait === "delivery" ? t.doneDeliveryBody : fait === "paid" ? t.doneProofBody : t.doneContactBody}</p>
             </div>
           ) : (
             <>
@@ -269,6 +311,11 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                       <strong>{t.methodDelivery}</strong>
                       <small>{t.methodDeliverySub}</small>
                     </button>
+                    <button type="button" className="pl-methode" data-on={methode === "paid"}
+                      onClick={() => setMethode("paid")}>
+                      <strong>{t.methodPaid}</strong>
+                      <small>{t.methodPaidSub}</small>
+                    </button>
                   </div>
                 </fieldset>
 
@@ -300,10 +347,36 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                         onChange={(e) => set("address", e.target.value)} />
                     </label>
                   ) : null}
+                  {methode === "paid" ? (
+                    <>
+                      <label className="pl-field">
+                        <span>{t.fAmount}</span>
+                        <input type="number" inputMode="numeric" min={0} value={valeurs.amount} placeholder={t.phAmount}
+                          onChange={(e) => set("amount", e.target.value)} />
+                      </label>
+                      <label className="pl-field">
+                        <span>{t.fRef} <em>{t.refOptional}</em></span>
+                        <input value={valeurs.reference} placeholder={t.phRef}
+                          onChange={(e) => set("reference", e.target.value)} />
+                      </label>
+                    </>
+                  ) : null}
                 </div>
 
                 {methode === "delivery" ? (
                   <p className="pl-note" style={{ marginTop: 8 }}>{t.deliveryHint}</p>
+                ) : null}
+
+                {methode === "paid" ? (
+                  <>
+                    <p className="pl-note" style={{ marginTop: 8 }}>{t.paidHint}</p>
+                    <label className="pl-field pl-field-full" style={{ marginTop: 10 }}>
+                      <span>{t.fProof}</span>
+                      <input type="file" accept="image/jpeg,image/png,application/pdf"
+                        onChange={(e) => setPreuve(e.target.files?.[0] ?? null)} />
+                      <small style={{ color: "#6b6480" }}>{preuve ? preuve.name : t.proofChoose}</small>
+                    </label>
+                  </>
                 ) : null}
 
                 {/* Code cadeau / promo (Live) — capturé avec la demande. */}

@@ -59,7 +59,7 @@ function Carte({ href, icone, name, sous }: { href: string; icone: string; name:
   );
 }
 
-export default function OffresHub({ online, packs }: { online: Offre[]; packs: Offre[] }) {
+export default function OffresHub({ online, packs, presentiel = [] }: { online: Offre[]; packs: Offre[]; presentiel?: Offre[] }) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
   const [showTest, setShowTest] = useState(false);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
@@ -80,6 +80,10 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
   }
 
   const t = T[langue];
+  // Lien présentiel « direct » : la 1re landing synchronisée (niveau 1 en tête,
+  // car les offres sont triées par slug), sinon le niveau 1 par défaut. Le bouton
+  // du haut MÈNE à la page — plus besoin de passer par le bouton d'en bas.
+  const presentielHref = `/presentiel/${presentiel[0]?.slug ?? "presentiel-niveau-1"}`;
 
   return (
     <div className="pl" dir={t.dir}>
@@ -105,7 +109,7 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
         <div className="pl-card">
           {/* 3 accès rapides — présentiel · en ligne · patronage (comme l'OS). */}
           <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 12 }}>
-            <a className="pl-ghost pl-ghost-alt" href="#sec-presentiel"
+            <a className="pl-ghost pl-ghost-alt" href={presentielHref}
               style={{ borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
               <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bPres}</strong></span>
             </a>
@@ -145,16 +149,32 @@ export default function OffresHub({ online, packs }: { online: Offre[]; packs: O
             </section>
           ) : null}
 
-          {/* Présentiel + patronage. */}
+          {/* Présentiel : une carte = une page (niveau 1/2/3, ateliers…), lues des
+              offres synchronisées. Repli sur le lien par défaut si rien n'est encore
+              poussé, pour que la section ne soit jamais vide. */}
           <section id="sec-presentiel" className="pl-section" style={{ ["--d" as string]: ".12s" }}>
             <h2 className="pl-h2">🏫 {t.presentiel}</h2>
             <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.presentielSub}</p>
-            <a className="pl-ghost pl-ghost-alt" href="/presentiel/presentiel-niveau-1"
-              style={{ marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
-              <span className="pl-ghost-ico">🏫</span>
-              <span style={{ flex: 1 }}><strong>{t.presentielCta}</strong></span>
-              <span className="pl-ghost-ico" aria-hidden="true">→</span>
-            </a>
+            {presentiel.length ? (
+              presentiel.map((o) => (
+                <a key={o.slug} className="pl-ghost pl-ghost-alt" href={`/presentiel/${o.slug}`}
+                  style={{ marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
+                  <span className="pl-ghost-ico">🏫</span>
+                  <span style={{ flex: 1 }}>
+                    <strong>{o.name}</strong>
+                    {o.sous ? <small>{o.sous}</small> : null}
+                  </span>
+                  <span className="pl-ghost-ico" aria-hidden="true">→</span>
+                </a>
+              ))
+            ) : (
+              <a className="pl-ghost pl-ghost-alt" href="/presentiel/presentiel-niveau-1"
+                style={{ marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
+                <span className="pl-ghost-ico">🏫</span>
+                <span style={{ flex: 1 }}><strong>{t.presentielCta}</strong></span>
+                <span className="pl-ghost-ico" aria-hidden="true">→</span>
+              </a>
+            )}
             <Carte href="/patrons-arazzo" icone="🧵" name={t.patrons} />
           </section>
 

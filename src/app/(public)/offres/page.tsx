@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import OffresHub, { type Offre } from "./offres-hub";
 
 // Hub NATIF (24/7) de toutes les offres, au DESIGN de l'OS (kit `pl-` partagé,
@@ -13,6 +14,7 @@ const NIVEAUX = [
 export const dynamic = "force-dynamic";
 
 type Pack = { id: string; slug: string | null; titre_fr: string | null; prix_dzd: number | null };
+type PresentielSnap = { slug: string; data: Record<string, unknown> | null };
 
 const daPrice = (n: number | null | undefined) =>
   n ? `${Number(n).toLocaleString("fr-FR")} DA` : null;
@@ -44,5 +46,29 @@ export default async function Page() {
     .filter((p) => p.slug)
     .map((p) => ({ slug: p.slug as string, name: p.titre_fr || "Pack", prix: daPrice(p.prix_dzd) }));
 
-  return <OffresHub online={online} packs={packs} />;
+  // PRÉSENTIEL : autant de landings que d'offres synchronisées par l'OS (une page
+  // par niveau/atelier), lues dans `presentiel_snapshots`. Best-effort : si la
+  // synchro n'a rien poussé, la liste est vide et le hub retombe sur son lien par
+  // défaut. Lecture ANON (RLS publique), comme la landing `/presentiel/[slug]`.
+  let presentiel: Offre[] = [];
+  try {
+    const pub = createPublicClient();
+    const { data: snaps } = await pub
+      .from("presentiel_snapshots")
+      .select("slug, data")
+      .order("slug", { ascending: true });
+    presentiel = ((snaps as PresentielSnap[]) ?? [])
+      .filter((s) => s.slug && s.data)
+      .map((s) => {
+        const d = s.data as Record<string, any>;
+        const atelier = d?.kind === "atelier";
+        return {
+          slug: s.slug,
+          name: (d?.name as string) || s.slug,
+          sous: atelier ? "Atelier · Sétif" : "Formation · petits groupes · Sétif",
+        };
+      });
+  } catch { presentiel = []; }
+
+  return <OffresHub online={online} packs={packs} presentiel={presentiel} />;
 }
