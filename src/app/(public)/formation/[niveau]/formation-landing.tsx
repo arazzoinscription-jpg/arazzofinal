@@ -16,7 +16,6 @@
 import { useEffect, useState } from "react";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import LevelTestPopup from "@/lib/level-test-popup";
-import { requestEnrollment } from "@/app/actions/enrollment-request";
 import { submitDeliveryOrder } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
 import { submitOnlineEnrollment } from "@/app/actions/online-enrollment";
@@ -46,12 +45,11 @@ const T: Record<"ar" | "fr", any> = {
     testPhrase: "لا تعرفين من أين تبدئين؟ لديكِ معرفة بسيطة وتريدين تطويرها؟ قومي باختبار المستوى.",
     testBtn: "📝 اختبار المستوى",
     noteInscTitle: "💡 كيف يتم حجز مكانك؟",
-    noteInscBody: "لحجز مكانك، أكملي التسجيل. سنتواصل معك لتأكيده، أو تختارين استلام وثيقة التسجيل مع الدفع عند التوصيل.",
+    noteInscBody: "لحجز مكانك، يجب إتمام التسجيل بالدفع. بمجرد إرسال الدفع، يصبح تسجيلك فوريًا ويُحجز مكانك مباشرة.",
     formTitle: "أريد التسجيل",
-    methodTitle: "كيف تريدين التسجيل؟",
-    methodContact: "☎️ يتم التواصل معي", methodContactSub: "نتصل بك لإتمام التسجيل",
-    methodDelivery: "📦 وثيقة التسجيل + توصيل", methodDeliverySub: "الدفع عند الاستلام",
-    methodPaid: "💳 لقد دفعتُ — إرسال الإثبات", methodPaidSub: "CCP / BaridiMob",
+    methodTitle: "كيف تريدين الدفع؟",
+    methodDelivery: "📝 أفضّل وثيقة تسجيل", methodDeliverySub: "تصلكِ بالتوصيل · الدفع عند الاستلام",
+    methodPaid: "💳 أدفع عبر CCP / BaridiMob", methodPaidSub: "سترسلين إثبات الدفع",
     paidHint: "قومي بالدفع عبر CCP أو BaridiMob، ثم أرفقي صورة الوصل. سنؤكّد الدفع ونفعّل دخولك.",
     fProof: "وصل الدفع (صورة أو PDF)", proofChoose: "اضغطي لإرفاق الوصل (JPG · PNG · PDF)",
     fAmount: "المبلغ المدفوع (دج)", phAmount: "مثال: 4500", fRef: "رقم العملية", phRef: "اختياري", refOptional: "(اختياري)",
@@ -62,6 +60,17 @@ const T: Record<"ar" | "fr", any> = {
     phName: "الاسم واللقب", phPhone: "0X XX XX XX XX", phEmail: "you@example.com",
     phWilaya: "مثال: سطيف", phAddress: "الشارع، المدينة…",
     deliveryHint: "📦 تصلك وثيقة التسجيل (مع رمز الدخول) عبر شركة التوصيل، وتدفعين عند الاستلام.",
+    ficheTitle: "📝 وثيقة التسجيل، كيف تعمل؟",
+    ficheIntro: "تفضّلين عدم الدفع عبر الإنترنت؟ نرسل لكِ وثيقة تسجيل ورقية عبر شركة التوصيل. تملئينها، تدفعين عند الاستلام، ثم يُفتح لكِ الوصول.",
+    ficheSteps: [
+      "تملئين عنوانكِ أدناه.",
+      "تُحضر لكِ شركة التوصيل وثيقة التسجيل إلى عنوانكِ.",
+      "تدفعين عند الاستلام (الدفع عند التوصيل).",
+      "يُفتح لكِ الوصول إلى التكوين بعد الدفع.",
+    ],
+    ficheDelay: "⏱️ مدة الاستلام: من 3 إلى 5 أيام عمل حسب ولايتكِ.",
+    ficheImgLegende: "هكذا تبدو الوثيقة التي ستصلكِ:",
+    ficheImgAlt: "نموذج وثيقة التسجيل",
     promoLabel: "كود الهدية / التخفيض", promoPh: "مثال: SARAH500", promoOptional: "(اختياري)",
     consent: "أوافق على أن يتم التواصل معي من طرف Arazzo Formation بخصوص تسجيلي.",
     errConsent: "يرجى الموافقة لكي نتمكن من التواصل معك.",
@@ -83,12 +92,11 @@ const T: Record<"ar" | "fr", any> = {
     testPhrase: "Vous ne savez pas par où commencer ? Vous avez quelques bases à développer ? Faites le test de niveau.",
     testBtn: "📝 Faire le test de niveau",
     noteInscTitle: "💡 Comment votre place est-elle gardée ?",
-    noteInscBody: "Pour garder votre place, terminez l’inscription. Nous vous recontactons pour la finaliser, ou vous choisissez de recevoir une fiche d’inscription avec paiement à la livraison.",
+    noteInscBody: "Pour garder votre place, il faut terminer l’inscription par le paiement. Dès que le paiement est envoyé, votre inscription est instantanée : votre place est réservée immédiatement.",
     formTitle: "Je veux m’inscrire",
-    methodTitle: "Comment souhaitez-vous vous inscrire ?",
-    methodContact: "☎️ On me recontacte", methodContactSub: "On vous appelle pour finaliser",
-    methodDelivery: "📦 Fiche d’inscription + livraison", methodDeliverySub: "Paiement à la réception",
-    methodPaid: "💳 J’ai payé — envoyer ma preuve", methodPaidSub: "CCP / BaridiMob",
+    methodTitle: "Comment souhaitez-vous régler ?",
+    methodDelivery: "📝 Je préfère une fiche d’inscription", methodDeliverySub: "Reçue par livraison · paiement à la réception",
+    methodPaid: "💳 Je paie avec CCP / BaridiMob", methodPaidSub: "Vous enverrez la preuve de paiement",
     paidHint: "Effectuez votre versement CCP ou BaridiMob, puis joignez le reçu. Nous confirmons le paiement et activons votre accès.",
     fProof: "Reçu de paiement (photo ou PDF)", proofChoose: "Cliquez pour joindre le reçu (JPG · PNG · PDF)",
     fAmount: "Montant versé (DA)", phAmount: "ex. 4500", fRef: "N° de transaction", phRef: "optionnel", refOptional: "(optionnel)",
@@ -99,6 +107,17 @@ const T: Record<"ar" | "fr", any> = {
     phName: "Votre prénom et nom", phPhone: "0X XX XX XX XX", phEmail: "vous@exemple.com",
     phWilaya: "ex. Sétif", phAddress: "Rue, ville…",
     deliveryHint: "📦 Vous recevrez votre fiche d’inscription (avec votre code d’accès) par la société de livraison, à régler à la réception.",
+    ficheTitle: "📝 La fiche d’inscription, comment ça marche ?",
+    ficheIntro: "Vous préférez ne pas payer en ligne ? Nous vous envoyons une fiche d’inscription papier par la société de livraison. Vous la remplissez, vous réglez à la réception, et votre accès s’ouvre ensuite.",
+    ficheSteps: [
+      "Vous remplissez votre adresse ci-dessous.",
+      "La société de livraison vous apporte la fiche d’inscription à votre adresse.",
+      "Vous réglez à la réception (paiement à la livraison).",
+      "Votre accès à la formation s’ouvre après le paiement.",
+    ],
+    ficheDelay: "⏱️ Délai de réception : 3 à 5 jours ouvrables selon votre wilaya.",
+    ficheImgLegende: "Voici à quoi ressemble la fiche que vous recevrez :",
+    ficheImgAlt: "Modèle de la fiche d’inscription",
     promoLabel: "Code cadeau / promo", promoPh: "Ex. SARAH500", promoOptional: "(optionnel)",
     consent: "J’accepte d’être recontactée par Arazzo Formation au sujet de mon inscription.",
     errConsent: "Merci de cocher la case pour qu’on puisse vous recontacter.",
@@ -122,13 +141,13 @@ const cssVar = (k: string, v: string) => ({ [k]: v }) as React.CSSProperties;
 export default function FormationLanding({ data }: { data: CourseView }) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
   const [valeurs, setValeurs] = useState({ full_name: "", phone: "", email: "", wilaya: "", address: "", amount: "", reference: "" });
-  const [methode, setMethode] = useState<"contact" | "delivery" | "paid">("contact");
+  const [methode, setMethode] = useState<"delivery" | "paid">("paid");
   const [preuve, setPreuve] = useState<File | null>(null);
   const [accepte, setAccepte] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
-  const [fait, setFait] = useState<null | "contact" | "delivery" | "paid">(null);
+  const [fait, setFait] = useState<null | "delivery" | "paid">(null);
   const [showTest, setShowTest] = useState(false);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
@@ -184,26 +203,18 @@ export default function FormationLanding({ data }: { data: CourseView }) {
         setEnvoi(false);
         return;
       }
-      const r = methode === "delivery"
-        ? await submitDeliveryOrder({
-          courseId: data.courseId,
-          full_name: valeurs.full_name.trim(),
-          email: valeurs.email.trim(),
-          phone: valeurs.phone.trim(),
-          wilaya: valeurs.wilaya.trim() || null,
-          address: valeurs.address.trim(),
-          coupon_code: coupon.trim() || undefined,
-        })
-        : await requestEnrollment({
-          courseId: data.courseId,
-          full_name: valeurs.full_name.trim(),
-          email: valeurs.email.trim(),
-          phone: valeurs.phone.trim() || null,
-          wilaya: valeurs.wilaya.trim() || null,
-          coupon_code: coupon.trim() || undefined,
-        });
+      // Fiche + livraison : demande COD native (paiement à la réception).
+      const r = await submitDeliveryOrder({
+        courseId: data.courseId,
+        full_name: valeurs.full_name.trim(),
+        email: valeurs.email.trim(),
+        phone: valeurs.phone.trim(),
+        wilaya: valeurs.wilaya.trim() || null,
+        address: valeurs.address.trim(),
+        coupon_code: coupon.trim() || undefined,
+      });
       if (r.ok) {
-        setFait(methode);
+        setFait("delivery");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErreur(r.error || "Envoi impossible. Réessayez.");
@@ -301,20 +312,15 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                 <fieldset className="pl-methodes">
                   <legend>{t.methodTitle}</legend>
                   <div className="pl-methodes-grid">
-                    <button type="button" className="pl-methode" data-on={methode === "contact"}
-                      onClick={() => setMethode("contact")}>
-                      <strong>{t.methodContact}</strong>
-                      <small>{t.methodContactSub}</small>
+                    <button type="button" className="pl-methode" data-on={methode === "paid"}
+                      onClick={() => setMethode("paid")}>
+                      <strong>{t.methodPaid}</strong>
+                      <small>{t.methodPaidSub}</small>
                     </button>
                     <button type="button" className="pl-methode" data-on={methode === "delivery"}
                       onClick={() => setMethode("delivery")}>
                       <strong>{t.methodDelivery}</strong>
                       <small>{t.methodDeliverySub}</small>
-                    </button>
-                    <button type="button" className="pl-methode" data-on={methode === "paid"}
-                      onClick={() => setMethode("paid")}>
-                      <strong>{t.methodPaid}</strong>
-                      <small>{t.methodPaidSub}</small>
                     </button>
                   </div>
                 </fieldset>
@@ -364,7 +370,18 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                 </div>
 
                 {methode === "delivery" ? (
-                  <p className="pl-note" style={{ marginTop: 8 }}>{t.deliveryHint}</p>
+                  <div className="pl-fiche" style={{ marginTop: 12 }}>
+                    <h3 className="pl-h2" style={{ fontSize: "1.05rem", margin: "0 0 6px" }}>{t.ficheTitle}</h3>
+                    <p className="pl-lede" style={{ margin: "0 0 10px" }}>{t.ficheIntro}</p>
+                    <ol className="pl-fiche-steps">
+                      {t.ficheSteps.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                    </ol>
+                    <p className="pl-note" style={{ margin: "8px 0 12px", fontWeight: 600 }}>{t.ficheDelay}</p>
+                    <p className="pl-note" style={{ margin: "0 0 6px" }}>{t.ficheImgLegende}</p>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="pl-fiche-img" src="/fiche-inscription-modele.jpg" alt={t.ficheImgAlt}
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                  </div>
                 ) : null}
 
                 {methode === "paid" ? (
