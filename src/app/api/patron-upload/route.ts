@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient } from "@/lib/supabase/public";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Téléversement (preuve de paiement OU photo d'un modèle sur-mesure) → bucket
-// PUBLIC `patron-proofs` en anon (policy `anon_insert_patron_proofs` de la
-// migration 085). Renvoie l'URL publique — visible ensuite depuis l'OS.
+// PUBLIC `patron-proofs`. On écrit via le service role (comme tous les uploads du
+// LMS : payments, feed, quiz…), donc aucune policy storage à créer : il suffit
+// que le bucket existe et soit public. Renvoie l'URL publique — visible depuis l'OS.
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (buf.length > 8 * 1024 * 1024) return NextResponse.json({ error: "too_large" }, { status: 413 });
 
   const path = `${crypto.randomUUID()}${ext}`;
-  const supabase = createPublicClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.storage.from("patron-proofs").upload(path, buf, {
     contentType, upsert: false, cacheControl: "31536000",
   });
