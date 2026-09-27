@@ -99,8 +99,12 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
     try {
       const gardee = window.localStorage.getItem(CLE_LANGUE);
       if (gardee === "ar" || gardee === "fr") setLangue(gardee);
-      // Une visiteuse qui a déjà laissé ses coordonnées retrouve son cours.
-      if (window.localStorage.getItem(`delivery_sent_${slug}`)) setDebloque(true);
+      // Une visiteuse qui a déjà laissé ses coordonnées retrouve son cours —
+      // sur cet appareil (mémoire locale) ou depuis le lien de son e-mail
+      // (`?acces=1`), même ouvert sur un autre téléphone.
+      const viaEmail = new URLSearchParams(window.location.search).has("acces");
+      if (viaEmail) { try { window.localStorage.setItem(`delivery_sent_${slug}`, "1"); } catch { /* ignore */ } }
+      if (viaEmail || window.localStorage.getItem(`delivery_sent_${slug}`)) setDebloque(true);
     } catch { /* stockage indisponible : on reste sur les défauts */ }
   }, [slug]);
 

@@ -2,6 +2,8 @@
 
 import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
+import { sendEmail } from "@/lib/email";
+import { deliveryCourseEmail } from "@/lib/delivery-email";
 
 // Capture d'un PROSPECT sur une Delivery Page (cours gratuit), 24/7, sans
 // tunnel. Le prospect est DÉPOSÉ dans Supabase (`delivery_page_leads`, clé anon,
@@ -59,6 +61,21 @@ export async function submitDeliveryLead(input: unknown) {
     if (error) return { ok: false as const, error: "send_failed" };
   } catch {
     return { ok: false as const, error: "send_failed" };
+  }
+
+  // E-mail automatique : lien du cours + proposition de formation (réglable par
+  // page dans l'OS, activé par défaut). Best-effort : un e-mail qui échoue ne
+  // fait jamais échouer l'inscription — le prospect est déjà enregistré, et
+  // l'échec est tracé dans `email_log` par `sendEmail`.
+  if (d.email && form.send_email !== false) {
+    try {
+      const { subject, html } = deliveryCourseEmail({
+        page, slug: d.slug, name: d.full_name, lang: d.lang ?? null,
+      });
+      // `force` : c'est la LIVRAISON de ce que la personne vient de demander,
+      // pas un envoi marketing soumis aux préférences d'un compte.
+      await sendEmail({ to: d.email.toLowerCase(), category: "prospect", subject, html, force: true });
+    } catch { /* best-effort */ }
   }
 
   return { ok: true as const };
