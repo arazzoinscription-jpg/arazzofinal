@@ -20,9 +20,9 @@
  * hôte via <LandingStyles/>). Bilingue via la prop `langue`.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { submitLevelTest } from "@/app/actions/level-test";
-import { pixelEvent } from "@/lib/pixel-events";
+import { pixelEvent, pixelCustom } from "@/lib/pixel-events";
 
 type PublicQuestion = {
   key: string; kind: string; q: string; description?: string | null;
@@ -97,6 +97,25 @@ export default function LevelTestPopup({
   const [accepte, setAccepte] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [resultat, setResultat] = useState<any>(null);
+  // « StartTest » ne doit partir qu'UNE fois, au vrai début (1re réponse).
+  const started = useRef(false);
+
+  // Le test COMMENCE vraiment quand la personne choisit sa 1re réponse.
+  function marquerDebut() {
+    if (started.current) return;
+    started.current = true;
+    pixelCustom("StartTest",
+      { content_name: test?.title || slug, content_category: "test_niveau" },
+      { name: "start_test", params: { test: slug } });
+  }
+
+  // Niveau normalisé N1/N2/N3 à partir du résultat (clé, ou URL de reco
+  // /formation/niveau-X). `null` si indéterminé (on retombe sur le libellé).
+  function niveauN(r: any): string | null {
+    const s = `${r?.recommendation?.course_url ?? ""} ${r?.level_key ?? ""}`;
+    const m = s.match(/([1-3])/);
+    return m ? `N${m[1]}` : (r?.level_label ?? null);
+  }
 
   useEffect(() => {
     let vivant = true;
@@ -144,7 +163,18 @@ export default function LevelTestPopup({
       });
       if (!res.ok) { setErreur(t.errGeneric); return; }
       setResultat(res.result);
-      // Pixel : un test terminé AVEC des coordonnées est un prospect (Lead).
+      // Pixel : le test est TERMINÉ et le résultat obtenu → « TestCompleted »
+      // (toujours, même anonyme), avec le niveau N1/N2/N3 en paramètre.
+      {
+        const niveau = niveauN(res.result);
+        pixelCustom("TestCompleted", {
+          content_name: test.title || t.title,
+          content_category: "test_niveau",
+          ...(niveau ? { level: niveau } : {}),
+          ...(res.result?.level_label ? { level_label: res.result.level_label } : {}),
+        }, { name: "test_completed", params: { level: niveau ?? undefined, level_label: res.result?.level_label ?? undefined } });
+      }
+      // Pixel : un test terminé AVEC des coordonnées est aussi un prospect (Lead).
       if (email || phone) {
         pixelEvent("Lead", {
           content_name: test.title || t.title,
@@ -287,7 +317,7 @@ export default function LevelTestPopup({
                     const on = String(answers[cur.key]) === String(o.value);
                     return (
                       <button type="button" key={String(o.value)} aria-pressed={on}
-                        onClick={() => setAnswers((a) => ({ ...a, [cur.key]: String(o.value) }))}
+                        onClick={() => { marquerDebut(); setAnswers((a) => ({ ...a, [cur.key]: String(o.value) })); }}
                         style={{
                           textAlign: rtl ? "right" : "left", padding: "14px 16px", borderRadius: 16,
                           cursor: "pointer", border: `2px solid ${on ? "var(--thread, #5B16F9)" : "rgba(0,0,0,.12)"}`,

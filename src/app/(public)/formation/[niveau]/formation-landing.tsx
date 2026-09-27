@@ -249,6 +249,7 @@ export default function FormationLanding({ data }: { data: CourseView }) {
     <div className="pl" dir={t.dir}>
       <LandingStyles />
 
+
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}
       </button>

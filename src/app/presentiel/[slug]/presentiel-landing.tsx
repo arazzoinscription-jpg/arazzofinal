@@ -275,6 +275,7 @@ export default function PresentielLanding({ data }: { data: OfferView }) {
     <div className="pl" dir={t.dir}>
       <LandingStyles />
 
+
       {/* Bascule de langue — toujours accessible, en haut. */}
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}

@@ -69,6 +69,7 @@ export default function PatronsLanding({ data }: { data: any }) {
     <div className="pa" dir="ltr">
       <PatronsStyles />
 
+
       <header className="pa-hero">
         <div className="pa-hero-in">
           <div className="pa-marque">

@@ -25,3 +25,25 @@ export function pixelEvent(
   try { if (typeof w.fbq === "function") w.fbq("track", metaEvent, params); } catch { /* ignore */ }
   try { if (ga && typeof w.gtag === "function") w.gtag("event", ga.name, ga.params ?? {}); } catch { /* ignore */ }
 }
+
+/**
+ * Comme `pixelEvent`, mais pour un événement PERSONNALISÉ Meta (non standard),
+ * ex. « StartTest ». Meta l'attend via `fbq('trackCustom', …)`. Même règle de
+ * consentement ; no-op silencieux sans cookies acceptés.
+ */
+export function pixelCustom(
+  metaEvent: string,
+  params: Record<string, unknown> = {},
+  ga?: { name: string; params?: Record<string, unknown> },
+) {
+  if (typeof window === "undefined") return;
+  let consenti = false;
+  try { consenti = localStorage.getItem(CONSENT_KEY) === "accepted"; } catch { /* stockage indisponible */ }
+  if (!consenti) return;
+  const w = window as unknown as {
+    fbq?: (...a: unknown[]) => void;
+    gtag?: (...a: unknown[]) => void;
+  };
+  try { if (typeof w.fbq === "function") w.fbq("trackCustom", metaEvent, params); } catch { /* ignore */ }
+  try { if (ga && typeof w.gtag === "function") w.gtag("event", ga.name, ga.params ?? {}); } catch { /* ignore */ }
+}
