@@ -15,6 +15,9 @@
 import { useEffect, useState } from "react";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import { submitDeliveryLead } from "@/app/actions/delivery-lead";
+import LevelTestPopup from "@/lib/level-test-popup";
+import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
+import { pixelEvent } from "@/lib/pixel-events";
 
 type PageView = Record<string, any>;
 
@@ -39,6 +42,9 @@ const T: Record<"ar" | "fr", any> = {
     errClosed: "Ce cours n’est plus disponible.",
     errGeneric: "Envoi impossible, réessayez.",
     pied: "Arazzo · École de couture — Sétif",
+    testTitle: "Quel est votre niveau en couture ?",
+    testText: "Faites notre test gratuit (2 minutes) : nous vous recommandons la formation qui vous correspond, avec le lien pour vous inscrire.",
+    testBtn: "📝 Faites un test de couture",
     toggle: "العربية",
   },
   ar: {
@@ -59,6 +65,9 @@ const T: Record<"ar" | "fr", any> = {
     errClosed: "هذا الدرس لم يعد متاحًا.",
     errGeneric: "تعذّر الإرسال، حاولي مجددًا.",
     pied: "Arazzo · مدرسة الخياطة — سطيف",
+    testTitle: "ما هو مستواك في الخياطة؟",
+    testText: "قومي باختبارنا المجاني (دقيقتان): نقترح عليك التكوين المناسب لك مع رابط التسجيل.",
+    testBtn: "📝 قومي باختبار الخياطة",
     toggle: "Français",
   },
 };
@@ -93,6 +102,7 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
   const [erreur, setErreur] = useState<string | null>(null);
   const [accepte, setAccepte] = useState(false);
   const [valeurs, setValeurs] = useState({ full_name: "", email: "", phone: "", wilaya: "" });
+  const [showTest, setShowTest] = useState(false);
   const t = T[langue];
 
   useEffect(() => {
@@ -140,6 +150,9 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
         return;
       }
       try { window.localStorage.setItem(`delivery_sent_${slug}`, "1"); } catch { /* ignore */ }
+      // Pixel : une inscription à un cours gratuit est un prospect (Lead).
+      pixelEvent("Lead", { content_name: data.title ?? slug, content_category: "cours_gratuit" },
+        { name: "generate_lead", params: { method: "cours_gratuit", page: slug } });
       setDebloque(true);
       setTimeout(() => document.getElementById("pl-cours")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } catch {
@@ -256,6 +269,14 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
             </section>
           ) : null}
 
+          {/* Le test de niveau (le même que sur la page Offres) : il recommande le
+              niveau adapté avec le lien exact pour s'inscrire. */}
+          <section className="pl-section pl-testbox" style={cssVar("--d", ".12s")}>
+            <h2 className="pl-h2">{t.testTitle}</h2>
+            <p className="pl-lede" style={{ margin: "0 0 12px" }}>{t.testText}</p>
+            <button type="button" className="pl-testbtn" onClick={() => setShowTest(true)}>{t.testBtn}</button>
+          </section>
+
           {/* Le bouton d'action vers l'offre payante / la ressource associée. */}
           {data.cta_url ? (
             <div style={{ marginTop: 22, ...cssVar("--d", ".15s") }}>
@@ -268,6 +289,19 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
 
         <p className="pl-pied">{t.pied}</p>
       </div>
+
+      {/* Pixel : la visiteuse a vu le contenu (cours gratuit). PageView est déjà
+          émis par le layout ; ViewContent qualifie CETTE page. */}
+      <ViewContentPixel category="formation" name={data.title ?? slug} id={`free:${slug}`} />
+
+      {showTest ? (
+        <LevelTestPopup
+          slug={langue === "ar" ? "niveau-couture-ar" : "niveau-couture"}
+          langue={langue}
+          utm={{ ...utmDeLURL(), ...(utmDeLURL().utm_source ? {} : { utm_source: "delivery-page" }), utm_content: slug }}
+          onClose={() => setShowTest(false)}
+        />
+      ) : null}
     </div>
   );
 }

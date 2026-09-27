@@ -21,6 +21,7 @@ import { useEffect, useState } from "react";
 import { LandingStyles, SeatsBanner, utmDeLURL, type Seats } from "@/lib/landing-kit";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitPresentielLead } from "@/app/actions/presentiel-lead";
+import { trackLead } from "@/lib/track-conversion";
 
 type OfferView = Record<string, any>;
 
@@ -253,6 +254,8 @@ export default function PresentielLanding({ data }: { data: OfferView }) {
         return;
       }
       try { window.localStorage.setItem(`presentiel_sent_${slug}`, "1"); } catch { /* ignore */ }
+      // Conversion : prospect présentiel envoyé → Lead (Meta + Google).
+      trackLead({ content_name: def.name });
       setDejaEnvoye(true);
       setEtape("done");
       window.scrollTo({ top: 0, behavior: "smooth" });

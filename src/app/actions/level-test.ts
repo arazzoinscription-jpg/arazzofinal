@@ -21,7 +21,25 @@ const Schema = z.object({
     city: z.string().trim().max(120).optional().or(z.literal("")),
   }).optional(),
   utm: z.record(z.string(), z.string()).optional(),
+  consent: z.boolean().optional(),
 });
+
+/**
+ * Les liens d'inscription du test sont réglés dans Arazzo OS et pointent vers
+ * l'OS (os.formation-arazzo.store, via le tunnel — pas joignable 24/7). Sur le
+ * site, on garde le MÊME chemin mais sur le site lui-même : les pages
+ * /presentiel/…, /formation/… existent ici. Toute autre adresse reste intacte.
+ */
+function versLeSite(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (/^(os\.formation-arazzo\.store|localhost|127\.0\.0\.1)$/i.test(u.hostname)) {
+      return `${u.pathname}${u.search}${u.hash}` || "/";
+    }
+    return url;
+  } catch { return url; }
+}
 
 export async function submitLevelTest(input: unknown) {
   const parsed = Schema.safeParse(input);
@@ -47,31 +65,38 @@ export async function submitLevelTest(input: unknown) {
   // 3. Enregistre le passage (contact + réponses). Best-effort : même si l'écriture
   //    échoue, on rend le résultat à la personne (l'expérience ne doit pas casser).
   const c = d.contact ?? {};
+  const ligne = {
+    slug: d.slug,
+    first_name: c.first_name || null,
+    last_name: c.last_name || null,
+    email: c.email || null,
+    phone: c.phone || null,
+    city: c.city || null,
+    answers: d.answers,
+    level_key: result.level?.key ?? null,
+    level_label: result.level?.label ?? null,
+    score: result.score,
+    lang,
+    utm: d.utm && Object.keys(d.utm).length ? d.utm : null,
+  };
   try {
-    await supabase.from("level_test_leads").insert({
-      slug: d.slug,
-      first_name: c.first_name || null,
-      last_name: c.last_name || null,
-      email: c.email || null,
-      phone: c.phone || null,
-      city: c.city || null,
-      answers: d.answers,
-      level_key: result.level?.key ?? null,
-      level_label: result.level?.label ?? null,
-      score: result.score,
-      lang,
-      utm: d.utm && Object.keys(d.utm).length ? d.utm : null,
-    });
+    // Le consentement vit dans la colonne `consent` (migration 089). Si elle
+    // n'existe pas encore, on réessaie sans : le passage n'est jamais perdu.
+    const { error } = await supabase.from("level_test_leads").insert({ ...ligne, consent: Boolean(d.consent) });
+    if (error) await supabase.from("level_test_leads").insert(ligne);
   } catch { /* le passage anonyme reste valable */ }
 
   return {
     ok: true as const,
     result: {
+      level_key: result.level?.key ?? null,
       level_label: result.level?.label ?? null,
       score: result.score,
       max_score: result.max_score,
       skills: result.skills,
-      recommendation: result.recommendation,
+      recommendation: result.recommendation
+        ? { ...result.recommendation, course_url: versLeSite(result.recommendation.course_url) }
+        : null,
       explanation,
     },
   };

@@ -19,6 +19,7 @@ import LevelTestPopup from "@/lib/level-test-popup";
 import { submitDeliveryOrder } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
 import { submitOnlineEnrollment } from "@/app/actions/online-enrollment";
+import { trackLead, trackPurchase } from "@/lib/track-conversion";
 
 type CourseView = {
   courseId: string;
@@ -29,6 +30,12 @@ type CourseView = {
   price_label?: string | null;
   sessions_count?: number | null;
   program_url?: string | null;
+  // Pack composé (OS) : formations réunies + prix barré → prix pack.
+  is_pack?: boolean;
+  pack_courses?: { id: string; title: string; prix: number | null; slug: string | null }[];
+  pack_cumul?: number;
+  pack_prix?: number;
+  pack_eco?: number;
 };
 
 const CLE_LANGUE = "arazzo_formation_langue";
@@ -42,6 +49,8 @@ const T: Record<"ar" | "fr", any> = {
     platformLink: "📚 تُقدَّم الدروس على منصّتنا أرازو فورماسيون →",
     presentielTitle: "أفضّل الحضور بسطيف", presentielSub: "تكوين وجهًا لوجه في المركز",
     programBtn: "📋 عرض البرنامج المفصّل", program: "البرنامج",
+    packTitle: "محتوى الحزمة (Pack)", packIncludes: "تكوينان في حزمة واحدة",
+    packSee: "عرض التكوين", packValue: "القيمة الإجمالية", packEco: (n: string) => `🎁 توفير ${n}`,
     testPhrase: "لا تعرفين من أين تبدئين؟ لديكِ معرفة بسيطة وتريدين تطويرها؟ قومي باختبار المستوى.",
     testBtn: "📝 اختبار المستوى",
     noteInscTitle: "💡 كيف يتم حجز مكانك؟",
@@ -89,6 +98,8 @@ const T: Record<"ar" | "fr", any> = {
     platformLink: "📚 Les cours se déroulent sur notre plateforme Arazzo Formation →",
     presentielTitle: "Je préfère en présentiel", presentielSub: "En groupe, au centre à Sétif",
     programBtn: "📋 Voir le programme détaillé", program: "Le programme",
+    packTitle: "Ce que contient le pack", packIncludes: "Deux formations réunies en un pack",
+    packSee: "Voir la formation", packValue: "Valeur totale", packEco: (n: string) => `🎁 Vous économisez ${n}`,
     testPhrase: "Vous ne savez pas par où commencer ? Vous avez quelques bases à développer ? Faites le test de niveau.",
     testBtn: "📝 Faire le test de niveau",
     noteInscTitle: "💡 Comment votre place est-elle gardée ?",
@@ -198,7 +209,11 @@ export default function FormationLanding({ data }: { data: CourseView }) {
           lang: langue,
           utm: utmDeLURL(),
         });
-        if (r.ok) { setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+        if (r.ok) {
+          // Conversion : preuve de paiement envoyée → Purchase (Meta + Google).
+          trackPurchase({ content_name: data.name, value: Number(valeurs.amount) || data.pack_prix || undefined });
+          setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" });
+        }
         else setErreur(r.error === "validation_failed" ? "Merci de vérifier vos informations." : (r.error || "Envoi impossible. Réessayez."));
         setEnvoi(false);
         return;
@@ -214,6 +229,8 @@ export default function FormationLanding({ data }: { data: CourseView }) {
         coupon_code: coupon.trim() || undefined,
       });
       if (r.ok) {
+        // Conversion : demande « fiche + livraison » envoyée → Lead.
+        trackLead({ content_name: data.name });
         setFait("delivery");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
@@ -273,7 +290,39 @@ export default function FormationLanding({ data }: { data: CourseView }) {
             </div>
           ) : (
             <>
-              {/* Deux accès côte à côte : présentiel + programme. */}
+              {/* Bloc PACK : les formations réunies côte à côte + prix barré → prix pack. */}
+              {data.is_pack ? (
+                <section className="pl-section pl-packbox" style={cssVar("--d", ".03s")}>
+                  <h2 className="pl-h2">🎁 {t.packTitle}</h2>
+                  <p className="pl-lede" style={{ margin: "0 0 14px" }}>{t.packIncludes}</p>
+                  <div className="pl-pack-duo">
+                    {(data.pack_courses ?? []).map((c: any, i: number) => (
+                      <div className="pl-pack-carte" key={c.id || i}>
+                        <span className="pl-pack-carte-num">{i + 1}</span>
+                        <span className="pl-pack-carte-t">{c.title}</span>
+                        {c.prix != null ? <span className="pl-pack-carte-prix">{Number(c.prix).toLocaleString("fr-FR")} DA</span> : null}
+                        {c.slug ? <a className="pl-pack-carte-lien" href={`/boutique/${c.slug}`}>{t.packSee} →</a> : null}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pl-pack-offre">
+                    {(data.pack_eco ?? 0) > 0 ? (
+                      <div className="pl-pack-prix">
+                        <span className="pl-pack-val">{t.packValue}</span>
+                        <span className="pl-pack-cumul">{Number(data.pack_cumul ?? 0).toLocaleString("fr-FR")} DA</span>
+                        <span className="pl-pack-fleche" aria-hidden="true">→</span>
+                        <span className="pl-pack-net">{Number(data.pack_prix ?? 0).toLocaleString("fr-FR")} DA</span>
+                      </div>
+                    ) : (
+                      <div className="pl-pack-prix"><span className="pl-pack-net">{Number(data.pack_prix ?? 0).toLocaleString("fr-FR")} DA</span></div>
+                    )}
+                    {(data.pack_eco ?? 0) > 0 ? <div className="pl-pack-eco">{t.packEco(`${Number(data.pack_eco ?? 0).toLocaleString("fr-FR")} DA`)}</div> : null}
+                  </div>
+                </section>
+              ) : null}
+
+              {/* Deux accès côte à côte : présentiel + programme (pas pour un pack). */}
+              {!data.is_pack ? (
               <div className="pl-actions" style={{ ...cssVar("--d", ".1s"), gridTemplateColumns: data.program_url ? "1fr 1fr" : "1fr" }}>
                 <a className="pl-ghost pl-ghost-alt" href={presentielUrl}>
                   <span className="pl-ghost-ico">🏫</span>
@@ -292,12 +341,15 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                   </a>
                 ) : null}
               </div>
+              ) : null}
 
-              {/* Invitation au test de niveau — ouvre le POPUP (résultat → CRM OS). */}
+              {/* Invitation au test de niveau — pas pour un pack (plusieurs formations). */}
+              {!data.is_pack ? (
               <div className="pl-testbox" style={cssVar("--d", ".16s")}>
                 <p>{t.testPhrase}</p>
                 <button type="button" className="pl-testbtn" onClick={() => setShowTest(true)}>{t.testBtn}</button>
               </div>
+              ) : null}
 
               {/* Note « comment votre place est gardée » — propre à l'en ligne. */}
               <details className="pl-acc" style={cssVar("--d", ".18s")}>
@@ -317,11 +369,13 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                       <strong>{t.methodPaid}</strong>
                       <small>{t.methodPaidSub}</small>
                     </button>
-                    <button type="button" className="pl-methode" data-on={methode === "delivery"}
-                      onClick={() => setMethode("delivery")}>
-                      <strong>{t.methodDelivery}</strong>
-                      <small>{t.methodDeliverySub}</small>
-                    </button>
+                    {!data.is_pack ? (
+                      <button type="button" className="pl-methode" data-on={methode === "delivery"}
+                        onClick={() => setMethode("delivery")}>
+                        <strong>{t.methodDelivery}</strong>
+                        <small>{t.methodDeliverySub}</small>
+                      </button>
+                    ) : null}
                   </div>
                 </fieldset>
 

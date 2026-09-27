@@ -14,6 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { submitPatronOrder } from "@/app/actions/patron-order";
 import { submitCustomPatronOrder } from "@/app/actions/patron-custom-order";
+import { trackLead, trackPurchase } from "@/lib/track-conversion";
 
 type Patron = Record<string, any>;
 
@@ -299,6 +300,8 @@ function PurchaseModal({ patron, settings, paymentMethods, onClose }: {
         utm: utmDeLURL(),
       });
       if (!res.ok) { setErreur(res.error || "Envoi impossible."); return; }
+      // Conversion : patron acheté (preuve envoyée) → Purchase (Meta + Google).
+      trackPurchase({ content_name: patron.titre ?? "Patron", value: total ?? undefined });
       setStep("done");
     } catch { setErreur("Envoi impossible."); } finally { setBusy(false); }
   }
@@ -472,6 +475,8 @@ function SurMesureForm({ onClose }: { onClose: () => void }) {
         photo_url: photoUrl, message: v.message.trim() || undefined, lang: "fr", utm: utmDeLURL(),
       });
       if (!res.ok) { setErreur(res.error || "Envoi impossible."); return; }
+      // Conversion : demande de patron sur mesure envoyée → Lead.
+      trackLead({ content_name: "Patron sur mesure" });
       setFini(true);
     } catch { setErreur("Envoi impossible."); } finally { setEnvoi(false); }
   }
