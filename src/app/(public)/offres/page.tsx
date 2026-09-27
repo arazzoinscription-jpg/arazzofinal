@@ -46,6 +46,18 @@ export default async function Page() {
     .filter((p) => p.slug)
     .map((p) => ({ slug: p.slug as string, name: p.titre_fr || "Pack", prix: daPrice(p.prix_dzd) }));
 
+  // Packs COMPOSÉS dans l'OS (pack_snapshots, ex. « pack-couture-1-2 ») : ajoutés
+  // à la liste des packs du hub, chacun → sa page /pack/[slug]. Dédup par slug.
+  try {
+    const pub = createPublicClient();
+    const { data: packSnaps } = await pub.from("pack_snapshots").select("slug, data");
+    const connus = new Set(packs.map((p) => p.slug));
+    for (const row of ((packSnaps as { slug: string; data: Record<string, any> | null }[]) ?? [])) {
+      if (!row.slug || !row.data || connus.has(row.slug)) continue;
+      packs.push({ slug: row.slug, name: (row.data.name as string) || row.slug, prix: daPrice(row.data.price_amount) });
+    }
+  } catch { /* best-effort : si rien n'est poussé, la section reste vide */ }
+
   // PRÉSENTIEL : autant de landings que d'offres synchronisées par l'OS (une page
   // par niveau/atelier), lues dans `presentiel_snapshots`. Best-effort : si la
   // synchro n'a rien poussé, la liste est vide et le hub retombe sur son lien par
