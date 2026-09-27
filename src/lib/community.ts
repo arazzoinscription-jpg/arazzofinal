@@ -40,16 +40,34 @@ function mapRow(r: any, meId: string): CommunityItem {
     liked: likes.some((l) => l.user_id === meId),
     commentCount: (post.comments ?? []).length,
     cta: buildCta(r),
+    music: r.music_url ? { url: r.music_url, title: r.music_title ?? null } : null,
   };
 }
 
-const SELECT = `
+const SELECT_BASE = `
   id, post_id, source_type, media_kind, bunny_video_id, media_url, thumbnail_url, created_at,
   course_id, patron_id,
   post:posts!inner(id, content, author_id, published, author:users(id, nom, avatar_url, role), likes(user_id), comments(id)),
   course:courses(slug, titre_fr),
   patron:patrons(id, titre)
 `;
+
+// Variante avec les colonnes musique (migration 089). On l'essaie d'abord, et si
+// la migration n'est pas encore appliquée (colonnes absentes), on retombe sur
+// SELECT_BASE → le feed ne casse jamais.
+const SELECT = `
+  id, post_id, source_type, media_kind, bunny_video_id, media_url, thumbnail_url, created_at,
+  course_id, patron_id, music_url, music_title,
+  post:posts!inner(id, content, author_id, published, author:users(id, nom, avatar_url, role), likes(user_id), comments(id)),
+  course:courses(slug, titre_fr),
+  patron:patrons(id, titre)
+`;
+
+/** Vrai si l'erreur PostgREST vient des colonnes musique pas encore créées. */
+function isMissingMusicColumn(error: { message?: string; code?: string } | null): boolean {
+  if (!error) return false;
+  return error.code === "42703" || /music_(url|title)/.test(error.message ?? "");
+}
 
 /** Feed global « Pour toi » — réservé aux inscrits, plus récent d'abord. */
 export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; items: CommunityItem[] }> {
@@ -59,11 +77,13 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
   // dans tous les cas ; l'invitation à s'inscrire est gérée côté client.
 
   const admin = createAdminClient();
-  const { data: rows } = await admin
+  const run = (sel: string) => admin
     .from("community_media")
-    .select(SELECT)
+    .select(sel)
     .order("created_at", { ascending: false })
     .limit(50);
+  let { data: rows, error } = await run(SELECT);
+  if (isMissingMusicColumn(error)) ({ data: rows } = await run(SELECT_BASE));
 
   const items = (rows ?? [])
     .filter((r: any) => r.post && (r.post.published ?? true))
@@ -79,12 +99,14 @@ export async function loadUserMedia(userId: string): Promise<{ me: { id: string 
   // Profil PUBLIC : consultable sans connexion (me = null pour un visiteur).
 
   const admin = createAdminClient();
-  const { data: rows } = await admin
+  const run = (sel: string) => admin
     .from("community_media")
-    .select(SELECT)
+    .select(sel)
     .eq("post.author_id", userId)
     .order("created_at", { ascending: false })
     .limit(60);
+  let { data: rows, error } = await run(SELECT);
+  if (isMissingMusicColumn(error)) ({ data: rows } = await run(SELECT_BASE));
 
   const items = (rows ?? [])
     .filter((r: any) => r.post && (r.post.published ?? true))

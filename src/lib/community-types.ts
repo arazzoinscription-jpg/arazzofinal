@@ -35,6 +35,8 @@ export interface CommunityItem {
   liked: boolean;
   commentCount: number;
   cta: { label: string; href: string } | null;
+  // Musique de fond optionnelle (bibliothèque interne, servie depuis /feed-music/…).
+  music: { url: string; title: string | null } | null;
 }
 
 const SOURCE_LABEL: Record<SourceType, string> = {

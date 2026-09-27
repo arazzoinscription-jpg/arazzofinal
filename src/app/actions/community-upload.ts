@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createBunnyVideo, bunnyTusAuth, bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl } from "@/lib/community-types";
+import { isAllowedMusicUrl, findTrackByUrl } from "@/lib/feed-music";
 
 type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
 
@@ -75,18 +76,24 @@ const FinalizeSchema = z.object({
   durationSeconds: z.number().int().min(1).max(180),
   courseId: z.string().uuid().nullable().optional(),
   patronId: z.string().uuid().nullable().optional(),
+  // Musique de fond optionnelle : doit appartenir à la bibliothèque interne.
+  musicUrl: z.string().nullable().optional(),
 });
 
 /** Une fois l'upload Bunny terminé : crée le post + community_media. */
 export async function finalizeCommunityVideo(input: unknown) {
   const parsed = FinalizeSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Paramètres invalides." };
-  const { videoId, sourceType, caption, durationSeconds, courseId = null, patronId = null } = parsed.data;
+  const { videoId, sourceType, caption, durationSeconds, courseId = null, patronId = null, musicUrl = null } = parsed.data;
 
   // Reel élève : durée plafonnée à 2 minutes.
   if (sourceType === "student_reel" && durationSeconds > STUDENT_REEL_MAX_SECONDS) {
     return { ok: false as const, error: "Le reel ne doit pas dépasser 2 minutes (120s)." };
   }
+
+  // Musique : on n'accepte QUE les pistes de la bibliothèque interne (jamais une URL libre).
+  const music = musicUrl && isAllowedMusicUrl(musicUrl) ? musicUrl : null;
+  const musicTitle = music ? (findTrackByUrl(music)?.title ?? null) : null;
 
   const auth = await authorize(sourceType, courseId ?? null, patronId ?? null);
   if (!auth.ok) return auth;
@@ -110,6 +117,8 @@ export async function finalizeCommunityVideo(input: unknown) {
     thumbnail_url: thumbnail,
     course_id: sourceType === "course_teaser" ? courseId : null,
     patron_id: sourceType === "patron_demo" ? patronId : null,
+    music_url: music,
+    music_title: musicTitle,
     status: "ready",
   });
   if (cmErr) {

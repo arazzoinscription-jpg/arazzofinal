@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore } from "lucide-react";
+import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore, Music } from "lucide-react";
 import { toggleLike, addComment, deletePost } from "@/app/actions/feed";
 import { getPostComments } from "@/app/actions/community";
 import { addFacebookVideo } from "@/app/actions/community-upload";
 import { toast } from "@/components/ui/toast";
 import { sourceLabel, isFacebookVideoUrl, facebookEmbedSrc, type CommunityItem } from "@/lib/community-types";
+import { cdnImage } from "@/lib/storage-cdn";
+import { pickTrackForKey } from "@/lib/feed-music";
 import { CommunityTabs } from "./community-tabs";
 
 interface Comment {
@@ -32,6 +34,35 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
   // Feed 100 % PUBLIC : les visiteurs voient tout, sans limite ni blocage.
   // Une invitation à se connecter (toujours refermable) apparaît de temps en temps.
   const shown = items;
+  const activeIndex = shown.findIndex((x) => x.id === activeId);
+
+  // ── Son automatique ──────────────────────────────────────────────────────
+  // Les navigateurs INTERDISENT la lecture automatique AVEC son tant qu'il n'y a
+  // pas eu d'interaction utilisateur (règle anti-pub, incontournable). On démarre
+  // donc en muet (pour que la vidéo se lance), puis on active le son au TOUT
+  // PREMIER geste (toucher / scroll / clic) — ce qui arrive dès qu'on ouvre le
+  // feed. Résultat : le son s'active « tout seul » dès qu'on commence à regarder.
+  useEffect(() => {
+    if (!muted) return;
+    const unmute = () => setMuted(false);
+    const opts = { once: true, passive: true } as AddEventListenerOptions;
+    const evs: (keyof WindowEventMap)[] = ["pointerdown", "mousedown", "click", "touchstart", "keydown", "wheel", "scroll"];
+    evs.forEach((e) => window.addEventListener(e, unmute, opts));
+    return () => evs.forEach((e) => window.removeEventListener(e, unmute));
+  }, [muted]);
+
+  // ── Préconnexion aux hôtes média (accélère le 1ᵉʳ chargement) ─────────────
+  // Ouvre à l'avance la connexion (DNS + TLS) vers Bunny (vidéos) et le CDN des
+  // images, pour supprimer la latence d'établissement au moment de lire.
+  const preconnectHosts = useMemo(() => {
+    const s = new Set<string>(["https://iframe.mediadelivery.net"]);
+    for (const it of items.slice(0, 6)) {
+      for (const u of [it.thumbnail, it.mediaUrl, it.videoHls]) {
+        if (u) { try { s.add(new URL(u).origin); } catch { /* URL relative/invalide */ } }
+      }
+    }
+    return [...s];
+  }, [items]);
 
   function activate(id: string) {
     setActiveId(id);
@@ -79,17 +110,23 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
 
   return (
     <div className="fixed inset-0 bg-black overflow-y-scroll snap-y snap-mandatory" style={{ scrollbarWidth: "none" }}>
+      {/* Préconnexion aux hôtes média : supprime la latence DNS/TLS au 1ᵉʳ chargement. */}
+      {preconnectHosts.map((h) => (
+        <link key={h} rel="preconnect" href={h} crossOrigin="anonymous" />
+      ))}
       {topBar}
 
       {shown.length === 0 ? (
         <div className="h-[100dvh] flex items-center justify-center text-white/60 px-8 text-center font-dm">
           Aucune vidéo dans cette catégorie pour l'instant.
         </div>
-      ) : shown.map((it) => (
+      ) : shown.map((it, idx) => (
         <Slide
           key={it.id}
           item={it}
           active={activeId === it.id}
+          // Précharge la slide suivante (vidéo + image) pour un défilement instantané.
+          preload={idx === activeIndex + 1}
           muted={muted}
           bunnyLibraryId={bunnyLibraryId}
           meId={meId}
@@ -204,15 +241,22 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
 }
 
 function Slide({
-  item, active, muted, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
+  item, active, preload = false, muted, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
 }: {
-  item: CommunityItem; active: boolean; muted: boolean; bunnyLibraryId: string;
+  item: CommunityItem; active: boolean; preload?: boolean; muted: boolean; bunnyLibraryId: string;
   meId: string; canModerate: boolean; isGuest: boolean; onGuest: () => void;
   onActive: () => void; onOpenComments: () => void;
 }) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  // Musique : soit celle choisie explicitement à la publication, soit une piste
+  // « aléatoire mais stable » de la bibliothèque (même morceau à chaque chargement).
+  const track = item.music ?? pickTrackForKey(item.id);
+  const musicUrl = track?.url ?? null;
+  const musicTitle = track?.title ?? null;
+  const hasMusic = !!musicUrl;
   const [liked, setLiked] = useState(item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
   const [shareOpen, setShareOpen] = useState(false);
@@ -264,6 +308,19 @@ function Slide({
     if (active) { v.play().catch(() => {}); } else { v.pause(); v.currentTime = 0; }
   }, [active]);
 
+  // Musique de fond : lecture en boucle quand la slide est active, coupée sinon.
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (active) { a.currentTime = 0; a.play().catch(() => {}); } else { a.pause(); }
+  }, [active]);
+
+  // Le son de la musique suit l'état muet global (activé au 1ᵉʳ geste, comme la vidéo).
+  useEffect(() => {
+    const a = audioRef.current;
+    if (a) a.muted = muted;
+  }, [muted]);
+
   function onLike() {
     if (isGuest) { onGuest(); return; }
     setLiked((l) => !l);
@@ -281,7 +338,15 @@ function Slide({
     <section ref={ref} className="relative h-[100dvh] w-full snap-start snap-always flex items-center justify-center overflow-hidden bg-black">
       {/* Média */}
       {item.mediaKind === "image" ? (
-        <img src={item.mediaUrl ?? item.thumbnail ?? ""} alt="" className="absolute inset-0 w-full h-full object-contain" />
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={cdnImage(item.mediaUrl ?? item.thumbnail ?? "")}
+          alt=""
+          // La slide active + la suivante se chargent en priorité ; le reste en différé.
+          loading={active || preload ? "eager" : "lazy"}
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-contain"
+        />
       ) : isFacebook ? (
         active ? (
           <iframe
@@ -297,23 +362,33 @@ function Slide({
           </div>
         )
       ) : isBunny ? (
-        active ? (
+        // Slide active → lecture. Slide suivante (preload) → iframe monté SANS
+        // lecture ni son : Bunny préchauffe la connexion et le 1ᵉʳ segment, donc
+        // le défilement suivant démarre quasi instantanément.
+        active || preload ? (
           <iframe
-            src={`https://iframe.mediadelivery.net/embed/${bunnyLibraryId}/${getBunnyId(item.videoHls)}?autoplay=true&loop=true&muted=${muted}&preload=true&responsive=true`}
+            src={`https://iframe.mediadelivery.net/embed/${bunnyLibraryId}/${getBunnyId(item.videoHls)}?autoplay=${active ? "true" : "false"}&loop=true&muted=${active ? (muted || hasMusic) : true}&preload=true&responsive=true`}
             allow="autoplay; encrypted-media; picture-in-picture"
-            className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="lazy"
+            className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="eager"
           />
         ) : (
-          item.thumbnail && <img src={item.thumbnail} alt="" className="absolute inset-0 w-full h-full object-contain" />
+          // eslint-disable-next-line @next/next/no-img-element
+          item.thumbnail && <img src={item.thumbnail} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
         )
       ) : (
         <video
           ref={videoRef}
           src={item.mediaUrl ?? ""}
           poster={item.thumbnail ?? undefined}
-          muted={muted} loop playsInline preload="metadata"
+          muted={muted || hasMusic} loop playsInline
+          preload={active || preload ? "auto" : "metadata"}
           className="absolute inset-0 w-full h-full object-contain"
         />
+      )}
+
+      {/* Musique de fond (bibliothèque interne) : jouée en boucle sur la slide active. */}
+      {hasMusic && (
+        <audio ref={audioRef} src={musicUrl!} loop preload={active || preload ? "auto" : "none"} />
       )}
 
       {/* Dégradé bas pour lisibilité */}
@@ -371,7 +446,13 @@ function Slide({
           </span>
           <span className="font-semibold drop-shadow">{item.author.nom}</span>
         </Link>
-        {item.caption && <p className="text-sm text-white/90 font-dm line-clamp-2 drop-shadow mb-3">{item.caption}</p>}
+        {item.caption && <p className="text-sm text-white/90 font-dm line-clamp-2 drop-shadow mb-2">{item.caption}</p>}
+        {hasMusic && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-white/85 font-dm mb-3 max-w-full">
+            <Music size={13} className="shrink-0 animate-pulse" />
+            <span className="truncate">{musicTitle ?? "Musique"}</span>
+          </span>
+        )}
         {item.cta && (
           <Link href={item.cta.href}
             className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white px-4 py-2.5 rounded-xl font-semibold text-sm shadow-lg">

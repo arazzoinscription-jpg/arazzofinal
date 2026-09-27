@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PlusCircle, Pencil, Users, UserPlus } from "lucide-react";
+import { PlusCircle, Pencil, Users, UserPlus, ImageUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { aggregateEnrollments } from "@/lib/formateur-stats";
@@ -34,10 +34,16 @@ export default async function FormateurCoursPage() {
           <h1 className="font-playfair text-3xl font-bold text-gray-900 dark:text-white">Mes cours</h1>
           <p className="text-gray-500 dark:text-white/50 mt-1 font-dm">{courses?.length ?? 0} cours.</p>
         </div>
-        <Link href="/formateur/cours/nouveau"
-          className="shiny-cta inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
-          <PlusCircle size={18} /> Nouveau cours
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/formateur/cours/couvertures"
+            className="inline-flex items-center gap-2 bg-white dark:bg-white/[0.06] text-gray-800 dark:text-white border border-cream-200 dark:border-white/15 px-5 py-2.5 rounded-xl font-semibold hover:border-orange-400 transition-colors">
+            <ImageUp size={18} /> Images de couverture
+          </Link>
+          <Link href="/formateur/cours/nouveau"
+            className="shiny-cta inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
+            <PlusCircle size={18} /> Nouveau cours
+          </Link>
+        </div>
       </div>
 
       {!courses?.length ? (

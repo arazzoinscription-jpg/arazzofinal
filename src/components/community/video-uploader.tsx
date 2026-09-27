@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import * as tus from "tus-js-client";
-import { UploadCloud, Loader2, Film } from "lucide-react";
+import { UploadCloud, Loader2, Film, Music } from "lucide-react";
 import { startCommunityVideo, finalizeCommunityVideo } from "@/app/actions/community-upload";
 import { toast } from "@/components/ui/toast";
+import { FEED_MUSIC } from "@/lib/feed-music";
 
 type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
 
@@ -18,8 +19,20 @@ export function CommunityVideoUploader({
   const [file, setFile] = useState<File | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
   const [caption, setCaption] = useState("");
+  const [musicUrl, setMusicUrl] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const previewRef = useRef<HTMLAudioElement | null>(null);
+
+  // Écoute rapide de la piste choisie (aperçu avant publication).
+  function previewMusic(url: string) {
+    if (previewRef.current) { previewRef.current.pause(); previewRef.current = null; }
+    if (!url) return;
+    const a = new Audio(url);
+    a.volume = 0.8;
+    a.play().catch(() => {});
+    previewRef.current = a;
+  }
 
   const maxLabel = maxSeconds >= 120 ? `${Math.round(maxSeconds / 60)} minutes` : `${maxSeconds}s`;
 
@@ -66,10 +79,12 @@ export function CommunityVideoUploader({
         const fin = await finalizeCommunityVideo({
           videoId, sourceType, caption, durationSeconds: duration!,
           courseId: courseId ?? null, patronId: patronId ?? null,
+          musicUrl: musicUrl || null,
         });
         if (fin.ok) {
           toast("Vidéo publiée sur la communauté 🎉", "success");
-          setFile(null); setDuration(null); setCaption(""); setProgress(null);
+          if (previewRef.current) { previewRef.current.pause(); previewRef.current = null; }
+          setFile(null); setDuration(null); setCaption(""); setMusicUrl(""); setProgress(null);
           if (fileRef.current) fileRef.current.value = "";
           onDone?.();
         } else { setErr(fin.error); setProgress(null); }
@@ -103,6 +118,24 @@ export function CommunityVideoUploader({
       <textarea value={caption} onChange={(e) => setCaption(e.target.value)} rows={2}
         placeholder="Légende (optionnel)…" disabled={busy}
         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
+
+      {/* Musique de fond — n'apparaît que si la bibliothèque contient des pistes. */}
+      {FEED_MUSIC.length > 0 && (
+        <div>
+          <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1">
+            <Music size={15} className="text-orange-600" /> Musique de fond
+          </label>
+          <select
+            value={musicUrl}
+            disabled={busy}
+            onChange={(e) => { setMusicUrl(e.target.value); previewMusic(e.target.value); }}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+            <option value="">🎲 Aléatoire (automatique)</option>
+            {FEED_MUSIC.map((t) => <option key={t.id} value={t.url}>{t.title}</option>)}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">Par défaut, une musique est choisie au hasard. La vidéo passe en muet et la musique se joue en boucle.</p>
+        </div>
+      )}
 
       {err && <p className="text-sm text-red-500">{err}</p>}
 
