@@ -575,6 +575,55 @@ export function LandingStyles() {
 @keyframes plPulse { 0%,100% { transform: none; } 50% { transform: scale(1.04); } }
 @media (prefers-reduced-motion: reduce) { .pl-seats-btn { animation: none; } }
 
+/* --- Bloc « pack » (deux formations réunies) -------------------------- */
+.pl-packbox {
+  border: 1.5px solid color-mix(in srgb, var(--brass) 34%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 8%, var(--panel)), var(--panel));
+  border-radius: var(--radius); padding: 16px 18px;
+}
+.pl-pack-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0 4px; position: relative; }
+@media (max-width: 460px) { .pl-pack-duo { grid-template-columns: 1fr; } }
+.pl-pack-carte {
+  position: relative; display: flex; flex-direction: column; gap: 6px;
+  padding: 16px 14px 14px; border-radius: var(--radius); text-align: center;
+  background: var(--panel); border: 1.5px solid color-mix(in srgb, var(--thread) 22%, var(--line));
+}
+.pl-pack-carte-num {
+  position: absolute; inset-block-start: -10px; inset-inline-start: 12px;
+  width: 24px; height: 24px; border-radius: 999px; display: grid; place-items: center;
+  font-weight: 800; font-size: .8rem; color: #fff; background: var(--thread);
+}
+.pl-pack-carte-t { font-weight: 700; color: var(--violet-deep); line-height: 1.25; margin-top: 4px; }
+.pl-pack-carte-prix { font-family: var(--mono, ui-monospace, monospace); color: var(--ink-2); font-size: .9rem; }
+.pl-pack-carte-lien { text-decoration: none; font-weight: 700; font-size: .82rem; color: var(--thread); }
+.pl-pack-carte-lien:hover { text-decoration: underline; }
+.pl-pack-duo::before {
+  content: "+"; position: absolute; inset-block-start: 50%; inset-inline-start: 50%;
+  transform: translate(-50%, -50%); z-index: 1;
+  width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center;
+  font-weight: 800; font-size: 1.1rem; color: #fff; background: var(--brass);
+  box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--brass) 70%, transparent);
+}
+.pl-pack-duo:not(:has(.pl-pack-carte:nth-child(2)))::before,
+.pl-pack-duo:has(.pl-pack-carte:nth-child(3))::before { display: none; }
+@media (max-width: 460px) { .pl-pack-duo::before { display: none; } }
+.pl-pack-offre {
+  margin-top: 14px; padding: 14px 16px; border-radius: var(--radius); text-align: center;
+  background: color-mix(in srgb, var(--brass) 8%, var(--panel));
+  border: 1.5px solid color-mix(in srgb, var(--brass) 30%, var(--line));
+}
+.pl-pack-prix { display: flex; align-items: baseline; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.pl-pack-val { font-size: .82rem; color: var(--ink-3); }
+.pl-pack-cumul { text-decoration: line-through; color: var(--ink-3); font-weight: 600; font-size: 1.05rem; }
+.pl-pack-fleche { color: var(--brass); font-weight: 800; }
+.pl-pack-net { font-family: var(--serif); font-weight: 700; font-size: 1.7rem; color: var(--brass); line-height: 1; }
+.pl-pack-eco {
+  margin-top: 10px; font-weight: 800; font-size: .98rem; color: #128a4c;
+  background: color-mix(in srgb, #128a4c 12%, transparent);
+  border: 1px solid color-mix(in srgb, #128a4c 30%, transparent);
+  padding: 9px 12px; border-radius: 999px; display: inline-block;
+}
+
 /* --- Entrée chorégraphiée --------------------------------------------- */
 @keyframes plUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 .pl-card > * { animation: plUp .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--d, 0s); }
