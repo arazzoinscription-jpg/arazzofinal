@@ -41,12 +41,18 @@ const nextConfig = {
       // 'unsafe-eval' retiré (SEC-008) : inutile au runtime Next.js en production.
       // 'unsafe-inline' reste requis pour les scripts inline d'hydratation ;
       // durcissement complet par nonce recommandé ultérieurement.
-      "script-src 'self' 'unsafe-inline'",
+      // Pixel Meta (connect.facebook.net) + Google tag/GA4 (googletagmanager.com)
+      // doivent être autorisés ici, sinon la CSP bloque le chargement de leurs
+      // scripts (fbevents.js / gtag.js) et aucun événement (PageView, ViewContent…)
+      // ne part.
+      "script-src 'self' 'unsafe-inline' https://connect.facebook.net https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
       "media-src 'self' blob: https:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.virustotal.com https://iframe.mediadelivery.net https://*.b-cdn.net https://video.bunnycdn.com https://*.trycloudflare.com https://engine.formation-arazzo.store",
+      // Beacons de conversion : Meta (facebook.com/tr + connect.facebook.net) et
+      // GA4 (google-analytics.com / analytics.google.com + googletagmanager.com).
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.upstash.io https://www.virustotal.com https://iframe.mediadelivery.net https://*.b-cdn.net https://video.bunnycdn.com https://*.trycloudflare.com https://engine.formation-arazzo.store https://www.facebook.com https://connect.facebook.net https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
       "frame-src 'self' https://iframe.mediadelivery.net https://*.b-cdn.net https://www.youtube.com https://player.vimeo.com  https://www.facebook.com https://web.facebook.com https://*.facebook.com",
       "frame-ancestors 'none'",
       "worker-src 'self'",
