@@ -18,6 +18,7 @@ import { submitDeliveryLead } from "@/app/actions/delivery-lead";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
 import { pixelEvent } from "@/lib/pixel-events";
+import PromoBanner from "./promo-banner";
 
 type PageView = Record<string, any>;
 
@@ -192,6 +193,9 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
 
       <div className="pl-wrap">
         <div className="pl-card">
+          {/* Le code promo du moment (Live Engine), avec les places restantes. */}
+          <PromoBanner promo={data.promo} langue={langue} ctaUrl={data.cta_url} />
+
           {data.cover_image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={data.cover_image_url} alt="" className="pl-programme-img"

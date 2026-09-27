@@ -31,7 +31,20 @@ async function lireInstantane(brut: string): Promise<Record<string, any> | null>
     .maybeSingle();
   const data = (row?.data ?? null) as Record<string, any> | null;
   // Une page dépubliée/archivée garde son instantané, marqué `active: false`.
-  return data && data.active === true ? data : null;
+  if (!data || data.active !== true) return null;
+  return { ...data, promo: promoEncoreValable(data.promo) };
+}
+
+/**
+ * Le code promo n'est montré que s'il est encore valable À CET INSTANT : l'OS
+ * met l'instantané à jour toutes les 5 min, mais une date de fin passée entre
+ * deux mises à jour (ou un PC éteint) ne doit jamais afficher un code mort.
+ */
+function promoEncoreValable(promo: any) {
+  if (!promo?.code) return null;
+  if (promo.remaining === 0) return null;
+  if (promo.end_date && Date.parse(promo.end_date) <= Date.now()) return null;
+  return promo;
 }
 
 // Aperçu du lien quand il est partagé (Facebook, WhatsApp, Instagram…).

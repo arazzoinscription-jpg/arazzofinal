@@ -46,6 +46,15 @@ export function deliveryCourseEmail(opts: {
   const cta = lienSur(page.cta_url);
   const form = (page.capture_form ?? {}) as Record<string, any>;
   const intro = form.email_intro ? esc(form.email_intro).replace(/\n/g, "<br/>") : null;
+  // Le code promo du moment (Live Engine), s'il est encore valable à l'envoi.
+  const promo = page.promo?.code
+    && page.promo.remaining !== 0
+    && !(page.promo.end_date && Date.parse(page.promo.end_date) <= Date.now())
+    ? page.promo as { code: string; discount_label?: string | null; remaining?: number | null; end_date?: string | null }
+    : null;
+  const finPromo = promo?.end_date
+    ? new Date(promo.end_date).toLocaleString(ar ? "ar-DZ" : "fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Algiers" })
+    : null;
 
   const t = ar
     ? {
@@ -59,6 +68,10 @@ export function deliveryCourseEmail(opts: {
       cta: page.cta_label || "اكتشفي التكوين الكامل",
       all: "كل تكويناتنا",
       sign: "Arazzo Formation — مدرسة الخياطة، سطيف",
+      promo: "🎟️ كود التخفيض الخاص بك:",
+      promoPlaces: (n: number) => `بقيت ${n} أماكن فقط بهذا الكود.`,
+      promoEnds: (d: string) => `صالح حتى ${d}.`,
+      promoHint: "استعمليه عند التسجيل، في خانة « كود التخفيض ».",
     }
     : {
       subject: `🎁 Votre cours gratuit : ${titre}`,
@@ -71,6 +84,10 @@ export function deliveryCourseEmail(opts: {
       cta: page.cta_label || "Découvrir la formation complète",
       all: "Voir toutes nos formations",
       sign: "Arazzo Formation — École de couture, Sétif",
+      promo: "🎟️ Votre code promo :",
+      promoPlaces: (n: number) => (n <= 1 ? "Plus qu’1 place avec ce code." : `Plus que ${n} places avec ce code.`),
+      promoEnds: (d: string) => `Valable jusqu’au ${d}.`,
+      promoHint: "Utilisez-le lors de votre inscription, dans la case « code promo ».",
     };
 
   const dir = ar ? "rtl" : "ltr";
@@ -91,6 +108,14 @@ export function deliveryCourseEmail(opts: {
         <div style="margin-top:26px;padding:20px;background:#FDF2E9;border-radius:14px;">
           <h3 style="margin:0 0 8px;color:#2A0880;font-family:Georgia,serif;">${t.more}</h3>
           <p style="margin:0;">${t.moreText}</p>
+          ${promo ? `<div style="margin:16px 0 4px;padding:14px;border:2px dashed #E07840;border-radius:12px;background:#fff;text-align:center;">
+            <div style="font-weight:700;color:#2A0880;">${t.promo}</div>
+            <div dir="ltr" style="font-family:monospace;font-size:24px;font-weight:800;letter-spacing:2px;color:#E07840;margin:6px 0;">${esc(promo.code)}</div>
+            ${promo.discount_label ? `<div style="font-weight:700;">${esc(promo.discount_label)}</div>` : ""}
+            ${typeof promo.remaining === "number" ? `<div style="color:#B3261E;font-weight:700;margin-top:4px;">⏳ ${t.promoPlaces(promo.remaining)}</div>` : ""}
+            ${finPromo ? `<div style="margin-top:4px;">${t.promoEnds(esc(finPromo))}</div>` : ""}
+            <div style="font-size:13px;color:#666;margin-top:6px;">${t.promoHint}</div>
+          </div>` : ""}
           ${cta ? bouton(esc(t.cta), cta) : ""}
           <p style="text-align:center;margin:${cta ? "0" : "14px 0 0"};"><a href="${SITE}/offres" style="color:#4B3BC7;font-weight:600;">${t.all} →</a></p>
         </div>
