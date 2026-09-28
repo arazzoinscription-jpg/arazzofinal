@@ -50,6 +50,11 @@ const T: Record<"ar" | "fr", any> = {
     submit: "شوفي نتيجتي", submitting: "جارٍ الحساب…",
     privacy: "معلوماتك تبقى سرية وتُستعمل فقط للتواصل معك.",
     resultTitle: "نتيجتك", discover: "اكتشفي التكوين",
+    modeTitle: "كيف تريدين متابعة التكوين؟",
+    modeOnline: "🖥️ عبر الإنترنت — على المنصّة", modeOnlineSub: "دخول فوري، بإيقاعك الخاص",
+    modePresentiel: "🏫 حضوريًا في سطيف", modePresentielSub: "الهضاب، مقابل الجامعة",
+    modePick: "↑ اختاري طريقة المتابعة لعرض كيفية التسجيل.",
+    discoverOnline: "التسجيل عبر الإنترنت", discoverPresentiel: "التسجيل حضوريًا",
     atelierText: "لا تُتقنين بعدُ استعمال ماكينة الخياطة؟ ننصحكِ بورشة حضورية.",
     atelierBtn: "🧵 ورشة: استعمال ماكينة الخياطة",
     restart: "إعادة الاختبار",
@@ -68,6 +73,11 @@ const T: Record<"ar" | "fr", any> = {
     submit: "Voir mon résultat", submitting: "Calcul…",
     privacy: "Vos informations restent privées et servent à vous recontacter.",
     resultTitle: "Votre résultat", discover: "Découvrir la formation",
+    modeTitle: "Comment souhaitez-vous suivre la formation ?",
+    modeOnline: "🖥️ En ligne — sur la plateforme", modeOnlineSub: "Accès immédiat, à votre rythme",
+    modePresentiel: "🏫 En présentiel à Sétif", modePresentielSub: "El Hidhab, face à l’université",
+    modePick: "↑ Choisissez comment suivre la formation pour voir comment vous inscrire.",
+    discoverOnline: "M’inscrire en ligne", discoverPresentiel: "M’inscrire en présentiel",
     atelierText: "Vous ne maîtrisez pas encore la machine à coudre ? Nous vous conseillons un atelier en présentiel.",
     atelierBtn: "🧵 Atelier : utilisation de la machine à coudre",
     restart: "Refaire le test",
@@ -97,6 +107,10 @@ export default function LevelTestPopup({
   const [accepte, setAccepte] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [resultat, setResultat] = useState<any>(null);
+  // Sur l'écran de résultat : la personne précise si elle veut la formation EN
+  // LIGNE (plateforme) ou EN PRÉSENTIEL (Sétif, El Hidhab) — le bouton d'inscription
+  // pointe alors vers la landing EXACTE correspondante.
+  const [mode, setMode] = useState<null | "online" | "presentiel">(null);
   // « StartTest » ne doit partir qu'UNE fois, au vrai début (1re réponse).
   const started = useRef(false);
 
@@ -139,7 +153,7 @@ export default function LevelTestPopup({
   const rtl = langue === "ar";
 
   function recommencer() {
-    setResultat(null); setAnswers({}); setAccepte(false);
+    setResultat(null); setAnswers({}); setAccepte(false); setMode(null);
     setContact({ first_name: "", email: "", phone: "" }); setEtape(0); setErreur(null);
   }
 
@@ -187,6 +201,13 @@ export default function LevelTestPopup({
 
   const skills = Object.entries((resultat?.skills ?? {}) as Record<string, number>);
   const proposeAtelier = answers.machine === "non";
+  // URL d'inscription EXACTE selon le mode choisi. La reco du serveur pointe vers
+  // la formation en ligne (/formation/niveau-X) ; on en déduit le miroir présentiel
+  // (/presentiel/presentiel-niveau-X), même convention que la landing formation.
+  const recoUrl: string | null = resultat?.recommendation?.course_url || null;
+  const levelSlug = recoUrl ? recoUrl.split("?")[0].replace(/\/+$/, "").split("/").pop() : null;
+  const presentielUrl = levelSlug ? `/presentiel/presentiel-${levelSlug}` : "/presentiel";
+  const cibleUrl = mode === "online" ? recoUrl : mode === "presentiel" ? presentielUrl : null;
 
   return (
     <div className="pl-modal" role="dialog" aria-modal="true"
@@ -234,15 +255,36 @@ export default function LevelTestPopup({
               </div>
             ) : null}
 
-            {resultat.recommendation?.course_url ? (
-              <a className="pl-cta" href={resultat.recommendation.course_url}
+            {/* Le mode : la personne précise en ligne (plateforme) OU présentiel
+                (Sétif · El Hidhab, face à l'université). Le bouton d'inscription
+                pointe alors vers la landing EXACTE correspondante. */}
+            <div className="pl-methodes" style={{ marginTop: 22, textAlign: rtl ? "right" : "left" }}>
+              <p className="pl-h2" style={{ fontSize: "1.05rem", margin: "0 0 10px" }}>{t.modeTitle}</p>
+              <div className="pl-methodes-grid">
+                <button type="button" className="pl-methode" data-on={mode === "online"}
+                  onClick={() => setMode("online")}>
+                  <strong>{t.modeOnline}</strong>
+                  <small>{t.modeOnlineSub}</small>
+                </button>
+                <button type="button" className="pl-methode" data-on={mode === "presentiel"}
+                  onClick={() => setMode("presentiel")}>
+                  <strong>{t.modePresentiel}</strong>
+                  <small>{t.modePresentielSub}</small>
+                </button>
+              </div>
+            </div>
+
+            {!mode ? (
+              <p className="pl-note" style={{ marginTop: 12 }}>{t.modePick}</p>
+            ) : cibleUrl ? (
+              <a className="pl-cta" href={cibleUrl}
                 style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 16 }}>
-                {t.discover}
+                {mode === "online" ? t.discoverOnline : t.discoverPresentiel}
               </a>
             ) : (
               <button type="button" className="pl-cta" style={{ marginTop: 16 }}
                 onClick={() => { onClose(); onSubscribe?.(); }}>
-                {t.discover}
+                {mode === "online" ? t.discoverOnline : t.discoverPresentiel}
               </button>
             )}
 
