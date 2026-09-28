@@ -146,10 +146,14 @@ export default function LevelTestPopup({
 
   const questions = test?.questions ?? [];
   const total = questions.length;
-  const surContact = etape === total;
-  const cur = questions[etape];
-  const pct = Math.round((Math.min(etape, total) / (total + 1)) * 100);
-  const peutAvancer = !cur || cur.required === false || answers[cur.key] !== undefined;
+  // Après les questions du serveur, on insère UNE question locale « mode » (en
+  // ligne / présentiel) — affichée comme les autres —, puis l'écran coordonnées.
+  const totalQ = total + 1;            // questions serveur + question « mode »
+  const surMode = etape === total;     // la question « mode »
+  const surContact = etape === totalQ; // l'écran « Recevez votre résultat »
+  const cur = (surMode || surContact) ? undefined : questions[etape];
+  const pct = Math.round((Math.min(etape, totalQ) / (totalQ + 1)) * 100);
+  const peutAvancer = surMode ? mode !== null : (!cur || cur.required === false || answers[cur.key] !== undefined);
   const rtl = langue === "ar";
 
   function recommencer() {
@@ -161,7 +165,7 @@ export default function LevelTestPopup({
     if (!test) return;
     setErreur(null);
     const manquantes = test.questions.filter((q) => q.required !== false && !answers[q.key]);
-    if (manquantes.length) { setErreur(t.errRequired); return; }
+    if (manquantes.length || !mode) { setErreur(t.errRequired); return; }
     setEnvoi(true);
     try {
       const email = contact.email.trim();
@@ -255,36 +259,16 @@ export default function LevelTestPopup({
               </div>
             ) : null}
 
-            {/* Le mode : la personne précise en ligne (plateforme) OU présentiel
-                (Sétif · El Hidhab, face à l'université). Le bouton d'inscription
-                pointe alors vers la landing EXACTE correspondante. */}
-            <div className="pl-methodes" style={{ marginTop: 22, textAlign: rtl ? "right" : "left" }}>
-              <p className="pl-h2" style={{ fontSize: "1.05rem", margin: "0 0 10px" }}>{t.modeTitle}</p>
-              <div className="pl-methodes-grid">
-                <button type="button" className="pl-methode" data-on={mode === "online"}
-                  onClick={() => setMode("online")}>
-                  <strong>{t.modeOnline}</strong>
-                  <small>{t.modeOnlineSub}</small>
-                </button>
-                <button type="button" className="pl-methode" data-on={mode === "presentiel"}
-                  onClick={() => setMode("presentiel")}>
-                  <strong>{t.modePresentiel}</strong>
-                  <small>{t.modePresentielSub}</small>
-                </button>
-              </div>
-            </div>
-
-            {!mode ? (
-              <p className="pl-note" style={{ marginTop: 12 }}>{t.modePick}</p>
-            ) : cibleUrl ? (
+            {/* Le lien d'inscription EXACT, selon le mode choisi pendant le test. */}
+            {cibleUrl ? (
               <a className="pl-cta" href={cibleUrl}
                 style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 16 }}>
-                {mode === "online" ? t.discoverOnline : t.discoverPresentiel}
+                {mode === "presentiel" ? t.discoverPresentiel : t.discoverOnline}
               </a>
             ) : (
               <button type="button" className="pl-cta" style={{ marginTop: 16 }}
                 onClick={() => { onClose(); onSubscribe?.(); }}>
-                {mode === "online" ? t.discoverOnline : t.discoverPresentiel}
+                {mode === "presentiel" ? t.discoverPresentiel : t.discoverOnline}
               </button>
             )}
 
@@ -312,7 +296,7 @@ export default function LevelTestPopup({
 
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, opacity: 0.6, margin: "12px 0 6px" }}>
               <span>{pct}%</span>
-              <span>{surContact ? t.almost : t.question(etape + 1, total)}</span>
+              <span>{surContact ? t.almost : t.question(etape + 1, totalQ)}</span>
             </div>
             <div style={{ height: 8, borderRadius: 999, background: "rgba(0,0,0,.08)", overflow: "hidden", marginBottom: 22 }}>
               <div style={{ height: "100%", width: `${pct}%`, background: ACCENT, transition: "width .35s" }} />
@@ -383,7 +367,46 @@ export default function LevelTestPopup({
                   <button type="button" className="pl-cta" disabled={!peutAvancer}
                     style={{ width: "auto", margin: 0, padding: "12px 28px" }}
                     onClick={() => setEtape((e) => e + 1)}>
-                    {etape < total - 1 ? t.next : t.cont}
+                    {etape < totalQ - 1 ? t.next : t.cont}
+                  </button>
+                </div>
+              </div>
+            ) : surMode ? (
+              /* Question « mode » — affichée EXACTEMENT comme les autres (briques). */
+              <div>
+                <h3 className="pl-h2" style={{ fontSize: "1.2rem", marginTop: 0 }}>{t.modeTitle}</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+                  {([["online", t.modeOnline, t.modeOnlineSub], ["presentiel", t.modePresentiel, t.modePresentielSub]] as const).map(([val, label, sub]) => {
+                    const on = mode === val;
+                    return (
+                      <button type="button" key={val} aria-pressed={on}
+                        onClick={() => { marquerDebut(); setMode(val); }}
+                        style={{
+                          textAlign: rtl ? "right" : "left", padding: "14px 16px", borderRadius: 16,
+                          cursor: "pointer", border: `2px solid ${on ? "var(--thread, #5B16F9)" : "rgba(0,0,0,.12)"}`,
+                          background: on ? "rgba(0,0,0,.03)" : "transparent",
+                          color: "inherit", font: "inherit", fontWeight: on ? 700 : 500,
+                          display: "flex", flexDirection: "column", gap: 3,
+                        }}>
+                        <span>{label}</span>
+                        <small style={{ opacity: 0.7, fontWeight: 500 }}>{sub}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24, gap: 12 }}>
+                  <button type="button" onClick={() => setEtape((e) => Math.max(0, e - 1))}
+                    style={{
+                      background: "none", border: "none", color: "inherit", font: "inherit",
+                      opacity: 0.7, cursor: "pointer", fontWeight: 600,
+                    }}>
+                    {t.prev}
+                  </button>
+                  <button type="button" className="pl-cta" disabled={!peutAvancer}
+                    style={{ width: "auto", margin: 0, padding: "12px 28px" }}
+                    onClick={() => setEtape((e) => e + 1)}>
+                    {t.cont}
                   </button>
                 </div>
               </div>
