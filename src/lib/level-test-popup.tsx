@@ -236,13 +236,21 @@ export default function LevelTestPopup({
 
   const skills = Object.entries((resultat?.skills ?? {}) as Record<string, number>);
   const proposeAtelier = answers.machine === "non";
-  // URL d'inscription EXACTE selon le mode choisi. La reco du serveur pointe vers
-  // la formation en ligne (/formation/niveau-X) ; on en déduit le miroir présentiel
-  // (/presentiel/presentiel-niveau-X), même convention que la landing formation.
+  // URL d'inscription EXACTE selon le mode choisi. On NE réutilise PAS le chemin de
+  // la reco serveur (il peut déjà pointer vers un présentiel, ce qui doublait le
+  // préfixe « presentiel-presentiel- » et envoyait l'online vers du présentiel).
+  // On extrait uniquement le CHIFFRE de niveau (1/2/3) et on reconstruit les deux
+  // URL canoniques du site : en ligne = /formation/niveau-N, présentiel =
+  // /presentiel/presentiel-niveau-N.
   const recoUrl: string | null = resultat?.recommendation?.course_url || null;
-  const levelSlug = recoUrl ? recoUrl.split("?")[0].replace(/\/+$/, "").split("/").pop() : null;
-  const presentielUrl = levelSlug ? `/presentiel/presentiel-${levelSlug}` : "/presentiel";
-  const cibleUrl = mode === "online" ? recoUrl : mode === "presentiel" ? presentielUrl : null;
+  const chiffreNiveau = (() => {
+    const src = `${recoUrl ?? ""} ${resultat?.level_key ?? ""} ${resultat?.level_label ?? ""}`;
+    const m = src.match(/([1-3])/);
+    return m ? m[1] : null;
+  })();
+  const onlineUrl = chiffreNiveau ? `/formation/niveau-${chiffreNiveau}` : recoUrl;
+  const presentielUrl = chiffreNiveau ? `/presentiel/presentiel-niveau-${chiffreNiveau}` : "/presentiel";
+  const cibleUrl = mode === "presentiel" ? presentielUrl : mode === "online" ? onlineUrl : null;
 
   return (
     <div className="pl-modal" role="dialog" aria-modal="true"
