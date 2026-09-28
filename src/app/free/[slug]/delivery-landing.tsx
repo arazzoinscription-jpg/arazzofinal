@@ -176,6 +176,7 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
   const promoKey = `arazzo_free_promo_${slug}`;
   const [promoOk, setPromoOk] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
     if (!video) { setPromoOk(true); return undefined; } // aucune vidéo → comme avant
@@ -209,19 +210,23 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
       return () => { el.removeEventListener("timeupdate", onTime); el.removeEventListener("seeking", onSeek); };
     }
 
-    // iframe Bunny : protocole player.js (postMessage), pour lire le temps réel.
-    const onMsg = (e: MessageEvent) => {
-      const d = e.data;
-      if (!d || d.context !== "player.js") return;
-      if (d.event === "ready") {
-        const w = (document.getElementById("pl-free-video") as HTMLIFrameElement | null)?.contentWindow;
-        ["timeupdate", "seeked"].forEach((ev) => w?.postMessage({ context: "player.js", method: "addEventListener", value: ev }, "*"));
-      }
-      if (d.event === "timeupdate" && d.value) pas(Number(d.value.seconds) || 0, Number(d.value.duration) || 0);
-      if (d.event === "seeked" && d.value) last = Number(d.value.seconds) || last; // ne pas compter le saut
-    };
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
+    // iframe Bunny : on réutilise la MÊME lib éprouvée que le lecteur de leçon
+    // (`player.js`, import dynamique côté client) — le postMessage brut ratait le
+    // handshake « ready ». `timeupdate` donne {seconds, duration} ; `seeked` sert à
+    // ne pas compter un saut.
+    let player: import("player.js").Player | null = null;
+    let cancelled = false;
+    import("player.js")
+      .then(({ default: playerjs }) => {
+        if (cancelled || !iframeRef.current) return;
+        player = new playerjs.Player(iframeRef.current);
+        player.on("ready", () => {
+          player!.on("timeupdate", (t) => { if (t) pas(Number(t.seconds) || 0, Number(t.duration) || 0); });
+          player!.on("seeked", (t) => { if (t) last = Number(t.seconds) || last; });
+        });
+      })
+      .catch(() => { /* player non dispo → pas de déblocage automatique */ });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.video_url, debloque]);
 
@@ -310,7 +315,7 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
               {video ? (
                 <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 14, overflow: "hidden", background: "#000" }}>
                   {video.kind === "iframe" ? (
-                    <iframe id="pl-free-video" title={titre ?? "Cours"} src={video.src} loading="lazy"
+                    <iframe ref={iframeRef} title={titre ?? "Cours"} src={video.src} loading="lazy"
                       allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} />
                   ) : (
