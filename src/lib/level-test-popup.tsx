@@ -113,6 +113,8 @@ export default function LevelTestPopup({
   const [mode, setMode] = useState<null | "online" | "presentiel">(null);
   // « StartTest » ne doit partir qu'UNE fois, au vrai début (1re réponse).
   const started = useRef(false);
+  // Événement combiné niveau+format (N1Online, N1Presentiel, …) : une seule fois.
+  const comboFired = useRef(false);
 
   // Le test COMMENCE vraiment quand la personne choisit sa 1re réponse.
   function marquerDebut() {
@@ -159,7 +161,36 @@ export default function LevelTestPopup({
   function recommencer() {
     setResultat(null); setAnswers({}); setAccepte(false); setMode(null);
     setContact({ first_name: "", email: "", phone: "" }); setEtape(0); setErreur(null);
+    comboFired.current = false; // un nouveau passage pourra ré-émettre l'événement combiné.
   }
+
+  // ── Custom Audiences Meta : événement niveau + format ────────────────────
+  // Dès que le résultat est là ET que le format a été choisi (question « mode »),
+  // on émet UNE seule fois l'événement personnalisé N{1,2,3}{Online|Presentiel}.
+  // Il reflète le VRAI choix de la personne (niveau obtenu + format sélectionné)
+  // et ne part JAMAIS sur une simple visite : `resultat` n'existe qu'après un test
+  // réellement terminé. N'AJOUTE RIEN aux événements existants (StartTest, etc.).
+  useEffect(() => {
+    if (!resultat || !mode || comboFired.current) return;
+    const niveau = niveauN(resultat); // "N1" | "N2" | "N3" | libellé | null
+    if (niveau !== "N1" && niveau !== "N2" && niveau !== "N3") return;
+    const format = mode === "presentiel" ? "presentiel" : "online";
+    const suffixe = format === "presentiel" ? "Presentiel" : "Online";
+    const nom =
+      resultat?.recommendation?.course_name ??
+      resultat?.recommendation?.name ??
+      resultat?.level_label ??
+      test?.title ??
+      niveau;
+    comboFired.current = true;
+    pixelCustom(`${niveau}${suffixe}`, {
+      level: niveau,
+      format,
+      content_category: "formation",
+      content_name: nom,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultat, mode]);
 
   async function envoyer() {
     if (!test) return;
