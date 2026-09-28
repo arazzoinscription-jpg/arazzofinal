@@ -161,7 +161,10 @@ function titreAvecAccent(nom: string) {
 
 const cssVar = (k: string, v: string) => ({ [k]: v }) as React.CSSProperties;
 
-export default function FormationLanding({ data }: { data: CourseView }) {
+export default function FormationLanding({ data, textes }: {
+  data: CourseView;
+  textes?: { fr?: Record<string, string>; ar?: Record<string, string> };
+}) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
   const [valeurs, setValeurs] = useState({ full_name: "", phone: "", email: "", wilaya: "", address: "", amount: "", reference: "" });
   const [methode, setMethode] = useState<"delivery" | "paid">("paid");
@@ -194,7 +197,8 @@ export default function FormationLanding({ data }: { data: CourseView }) {
     });
   }
 
-  const t = T[langue];
+  // Textes par défaut + éventuels textes personnalisés dans l'OS (par-dessus).
+  const t = { ...T[langue], ...(textes?.[langue] ?? {}) };
   const set = (k: string, v: string) => setValeurs((s) => ({ ...s, [k]: v }));
 
   // ÉTAPE 1 — le formulaire minimal (prénom · WhatsApp · e-mail + mode de règlement).

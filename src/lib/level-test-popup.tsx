@@ -98,7 +98,10 @@ export default function LevelTestPopup({
   onClose: () => void;
   onSubscribe?: () => void;
 }) {
-  const t = T[langue];
+  // Textes personnalisables dans l'OS (par-dessus les défauts). Chargés côté
+  // client car le popup est un composant partagé (pas de page serveur à lui).
+  const [textes, setTextes] = useState<{ fr?: Record<string, string>; ar?: Record<string, string> }>({});
+  const t = { ...T[langue], ...(textes?.[langue] ?? {}) };
   const [test, setTest] = useState<PublicTest | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [etape, setEtape] = useState(0); // index de question, puis « contact »
@@ -145,6 +148,18 @@ export default function LevelTestPopup({
     })();
     return () => { vivant = false; };
   }, [slug]);
+
+  // Textes personnalisés dans l'OS pour le test (best-effort, n'échoue jamais).
+  useEffect(() => {
+    let vivant = true;
+    (async () => {
+      try {
+        const r = await fetch(`/api/landing-texts?page=level-test`, { cache: "no-store" });
+        if (r.ok && vivant) setTextes(await r.json());
+      } catch { /* on garde les textes par défaut */ }
+    })();
+    return () => { vivant = false; };
+  }, []);
 
   const questions = test?.questions ?? [];
   const total = questions.length;

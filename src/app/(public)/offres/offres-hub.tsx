@@ -59,7 +59,10 @@ function Carte({ href, icone, name, sous }: { href: string; icone: string; name:
   );
 }
 
-export default function OffresHub({ online, packs, presentiel = [] }: { online: Offre[]; packs: Offre[]; presentiel?: Offre[] }) {
+export default function OffresHub({ online, packs, presentiel = [], textes }: {
+  online: Offre[]; packs: Offre[]; presentiel?: Offre[];
+  textes?: { fr?: Record<string, string>; ar?: Record<string, string> };
+}) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
   const [showTest, setShowTest] = useState(false);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
@@ -79,7 +82,7 @@ export default function OffresHub({ online, packs, presentiel = [] }: { online: 
     });
   }
 
-  const t = T[langue];
+  const t = { ...T[langue], ...(textes?.[langue] ?? {}) };
 
   return (
     <div className="pl" dir={t.dir}>

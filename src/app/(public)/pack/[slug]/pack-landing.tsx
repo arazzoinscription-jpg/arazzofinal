@@ -43,7 +43,10 @@ const T: Record<"ar" | "fr", any> = {
 
 const fmt = (n: number) => Number(n || 0).toLocaleString("fr-FR");
 
-export default function PackLanding({ data }: { data: PackData }) {
+export default function PackLanding({ data, textes }: {
+  data: PackData;
+  textes?: { fr?: Record<string, string>; ar?: Record<string, string> };
+}) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
 
   useEffect(() => {
@@ -61,7 +64,7 @@ export default function PackLanding({ data }: { data: PackData }) {
     });
   }
 
-  const t = T[langue];
+  const t = { ...T[langue], ...(textes?.[langue] ?? {}) };
   const nom = (langue === "ar" && data.name_ar) ? data.name_ar : data.name;
   const href = data.buySlug ? `/boutique/${data.buySlug}` : "/contact";
 

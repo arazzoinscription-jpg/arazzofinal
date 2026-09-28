@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
+import { getLandingTexts } from "@/lib/landing-texts";
 import OffresHub, { type Offre } from "./offres-hub";
 
 // Hub NATIF (24/7) de toutes les offres, au DESIGN de l'OS (kit `pl-` partagé,
@@ -82,5 +83,7 @@ export default async function Page() {
       });
   } catch { presentiel = []; }
 
-  return <OffresHub online={online} packs={packs} presentiel={presentiel} />;
+  const textes = await getLandingTexts("offres");
+
+  return <OffresHub online={online} packs={packs} presentiel={presentiel} textes={textes} />;
 }

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getLandingTexts } from "@/lib/landing-texts";
 import FormationLanding from "./formation-landing";
 
 // Landing NATIVE (24/7 sur Vercel, base Supabase du LMS). Chaque niveau vendu
@@ -54,5 +55,8 @@ export default async function Page({ params }: { params: Promise<{ niveau: strin
     program_url: programUrl,
   };
 
-  return <FormationLanding data={data} />;
+  // Textes d'interface éventuellement personnalisés dans l'OS (best-effort).
+  const textes = await getLandingTexts("formation");
+
+  return <FormationLanding data={data} textes={textes} />;
 }

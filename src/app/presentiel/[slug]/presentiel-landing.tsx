@@ -153,7 +153,10 @@ function titreAvecAccent(nom: string) {
 
 const cssVar = (k: string, v: string) => ({ [k]: v }) as React.CSSProperties;
 
-export default function PresentielLanding({ data }: { data: OfferView }) {
+export default function PresentielLanding({ data, textes }: {
+  data: OfferView;
+  textes?: { fr?: Record<string, string>; ar?: Record<string, string> };
+}) {
   const [langue, setLangue] = useState<"ar" | "fr">("ar");
   const [def, setDef] = useState<OfferView>(data);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -192,7 +195,7 @@ export default function PresentielLanding({ data }: { data: OfferView }) {
     });
   }
 
-  const t = T[langue];
+  const t = { ...T[langue], ...(textes?.[langue] ?? {}) };
 
   // Ce visiteur a-t-il déjà envoyé sa demande pour cette offre ?
   useEffect(() => {

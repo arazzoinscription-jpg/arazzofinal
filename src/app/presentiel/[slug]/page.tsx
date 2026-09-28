@@ -1,4 +1,5 @@
 import { createPublicClient } from "@/lib/supabase/public";
+import { getLandingTexts } from "@/lib/landing-texts";
 import PresentielLanding from "./presentiel-landing";
 
 // Landing PRÉSENTIELLE — identique à Arazzo OS, 24/7 sur Vercel (sans tunnel).
@@ -32,5 +33,6 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   // On garantit que le slug voyage dans les données (l'UI en a besoin pour le
   // formulaire et le rafraîchissement), même si un vieil instantané ne l'a pas.
   const data = { slug, ...(row.data as Record<string, unknown>) };
-  return <PresentielLanding data={data} />;
+  const textes = await getLandingTexts("presentiel");
+  return <PresentielLanding data={data} textes={textes} />;
 }

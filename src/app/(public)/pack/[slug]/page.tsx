@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
+import { getLandingTexts } from "@/lib/landing-texts";
 import FormationLanding from "../../formation/[niveau]/formation-landing";
 import PackLanding from "./pack-landing";
 
@@ -94,8 +95,10 @@ export default async function Page({ params }: { params: { slug: string } }) {
   const composed = await loadComposedPack(slug);
   if (composed) {
     const { d, pack_courses, cumul, prix, eco } = composed;
+    const textes = await getLandingTexts("formation");
     return (
       <FormationLanding
+        textes={textes}
         data={{
           courseId: "",
           niveau: slug,           // l'OS résout ce slug de pack en plusieurs cours
@@ -118,8 +121,10 @@ export default async function Page({ params }: { params: { slug: string } }) {
   const data = await loadPack(slug);
   if (!data) notFound();
   const { pack, courses, cumul, prix, eco, buySlug } = data;
+  const textes = await getLandingTexts("pack");
   return (
     <PackLanding
+      textes={textes}
       data={{
         name: pack.titre_fr || "Pack",
         name_ar: pack.titre_ar,
