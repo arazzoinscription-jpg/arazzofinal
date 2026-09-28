@@ -362,6 +362,36 @@ export function LandingStyles() {
   border: 1px solid var(--line); box-shadow: 0 8px 22px -14px rgba(0,0,0,.3);
 }
 
+/* --- Choix du mode de règlement (CCP/BaridiMob / fiche + livraison) ----
+   Deux boutons ENCADRÉS côte à côte, celui choisi surligné (data-on). Ce bloc
+   manquait au kit LMS : sans lui, les deux options s'affichaient sans cadre. */
+.pl-methodes { border: 0; padding: 0; margin: 18px 0 0; }
+.pl-methodes legend {
+  font-weight: 700; font-size: .98rem; color: var(--violet-deep); padding: 0 0 10px;
+}
+.pl-methodes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .pl-methodes-grid { grid-template-columns: 1fr; } }
+.pl-methode {
+  display: flex; flex-direction: column; gap: 3px; text-align: start; cursor: pointer;
+  padding: 14px 16px; border-radius: var(--radius); font: inherit;
+  border: 1.5px solid var(--line); background: var(--panel); color: var(--ink);
+  transition: all .15s ease;
+}
+.pl-methode:hover { border-color: color-mix(in srgb, var(--thread) 45%, var(--line)); transform: translateY(-1px); }
+.pl-methode[data-on="true"] {
+  border-color: var(--thread); background: color-mix(in srgb, var(--thread) 6%, var(--panel));
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--thread) 55%, transparent);
+}
+.pl-methode strong { font-size: .98rem; color: var(--violet-deep); }
+.pl-methode small { color: var(--ink-3); font-size: .82rem; }
+
+/* Lien « ← revenir au formulaire » de l'étape 2 (preuve de paiement). */
+.pl-lien-retour {
+  display: inline-block; margin-top: 12px; background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: .9rem; color: var(--ink-3); text-decoration: underline;
+}
+.pl-lien-retour:hover { color: var(--thread); }
+
 .pl-platform-link {
   display: inline-flex; align-items: center; gap: 8px; margin-top: 14px;
   text-decoration: none; font-weight: 700; font-size: .95rem; color: #fff;

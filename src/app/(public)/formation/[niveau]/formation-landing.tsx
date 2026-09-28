@@ -62,6 +62,12 @@ const T: Record<"ar" | "fr", any> = {
     paidHint: "قومي بالدفع عبر CCP أو BaridiMob، ثم أرفقي صورة الوصل. سنؤكّد الدفع ونفعّل دخولك.",
     fProof: "وصل الدفع (صورة أو PDF)", proofChoose: "اضغطي لإرفاق الوصل (JPG · PNG · PDF)",
     fAmount: "المبلغ المدفوع (دج)", phAmount: "مثال: 4500", fRef: "رقم العملية", phRef: "اختياري", refOptional: "(اختياري)",
+    onlineHint: "بعد التأكيد، ستتمكنين من إرفاق إثبات الدفع (صورة أو PDF للوصل).",
+    payTitle: "خطوة أخيرة!",
+    paySub: (n: string) => `قومي بالدفع مقابل ${n}، ثم أرسلي لنا الإثبات.`,
+    iPaid: "لقد قمت بالدفع",
+    proofTitle: "إرسال إثبات الدفع",
+    uploading: "جارٍ الرفع…", fileJoined: "✓ تم إرفاق الإثبات.", proofSend: "إرسال الإثبات",
     errProof: "يرجى إرفاق وصل الدفع.",
     doneProofTitle: "تم استلام إثبات الدفع 🌸", doneProofBody: "شكرًا لك! نتحقق من الدفع ثم نفعّل دخولك — ستصلك رسالة بمعلومات الاتصال. 🌸",
     fName: "الاسم الكامل", fPhone: "رقم واتساب", fEmail: "البريد الإلكتروني",
@@ -111,6 +117,12 @@ const T: Record<"ar" | "fr", any> = {
     paidHint: "Effectuez votre versement CCP ou BaridiMob, puis joignez le reçu. Nous confirmons le paiement et activons votre accès.",
     fProof: "Reçu de paiement (photo ou PDF)", proofChoose: "Cliquez pour joindre le reçu (JPG · PNG · PDF)",
     fAmount: "Montant versé (DA)", phAmount: "ex. 4500", fRef: "N° de transaction", phRef: "optionnel", refOptional: "(optionnel)",
+    onlineHint: "Après avoir validé, vous pourrez joindre votre preuve de paiement (photo ou PDF du reçu).",
+    payTitle: "Presque fini !",
+    paySub: (n: string) => `Effectuez votre versement pour ${n}, puis envoyez-nous la preuve.`,
+    iPaid: "J’ai effectué mon paiement",
+    proofTitle: "Envoyer ma preuve",
+    uploading: "Envoi du fichier…", fileJoined: "✓ Preuve jointe.", proofSend: "Envoyer ma preuve",
     errProof: "Merci de joindre votre reçu de paiement.",
     doneProofTitle: "Preuve de paiement reçue 🌸", doneProofBody: "Merci ! Nous vérifions le paiement puis activons votre accès — vous recevrez vos identifiants par e-mail. 🌸",
     fName: "Prénom et nom", fPhone: "WhatsApp", fEmail: "E-mail",
@@ -159,6 +171,11 @@ export default function FormationLanding({ data }: { data: CourseView }) {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [fait, setFait] = useState<null | "delivery" | "paid">(null);
+  // Comme l'OS : le paiement en ligne se fait en DEUX temps. D'abord 3 champs
+  // (prénom, WhatsApp, e-mail) ; puis, après avoir validé, l'étape « preuve »
+  // (« J'ai payé » → joindre le reçu). Le formulaire reste ainsi minimal.
+  const [etape, setEtape] = useState<"form" | "pay">("form");
+  const [aPaye, setAPaye] = useState(false);
   const [showTest, setShowTest] = useState(false);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
@@ -180,45 +197,23 @@ export default function FormationLanding({ data }: { data: CourseView }) {
   const t = T[langue];
   const set = (k: string, v: string) => setValeurs((s) => ({ ...s, [k]: v }));
 
+  // ÉTAPE 1 — le formulaire minimal (prénom · WhatsApp · e-mail + mode de règlement).
   async function envoyer(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
     if (!accepte) { setErreur(t.errConsent); return; }
-    if (methode === "delivery" && valeurs.address.trim().length < 4) { setErreur(t.errAddress); return; }
-    if (methode === "paid" && !preuve) { setErreur(t.errProof); return; }
+    if (methode === "paid") {
+      // En ligne : on ne demande PAS la preuve ici. On passe à l'étape 2, comme l'OS.
+      if (!valeurs.full_name.trim() || !valeurs.email.trim()) { setErreur(t.errConsent); return; }
+      setEtape("pay");
+      setAPaye(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    // Fiche + livraison : demande COD native (paiement à la réception), en un seul temps.
+    if (valeurs.address.trim().length < 4) { setErreur(t.errAddress); return; }
     setEnvoi(true);
     try {
-      // « J'ai payé » : on téléverse le reçu, puis on dépose la demande + la preuve.
-      // Arazzo OS la rapatrie et la valide (accès activé, e-mail de bienvenue).
-      if (methode === "paid") {
-        const up = await uploadOnlineProof(preuve as File);
-        if (!up.ok || !up.path) { setErreur(up.error || "Envoi du reçu échoué."); setEnvoi(false); return; }
-        const r = await submitOnlineEnrollment({
-          level: data.niveau,
-          course_id: data.courseId,
-          full_name: valeurs.full_name.trim(),
-          email: valeurs.email.trim() || "",
-          phone: valeurs.phone.trim() || "",
-          wilaya: valeurs.wilaya.trim() || "",
-          amount: valeurs.amount.trim() || null,
-          method: "ccp",
-          reference: valeurs.reference.trim() || "",
-          coupon_code: coupon.trim() || "",
-          proof_path: up.path,
-          consent: accepte,
-          lang: langue,
-          utm: utmDeLURL(),
-        });
-        if (r.ok) {
-          // Conversion : preuve de paiement envoyée → Purchase (Meta + Google).
-          trackPurchase({ content_name: data.name, value: Number(valeurs.amount) || data.pack_prix || undefined });
-          setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" });
-        }
-        else setErreur(r.error === "validation_failed" ? "Merci de vérifier vos informations." : (r.error || "Envoi impossible. Réessayez."));
-        setEnvoi(false);
-        return;
-      }
-      // Fiche + livraison : demande COD native (paiement à la réception).
       const r = await submitDeliveryOrder({
         courseId: data.courseId,
         full_name: valeurs.full_name.trim(),
@@ -229,12 +224,48 @@ export default function FormationLanding({ data }: { data: CourseView }) {
         coupon_code: coupon.trim() || undefined,
       });
       if (r.ok) {
-        // Conversion : demande « fiche + livraison » envoyée → Lead.
-        trackLead({ content_name: data.name });
+        trackLead({ content_name: data.name }); // Conversion : demande « fiche » envoyée → Lead.
         setFait("delivery");
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErreur(r.error || "Envoi impossible. Réessayez.");
+      }
+    } catch {
+      setErreur("Envoi impossible. Réessayez.");
+    } finally { setEnvoi(false); }
+  }
+
+  // ÉTAPE 2 — la preuve de paiement (« J'ai payé » → joindre le reçu). On téléverse
+  // le reçu puis on dépose la demande + la preuve ; Arazzo OS la rapatrie et la valide.
+  async function envoyerPreuve() {
+    setErreur(null);
+    if (!preuve) { setErreur(t.errProof); return; }
+    setEnvoi(true);
+    try {
+      const up = await uploadOnlineProof(preuve as File);
+      if (!up.ok || !up.path) { setErreur(up.error || "Envoi du reçu échoué."); setEnvoi(false); return; }
+      const r = await submitOnlineEnrollment({
+        level: data.niveau,
+        course_id: data.courseId,
+        full_name: valeurs.full_name.trim(),
+        email: valeurs.email.trim() || "",
+        phone: valeurs.phone.trim() || "",
+        wilaya: valeurs.wilaya.trim() || "",
+        amount: valeurs.amount.trim() || null,
+        method: "ccp",
+        reference: valeurs.reference.trim() || "",
+        coupon_code: coupon.trim() || "",
+        proof_path: up.path,
+        consent: accepte,
+        lang: langue,
+        utm: utmDeLURL(),
+      });
+      if (r.ok) {
+        // Conversion : preuve de paiement envoyée → Purchase (Meta + Google).
+        trackPurchase({ content_name: data.name, value: Number(valeurs.amount) || data.pack_prix || undefined });
+        setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        setErreur(r.error === "validation_failed" ? "Merci de vérifier vos informations." : (r.error || "Envoi impossible. Réessayez."));
       }
     } catch {
       setErreur("Envoi impossible. Réessayez.");
@@ -288,6 +319,43 @@ export default function FormationLanding({ data }: { data: CourseView }) {
               <div className="pl-check" aria-hidden="true">{fait === "delivery" ? "📦" : fait === "paid" ? "💳" : "✓"}</div>
               <h1 className="pl-titre pl-titre-dark">{fait === "delivery" ? t.doneDeliveryTitle : fait === "paid" ? t.doneProofTitle : t.doneContactTitle}</h1>
               <p>{fait === "delivery" ? t.doneDeliveryBody : fait === "paid" ? t.doneProofBody : t.doneContactBody}</p>
+            </div>
+          ) : etape === "pay" ? (
+            /* ÉTAPE 2 (paiement en ligne) : « J'ai payé » → joindre le reçu. */
+            <div className="pl-form" style={cssVar("--d", ".05s")}>
+              <h2 className="pl-h2">{t.payTitle}</h2>
+              <p className="pl-lede" style={{ margin: "0 0 12px" }}>{t.paySub(nomAffiche)}</p>
+              <p className="pl-note">{t.paidHint}</p>
+              {!aPaye ? (
+                <button type="button" className="pl-cta" onClick={() => { setErreur(null); setAPaye(true); }}>
+                  {t.iPaid}
+                </button>
+              ) : (
+                <>
+                  <h3 className="pl-h2" style={{ fontSize: "1.05rem", margin: "14px 0 4px" }}>{t.proofTitle}</h3>
+                  <div className="pl-fields">
+                    <label className="pl-field pl-field-full">
+                      <span>{t.fProof}</span>
+                      <input type="file" accept="image/jpeg,image/png,application/pdf"
+                        onChange={(e) => setPreuve(e.target.files?.[0] ?? null)} />
+                      <small style={{ color: "var(--ink-3)" }}>{preuve ? preuve.name : t.proofChoose}</small>
+                    </label>
+                    <label className="pl-field pl-field-full">
+                      <span>{t.fAmount} <em>{t.refOptional}</em></span>
+                      <input type="number" inputMode="numeric" min={0} value={valeurs.amount} placeholder={t.phAmount}
+                        onChange={(e) => set("amount", e.target.value)} />
+                    </label>
+                  </div>
+                  <button type="button" className="pl-cta" disabled={envoi || !preuve} onClick={envoyerPreuve}>
+                    {envoi ? t.send : t.proofSend}
+                  </button>
+                </>
+              )}
+              {erreur ? <div className="pl-erreur">{erreur}</div> : null}
+              <button type="button" className="pl-lien-retour"
+                onClick={() => { setEtape("form"); setAPaye(false); setErreur(null); }}>
+                ← {t.formTitle}
+              </button>
             </div>
           ) : (
             <>
@@ -358,10 +426,32 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                 <div className="pl-acc-body"><p>{t.noteInscBody}</p></div>
               </details>
 
-              {/* Formulaire (back natif LMS). */}
+              {/* Formulaire minimal (back natif LMS) : prénom · WhatsApp · e-mail,
+                  puis le choix ENCADRÉ du mode de règlement — comme l'OS. */}
               <form id="pl-form" className="pl-form" onSubmit={envoyer} style={cssVar("--d", ".25s")}>
                 <h2 className="pl-h2">{t.formTitle}</h2>
 
+                {/* Seulement 3 champs à remplir. */}
+                <div className="pl-fields">
+                  <label className="pl-field pl-field-full">
+                    <span>{t.fName}</span>
+                    <input value={valeurs.full_name} required placeholder={t.phName}
+                      onChange={(e) => set("full_name", e.target.value)} />
+                  </label>
+                  <label className="pl-field">
+                    <span>{t.fPhone}</span>
+                    <input type="tel" value={valeurs.phone} required placeholder={t.phPhone}
+                      onChange={(e) => set("phone", e.target.value)} />
+                  </label>
+                  <label className="pl-field">
+                    <span>{t.fEmail}</span>
+                    <input type="email" value={valeurs.email} required placeholder={t.phEmail}
+                      onChange={(e) => set("email", e.target.value)} />
+                  </label>
+                </div>
+
+                {/* Choix ENCADRÉ du mode de règlement — bien visible : la personne
+                    comprend qu'elle doit choisir. */}
                 <fieldset className="pl-methodes">
                   <legend>{t.methodTitle}</legend>
                   <div className="pl-methodes-grid">
@@ -380,50 +470,13 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                   </div>
                 </fieldset>
 
-                <div className="pl-fields" style={{ marginTop: 14 }}>
-                  <label className="pl-field pl-field-full">
-                    <span>{t.fName}</span>
-                    <input value={valeurs.full_name} required placeholder={t.phName}
-                      onChange={(e) => set("full_name", e.target.value)} />
-                  </label>
-                  <label className="pl-field">
-                    <span>{t.fPhone}</span>
-                    <input type="tel" value={valeurs.phone} placeholder={t.phPhone}
-                      onChange={(e) => set("phone", e.target.value)} />
-                  </label>
-                  <label className="pl-field">
-                    <span>{t.fEmail}</span>
-                    <input type="email" value={valeurs.email} required placeholder={t.phEmail}
-                      onChange={(e) => set("email", e.target.value)} />
-                  </label>
-                  <label className={`pl-field${methode === "delivery" ? "" : " pl-field-full"}`}>
-                    <span>{methode === "delivery" ? t.fWilaya : t.fWilayaOpt}</span>
-                    <input value={valeurs.wilaya} placeholder={t.phWilaya}
-                      onChange={(e) => set("wilaya", e.target.value)} />
-                  </label>
-                  {methode === "delivery" ? (
-                    <label className="pl-field pl-field-full">
-                      <span>{t.fAddress}</span>
-                      <input value={valeurs.address} required placeholder={t.phAddress}
-                        onChange={(e) => set("address", e.target.value)} />
-                    </label>
-                  ) : null}
-                  {methode === "paid" ? (
-                    <>
-                      <label className="pl-field">
-                        <span>{t.fAmount}</span>
-                        <input type="number" inputMode="numeric" min={0} value={valeurs.amount} placeholder={t.phAmount}
-                          onChange={(e) => set("amount", e.target.value)} />
-                      </label>
-                      <label className="pl-field">
-                        <span>{t.fRef} <em>{t.refOptional}</em></span>
-                        <input value={valeurs.reference} placeholder={t.phRef}
-                          onChange={(e) => set("reference", e.target.value)} />
-                      </label>
-                    </>
-                  ) : null}
-                </div>
+                {/* En ligne : un simple rappel (la preuve se joint à l'étape suivante). */}
+                {methode === "paid" ? (
+                  <p className="pl-note" style={{ marginTop: 8 }}>📤 {t.onlineHint}</p>
+                ) : null}
 
+                {/* Fiche + livraison : l'explication + le modèle + l'adresse, JUSTE
+                    sous le cadre « Je préfère une fiche d'inscription ». */}
                 {methode === "delivery" ? (
                   <div className="pl-fiche" style={{ marginTop: 12 }}>
                     <h3 className="pl-h2" style={{ fontSize: "1.05rem", margin: "0 0 6px" }}>{t.ficheTitle}</h3>
@@ -436,19 +489,19 @@ export default function FormationLanding({ data }: { data: CourseView }) {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img className="pl-fiche-img" src="/fiche-inscription-modele.jpg" alt={t.ficheImgAlt}
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                    <div className="pl-fields" style={{ marginTop: 12 }}>
+                      <label className="pl-field pl-field-full">
+                        <span>{t.fAddress}</span>
+                        <input value={valeurs.address} required placeholder={t.phAddress}
+                          onChange={(e) => set("address", e.target.value)} />
+                      </label>
+                      <label className="pl-field pl-field-full">
+                        <span>{t.fWilaya}</span>
+                        <input value={valeurs.wilaya} placeholder={t.phWilaya}
+                          onChange={(e) => set("wilaya", e.target.value)} />
+                      </label>
+                    </div>
                   </div>
-                ) : null}
-
-                {methode === "paid" ? (
-                  <>
-                    <p className="pl-note" style={{ marginTop: 8 }}>{t.paidHint}</p>
-                    <label className="pl-field pl-field-full" style={{ marginTop: 10 }}>
-                      <span>{t.fProof}</span>
-                      <input type="file" accept="image/jpeg,image/png,application/pdf"
-                        onChange={(e) => setPreuve(e.target.files?.[0] ?? null)} />
-                      <small style={{ color: "#6b6480" }}>{preuve ? preuve.name : t.proofChoose}</small>
-                    </label>
-                  </>
                 ) : null}
 
                 {/* Code cadeau / promo (Live) — capturé avec la demande. */}
