@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { enrollAfterPayment } from "@/lib/enrollment";
 import { createAccessLink } from "@/lib/access-link";
 import { sendEmail } from "@/lib/email";
+import { notifierVenteArazzo } from "@/lib/arazzo-os";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -27,15 +28,39 @@ export async function confirmDeliveryAccess(orderId: string) {
   if (!ok || !admin) return { ok: false as const, error: "Accès refusé." };
 
   const { data: order } = await admin
-    .from("orders").select("id, email, full_name, payment_method").eq("id", orderId).maybeSingle();
+    .from("orders").select("id, email, full_name, payment_method, status, total, order_items(course_id)").eq("id", orderId).maybeSingle();
   if (!order) return { ok: false as const, error: "Commande introuvable." };
   if (order.payment_method !== "cod") return { ok: false as const, error: "Commande non « paiement à la livraison »." };
   if (!order.email) return { ok: false as const, error: "Email manquant sur la commande." };
+
+  // Le paiement COD n'est RÉELLEMENT reçu qu'à ce clic admin. On mémorise l'état
+  // antérieur : le Purchase ne partira QUE sur la transition « pas encore payé » →
+  // « confirmed » (jamais deux fois pour la même commande).
+  const dejaPaye = ["confirmed", "shipped", "delivered"].includes(order.status ?? "");
 
   const enr = await enrollAfterPayment(orderId);
   if (!enr.ok || !enr.userId) return { ok: false as const, error: enr.error ?? "Enrôlement impossible." };
 
   await admin.from("orders").update({ status: "confirmed" }).eq("id", orderId);
+
+  // Purchase = paiement COD réellement encaissé et confirmé par l'admin. On passe
+  // par le MÊME chemin que la boutique (notifierVenteArazzo → Conversions API Meta,
+  // event_id = orderId, idempotent côté OS via external_ref). Uniquement sur la
+  // transition vers « payé » : aucun doublon au re-clic. Jamais à la création,
+  // pending, shipped ou delivered. Best-effort : n'empêche jamais la confirmation.
+  if (!dejaPaye) {
+    const category: "formation" | "patron" =
+      ((order.order_items as { course_id?: string | null }[]) ?? []).some((it) => it.course_id) ? "formation" : "patron";
+    try {
+      await notifierVenteArazzo({
+        orderId: order.id,
+        amount: Number(order.total) || 0,
+        email: order.email,
+        currency: "DZD",
+        category,
+      });
+    } catch { /* Arazzo injoignable ne doit jamais bloquer la confirmation */ }
+  }
 
   const al = await createAccessLink(enr.userId);
   const link = al.ok ? al.url : null;
