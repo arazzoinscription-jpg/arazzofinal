@@ -12,7 +12,7 @@
  * visible d'emblée. Le bouton d'action (CTA) mène à l'offre payante associée.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import { submitDeliveryLead } from "@/app/actions/delivery-lead";
 import LevelTestPopup from "@/lib/level-test-popup";
@@ -168,6 +168,63 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
   const { debut, fin } = titreAvecAccent(titre ?? "");
   const video = lecteurVideo(data.video_url);
 
+  // --- Bloc promo affiché SEULEMENT après un vrai visionnage -----------------
+  // Seuil = le plus petit entre 10 min et 80 % de la vidéo. On cumule le temps
+  // RÉELLEMENT lu (les pauses n'émettent aucun tick ; un seek = saut trop grand,
+  // ignoré). Pas de vidéo → comportement d'avant (promo visible). Le déblocage
+  // est mémorisé par visiteur (localStorage) pour survivre à un rafraîchissement.
+  const promoKey = `arazzo_free_promo_${slug}`;
+  const [promoOk, setPromoOk] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (!video) { setPromoOk(true); return undefined; } // aucune vidéo → comme avant
+    try { if (window.localStorage.getItem(promoKey) === "1") { setPromoOk(true); return undefined; } } catch { /* stockage indispo */ }
+
+    let watched = 0; let last = -1; let duration = 0; let atteint = false;
+    const debloquer = () => {
+      if (atteint) return;
+      const seuil = Math.min(600, (duration || Infinity) * 0.8);
+      if (duration && watched >= seuil) {
+        atteint = true;
+        try { window.localStorage.setItem(promoKey, "1"); } catch { /* ignore */ }
+        setPromoOk(true);
+      }
+    };
+    // Un pas de lecture : on ne compte que les petits incréments (lecture réelle),
+    // jamais un grand saut (seek) ni une pause (aucun tick n'arrive).
+    const pas = (t: number, d: number) => {
+      if (d) duration = d;
+      if (last >= 0) { const dt = t - last; if (dt > 0 && dt <= 2) watched += dt; }
+      last = t; debloquer();
+    };
+
+    if (video.kind === "video") {
+      const el = videoRef.current;
+      if (!el) return undefined;
+      const onTime = () => pas(el.currentTime, el.duration || 0);
+      const onSeek = () => { last = el.currentTime; }; // ne pas compter le saut
+      el.addEventListener("timeupdate", onTime);
+      el.addEventListener("seeking", onSeek);
+      return () => { el.removeEventListener("timeupdate", onTime); el.removeEventListener("seeking", onSeek); };
+    }
+
+    // iframe Bunny : protocole player.js (postMessage), pour lire le temps réel.
+    const onMsg = (e: MessageEvent) => {
+      const d = e.data;
+      if (!d || d.context !== "player.js") return;
+      if (d.event === "ready") {
+        const w = (document.getElementById("pl-free-video") as HTMLIFrameElement | null)?.contentWindow;
+        ["timeupdate", "seeked"].forEach((ev) => w?.postMessage({ context: "player.js", method: "addEventListener", value: ev }, "*"));
+      }
+      if (d.event === "timeupdate" && d.value) pas(Number(d.value.seconds) || 0, Number(d.value.duration) || 0);
+      if (d.event === "seeked" && d.value) last = Number(d.value.seconds) || last; // ne pas compter le saut
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.video_url, debloque]);
+
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
@@ -193,9 +250,6 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
 
       <div className="pl-wrap">
         <div className="pl-card">
-          {/* Le code promo du moment (Live Engine), avec les places restantes. */}
-          <PromoBanner promo={data.promo} langue={langue} ctaUrl={data.cta_url} />
-
           {data.cover_image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={data.cover_image_url} alt="" className="pl-programme-img"
@@ -256,11 +310,11 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
               {video ? (
                 <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 14, overflow: "hidden", background: "#000" }}>
                   {video.kind === "iframe" ? (
-                    <iframe title={titre ?? "Cours"} src={video.src} loading="lazy"
+                    <iframe id="pl-free-video" title={titre ?? "Cours"} src={video.src} loading="lazy"
                       allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} />
                   ) : (
-                    <video src={video.src} controls playsInline preload="metadata"
+                    <video ref={videoRef} src={video.src} controls playsInline preload="metadata"
                       style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
                   )}
                 </div>
@@ -272,6 +326,11 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
               ) : null}
             </section>
           ) : null}
+
+          {/* Le code promo du moment (Live Engine) — affiché SOUS la vidéo, et
+              seulement après un vrai visionnage (10 min OU 80 % de la vidéo).
+              Promo inactive → PromoBanner rend null (comportement inchangé). */}
+          {promoOk ? <PromoBanner promo={data.promo} langue={langue} ctaUrl={data.cta_url} /> : null}
 
           {/* Le test de niveau (le même que sur la page Offres) : il recommande le
               niveau adapté avec le lien exact pour s'inscrire. */}
