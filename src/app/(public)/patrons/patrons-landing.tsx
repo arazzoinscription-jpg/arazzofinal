@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState } from "react";
 import { submitPatronOrder } from "@/app/actions/patron-order";
 import { submitCustomPatronOrder } from "@/app/actions/patron-custom-order";
-import { trackLead, trackPurchase } from "@/lib/track-conversion";
+import { trackLead, trackPaymentProofSubmitted } from "@/lib/track-conversion";
 
 type Patron = Record<string, any>;
 
@@ -301,8 +301,9 @@ function PurchaseModal({ patron, settings, paymentMethods, onClose }: {
         utm: utmDeLURL(),
       });
       if (!res.ok) { setErreur(res.error || "Envoi impossible."); return; }
-      // Conversion : patron acheté (preuve envoyée) → Purchase (Meta + Google).
-      trackPurchase({ content_name: patron.titre ?? "Patron", value: total ?? undefined });
+      // Conversion : preuve ENVOYÉE (en attente de vérification) → PaymentProofSubmitted.
+      // Ce n'est PAS un achat : le Purchase part à la validation admin (Arazzo OS, CAPI).
+      trackPaymentProofSubmitted({ content_name: patron.titre ?? "Patron", content_category: "patron", value: total ?? undefined });
       setStep("done");
     } catch { setErreur("Envoi impossible."); } finally { setBusy(false); }
   }

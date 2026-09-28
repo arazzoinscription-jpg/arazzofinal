@@ -19,7 +19,7 @@ import LevelTestPopup from "@/lib/level-test-popup";
 import { submitDeliveryOrder } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
 import { submitOnlineEnrollment } from "@/app/actions/online-enrollment";
-import { trackLead, trackPurchase } from "@/lib/track-conversion";
+import { trackLead, trackPaymentProofSubmitted } from "@/lib/track-conversion";
 
 type CourseView = {
   courseId: string;
@@ -265,8 +265,9 @@ export default function FormationLanding({ data, textes }: {
         utm: utmDeLURL(),
       });
       if (r.ok) {
-        // Conversion : preuve de paiement envoyée → Purchase (Meta + Google).
-        trackPurchase({ content_name: data.name, value: Number(valeurs.amount) || data.pack_prix || undefined });
+        // Conversion : preuve ENVOYÉE (en attente de vérification) → PaymentProofSubmitted.
+        // Ce n'est PAS un achat : le Purchase part à la validation admin (Arazzo OS, CAPI).
+        trackPaymentProofSubmitted({ content_name: data.name, content_category: "formation", value: Number(valeurs.amount) || data.pack_prix || undefined });
         setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErreur(r.error === "validation_failed" ? "Merci de vérifier vos informations." : (r.error || "Envoi impossible. Réessayez."));

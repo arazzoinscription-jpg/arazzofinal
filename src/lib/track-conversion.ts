@@ -3,9 +3,26 @@
 // cookies (même règle que MetaPixel/GoogleTag du layout). Aucune donnée
 // personnelle envoyée ; sans consentement/sans pixel, c'est un no-op silencieux.
 
-import { pixelEvent } from "@/lib/pixel-events";
+import { pixelEvent, pixelCustom } from "@/lib/pixel-events";
 
 type Params = { value?: number | null; currency?: string; content_name?: string };
+type ProofParams = Params & { content_category?: "formation" | "patron"; order_id?: string };
+
+/**
+ * PREUVE de paiement CCP/BaridiMob ENVOYÉE — événement custom `PaymentProofSubmitted`.
+ * Signifie « preuve envoyée, en attente de vérification » : ce n'est PAS un achat.
+ * Le vrai `Purchase` n'est émis qu'à la validation admin (côté Arazzo OS, CAPI).
+ */
+export function trackPaymentProofSubmitted(p: ProofParams = {}) {
+  const currency = p.currency || "DZD";
+  pixelCustom("PaymentProofSubmitted", {
+    content_name: p.content_name,
+    ...(p.content_category ? { content_category: p.content_category } : {}),
+    value: Number(p.value) || undefined,
+    currency,
+    ...(p.order_id ? { order_id: p.order_id } : {}),
+  });
+}
 
 /** Un prospect / une inscription initiée (formulaire envoyé, sans paiement). */
 export function trackLead(p: Params = {}) {
