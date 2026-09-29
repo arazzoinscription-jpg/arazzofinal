@@ -177,12 +177,13 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
   const video = lecteurVideo(data.video_url);
 
   // --- Bloc promo affiché SEULEMENT après un vrai visionnage -----------------
-  // Seuil = QUELQUES SECONDES de lecture réelle (PROMO_APRES_SECONDES), ou 80 % de
-  // la vidéo si elle est plus courte que ça. On cumule le temps RÉELLEMENT lu (les
+  // Seuil = 3 SECONDES de lecture réelle (PROMO_APRES_SECONDES), pas de règle des
+  // 80 % (seulement plafonné à la durée si la vidéo est plus courte que le seuil).
+  // On cumule le temps RÉELLEMENT lu (les
   // pauses n'émettent aucun tick ; un seek = saut trop grand, ignoré). Pas de vidéo
   // → comportement d'avant (promo visible). Le déblocage est mémorisé par visiteur
   // (localStorage) pour survivre à un rafraîchissement.
-  const PROMO_APRES_SECONDES = 10;
+  const PROMO_APRES_SECONDES = 3;
   const promoKey = `arazzo_free_promo_${slug}`;
   const [promoOk, setPromoOk] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -195,7 +196,7 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
     let watched = 0; let last = -1; let duration = 0; let atteint = false;
     const debloquer = () => {
       if (atteint) return;
-      const seuil = duration ? Math.min(PROMO_APRES_SECONDES, duration * 0.8) : PROMO_APRES_SECONDES;
+      const seuil = duration ? Math.min(PROMO_APRES_SECONDES, duration) : PROMO_APRES_SECONDES;
       if (watched >= seuil) {
         atteint = true;
         try { window.localStorage.setItem(promoKey, "1"); } catch { /* ignore */ }
