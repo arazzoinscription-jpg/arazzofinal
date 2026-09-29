@@ -61,6 +61,22 @@ async function loadComposedPack(slug: string) {
   const d = (row?.data ?? null) as any;
   if (!d) return null;
 
+  // Cas NOUVEAU (recommandé) : l'OS pousse les formations DÉJÀ RÉSOLUES (titre +
+  // prix) + valeur/économie. On les affiche directement, sans dépendre de la table
+  // du LMS ni des slugs. Repli sur l'ancienne résolution par member_slugs sinon.
+  if (Array.isArray(d.pack_courses) && d.pack_courses.length) {
+    const pack_courses = d.pack_courses.map((c: any, i: number) => ({
+      id: c.slug || c.id || `m${i}`,
+      title: c.title || c.slug || "Formation",
+      prix: c.prix ?? c.price_amount ?? null,
+      slug: c.slug ?? null,
+    }));
+    const prix = Number(d.price_amount) || 0;
+    const cumul = Number(d.pack_cumul) || pack_courses.reduce((s: number, c: any) => s + (Number(c.prix) || 0), 0);
+    const eco = Number(d.pack_eco) || (cumul > prix ? cumul - prix : 0);
+    return { d, pack_courses, cumul, prix, eco };
+  }
+
   const members: string[] = Array.isArray(d.member_slugs) ? d.member_slugs : [];
   const ids = members.map((m) => NIVEAUX[m]).filter(Boolean);
   let courses: Course[] = [];
