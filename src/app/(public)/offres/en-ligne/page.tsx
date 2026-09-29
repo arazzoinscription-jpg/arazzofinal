@@ -48,7 +48,7 @@ export default async function Page() {
     const pub = createPublicClient();
     const { data } = await pub.from("pack_snapshots").select("slug, data");
     for (const row of ((data as { slug: string; data: Record<string, any> | null }[]) ?? [])) {
-      if (!row.slug || !row.data || connus.has(row.slug)) continue;
+      if (!row.slug || !row.data || row.data.active === false || connus.has(row.slug)) continue;
       connus.add(row.slug);
       const members = Array.isArray(row.data.member_slugs) ? row.data.member_slugs.join(" + ") : null;
       packs.push({ slug: row.slug, name: row.data.name || row.slug, sous: members, prix: daPrice(row.data.price_amount) });

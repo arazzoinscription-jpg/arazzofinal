@@ -54,7 +54,7 @@ export default async function Page() {
     const { data: packSnaps } = await pub.from("pack_snapshots").select("slug, data");
     const connus = new Set(packs.map((p) => p.slug));
     for (const row of ((packSnaps as { slug: string; data: Record<string, any> | null }[]) ?? [])) {
-      if (!row.slug || !row.data || connus.has(row.slug)) continue;
+      if (!row.slug || !row.data || row.data.active === false || connus.has(row.slug)) continue;
       packs.push({ slug: row.slug, name: (row.data.name as string) || row.slug, prix: daPrice(row.data.price_amount) });
     }
   } catch { /* best-effort : si rien n'est poussé, la section reste vide */ }

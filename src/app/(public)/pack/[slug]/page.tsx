@@ -58,7 +58,7 @@ async function loadComposedPack(slug: string) {
   const pub = createPublicClient();
   const { data: row } = await pub.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
   const d = (row?.data ?? null) as any;
-  if (!d) return null;
+  if (!d || d.active === false) return null; // retiré côté OS → n'existe plus
 
   // Cas NOUVEAU (recommandé) : l'OS pousse les formations DÉJÀ RÉSOLUES (titre +
   // prix) + valeur/économie. On les affiche directement, sans dépendre de la table
@@ -109,7 +109,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   if (!nom) {
     const pub = createPublicClient();
     const { data: snap } = await pub.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
-    nom = (snap?.data as any)?.name;
+    const sd = snap?.data as any;
+    nom = sd && sd.active !== false ? sd.name : undefined;
   }
   return { title: `${nom ? `${nom} — ` : ""}Pack — Arazzo Formation` };
 }
