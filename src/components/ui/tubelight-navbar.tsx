@@ -76,7 +76,9 @@ export function NavBar({ items, className, lampId = "lamp", compact = false }: N
                 "relative cursor-pointer flex items-center justify-center transition-colors",
                 compact
                   ? "flex-col px-2.5 py-1.5 rounded-full"
-                  : "flex-1 sm:flex-none flex-col sm:flex-row gap-0.5 sm:gap-2 text-[11px] sm:text-sm font-semibold px-1.5 sm:px-6 py-2 rounded-xl sm:rounded-full",
+                  // min-w-0 : sans lui, 6 entrées ne peuvent pas rétrécir sous la largeur de
+                  // leur mot le plus long (« Communauté ») et la dernière sort de l'écran.
+                  : "flex-1 min-w-0 sm:flex-none flex-col sm:flex-row gap-0.5 sm:gap-2 text-[10.5px] min-[400px]:text-[11px] sm:text-sm font-semibold px-0.5 min-[400px]:px-1.5 sm:px-6 py-2 rounded-xl sm:rounded-full",
                 item.color
                   ? item.color
                   : "text-violet-950/70 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
@@ -84,7 +86,7 @@ export function NavBar({ items, className, lampId = "lamp", compact = false }: N
               )}
             >
               <Icon size={compact ? 19 : 22} strokeWidth={2.5} className={compact ? "" : "md:hidden"} />
-              {!compact && <span className="md:hidden">{item.name}</span>}
+              {!compact && <span className="md:hidden max-w-full truncate">{item.name}</span>}
               <span className={compact ? "hidden" : "hidden md:inline"}>{item.name}</span>
               {isActive && (
                 <motion.div

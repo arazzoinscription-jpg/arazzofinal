@@ -402,14 +402,19 @@ export default function LevelTestPopup({
               <div>
                 <h3 className="pl-h2" style={{ fontSize: "1.2rem", marginTop: 0 }}>{cur.q}</h3>
                 {cur.description ? <p className="pl-slots-hint">{cur.description}</p> : null}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+                {/* Une question à DEUX réponses : les deux cadres côte à côte (gauche /
+                    droite), même sur téléphone. Sinon : une brique par ligne. */}
+                <div style={cur.options.length === 2
+                  ? { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, marginTop: 8 }
+                  : { display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
                   {cur.options.map((o) => {
                     const on = String(answers[cur.key]) === String(o.value);
                     return (
                       <button type="button" key={String(o.value)} aria-pressed={on}
                         onClick={() => { marquerDebut(); setAnswers((a) => ({ ...a, [cur.key]: String(o.value) })); }}
                         style={{
-                          textAlign: rtl ? "right" : "left", padding: "14px 16px", borderRadius: 16,
+                          textAlign: rtl ? "right" : "left", padding: cur.options.length === 2 ? "12px 10px" : "14px 16px", borderRadius: 16,
+                          overflowWrap: "anywhere",
                           cursor: "pointer", border: `2px solid ${on ? "var(--thread, #5B16F9)" : "rgba(0,0,0,.12)"}`,
                           background: on ? "rgba(0,0,0,.03)" : "transparent",
                           color: "inherit", font: "inherit", fontWeight: on ? 700 : 500,
@@ -439,14 +444,15 @@ export default function LevelTestPopup({
               /* Question « mode » — affichée EXACTEMENT comme les autres (briques). */
               <div>
                 <h3 className="pl-h2" style={{ fontSize: "1.2rem", marginTop: 0 }}>{t.modeTitle}</h3>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+                {/* En ligne (gauche) / présentiel (droite) : côte à côte, même sur téléphone. */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, marginTop: 8 }}>
                   {([["online", t.modeOnline, t.modeOnlineSub], ["presentiel", t.modePresentiel, t.modePresentielSub]] as const).map(([val, label, sub]) => {
                     const on = mode === val;
                     return (
                       <button type="button" key={val} aria-pressed={on}
                         onClick={() => { marquerDebut(); setMode(val); }}
                         style={{
-                          textAlign: rtl ? "right" : "left", padding: "14px 16px", borderRadius: 16,
+                          textAlign: rtl ? "right" : "left", padding: "12px 10px", borderRadius: 16, overflowWrap: "anywhere",
                           cursor: "pointer", border: `2px solid ${on ? "var(--thread, #5B16F9)" : "rgba(0,0,0,.12)"}`,
                           background: on ? "rgba(0,0,0,.03)" : "transparent",
                           color: "inherit", font: "inherit", fontWeight: on ? 700 : 500,

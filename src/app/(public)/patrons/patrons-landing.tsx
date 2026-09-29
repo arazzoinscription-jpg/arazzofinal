@@ -647,7 +647,14 @@ function PatronsStyles() {
 .pa-pay-note { font-size: .82rem; color: var(--pa-ink3); margin-top: 6px; }
 @media (max-width: 560px) {
   .pa-hero { padding: 40px 16px 84px; }
-  .pa-choix { grid-template-columns: 1fr; }
+  /* Les deux cartes de choix (patron existant / sur mesure) restent CÔTE À CÔTE,
+     en version compacte, même sur téléphone. */
+  .pa-choix { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pa-carte { padding: 16px 10px; min-width: 0; }
+  .pa-carte-ico { font-size: 1.8rem; }
+  .pa-carte h2 { font-size: 1.02rem; overflow-wrap: anywhere; }
+  .pa-carte p { font-size: .8rem; margin-bottom: 12px; overflow-wrap: anywhere; }
+  .pa-carte .pa-cta { width: 100%; padding: 10px 8px; font-size: .84rem; }
   .pa-placement-grid { grid-template-columns: 1fr; }
   .pa-grid { grid-template-columns: 1fr 1fr; }
   .pa-placement { flex-direction: column; align-items: flex-start; text-align: left; }

@@ -282,7 +282,14 @@ export function LandingStyles() {
 .pl-programme-img:hover { transform: translateY(-2px); box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--violet-deep) 60%, transparent); }
 
 .pl-actions { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-bottom: 8px; }
-@media (max-width: 520px) { .pl-actions { grid-template-columns: 1fr; } }
+/* Mobile : les DEUX cadres restent côte à côte (gauche / droite), plus compacts —
+   l'icône passe au-dessus du texte pour tenir dans ~150 px. */
+@media (max-width: 520px) {
+  .pl-actions { gap: 8px; }
+  .pl-actions .pl-ghost { flex-direction: column; justify-content: center; text-align: center; gap: 6px; padding: 12px 8px; min-width: 0; }
+  .pl-actions .pl-ghost strong { font-size: .84rem; line-height: 1.25; overflow-wrap: anywhere; }
+  .pl-actions .pl-ghost small { font-size: .72rem; line-height: 1.3; }
+}
 .pl-ghost {
   display: flex; align-items: center; gap: 12px; text-decoration: none;
   padding: 14px 16px; border-radius: var(--radius);
@@ -348,7 +355,11 @@ export function LandingStyles() {
 .pl-atelier-btn:hover { filter: brightness(1.08); }
 
 .pl-groupes-duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 18px; }
-@media (max-width: 480px) { .pl-groupes-duo { grid-template-columns: 1fr; } }
+/* Mobile : deux cadres côte à côte (au lieu d'un empilement). */
+@media (max-width: 480px) {
+  .pl-groupes-duo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .pl-groupes-duo > * { min-width: 0; font-size: .9em; overflow-wrap: anywhere; }
+}
 
 .pl-fiche {
   padding: 16px 18px; border-radius: var(--radius);
@@ -369,8 +380,7 @@ export function LandingStyles() {
 .pl-methodes legend {
   font-weight: 700; font-size: .98rem; color: var(--violet-deep); padding: 0 0 10px;
 }
-.pl-methodes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media (max-width: 480px) { .pl-methodes-grid { grid-template-columns: 1fr; } }
+.pl-methodes-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .pl-methode {
   display: flex; flex-direction: column; gap: 3px; text-align: start; cursor: pointer;
   padding: 14px 16px; border-radius: var(--radius); font: inherit;
@@ -611,8 +621,7 @@ export function LandingStyles() {
   background: linear-gradient(180deg, color-mix(in srgb, var(--brass) 8%, var(--panel)), var(--panel));
   border-radius: var(--radius); padding: 16px 18px;
 }
-.pl-pack-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0 4px; position: relative; }
-@media (max-width: 460px) { .pl-pack-duo { grid-template-columns: 1fr; } }
+.pl-pack-duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 6px 0 4px; position: relative; }
 .pl-pack-carte {
   position: relative; display: flex; flex-direction: column; gap: 6px;
   padding: 16px 14px 14px; border-radius: var(--radius); text-align: center;
@@ -636,7 +645,6 @@ export function LandingStyles() {
 }
 .pl-pack-duo:not(:has(.pl-pack-carte:nth-child(2)))::before,
 .pl-pack-duo:has(.pl-pack-carte:nth-child(3))::before { display: none; }
-@media (max-width: 460px) { .pl-pack-duo::before { display: none; } }
 .pl-pack-offre {
   margin-top: 14px; padding: 14px 16px; border-radius: var(--radius); text-align: center;
   background: color-mix(in srgb, var(--brass) 8%, var(--panel));
@@ -676,6 +684,24 @@ export function LandingStyles() {
 }
 @media (max-width: 380px) {
   .pl-slots { grid-template-columns: 1fr; }
+}
+
+/* --- Mobile : les paires de cadres restent CÔTE À CÔTE (gauche / droite) -----
+   Placé APRÈS toutes les règles de base pour les surcharger (même spécificité). */
+@media (max-width: 480px) {
+  /* « CCP / BaridiMob » (gauche) et « fiche d'inscription » (droite). */
+  .pl-methodes-grid { gap: 8px; }
+  .pl-methode { padding: 10px 9px; min-width: 0; overflow-wrap: anywhere; }
+  .pl-methode strong { font-size: .82rem; line-height: 1.25; }
+  .pl-methode small { font-size: .7rem; line-height: 1.3; }
+  /* Les deux formations d'un pack, avec le « + » entre elles. */
+  .pl-packbox { padding: 14px 10px; }
+  .pl-pack-duo { gap: 10px; }
+  .pl-pack-carte { padding: 14px 8px 10px; gap: 4px; min-width: 0; }
+  .pl-pack-carte-t { font-size: .8rem; overflow-wrap: anywhere; }
+  .pl-pack-carte-prix { font-size: .78rem; }
+  .pl-pack-carte-lien { font-size: .72rem; }
+  .pl-pack-duo::before { width: 26px; height: 26px; font-size: 1rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pl-card > *, .pl-hero-in > * { animation: none; }

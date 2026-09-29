@@ -135,16 +135,22 @@ export default function PromoBanner({
 
       {/* Deux choix pour s'inscrire : faire le test de niveau, OU voir toutes les
           formations en ligne (lien vert). */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+      {/* Les deux boutons côte à côte (gauche / droite), même sur téléphone. */}
+      <div style={{
+        display: "grid", gap: 8, marginTop: 12,
+        gridTemplateColumns: onTest ? "repeat(2, minmax(0, 1fr))" : "1fr",
+      }}>
         {onTest ? (
-          <button type="button" onClick={onTest} className="pl-testbtn" style={{ margin: 0 }}>
+          <button type="button" onClick={onTest} className="pl-testbtn"
+            style={{ margin: 0, justifyContent: "center", textAlign: "center", padding: "10px 8px", fontSize: ".86rem", lineHeight: 1.25, overflowWrap: "anywhere" }}>
             {t.goTest}
           </button>
         ) : null}
         <a href={ctaUrl || "/offres/en-ligne"} style={{
-          display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none",
-          fontWeight: 700, fontSize: ".95rem", color: "#fff", background: "#128a4c",
-          padding: "10px 18px", borderRadius: 999,
+          display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none",
+          textAlign: "center", lineHeight: 1.25, overflowWrap: "anywhere",
+          fontWeight: 700, fontSize: ".86rem", color: "#fff", background: "#128a4c",
+          padding: "10px 8px", borderRadius: 999,
         }}>
           {t.goOnline}
         </a>
