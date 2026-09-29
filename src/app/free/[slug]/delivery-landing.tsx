@@ -18,6 +18,7 @@ import { submitDeliveryLead } from "@/app/actions/delivery-lead";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
 import { pixelEvent } from "@/lib/pixel-events";
+import { osTrackEvent } from "@/lib/os-track";
 import PromoBanner from "./promo-banner";
 
 type PageView = Record<string, any>;
@@ -117,6 +118,13 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
       if (viaEmail) { try { window.localStorage.setItem(`delivery_sent_${slug}`, "1"); } catch { /* ignore */ } }
       if (viaEmail || window.localStorage.getItem(`delivery_sent_${slug}`)) setDebloque(true);
     } catch { /* stockage indisponible : on reste sur les défauts */ }
+  }, [slug]);
+
+  // Vue du cadeau → « view_content » vers l'OS (/tracking), une seule fois. Le
+  // Pixel ViewContent (Meta) est géré à part par <ViewContentPixel/>.
+  useEffect(() => {
+    osTrackEvent("view_content", { category: "cours_gratuit", name: data.title ?? slug });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   function changerLangue() {

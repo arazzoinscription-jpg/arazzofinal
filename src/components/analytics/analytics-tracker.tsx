@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 /** Identifiant de session (persistant côté navigateur) pour regrouper les visites. */
-function getSessionId(): string {
+export function getSessionId(): string {
   try {
     let s = localStorage.getItem("arazzo_sid");
     if (!s) {

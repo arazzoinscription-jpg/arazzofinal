@@ -23,6 +23,7 @@
 import { useEffect, useRef, useState } from "react";
 import { submitLevelTest } from "@/app/actions/level-test";
 import { pixelEvent, pixelCustom } from "@/lib/pixel-events";
+import { osTrackEvent } from "@/lib/os-track";
 
 type PublicQuestion = {
   key: string; kind: string; q: string; description?: string | null;
@@ -126,6 +127,8 @@ export default function LevelTestPopup({
     pixelCustom("StartTest",
       { content_name: test?.title || slug, content_category: "test_niveau" },
       { name: "start_test", params: { test: slug } });
+    // …et vers l'OS (/tracking), en first-party : « level_test_started ».
+    osTrackEvent("level_test_started", { test: slug });
   }
 
   // Niveau normalisé N1/N2/N3 à partir du résultat (clé, ou URL de reco
@@ -204,6 +207,8 @@ export default function LevelTestPopup({
       content_category: "formation",
       content_name: nom,
     });
+    // …et vers l'OS (/tracking) : « level_result_viewed » avec niveau + format.
+    osTrackEvent("level_result_viewed", { level: niveau, format });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultat, mode]);
 
@@ -237,6 +242,11 @@ export default function LevelTestPopup({
           ...(niveau ? { level: niveau } : {}),
           ...(res.result?.level_label ? { level_label: res.result.level_label } : {}),
         }, { name: "test_completed", params: { level: niveau ?? undefined, level_label: res.result?.level_label ?? undefined } });
+        // …et vers l'OS (/tracking) : « level_test_completed » avec le niveau.
+        osTrackEvent("level_test_completed", {
+          ...(niveau ? { level: niveau } : {}),
+          ...(res.result?.level_label ? { level_label: res.result.level_label } : {}),
+        });
       }
       // Pixel : un test terminé AVEC des coordonnées est aussi un prospect (Lead).
       if (email || phone) {
