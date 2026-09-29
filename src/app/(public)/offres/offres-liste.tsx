@@ -18,17 +18,19 @@ const T: Record<"ar" | "fr", any> = {
     dir: "rtl", toggle: "Français", back: "← كل العروض",
     presentiel: { eyebrow: "🏫 تكوينات حضورية · سطيف", titre: "التكوينات الحضورية", lede: "كل تكويناتنا الحضورية بسطيف — اختاري المستوى الذي يناسبكِ." },
     online: { eyebrow: "🖥️ تكوينات عن بُعد", titre: "التكوينات عن بُعد", lede: "كل تكويناتنا عن بُعد — عبر المنصّة، بإيقاعكِ، وصول مدى الحياة." },
+    packs: "الحزم (Packs) بسعر مخفّض", packsSub: "تكوينان معًا · بسعر مخفّض", onlineTitre: "التكوينات عن بُعد",
     empty: "لا توجد عروض متاحة حاليًا.", pied: "Arazzo · مدرسة الخياطة",
   },
   fr: {
     dir: "ltr", toggle: "العربية", back: "← Toutes les offres",
     presentiel: { eyebrow: "🏫 Présentiel · Sétif", titre: "Formations en présentiel", lede: "Toutes nos formations au centre à Sétif — choisissez le niveau qui vous convient." },
     online: { eyebrow: "🖥️ En ligne", titre: "Formations en ligne", lede: "Toutes nos formations à distance — sur la plateforme, à votre rythme, accès à vie." },
+    packs: "Packs à prix réduit", packsSub: "Deux formations réunies · à prix réduit", onlineTitre: "Formations en ligne",
     empty: "Aucune offre disponible pour le moment.", pied: "Arazzo · École de couture",
   },
 };
 
-export default function OffreListe({ kind, items }: { kind: "presentiel" | "online"; items: Item[] }) {
+export default function OffreListe({ kind, items, packs = [] }: { kind: "presentiel" | "online"; items: Item[]; packs?: Item[] }) {
   const [langue, setLangue] = useState<"ar" | "fr">("fr");
 
   useEffect(() => {
@@ -78,6 +80,28 @@ export default function OffreListe({ kind, items }: { kind: "presentiel" | "onli
           <a className="pl-ghost" href="/offres" style={{ marginBottom: 14 }}>
             <span style={{ flex: 1 }}><strong>{t.back}</strong></span>
           </a>
+
+          {/* Packs à prix réduit (en ligne) — chacun → sa page /pack/[slug] avec le détail. */}
+          {kind === "online" && packs.length ? (
+            <section className="pl-section" style={{ marginBottom: 8 }}>
+              <h2 className="pl-h2">🎁 {t.packs}</h2>
+              <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.packsSub}</p>
+              {packs.map((o) => (
+                <a key={o.slug} className="pl-ghost" href={`/pack/${o.slug}`} style={{ marginBottom: 10 }}>
+                  <span className="pl-ghost-ico">🎁</span>
+                  <span style={{ flex: 1 }}>
+                    <strong>{o.name}</strong>
+                    {[o.sous, o.prix].filter(Boolean).length ? <small>{[o.sous, o.prix].filter(Boolean).join(" · ")}</small> : null}
+                  </span>
+                  <span className="pl-ghost-ico" aria-hidden="true">→</span>
+                </a>
+              ))}
+            </section>
+          ) : null}
+
+          {kind === "online" && packs.length ? (
+            <h2 className="pl-h2" style={{ marginTop: 6 }}>🖥️ {t.onlineTitre}</h2>
+          ) : null}
 
           {items.length ? items.map((o) => (
             <a key={o.slug} className={`pl-ghost${vert ? " pl-ghost-alt" : ""}`} href={`${base}${o.slug}`}

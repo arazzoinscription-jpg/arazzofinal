@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import OffreListe, { type Item } from "../offres-liste";
 
 // Page SÉPARÉE « Formations en ligne » — liste les 3 niveaux (cours du LMS),
@@ -29,5 +30,30 @@ export default async function Page() {
     return { slug: n.slug, name: c?.titre_fr || n.slug, sous: n.sous, prix: daPrice(c?.prix_dzd) };
   });
 
-  return <OffreListe kind="online" items={items} />;
+  // Packs à prix réduit — natifs (course_packs) + COMPOSÉS dans l'OS (pack_snapshots).
+  // Chacun → sa page /pack/[slug] (détail des niveaux + prix barré). Comme le hub OS.
+  const packs: Item[] = [];
+  const connus = new Set<string>();
+  try {
+    const { data } = await supabase
+      .from("course_packs").select("slug, titre_fr, prix_dzd").eq("published", true)
+      .order("created_at", { ascending: false });
+    for (const p of ((data as { slug: string | null; titre_fr: string | null; prix_dzd: number | null }[]) ?? [])) {
+      if (!p.slug || connus.has(p.slug)) continue;
+      connus.add(p.slug);
+      packs.push({ slug: p.slug, name: p.titre_fr || "Pack", prix: daPrice(p.prix_dzd) });
+    }
+  } catch { /* best-effort */ }
+  try {
+    const pub = createPublicClient();
+    const { data } = await pub.from("pack_snapshots").select("slug, data");
+    for (const row of ((data as { slug: string; data: Record<string, any> | null }[]) ?? [])) {
+      if (!row.slug || !row.data || connus.has(row.slug)) continue;
+      connus.add(row.slug);
+      const members = Array.isArray(row.data.member_slugs) ? row.data.member_slugs.join(" + ") : null;
+      packs.push({ slug: row.slug, name: row.data.name || row.slug, sous: members, prix: daPrice(row.data.price_amount) });
+    }
+  } catch { /* best-effort : si rien n'est poussé, pas de pack */ }
+
+  return <OffreListe kind="online" items={items} packs={packs} />;
 }

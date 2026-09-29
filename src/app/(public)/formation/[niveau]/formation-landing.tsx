@@ -16,7 +16,7 @@
 import { useEffect, useState } from "react";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import LevelTestPopup from "@/lib/level-test-popup";
-import { submitDeliveryOrder } from "@/app/actions/rejoindre";
+import { submitDeliveryOrder, submitDeliveryOrderPack } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
 import { createOnlineEnrollment, attachOnlineProof } from "@/app/actions/online-enrollment";
 import { validateOnlineCoupon } from "@/app/actions/validate-coupon";
@@ -265,15 +265,28 @@ export default function FormationLanding({ data, textes }: {
     if (valeurs.address.trim().length < 4) { setErreur(t.errAddress); return; }
     setEnvoi(true);
     try {
-      const r = await submitDeliveryOrder({
-        courseId: data.courseId,
-        full_name: valeurs.full_name.trim(),
-        email: valeurs.email.trim(),
-        phone: valeurs.phone.trim(),
-        wilaya: valeurs.wilaya.trim() || null,
-        address: valeurs.address.trim(),
-        coupon_code: coupon.trim() || undefined,
-      });
+      // Pack composé : UNE commande COD au prix du pack, avec toutes les formations
+      // membres. Sinon : COD mono-cours classique.
+      const r = data.is_pack
+        ? await submitDeliveryOrderPack({
+          courseIds: (data.pack_courses ?? []).map((c) => c.id).filter(Boolean),
+          total: Number(data.pack_prix) || 0,
+          packTitle: data.name,
+          full_name: valeurs.full_name.trim(),
+          email: valeurs.email.trim(),
+          phone: valeurs.phone.trim(),
+          wilaya: valeurs.wilaya.trim() || null,
+          address: valeurs.address.trim(),
+        })
+        : await submitDeliveryOrder({
+          courseId: data.courseId,
+          full_name: valeurs.full_name.trim(),
+          email: valeurs.email.trim(),
+          phone: valeurs.phone.trim(),
+          wilaya: valeurs.wilaya.trim() || null,
+          address: valeurs.address.trim(),
+          coupon_code: coupon.trim() || undefined,
+        });
       if (r.ok) {
         trackLead({ content_name: data.name }); // Conversion : demande « fiche » envoyée → Lead.
         setFait("delivery");
@@ -546,13 +559,11 @@ export default function FormationLanding({ data, textes }: {
                       <strong>{t.methodPaid}</strong>
                       <small>{t.methodPaidSub}</small>
                     </button>
-                    {!data.is_pack ? (
-                      <button type="button" className="pl-methode" data-on={methode === "delivery"}
-                        onClick={() => setMethode("delivery")}>
-                        <strong>{t.methodDelivery}</strong>
-                        <small>{t.methodDeliverySub}</small>
-                      </button>
-                    ) : null}
+                    <button type="button" className="pl-methode" data-on={methode === "delivery"}
+                      onClick={() => setMethode("delivery")}>
+                      <strong>{t.methodDelivery}</strong>
+                      <small>{t.methodDeliverySub}</small>
+                    </button>
                   </div>
                 </fieldset>
 

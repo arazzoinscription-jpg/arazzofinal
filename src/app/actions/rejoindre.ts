@@ -343,6 +343,64 @@ export async function submitDeliveryOrder(input: unknown) {
   return { ok: true as const, orderId: order.id };
 }
 
+const DeliveryPackSchema = z.object({
+  full_name: z.string().trim().min(2, "Nom complet requis."),
+  email: z.string().email("Email invalide."),
+  phone: z.string().trim().min(6, "Téléphone requis."),
+  wilaya: z.string().trim().optional().nullable(),
+  address: z.string().trim().min(4, "Adresse de livraison requise."),
+  courseIds: z.array(z.string().uuid()).min(1, "Pack invalide."),
+  total: z.number().nonnegative(),
+  packTitle: z.string().trim().optional().nullable(),
+});
+
+/**
+ * Comme `submitDeliveryOrder`, mais pour un PACK composé : UNE commande COD au
+ * prix du pack, avec PLUSIEURS `order_items` (les formations membres). Sert le
+ * bouton « fiche d'inscription » sur la page /pack/[slug].
+ */
+export async function submitDeliveryOrderPack(input: unknown) {
+  const parsed = DeliveryPackSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
+  const { full_name, email, phone, wilaya, address, courseIds, total, packTitle } = parsed.data;
+  const cleanEmail = email.trim().toLowerCase();
+
+  const admin = createAdminClient();
+  const { data: courses } = await admin
+    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription").in("id", courseIds);
+  const dispo = (courses ?? []).filter((c) => c.published && c.visible_inscription);
+  if (!dispo.length) return { ok: false as const, error: "Pack indisponible." };
+
+  const { data: order, error: orderErr } = await admin
+    .from("orders")
+    .insert({
+      status: "pending", full_name, email: cleanEmail, phone,
+      address, wilaya: wilaya ?? null, country: "Algérie",
+      subtotal: total, discount: 0, total, payment_method: "cod",
+    })
+    .select("id").single();
+  if (orderErr || !order) return { ok: false as const, error: orderErr?.message ?? "Inscription impossible." };
+
+  const items = dispo.map((c) => ({ order_id: order.id, course_id: c.id, title: c.titre_fr, price: 0, quantity: 1 }));
+  const { error: itemErr } = await admin.from("order_items").insert(items);
+  if (itemErr) { await admin.from("orders").delete().eq("id", order.id); return { ok: false as const, error: "Inscription impossible." }; }
+
+  try {
+    const html = `
+      <h2 style="font-family:Georgia,serif;color:#1b0c3c;margin:0 0 8px">Inscription enregistrée ✅</h2>
+      <p style="color:#4b5563">Bonjour ${full_name}, votre demande pour le pack « <strong>${packTitle || "Pack"}</strong> » est bien reçue (paiement à la livraison).</p>
+      <ol style="color:#4b5563;line-height:1.8">
+        <li>📞 Vous recevrez un <strong>appel de confirmation</strong>.</li>
+        <li>📦 Le transporteur vous remet une <strong>fiche avec un code-barres d'accès</strong>.</li>
+        <li>💵 Vous <strong>payez le transporteur</strong> → votre accès à toutes les formations du pack est activé.</li>
+      </ol>
+      <p style="color:#9ca3af;font-size:13px">Merci de votre confiance — Arazzo Formation.</p>`;
+    await sendEmail({ to: cleanEmail, category: "welcome", force: true, subject: "📦 Inscription pack Arazzo — paiement à la livraison", html });
+  } catch { /* best-effort */ }
+
+  return { ok: true as const, orderId: order.id };
+}
+
 /** Trouve la commande en attente la plus récente pour un email (étape 2). */
 async function latestPendingOrder(admin: ReturnType<typeof createAdminClient>, email: string) {
   const { data } = await admin
