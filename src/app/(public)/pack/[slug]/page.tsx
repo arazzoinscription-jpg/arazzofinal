@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { getLandingTexts } from "@/lib/landing-texts";
 import FormationLanding from "../../formation/[niveau]/formation-landing";
-import PackLanding from "./pack-landing";
 
 // Landing PACK (24/7). Deux sources :
 //   1) Pack COMPOSÉ dans l'OS (`pack_snapshots`, ex. « pack-couture-1-2 ») → rendu
@@ -100,16 +99,76 @@ async function loadComposedPack(slug: string) {
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const slug = decodeSlug(params.slug);
-  const pub = createPublicClient();
-  const { data: snap } = await pub.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
-  const nom = (snap?.data as any)?.name;
+  // Nom du pack : d'abord le pack LMS (source de vérité), sinon l'instantané OS.
+  let nom: string | undefined;
+  try {
+    const supabase = await createClient();
+    const { data: p } = await supabase.from("course_packs").select("titre_fr").eq("slug", slug).eq("published", true).maybeSingle();
+    nom = (p as { titre_fr?: string | null } | null)?.titre_fr ?? undefined;
+  } catch { /* repli ci-dessous */ }
+  if (!nom) {
+    const pub = createPublicClient();
+    const { data: snap } = await pub.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
+    nom = (snap?.data as any)?.name;
+  }
   return { title: `${nom ? `${nom} — ` : ""}Pack — Arazzo Formation` };
+}
+
+// Jauge de places EN DIRECT depuis Arazzo OS (`GET /v1/public/formations/<slug>`),
+// qui sait résoudre un pack du LMS. Best-effort : OS injoignable → pas de jauge
+// (jamais une erreur). Aucune donnée inventée.
+async function seatsDepuisOs(slug: string): Promise<{ total?: number; taken?: number; interested?: number } | null> {
+  const base = (process.env.ARAZZO_OS_URL || "").replace(/\/$/, "");
+  if (!base) return null;
+  const controller = new AbortController();
+  const minuteur = setTimeout(() => controller.abort(), 3500);
+  try {
+    const res = await fetch(`${base}/v1/public/formations/${encodeURIComponent(slug)}`, {
+      signal: controller.signal, cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const j = await res.json().catch(() => null);
+    return (j?.data?.seats ?? j?.seats ?? null) as { total?: number; taken?: number; interested?: number } | null;
+  } catch { return null; } finally { clearTimeout(minuteur); }
 }
 
 export default async function Page({ params }: { params: { slug: string } }) {
   const slug = decodeSlug(params.slug);
 
-  // 1) Pack composé dans l'OS → landing en ligne (paiement CCP/preuve → OS).
+  // 1) Pack du LMS (`course_packs`, éditable dans /formateur/packs) → SOURCE DE
+  //    VÉRITÉ. Affiché avec la landing riche (coupon + remise, paiement CCP/BaridiMob
+  //    par e-mail, fiche d'inscription, pop-up programme, jauge de places).
+  const natif = await loadPack(slug);
+  if (natif) {
+    const { pack, courses, cumul, prix, eco } = natif;
+    const [textes, seats] = await Promise.all([getLandingTexts("formation"), seatsDepuisOs(slug)]);
+    return (
+      <FormationLanding
+        textes={textes}
+        data={{
+          courseId: "",
+          niveau: slug,           // l'OS résout ce slug de pack LMS en plusieurs cours
+          name: pack.titre_fr || "Pack",
+          name_ar: pack.titre_ar,
+          tagline: pack.description_fr,
+          price_label: prix ? `${Number(prix).toLocaleString("fr-FR")} DA` : null,
+          price_amount: prix || null,
+          program_url: null,
+          is_pack: true,
+          pack_courses: courses.map((c) => ({
+            id: c.id, title: c.titre_fr || "Formation", prix: c.prix_dzd, slug: c.slug,
+            program_url: c.slug ? `/formations/${c.slug}` : null,
+          })),
+          pack_cumul: cumul,
+          pack_prix: prix,
+          pack_eco: eco,
+          seats,
+        }}
+      />
+    );
+  }
+
+  // 2) Repli : pack composé dans l'OS (synchronisé) → même landing riche.
   const composed = await loadComposedPack(slug);
   if (composed) {
     const { d, pack_courses, cumul, prix, eco } = composed;
@@ -137,21 +196,6 @@ export default async function Page({ params }: { params: { slug: string } }) {
     );
   }
 
-  // 2) Pack natif du LMS → vitrine + achat boutique.
-  const data = await loadPack(slug);
-  if (!data) notFound();
-  const { pack, courses, cumul, prix, eco, buySlug } = data;
-  const textes = await getLandingTexts("pack");
-  return (
-    <PackLanding
-      textes={textes}
-      data={{
-        name: pack.titre_fr || "Pack",
-        name_ar: pack.titre_ar,
-        description: pack.description_fr,
-        courses: courses.map((c) => ({ id: c.id, title: c.titre_fr || "Formation", prix: c.prix_dzd, slug: c.slug })),
-        cumul, prix, eco, buySlug,
-      }}
-    />
-  );
+  // Aucune source (ni pack LMS publié, ni pack OS synchronisé) → introuvable.
+  notFound();
 }
