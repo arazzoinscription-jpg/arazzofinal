@@ -18,7 +18,8 @@ import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitDeliveryOrder } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
-import { submitOnlineEnrollment } from "@/app/actions/online-enrollment";
+import { createOnlineEnrollment, attachOnlineProof } from "@/app/actions/online-enrollment";
+import { validateOnlineCoupon } from "@/app/actions/validate-coupon";
 import { trackLead, trackPaymentProofSubmitted } from "@/lib/track-conversion";
 
 type CourseView = {
@@ -28,6 +29,7 @@ type CourseView = {
   name_ar?: string | null;
   tagline?: string | null;
   price_label?: string | null;
+  price_amount?: number | null;
   sessions_count?: number | null;
   program_url?: string | null;
   // Pack composé (OS) : formations réunies + prix barré → prix pack.
@@ -89,6 +91,7 @@ const T: Record<"ar" | "fr", any> = {
     promoLabel: "كود الهدية / التخفيض", promoPh: "مثال: SARAH500", promoOptional: "(اختياري)",
     consent: "أوافق على أن يتم التواصل معي من طرف Arazzo Formation بخصوص تسجيلي.",
     errConsent: "يرجى الموافقة لكي نتمكن من التواصل معك.",
+    errValidation: "يرجى إدخال اسمك وبريدك الإلكتروني.",
     errAddress: "يرجى إدخال عنوان التوصيل.",
     note: "معلوماتك تبقى خاصة وتُستعمل لتسجيلك فقط.",
     cta: "أريد التسجيل", send: "جارٍ الإرسال…",
@@ -144,6 +147,7 @@ const T: Record<"ar" | "fr", any> = {
     promoLabel: "Code cadeau / promo", promoPh: "Ex. SARAH500", promoOptional: "(optionnel)",
     consent: "J’accepte d’être recontactée par Arazzo Formation au sujet de mon inscription.",
     errConsent: "Merci de cocher la case pour qu’on puisse vous recontacter.",
+    errValidation: "Merci d’indiquer votre prénom et votre e-mail.",
     errAddress: "Merci d’indiquer votre adresse de livraison.",
     note: "Vos informations restent privées et servent à vous inscrire.",
     cta: "Je veux m’inscrire", send: "Envoi…",
@@ -171,6 +175,12 @@ export default function FormationLanding({ data, textes }: {
   const [preuve, setPreuve] = useState<File | null>(null);
   const [accepte, setAccepte] = useState(false);
   const [coupon, setCoupon] = useState("");
+  // Vérification du coupon (moteur OS) : remise + total affichés AVANT de valider.
+  const [couponInfo, setCouponInfo] = useState<any>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
+  // Étape 2 : la demande créée (leadId) + les coordonnées de paiement (CCP/BaridiMob).
+  const [leadId, setLeadId] = useState<string | null>(null);
+  const [payInfo, setPayInfo] = useState<any>(null);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [fait, setFait] = useState<null | "delivery" | "paid">(null);
@@ -187,7 +197,21 @@ export default function FormationLanding({ data, textes }: {
       const g = window.localStorage.getItem(CLE_LANGUE);
       if (g === "fr" || g === "ar") setLangue(g);
     } catch { /* stockage indisponible */ }
+    // Depuis l'e-mail de paiement : `?req=<id>` ouvre DIRECTEMENT l'étape « joindre
+    // le reçu » pour cette demande ; `?methode=fiche` présélectionne la fiche.
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const req = p.get("req");
+      if (req) { setLeadId(req); setEtape("pay"); setAPaye(true); }
+      if (p.get("methode") === "fiche") setMethode("delivery");
+    } catch { /* ignore */ }
   }, []);
+
+  // Prix numérique (pour la remise du coupon et la valeur d'achat).
+  const prixNum = data.price_amount ?? data.pack_prix ?? null;
+  // Total à payer après remise éventuelle.
+  const totalAPayer = (couponInfo?.valid && couponInfo?.discount?.amount_after != null)
+    ? Number(couponInfo.discount.amount_after) : prixNum;
 
   function changerLangue() {
     setLangue((l) => {
@@ -207,11 +231,34 @@ export default function FormationLanding({ data, textes }: {
     setErreur(null);
     if (!accepte) { setErreur(t.errConsent); return; }
     if (methode === "paid") {
-      // En ligne : on ne demande PAS la preuve ici. On passe à l'étape 2, comme l'OS.
-      if (!valeurs.full_name.trim() || !valeurs.email.trim()) { setErreur(t.errConsent); return; }
-      setEtape("pay");
-      setAPaye(false);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (!valeurs.full_name.trim() || !valeurs.email.trim()) { setErreur(t.errValidation); return; }
+      // En ligne : on CRÉE la demande (sans preuve) → un e-mail part avec les infos
+      // de paiement (CCP/BaridiMob) + bouton fiche + bouton confirmer. Puis étape 2.
+      setEnvoi(true);
+      try {
+        const r = await createOnlineEnrollment({
+          level: data.niveau,
+          course_id: data.courseId,
+          full_name: valeurs.full_name.trim(),
+          email: valeurs.email.trim(),
+          phone: valeurs.phone.trim(),
+          wilaya: valeurs.wilaya.trim(),
+          amount: totalAPayer ?? null,
+          coupon_code: coupon.trim() || "",
+          consent: accepte,
+          lang: langue,
+          utm: utmDeLURL(),
+        });
+        if (!r.ok) { setErreur(r.error || "Envoi impossible. Réessayez."); setEnvoi(false); return; }
+        setLeadId(r.leadId);
+        setPayInfo(r.payment ?? null);
+        trackLead({ content_name: data.name }); // demande créée → Lead (navigateur).
+        setEtape("pay");
+        setAPaye(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch {
+        setErreur("Envoi impossible. Réessayez.");
+      } finally { setEnvoi(false); }
       return;
     }
     // Fiche + livraison : demande COD native (paiement à la réception), en un seul temps.
@@ -244,30 +291,22 @@ export default function FormationLanding({ data, textes }: {
   async function envoyerPreuve() {
     setErreur(null);
     if (!preuve) { setErreur(t.errProof); return; }
+    if (!leadId) { setErreur("Session expirée — recommencez l'inscription."); return; }
     setEnvoi(true);
     try {
       const up = await uploadOnlineProof(preuve as File);
       if (!up.ok || !up.path) { setErreur(up.error || "Envoi du reçu échoué."); setEnvoi(false); return; }
-      const r = await submitOnlineEnrollment({
-        level: data.niveau,
-        course_id: data.courseId,
-        full_name: valeurs.full_name.trim(),
-        email: valeurs.email.trim() || "",
-        phone: valeurs.phone.trim() || "",
-        wilaya: valeurs.wilaya.trim() || "",
-        amount: valeurs.amount.trim() || null,
+      // On ATTACHE la preuve à la demande déjà créée (leadId). Arazzo OS la rapatrie et valide.
+      const r = await attachOnlineProof({
+        leadId,
+        proof_path: up.path,
+        amount: valeurs.amount.trim() || totalAPayer || null,
         method: "ccp",
         reference: valeurs.reference.trim() || "",
-        coupon_code: coupon.trim() || "",
-        proof_path: up.path,
-        consent: accepte,
-        lang: langue,
-        utm: utmDeLURL(),
       });
       if (r.ok) {
-        // Conversion : preuve ENVOYÉE (en attente de vérification) → PaymentProofSubmitted.
-        // Ce n'est PAS un achat : le Purchase part à la validation admin (Arazzo OS, CAPI).
-        trackPaymentProofSubmitted({ content_name: data.name, content_category: "formation", value: Number(valeurs.amount) || data.pack_prix || undefined });
+        // Conversion : preuve ENVOYÉE (en attente) → PaymentProofSubmitted (pas un achat).
+        trackPaymentProofSubmitted({ content_name: data.name, content_category: "formation", value: Number(valeurs.amount) || totalAPayer || undefined });
         setFait("paid"); window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErreur(r.error === "validation_failed" ? "Merci de vérifier vos informations." : (r.error || "Envoi impossible. Réessayez."));
@@ -275,6 +314,22 @@ export default function FormationLanding({ data, textes }: {
     } catch {
       setErreur("Envoi impossible. Réessayez.");
     } finally { setEnvoi(false); }
+  }
+
+  // Vérifie le code promo (moteur OS) et affiche la remise + le total AVANT de valider.
+  async function verifierCoupon() {
+    const code = coupon.trim();
+    if (!code) return;
+    setCouponBusy(true); setCouponInfo(null);
+    try {
+      const r = await validateOnlineCoupon({
+        code, slug: data.niveau, amount: prixNum ?? null,
+        email: valeurs.email.trim() || undefined, phone: valeurs.phone.trim() || undefined,
+      });
+      setCouponInfo(r.ok ? r.result : { valid: false, message: r.error || "Code invalide." });
+    } catch {
+      setCouponInfo({ valid: false, message: "Vérification impossible." });
+    } finally { setCouponBusy(false); }
   }
 
   const nomAffiche = (langue === "ar" && data.name_ar) ? data.name_ar : data.name;
@@ -330,7 +385,33 @@ export default function FormationLanding({ data, textes }: {
             <div className="pl-form" style={cssVar("--d", ".05s")}>
               <h2 className="pl-h2">{t.payTitle}</h2>
               <p className="pl-lede" style={{ margin: "0 0 12px" }}>{t.paySub(nomAffiche)}</p>
-              <p className="pl-note">{t.paidHint}</p>
+
+              {/* Coordonnées de paiement (CCP/BaridiMob) — lues dans le LMS, aussi
+                  envoyées par e-mail. Le montant tient compte de la remise. */}
+              <div className="pl-fiche" style={{ marginTop: 4, marginBottom: 12 }}>
+                <h3 className="pl-h2" style={{ fontSize: "1.05rem", margin: "0 0 8px" }}>
+                  {langue === "ar" ? "معلومات الدفع (CCP / BaridiMob)" : "Coordonnées de paiement (CCP / BaridiMob)"}
+                </h3>
+                {totalAPayer != null ? (
+                  <p className="pl-note" style={{ margin: "0 0 8px", fontWeight: 700 }}>
+                    {langue === "ar" ? "المبلغ المطلوب" : "Montant à régler"} : {Number(totalAPayer).toLocaleString("fr-FR")} DA
+                  </p>
+                ) : null}
+                {payInfo ? (
+                  <div className="pl-fields">
+                    {payInfo.beneficiary_name ? <div className="pl-kv"><span>{langue === "ar" ? "المستفيد" : "Bénéficiaire"}</span><strong>{payInfo.beneficiary_name}</strong></div> : null}
+                    {payInfo.account_number ? <div className="pl-kv"><span>N° CCP</span><strong style={{ fontFamily: "monospace" }}>{payInfo.account_number}</strong></div> : null}
+                    {payInfo.account_key ? <div className="pl-kv"><span>{langue === "ar" ? "المفتاح" : "Clé"}</span><strong style={{ fontFamily: "monospace" }}>{payInfo.account_key}</strong></div> : null}
+                    {payInfo.rip ? <div className="pl-kv"><span>RIP (BaridiMob)</span><strong style={{ fontFamily: "monospace" }}>{payInfo.rip}</strong></div> : null}
+                  </div>
+                ) : (
+                  <p className="pl-note" style={{ margin: 0 }}>{t.paidHint}</p>
+                )}
+                <p className="pl-note" style={{ margin: "8px 0 0", color: "var(--ink-3)" }}>
+                  📧 {langue === "ar" ? "أرسلنا لك هذه المعلومات بالبريد الإلكتروني أيضًا." : "Nous vous avons aussi envoyé ces informations par e-mail."}
+                </p>
+              </div>
+
               {!aPaye ? (
                 <button type="button" className="pl-cta" onClick={() => { setErreur(null); setAPaye(true); }}>
                   {t.iPaid}
@@ -509,13 +590,33 @@ export default function FormationLanding({ data, textes }: {
                   </div>
                 ) : null}
 
-                {/* Code cadeau / promo (Live) — capturé avec la demande. */}
+                {/* Code cadeau / promo (Live) — VÉRIFIÉ (moteur OS) : la remise et
+                    le total à payer s'affichent AVANT de valider l'inscription. */}
                 <label className="pl-field pl-field-full" style={{ marginTop: 14 }}>
                   <span>🎁 {t.promoLabel} <em>{t.promoOptional}</em></span>
-                  <input value={coupon} placeholder={t.promoPh}
-                    style={{ textTransform: "uppercase" }}
-                    onChange={(e) => setCoupon(e.target.value.toUpperCase())} />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input value={coupon} placeholder={t.promoPh}
+                      style={{ textTransform: "uppercase", flex: 1, minWidth: 150 }}
+                      onChange={(e) => { setCoupon(e.target.value.toUpperCase()); setCouponInfo(null); }} />
+                    <button type="button" className="pl-cta" style={{ width: "auto", margin: 0, padding: "0 18px" }}
+                      onClick={verifierCoupon} disabled={couponBusy || !coupon.trim()}>
+                      {couponBusy ? "…" : (langue === "ar" ? "تطبيق" : "Appliquer")}
+                    </button>
+                  </div>
                 </label>
+                {couponInfo ? (
+                  couponInfo.valid ? (
+                    <div className="pl-erreur" style={{ background: "#ecfdf5", color: "#065f46", borderColor: "#6ee7b7" }}>
+                      {couponInfo.discount && couponInfo.discount.amount_after != null
+                        ? (langue === "ar"
+                          ? `✅ تخفيض ${Number(couponInfo.discount.discount).toLocaleString("fr-FR")} دج — تدفعين ${Number(couponInfo.discount.amount_after).toLocaleString("fr-FR")} دج`
+                          : `✅ Remise de ${Number(couponInfo.discount.discount).toLocaleString("fr-FR")} DA — vous payez ${Number(couponInfo.discount.amount_after).toLocaleString("fr-FR")} DA`)
+                        : (langue === "ar" ? "✅ الكود صالح" : "✅ Code valide")}
+                    </div>
+                  ) : (
+                    <div className="pl-erreur">{couponInfo.message || (langue === "ar" ? "الكود غير صالح" : "Code invalide")}</div>
+                  )
+                ) : null}
 
                 <label className="pl-consent">
                   <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />

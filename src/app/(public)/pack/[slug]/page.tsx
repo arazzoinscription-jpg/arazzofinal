@@ -106,6 +106,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
           name_ar: d.name_ar,
           tagline: d.tagline,
           price_label: prix ? `${Number(prix).toLocaleString("fr-FR")} ${d.price_currency || "DA"}` : null,
+          price_amount: prix || null,
           program_url: null,
           is_pack: true,
           pack_courses,

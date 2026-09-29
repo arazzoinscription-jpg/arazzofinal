@@ -51,6 +51,7 @@ export default async function Page({ params }: { params: Promise<{ niveau: strin
     name_ar: course?.titre_ar ?? null,
     tagline: course?.description_fr ?? null,
     price_label: prix,
+    price_amount: course?.prix_dzd ?? null,
     sessions_count: sessions || null,
     program_url: programUrl,
   };
