@@ -17,7 +17,7 @@ export function CourseHeroCarousel({ images, title }: { images: string[]; title?
   useEffect(() => {
     const maj = () => {
       const w = stageRef.current?.offsetWidth ?? 340;
-      setSpacing(Math.max(86, Math.min(165, w * 0.34)));
+      setSpacing(Math.max(104, Math.min(200, w * 0.4)));
     };
     maj();
     window.addEventListener("resize", maj);
@@ -26,8 +26,8 @@ export function CourseHeroCarousel({ images, title }: { images: string[]; title?
 
   useEffect(() => {
     if (n <= 1) return undefined;
-    // Défilement automatique : une image par seconde (comme /patrons-arazzo).
-    const id = setInterval(() => { if (!pause.current) setActive((a) => (a + 1) % n); }, 1000);
+    // Défilement automatique : une image par seconde, en SENS INVERSE.
+    const id = setInterval(() => { if (!pause.current) setActive((a) => (a - 1 + n) % n); }, 1000);
     return () => clearInterval(id);
   }, [n]);
 
@@ -72,8 +72,8 @@ export function CourseHeroCarousel({ images, title }: { images: string[]; title?
 
       <style>{`
         .chc-wrap { position: relative; }
-        .chc-stage { position: relative; width: 100%; height: min(300px, 66vw); margin: 0 auto; perspective: 1000px; contain: layout paint; }
-        .chc-card { position: absolute; top: 50%; left: 50%; width: min(200px, 52vw); height: min(258px, 64vw); border: none; padding: 0; cursor: pointer; border-radius: 18px; overflow: hidden; background: #ffffff22; box-shadow: 0 10px 24px rgba(0,0,0,.35); transition: transform .5s cubic-bezier(.22,1,.36,1), opacity .45s ease; will-change: transform, opacity; backface-visibility: hidden; }
+        .chc-stage { position: relative; width: 100%; height: min(340px, 74vw); margin: 0 auto; perspective: 1100px; contain: layout paint; }
+        .chc-card { position: absolute; top: 50%; left: 50%; width: min(280px, 72vw); height: min(320px, 82vw); border: none; padding: 0; cursor: pointer; border-radius: 18px; overflow: hidden; background: #ffffff22; box-shadow: 0 10px 24px rgba(0,0,0,.35); transition: transform .5s cubic-bezier(.22,1,.36,1), opacity .45s ease; will-change: transform, opacity; backface-visibility: hidden; }
         .chc-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .chc-card[data-active="true"] { box-shadow: 0 22px 54px rgba(0,0,0,.5); outline: 3px solid #FE7223; outline-offset: -1px; }
         .chc-dots { display: flex; justify-content: center; gap: 7px; margin-top: 14px; }
