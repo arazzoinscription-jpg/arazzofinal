@@ -34,7 +34,7 @@ type CourseView = {
   program_url?: string | null;
   // Pack composé (OS) : formations réunies + prix barré → prix pack.
   is_pack?: boolean;
-  pack_courses?: { id: string; title: string; prix: number | null; slug: string | null }[];
+  pack_courses?: { id: string; title: string; prix: number | null; slug: string | null; program_url?: string | null }[];
   pack_cumul?: number;
   pack_prix?: number;
   pack_eco?: number;
@@ -202,6 +202,8 @@ export default function FormationLanding({ data, textes }: {
   const [etape, setEtape] = useState<"form" | "pay">("form");
   const [aPaye, setAPaye] = useState(false);
   const [showTest, setShowTest] = useState(false);
+  // Aperçu du programme d'une formation du pack, en pop-up (sans quitter la page).
+  const [apercuProg, setApercuProg] = useState<{ title: string; program_url?: string | null } | null>(null);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
   useEffect(() => {
@@ -491,7 +493,11 @@ export default function FormationLanding({ data, textes }: {
                         <span className="pl-pack-carte-num">{i + 1}</span>
                         <span className="pl-pack-carte-t">{c.title}</span>
                         {c.prix != null ? <span className="pl-pack-carte-prix">{Number(c.prix).toLocaleString("fr-FR")} DA</span> : null}
-                        {c.slug ? <a className="pl-pack-carte-lien" href={`/boutique/${c.slug}`}>{t.packSee} →</a> : null}
+                        <button type="button" className="pl-pack-carte-lien"
+                          style={{ border: 0, background: "none", cursor: "pointer", font: "inherit" }}
+                          onClick={() => setApercuProg({ title: c.title, program_url: c.program_url })}>
+                          {t.packSee} →
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -672,6 +678,30 @@ export default function FormationLanding({ data, textes }: {
         <LevelTestPopup slug={testSlug} langue={langue} utm={utmDeLURL()}
           onClose={() => setShowTest(false)}
           onSubscribe={() => { const el = document.getElementById("pl-form"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }} />
+      ) : null}
+
+      {/* Pop-up « programme d'une formation du pack » : reste sur la page. */}
+      {apercuProg ? (
+        <div className="pl-modal" role="dialog" aria-modal="true"
+          onClick={(e) => { if (e.target === e.currentTarget) setApercuProg(null); }}>
+          <div className="pl-modal-box" dir={t.dir}>
+            <div className="pl-modal-tete">
+              <h2 className="pl-h2" style={{ margin: 0 }}>{apercuProg.title}</h2>
+              <button type="button" className="pl-modal-x" onClick={() => setApercuProg(null)} aria-label="Fermer">✕</button>
+            </div>
+            {apercuProg.program_url ? (
+              <>
+                <iframe className="pl-modal-frame" src={apercuProg.program_url} title={apercuProg.title} />
+                <a className="pl-cta" href={apercuProg.program_url} target="_blank" rel="noreferrer"
+                  style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12 }}>
+                  {langue === "ar" ? "عرض البرنامج كاملًا →" : "Voir le programme complet →"}
+                </a>
+              </>
+            ) : (
+              <p className="pl-lede" style={{ margin: 0 }}>{langue === "ar" ? "البرنامج المفصّل قريبًا." : "Le programme détaillé arrive bientôt."}</p>
+            )}
+          </div>
+        </div>
       ) : null}
     </div>
   );

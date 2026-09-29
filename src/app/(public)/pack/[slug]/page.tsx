@@ -70,6 +70,7 @@ async function loadComposedPack(slug: string) {
       title: c.title || c.slug || "Formation",
       prix: c.prix ?? c.price_amount ?? null,
       slug: c.slug ?? null,
+      program_url: c.program_url ?? (c.slug ? `/formations/${c.slug}` : null),
     }));
     const prix = Number(d.price_amount) || 0;
     const cumul = Number(d.pack_cumul) || pack_courses.reduce((s: number, c: any) => s + (Number(c.prix) || 0), 0);
@@ -94,7 +95,7 @@ async function loadComposedPack(slug: string) {
   const byId = new Map(courses.map((c) => [c.id, c]));
   const pack_courses = members.map((m) => {
     const c = byId.get(NIVEAUX[m]);
-    return { id: NIVEAUX[m] || m, title: c?.titre_fr || m, prix: c?.prix_dzd ?? null, slug: c?.slug ?? null };
+    return { id: NIVEAUX[m] || m, title: c?.titre_fr || m, prix: c?.prix_dzd ?? null, slug: c?.slug ?? null, program_url: c?.slug ? `/formations/${c.slug}` : null };
   });
   const cumul = pack_courses.reduce((s, c) => s + (Number(c.prix) || 0), 0);
   const prix = Number(d.price_amount) || 0;
