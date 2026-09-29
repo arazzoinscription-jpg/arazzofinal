@@ -42,6 +42,9 @@ export function deliveryCourseEmail(opts: {
   const titre = (ar && page.title_ar) ? page.title_ar : (page.title || "Votre cours");
   const prenom = String(opts.name ?? "").trim().split(/\s+/)[0] || "";
   const coursUrl = `${SITE}/free/${encodeURIComponent(slug)}?acces=1`;
+  // Inscription : le bouton VERT mène à la liste de toutes les formations en ligne
+  // (packs + niveaux). Les UTM rattachent la visite à ce cadeau dans le tracking.
+  const inscriptionUrl = `${SITE}/offres/en-ligne?utm_source=email&utm_medium=free-gift&utm_campaign=${encodeURIComponent(slug)}`;
   const pdf = lienSur(page.pdf_url);
   const cta = lienSur(page.cta_url);
   const form = (page.capture_form ?? {}) as Record<string, any>;
@@ -62,6 +65,7 @@ export function deliveryCourseEmail(opts: {
       hello: prenom ? `مرحبًا ${esc(prenom)}،` : "مرحبًا،",
       ready: `درسك المجاني <strong>${esc(titre)}</strong> جاهز. يمكنك مشاهدته متى شئت:`,
       watch: "▶️ شاهدي الدرس",
+      register: "🎓 أسجّل في تكوين",
       pdf: "📄 تحميل الملف PDF",
       more: "تريدين الذهاب أبعد؟",
       moreText: "هذا الدرس هو البداية فقط. اكتشفي تكويناتنا الكاملة، خطوة بخطوة، مع المتابعة والشهادة.",
@@ -78,6 +82,7 @@ export function deliveryCourseEmail(opts: {
       hello: prenom ? `Bonjour ${esc(prenom)},` : "Bonjour,",
       ready: `Votre cours gratuit <strong>${esc(titre)}</strong> est prêt. Regardez-le quand vous voulez :`,
       watch: "▶️ Regarder le cours",
+      register: "🎓 Je m’inscris à une formation",
       pdf: "📄 Télécharger le PDF",
       more: "Envie d’aller plus loin ?",
       moreText: "Ce cours n’est qu’un début. Découvrez nos formations complètes, pas à pas, avec suivi et certificat.",
@@ -104,6 +109,7 @@ export function deliveryCourseEmail(opts: {
         ${intro ? `<p style="margin:0 0 10px;">${intro}</p>` : ""}
         <p style="margin:0;">${t.ready}</p>
         ${bouton(t.watch, coursUrl, "#5B16F9")}
+        ${bouton(t.register, inscriptionUrl, "#128a4c")}
         ${pdf ? `<p style="text-align:center;margin:0 0 8px;"><a href="${esc(pdf)}" style="color:#4B3BC7;font-weight:600;">${t.pdf}</a></p>` : ""}
         <div style="margin-top:26px;padding:20px;background:#FDF2E9;border-radius:14px;">
           <h3 style="margin:0 0 8px;color:#2A0880;font-family:Georgia,serif;">${t.more}</h3>
