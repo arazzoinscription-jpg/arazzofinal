@@ -691,10 +691,14 @@ export default function FormationLanding({ data, textes }: {
             </div>
             {apercuProg.program_url ? (
               <>
-                <iframe className="pl-modal-frame" src={apercuProg.program_url} title={apercuProg.title} />
+                <p className="pl-lede" style={{ margin: "0 0 14px" }}>
+                  {langue === "ar"
+                    ? "اطّلعي على البرنامج المفصّل لهذا المستوى (وحدة بوحدة) في صفحة مستقلّة."
+                    : "Découvrez le programme détaillé de ce niveau (module par module) sur sa page dédiée."}
+                </p>
                 <a className="pl-cta" href={apercuProg.program_url} target="_blank" rel="noreferrer"
-                  style={{ display: "block", textAlign: "center", textDecoration: "none", marginTop: 12 }}>
-                  {langue === "ar" ? "عرض البرنامج كاملًا →" : "Voir le programme complet →"}
+                  style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+                  {langue === "ar" ? "عرض البرنامج المفصّل ↗" : "Voir le programme détaillé ↗"}
                 </a>
               </>
             ) : (
