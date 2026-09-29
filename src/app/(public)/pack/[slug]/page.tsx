@@ -77,7 +77,13 @@ async function loadComposedPack(slug: string) {
     return { d, pack_courses, cumul, prix, eco };
   }
 
-  const members: string[] = Array.isArray(d.member_slugs) ? d.member_slugs : [];
+  let members: string[] = Array.isArray(d.member_slugs) ? d.member_slugs : [];
+  // Repli si l'instantané n'a pas (encore) les membres : on les DÉDUIT du slug
+  // (« pack-couture-1-2 » → niveau-1, niveau-2) et on les résout dans la base LMS.
+  // Ainsi le bloc pack s'affiche même sans une synchro OS parfaite.
+  if (!members.length) {
+    members = [...new Set((slug.match(/\d/g) ?? []).map((n) => `niveau-${n}`))].filter((s) => NIVEAUX[s]);
+  }
   const ids = members.map((m) => NIVEAUX[m]).filter(Boolean);
   let courses: Course[] = [];
   if (ids.length) {
