@@ -573,7 +573,7 @@ export default function FormationLanding({ data, textes }: {
                     <p className="pl-note" style={{ margin: "8px 0 12px", fontWeight: 600 }}>{t.ficheDelay}</p>
                     <p className="pl-note" style={{ margin: "0 0 6px" }}>{t.ficheImgLegende}</p>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img className="pl-fiche-img" src="/fiche-inscription-modele.jpg" alt={t.ficheImgAlt}
+                    <img className="pl-fiche-img" src="/fiche-inscription-modele.png" alt={t.ficheImgAlt}
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
                     <div className="pl-fields" style={{ marginTop: 12 }}>
                       <label className="pl-field pl-field-full">
