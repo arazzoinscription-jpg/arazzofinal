@@ -6,6 +6,7 @@ import { CourseCategoryEditor } from "../category-editor";
 import { HomeworkAtelierEditor } from "./homework-atelier-editor";
 import { CommunityVideoUploader } from "@/components/community/video-uploader";
 import { CourseContentEditor, type EditChapter } from "./course-content-editor";
+import { CourseGalleryEditor } from "./course-gallery-editor";
 
 export const metadata = { title: "Modifier le cours — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -88,6 +89,10 @@ export default async function EditCoursePage({ params }: { params: { id: string 
   const homework = ((extra as { homework?: string | null } | null)?.homework) ?? "";
   const atelierRequired = !!((extra as { atelier_required?: boolean } | null)?.atelier_required);
 
+  // Lecture résiliente de la galerie (colonne migration 090). Vide si non appliquée.
+  const { data: galRow } = await admin.from("courses").select("gallery").eq("id", course.id).maybeSingle();
+  const initialGallery = ((galRow as { gallery?: string[] | null } | null)?.gallery) ?? [];
+
   const backHref = isAdmin ? "/admin/formations" : "/formateur";
 
   return (
@@ -97,6 +102,7 @@ export default async function EditCoursePage({ params }: { params: { id: string 
         Mettez à jour les informations de « {course.titre_fr} ».
       </p>
       <CourseEditForm course={course as EditableCourse} backHref={backHref} />
+      <CourseGalleryEditor courseId={course.id} initial={initialGallery} />
       <CourseContentEditor courseId={course.id} initial={initialChapters} />
       <CourseCategoryEditor courseId={course.id} initial={initialCats} />
       <HomeworkAtelierEditor courseId={course.id} initialHomework={homework} initialAtelierRequired={atelierRequired} />

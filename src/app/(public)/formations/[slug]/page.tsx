@@ -15,6 +15,7 @@ import { normLang, isRtl, type Lang } from "@/lib/store-i18n";
 import { BuyButton } from "./buy-button";
 import { EnrollRequestButton } from "@/components/enrollment/enroll-request-button";
 import { isEnrolledStudent } from "@/lib/is-enrolled-student";
+import { CourseHeroCarousel } from "./course-hero-carousel";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,11 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.note, 0) / reviews.length : null;
   const formateur = course.formateur as any;
   const hasPreview = chapters.some((c) => (c.lessons ?? []).some((l: any) => l.is_preview));
+  // Galerie photos du cours (téléversée dans l'outil d'édition) → carrousel en-tête.
+  // `gallery` est absent tant que la migration 090 n'est pas appliquée → tableau vide.
+  const gallery: string[] = Array.isArray((course as any).gallery)
+    ? ((course as any).gallery as string[]).filter((u) => typeof u === "string" && u)
+    : [];
 
   const title = lang === "ar" ? course.titre_ar || course.titre_fr
     : lang === "en" ? course.titre_en || course.titre_fr
@@ -175,23 +181,27 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               )}
             </div>
 
-            {/* Aperçu visuel */}
+            {/* Aperçu visuel — carrousel de la galerie si présente, sinon miniature. */}
             <div className="lg:col-span-2">
-              <div className="relative rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl aspect-video bg-violet-950">
-                {course.thumbnail
-                  ? <img src={course.thumbnail} alt={title} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-gradient-to-br from-violet-600 to-orange-500" />}
-                <div className="absolute inset-0 bg-violet-950/30 flex items-center justify-center">
-                  <span className="w-16 h-16 rounded-full bg-white/90 text-violet-700 flex items-center justify-center shadow-xl">
-                    <PlayCircle size={36} />
-                  </span>
+              {gallery.length > 0 ? (
+                <CourseHeroCarousel images={gallery} title={title} />
+              ) : (
+                <div className="relative rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl aspect-video bg-violet-950">
+                  {course.thumbnail
+                    ? <img src={course.thumbnail} alt={title} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-gradient-to-br from-violet-600 to-orange-500" />}
+                  <div className="absolute inset-0 bg-violet-950/30 flex items-center justify-center">
+                    <span className="w-16 h-16 rounded-full bg-white/90 text-violet-700 flex items-center justify-center shadow-xl">
+                      <PlayCircle size={36} />
+                    </span>
+                  </div>
+                  {hasPreview && (
+                    <span className="absolute top-3 start-3 inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                      <Sparkles size={12} /> {t.preview}
+                    </span>
+                  )}
                 </div>
-                {hasPreview && (
-                  <span className="absolute top-3 start-3 inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-2.5 py-1 rounded-full">
-                    <Sparkles size={12} /> {t.preview}
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>

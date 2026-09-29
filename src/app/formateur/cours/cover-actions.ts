@@ -83,3 +83,98 @@ export async function uploadCourseCover(formData: FormData) {
 
   return { ok: true as const, url: publicUrl };
 }
+
+// ─── Galerie du cours (carrousel en-tête de la page publique) ────────────────
+
+const MAX_GALLERY = 15; // nombre max de photos par cours
+
+/** Message clair si la colonne `gallery` n'existe pas encore (migration 090). */
+function galleryMigrationHint(error: { message?: string; code?: string } | null): string | null {
+  if (!error) return null;
+  if (error.code === "42703" || /gallery/i.test(error.message ?? "")) {
+    return "Galerie non activée : appliquez d'abord la migration 090 (colonne gallery) dans Supabase.";
+  }
+  return error.message ?? "Erreur.";
+}
+
+/**
+ * Téléverse une ou plusieurs photos dans la galerie d'un cours.
+ * Chaque image est compressée en WebP et stockée dans le bucket public `posts`
+ * sous `course-gallery/<courseId>/<uuid>.webp` ; les URLs sont AJOUTÉES au
+ * tableau `courses.gallery`.
+ *
+ * FormData : courseId (uuid), images (un ou plusieurs File image).
+ */
+export async function uploadCourseGallery(formData: FormData) {
+  const courseId = String(formData.get("courseId") ?? "");
+  if (!z.string().uuid().safeParse(courseId).success) return { ok: false as const, error: "Cours invalide." };
+
+  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { ok: false as const, error: "Aucune image sélectionnée." };
+
+  const access = await requireCourseAccess(courseId);
+  if (!access.ok) return { ok: false as const, error: access.error };
+  const admin = access.admin;
+
+  // Galerie actuelle (lecture ; détecte si la migration n'est pas appliquée).
+  const { data: current, error: readErr } = await admin.from("courses").select("gallery").eq("id", courseId).single();
+  const hint = galleryMigrationHint(readErr);
+  if (hint) return { ok: false as const, error: hint };
+  const existing: string[] = (current?.gallery as string[] | null) ?? [];
+
+  if (existing.length >= MAX_GALLERY) {
+    return { ok: false as const, error: `Maximum ${MAX_GALLERY} photos par cours.` };
+  }
+
+  const room = MAX_GALLERY - existing.length;
+  const added: string[] = [];
+  for (const file of files.slice(0, room)) {
+    if (!file.type.startsWith("image/")) continue;
+    if (file.size > MAX_COVER) continue; // 8 Mo max, comme la couverture
+    const raw = await file.arrayBuffer();
+    const webp = await compressImageToWebp(raw, 1280, 76);
+    const bytes = webp ? new Uint8Array(webp) : new Uint8Array(raw);
+    const contentType = webp ? "image/webp" : file.type;
+    const ext = webp ? "webp" : ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg");
+    const path = `course-gallery/${courseId}/${randomUUID()}.${ext}`;
+    const { error: upErr } = await admin.storage.from("posts").upload(path, bytes, { contentType, upsert: false, cacheControl: "31536000" });
+    if (upErr) continue;
+    added.push(admin.storage.from("posts").getPublicUrl(path).data.publicUrl);
+  }
+
+  if (added.length === 0) return { ok: false as const, error: "Aucune image n'a pu être envoyée." };
+
+  const gallery = [...existing, ...added];
+  const { error } = await admin.from("courses").update({ gallery }).eq("id", courseId);
+  if (error) return { ok: false as const, error: error.message };
+
+  revalidatePath(`/formateur/cours/${courseId}/edit`);
+  revalidatePath("/formations");
+  return { ok: true as const, gallery };
+}
+
+/** Retire une photo de la galerie d'un cours (par son URL). */
+export async function removeCourseGalleryImage(courseId: string, url: string) {
+  if (!z.string().uuid().safeParse(courseId).success) return { ok: false as const, error: "Cours invalide." };
+  const access = await requireCourseAccess(courseId);
+  if (!access.ok) return { ok: false as const, error: access.error };
+  const admin = access.admin;
+
+  const { data: current, error: readErr } = await admin.from("courses").select("gallery").eq("id", courseId).single();
+  const hint = galleryMigrationHint(readErr);
+  if (hint) return { ok: false as const, error: hint };
+  const existing: string[] = (current?.gallery as string[] | null) ?? [];
+  const gallery = existing.filter((u) => u !== url);
+
+  const { error } = await admin.from("courses").update({ gallery }).eq("id", courseId);
+  if (error) return { ok: false as const, error: error.message };
+
+  // Supprime le fichier du storage (best-effort) si c'est bien une image du bucket posts.
+  const marker = "/storage/v1/object/public/posts/";
+  const i = url.indexOf(marker);
+  if (i >= 0) { try { await admin.storage.from("posts").remove([url.slice(i + marker.length)]); } catch { /* best-effort */ } }
+
+  revalidatePath(`/formateur/cours/${courseId}/edit`);
+  revalidatePath("/formations");
+  return { ok: true as const, gallery };
+}
