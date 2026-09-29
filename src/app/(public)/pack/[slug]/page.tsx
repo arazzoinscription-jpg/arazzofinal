@@ -113,6 +113,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
           pack_cumul: cumul,
           pack_prix: prix,
           pack_eco: eco,
+          seats: (d.seats as { total?: number; taken?: number; interested?: number } | null) ?? null,
         }}
       />
     );

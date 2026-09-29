@@ -34,6 +34,8 @@ const T = {
     ends: "Expire dans",
     hint: "Utilisez-le lors de votre inscription, dans la case « code promo ».",
     go: "Je m’inscris maintenant →",
+    goTest: "📝 Faire le test de niveau",
+    goOnline: "🎓 Voir les formations en ligne →",
     d: "j", h: "h", m: "min",
   },
   ar: {
@@ -44,6 +46,8 @@ const T = {
     ends: "ينتهي خلال",
     hint: "استعمليه عند التسجيل، في خانة « كود التخفيض ».",
     go: "← سجّلي الآن",
+    goTest: "📝 قومي باختبار المستوى",
+    goOnline: "🎓 التكوينات عن بُعد →",
     d: "ي", h: "سا", m: "د",
   },
 };
@@ -57,8 +61,8 @@ function resteAvant(fin: string | null | undefined, now: number) {
 }
 
 export default function PromoBanner({
-  promo, langue, ctaUrl,
-}: { promo: Promo | null | undefined; langue: "fr" | "ar"; ctaUrl?: string | null }) {
+  promo, langue, ctaUrl, onTest,
+}: { promo: Promo | null | undefined; langue: "fr" | "ar"; ctaUrl?: string | null; onTest?: () => void }) {
   const t = T[langue];
   const [now, setNow] = useState<number | null>(null);
   const [copie, setCopie] = useState(false);
@@ -128,11 +132,23 @@ export default function PromoBanner({
       {message ? <p style={{ margin: "8px 0 0" }}>{message}</p> : null}
 
       <p style={{ margin: "10px 0 0", fontSize: ".92rem", opacity: 0.85 }}>{t.hint}</p>
-      {ctaUrl ? (
-        <a href={ctaUrl} style={{ display: "inline-block", marginTop: 8, fontWeight: 700, color: "var(--thread, #5B16F9)" }}>
-          {t.go}
+
+      {/* Deux choix pour s'inscrire : faire le test de niveau, OU voir toutes les
+          formations en ligne (lien vert). */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+        {onTest ? (
+          <button type="button" onClick={onTest} className="pl-testbtn" style={{ margin: 0 }}>
+            {t.goTest}
+          </button>
+        ) : null}
+        <a href={ctaUrl || "/offres/en-ligne"} style={{
+          display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none",
+          fontWeight: 700, fontSize: ".95rem", color: "#fff", background: "#128a4c",
+          padding: "10px 18px", borderRadius: 999,
+        }}>
+          {t.goOnline}
         </a>
-      ) : null}
+      </div>
     </section>
   );
 }

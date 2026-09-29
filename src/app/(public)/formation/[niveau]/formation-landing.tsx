@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
+import { LandingStyles, SeatsBanner, utmDeLURL } from "@/lib/landing-kit";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitDeliveryOrder, submitDeliveryOrderPack } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
@@ -38,6 +38,8 @@ type CourseView = {
   pack_cumul?: number;
   pack_prix?: number;
   pack_eco?: number;
+  // Jauge de places (poussée par l'OS) : { total, taken, interested }.
+  seats?: { total?: number; taken?: number; interested?: number } | null;
 };
 
 const CLE_LANGUE = "arazzo_formation_langue";
@@ -48,6 +50,11 @@ const T: Record<"ar" | "fr", any> = {
     eyebrow: "🎓 تكوين عن بُعد",
     modePlatform: "🖥️ عبر المنصّة", modeRythme: "⏳ بإيقاعك الخاص", modeAcces: "♾️ وصول مدى الحياة",
     sessionsLabel: (n: number) => `📚 ${n} حصة`,
+    seatsTitle: "أماكن الدفعة القادمة",
+    placesLeft: (n: number) => (n <= 0 ? "اكتمل العدد" : `بقيت ${n} أماكن فقط!`),
+    interestedCount: (n: number) => `${n} مهتمة حاليًا`,
+    takeSeat: "أحجز مكاني", seatsFull: "اكتمل العدد — قائمة الانتظار",
+    sentBadge: "✓ تم إرسال طلبك — أرسلي إثبات الدفع لتأكيد التسجيل.",
     platformLink: "📚 تُقدَّم الدروس على منصّتنا أرازو فورماسيون →",
     presentielTitle: "أفضّل الحضور بسطيف", presentielSub: "تكوين وجهًا لوجه في المركز",
     programBtn: "📋 عرض البرنامج المفصّل", program: "البرنامج",
@@ -104,6 +111,11 @@ const T: Record<"ar" | "fr", any> = {
     eyebrow: "🎓 Formation en ligne",
     modePlatform: "🖥️ Sur la plateforme", modeRythme: "⏳ À votre rythme", modeAcces: "♾️ Accès à vie",
     sessionsLabel: (n: number) => `📚 ${n} séance${n > 1 ? "s" : ""}`,
+    seatsTitle: "Places de la prochaine promo",
+    placesLeft: (n: number) => (n <= 0 ? "Complet" : `Plus que ${n} place${n > 1 ? "s" : ""} !`),
+    interestedCount: (n: number) => `${n} intéressée${n > 1 ? "s" : ""} en ce moment`,
+    takeSeat: "Je prends ma place", seatsFull: "Complet — liste d’attente",
+    sentBadge: "✓ Votre demande est envoyée — envoyez la preuve pour confirmer.",
     platformLink: "📚 Les cours se déroulent sur notre plateforme Arazzo Formation →",
     presentielTitle: "Je préfère en présentiel", presentielSub: "En groupe, au centre à Sétif",
     programBtn: "📋 Voir le programme détaillé", program: "Le programme",
@@ -458,6 +470,16 @@ export default function FormationLanding({ data, textes }: {
             </div>
           ) : (
             <>
+              {/* Jauge de places (poussée par l'OS) : « prise » = inscription validée,
+                  « intéressée » = en cours. Même bloc que la landing OS. */}
+              {data.seats ? (
+                <SeatsBanner
+                  seats={data.seats as any}
+                  t={t}
+                  onTake={() => { const el = document.getElementById("pl-form"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }}
+                />
+              ) : null}
+
               {/* Bloc PACK : les formations réunies côte à côte + prix barré → prix pack. */}
               {data.is_pack ? (
                 <section className="pl-section pl-packbox" style={cssVar("--d", ".03s")}>

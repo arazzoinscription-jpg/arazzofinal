@@ -343,7 +343,7 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
           {/* Le code promo du moment (Live Engine) — affiché SOUS la vidéo, et
               seulement après un vrai visionnage (10 min OU 80 % de la vidéo).
               Promo inactive → PromoBanner rend null (comportement inchangé). */}
-          {promoOk ? <PromoBanner promo={data.promo} langue={langue} ctaUrl={data.cta_url} /> : null}
+          {promoOk ? <PromoBanner promo={data.promo} langue={langue} ctaUrl={data.cta_url} onTest={() => setShowTest(true)} /> : null}
 
           {/* Le test de niveau (le même que sur la page Offres) : il recommande le
               niveau adapté avec le lien exact pour s'inscrire. */}
