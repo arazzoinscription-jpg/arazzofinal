@@ -78,20 +78,15 @@ async function loadComposedPack(slug: string) {
     return { d, pack_courses, cumul, prix, eco };
   }
 
-  let members: string[] = Array.isArray(d.member_slugs) ? d.member_slugs : [];
-  // Repli si l'instantané n'a pas (encore) les membres : on les DÉDUIT du slug
-  // (« pack-couture-1-2 » → niveau-1, niveau-2) et on les résout dans la base LMS.
-  // Ainsi le bloc pack s'affiche même sans une synchro OS parfaite.
-  if (!members.length) {
-    members = [...new Set((slug.match(/\d/g) ?? []).map((n) => `niveau-${n}`))].filter((s) => NIVEAUX[s]);
-  }
+  const members: string[] = Array.isArray(d.member_slugs) ? d.member_slugs : [];
   const ids = members.map((m) => NIVEAUX[m]).filter(Boolean);
-  let courses: Course[] = [];
-  if (ids.length) {
-    const supabase = await createClient();
-    const { data } = await supabase.from("courses").select("id, titre_fr, prix_dzd, slug").in("id", ids);
-    courses = (data as Course[]) ?? [];
-  }
+  // Instantané OS composé mais SANS membres exploitables : on ne devine RIEN. On
+  // renvoie null → la page basculera sur le pack NATIF du LMS (course_packs), ou
+  // affichera « introuvable ». À l'école de définir le pack (OS 🎁 Packs, ou LMS).
+  if (!ids.length) return null;
+  const supabase = await createClient();
+  const { data: coursesData } = await supabase.from("courses").select("id, titre_fr, prix_dzd, slug").in("id", ids);
+  const courses: Course[] = (coursesData as Course[]) ?? [];
   const byId = new Map(courses.map((c) => [c.id, c]));
   const pack_courses = members.map((m) => {
     const c = byId.get(NIVEAUX[m]);
