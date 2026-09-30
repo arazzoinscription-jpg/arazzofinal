@@ -14,7 +14,6 @@ const NIVEAUX = [
 
 export const dynamic = "force-dynamic";
 
-type Pack = { id: string; slug: string | null; titre_fr: string | null; prix_dzd: number | null };
 type PresentielSnap = { slug: string; data: Record<string, unknown> | null };
 
 const daPrice = (n: number | null | undefined) =>
@@ -28,27 +27,16 @@ export default async function Page() {
     .in("id", NIVEAUX.map((n) => n.id));
   const byId = new Map((courses ?? []).map((c) => [c.id, c]));
 
-  // Packs publiés (24/7). Best-effort : si la table diverge, on n'affiche pas la section.
-  let packsRaw: Pack[] = [];
-  try {
-    const { data } = await supabase
-      .from("course_packs")
-      .select("id, slug, titre_fr, prix_dzd")
-      .eq("published", true)
-      .order("created_at", { ascending: false });
-    packsRaw = (data as Pack[]) ?? [];
-  } catch { packsRaw = []; }
-
   const online: Offre[] = NIVEAUX.map((n) => {
     const c = byId.get(n.id);
     return { slug: n.slug, name: c?.titre_fr || n.slug, sous: n.sous, prix: daPrice(c?.prix_dzd) };
   });
-  const packs: Offre[] = packsRaw
-    .filter((p) => p.slug)
-    .map((p) => ({ slug: p.slug as string, name: p.titre_fr || "Pack", prix: daPrice(p.prix_dzd) }));
+  // Packs : UNIQUEMENT ceux composés dans l'OS (`pack_snapshots`). Les packs natifs du
+  // LMS (`course_packs`) ne sont volontairement plus listés ici.
+  const packs: Offre[] = [];
 
-  // Packs COMPOSÉS dans l'OS (pack_snapshots, ex. « pack-couture-1-2 ») : ajoutés
-  // à la liste des packs du hub, chacun → sa page /pack/[slug]. Dédup par slug.
+  // Packs COMPOSÉS dans l'OS (pack_snapshots, ex. « pack-couture-1-2 ») : chacun →
+  // sa page /pack/[slug]. Dédup par slug.
   try {
     const pub = createPublicClient();
     const { data: packSnaps } = await pub.from("pack_snapshots").select("slug, data");

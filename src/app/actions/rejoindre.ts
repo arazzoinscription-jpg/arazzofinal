@@ -396,18 +396,11 @@ const DeliveryPackSchema = z.object({
   coupon_code: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
-/** Le pack, tel que le SERVEUR le connaît : pack du LMS publié, sinon pack composé de l'OS. */
+/** Le pack, tel que le SERVEUR le connaît : UNIQUEMENT un pack composé dans l'OS (actif). */
 async function chargerPackServeur(
   admin: ReturnType<typeof createAdminClient>,
   slug: string,
 ): Promise<{ titre: string; prix: number; courseIds: string[] } | null> {
-  const { data: pack } = await admin
-    .from("course_packs").select("id, titre_fr, prix_dzd").eq("slug", slug).eq("published", true).maybeSingle();
-  if (pack) {
-    const { data: items } = await admin.from("course_pack_items").select("course_id").eq("pack_id", pack.id);
-    const ids = [...new Set((items ?? []).map((i) => i.course_id).filter((c): c is string => !!c))];
-    return ids.length ? { titre: pack.titre_fr || "Pack", prix: Number(pack.prix_dzd) || 0, courseIds: ids } : null;
-  }
   const { data: snap } = await admin.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
   const d = (snap?.data ?? null) as Record<string, any> | null;
   if (!d || d.active === false) return null;

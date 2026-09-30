@@ -77,7 +77,8 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
 
     // Packs rangés dans une catégorie racine (migration 074) → affichés dans l'offre + enrôlables.
     const packsByRoot = new Map<string, { id: string; titre: string; prixDzd: number; slug: string }[]>();
-    const rootIds = [...rootIdBySlug.values()];
+    // Packs natifs du LMS : plus listés ici (seuls les packs composés dans l'OS sont proposés).
+    const rootIds: string[] = [];
     if (rootIds.length) {
       try {
         const { data: pks } = await admin
@@ -119,12 +120,8 @@ export default async function OffrePage({ searchParams }: { searchParams: { c?: 
 
   // Packs proposés en abonnement (publiés + mode abonnement). Lecture résiliente :
   // si la migration 047 n'est pas appliquée, la requête échoue → aucun pack ajouté.
-  const { data: subPacks } = await admin
-    .from("course_packs")
-    .select("*")
-    .eq("published", true)
-    .eq("subscription_enabled", true)
-    .order("created_at", { ascending: false });
+  // (Packs natifs du LMS retirés de cette page : seuls les packs de l'OS sont proposés.)
+  const subPacks: any[] = [];
 
   // Slug boutique (produit « bundle ») de chaque pack → lien « voir le détail ».
   const bundleSlugByPack = new Map<string, string>();

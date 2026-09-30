@@ -4,10 +4,10 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { getLandingTexts } from "@/lib/landing-texts";
 import FormationLanding from "../../formation/[niveau]/formation-landing";
 
-// Landing PACK (24/7). Deux sources :
-//   1) Pack COMPOSÉ dans l'OS (`pack_snapshots`, ex. « pack-couture-1-2 ») → rendu
-//      comme une landing en ligne (paiement CCP/BaridiMob + preuve → OS).
-//   2) Pack natif du LMS (`course_packs`) → vitrine + achat via la boutique.
+// Landing PACK (24/7). UNE seule source : le pack COMPOSÉ dans l'OS (`pack_snapshots`,
+// ex. « pack-couture-1-2 ») → rendu comme une landing en ligne (paiement CCP/BaridiMob
+// + preuve → OS). Les packs natifs du LMS (`course_packs`) ne sont plus servis ici : un
+// pack retiré ou désactivé dans l'OS n'existe plus sur le site.
 
 export const dynamic = "force-dynamic";
 
@@ -21,37 +21,6 @@ const NIVEAUX: Record<string, string> = {
 };
 
 type Course = { id: string; titre_fr: string | null; prix_dzd: number | null; slug: string | null };
-type Pack = {
-  id: string; slug: string | null; titre_fr: string | null; titre_ar: string | null;
-  description_fr: string | null; prix_dzd: number | null; thumbnail: string | null;
-};
-
-async function loadPack(slug: string) {
-  const supabase = await createClient();
-  const { data: pack } = await supabase
-    .from("course_packs")
-    .select("id, slug, titre_fr, titre_ar, description_fr, prix_dzd, thumbnail, published")
-    .eq("slug", slug).eq("published", true).maybeSingle();
-  if (!pack) return null;
-
-  const { data: items } = await supabase.from("course_pack_items").select("course_id").eq("pack_id", (pack as Pack).id);
-  const ids = [...new Set((items ?? []).map((i) => i.course_id).filter(Boolean))];
-  let courses: Course[] = [];
-  if (ids.length) {
-    const { data } = await supabase.from("courses").select("id, titre_fr, prix_dzd, slug").in("id", ids);
-    courses = (data as Course[]) ?? [];
-  }
-  let buySlug: string | null = null;
-  try {
-    const { data: bundles } = await supabase.from("products").select("slug, files, is_active").eq("type", "bundle").eq("is_active", true);
-    const prod = (bundles ?? []).find((p) => ((p.files as string[]) ?? []).includes(`pack:${(pack as Pack).id}`));
-    buySlug = (prod as { slug?: string } | undefined)?.slug ?? null;
-  } catch { buySlug = null; }
-  const cumul = courses.reduce((s, c) => s + (Number(c.prix_dzd) || 0), 0);
-  const prix = Number((pack as Pack).prix_dzd) || 0;
-  const eco = cumul > prix ? cumul - prix : 0;
-  return { pack: pack as Pack, courses, cumul, prix, eco, buySlug };
-}
 
 // Pack COMPOSÉ dans l'OS : lit l'instantané + résout les cours membres.
 async function loadComposedPack(slug: string) {
@@ -99,15 +68,10 @@ async function loadComposedPack(slug: string) {
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const slug = decodeSlug(params.slug);
-  // Nom du pack : d'abord le pack LMS (source de vérité), sinon l'instantané OS.
+  // Nom du pack : l'instantané OS (actif).
   let nom: string | undefined;
-  try {
-    const supabase = await createClient();
-    const { data: p } = await supabase.from("course_packs").select("titre_fr").eq("slug", slug).eq("published", true).maybeSingle();
-    nom = (p as { titre_fr?: string | null } | null)?.titre_fr ?? undefined;
-  } catch { /* repli ci-dessous */ }
-  if (!nom) {
-    const pub = createPublicClient();
+  {
+      const pub = createPublicClient();
     const { data: snap } = await pub.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
     const sd = snap?.data as any;
     nom = sd && sd.active !== false ? sd.name : undefined;
@@ -136,40 +100,7 @@ async function seatsDepuisOs(slug: string): Promise<{ total?: number; taken?: nu
 export default async function Page({ params }: { params: { slug: string } }) {
   const slug = decodeSlug(params.slug);
 
-  // 1) Pack du LMS (`course_packs`, éditable dans /formateur/packs) → SOURCE DE
-  //    VÉRITÉ. Affiché avec la landing riche (coupon + remise, paiement CCP/BaridiMob
-  //    par e-mail, fiche d'inscription, pop-up programme, jauge de places).
-  const natif = await loadPack(slug);
-  if (natif) {
-    const { pack, courses, cumul, prix, eco } = natif;
-    const [textes, seats] = await Promise.all([getLandingTexts("formation"), seatsDepuisOs(slug)]);
-    return (
-      <FormationLanding
-        textes={textes}
-        data={{
-          courseId: "",
-          niveau: slug,           // l'OS résout ce slug de pack LMS en plusieurs cours
-          name: pack.titre_fr || "Pack",
-          name_ar: pack.titre_ar,
-          tagline: pack.description_fr,
-          price_label: prix ? `${Number(prix).toLocaleString("fr-FR")} DA` : null,
-          price_amount: prix || null,
-          program_url: null,
-          is_pack: true,
-          pack_courses: courses.map((c) => ({
-            id: c.id, title: c.titre_fr || "Formation", prix: c.prix_dzd, slug: c.slug,
-            program_url: c.slug ? `/formations/${c.slug}` : null,
-          })),
-          pack_cumul: cumul,
-          pack_prix: prix,
-          pack_eco: eco,
-          seats,
-        }}
-      />
-    );
-  }
-
-  // 2) Repli : pack composé dans l'OS (synchronisé) → même landing riche.
+  // Pack composé dans l'OS (synchronisé) → landing riche (coupon OS, CCP/BaridiMob, fiche).
   const composed = await loadComposedPack(slug);
   if (composed) {
     const { d, pack_courses, cumul, prix, eco } = composed;
@@ -197,6 +128,6 @@ export default async function Page({ params }: { params: { slug: string } }) {
     );
   }
 
-  // Aucune source (ni pack LMS publié, ni pack OS synchronisé) → introuvable.
+  // Aucun pack OS actif pour ce slug → introuvable.
   notFound();
 }

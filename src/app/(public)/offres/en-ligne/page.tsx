@@ -30,20 +30,10 @@ export default async function Page() {
     return { slug: n.slug, name: c?.titre_fr || n.slug, sous: n.sous, prix: daPrice(c?.prix_dzd) };
   });
 
-  // Packs à prix réduit — natifs (course_packs) + COMPOSÉS dans l'OS (pack_snapshots).
+  // Packs à prix réduit — UNIQUEMENT ceux COMPOSÉS dans l'OS (pack_snapshots).
   // Chacun → sa page /pack/[slug] (détail des niveaux + prix barré). Comme le hub OS.
   const packs: Item[] = [];
   const connus = new Set<string>();
-  try {
-    const { data } = await supabase
-      .from("course_packs").select("slug, titre_fr, prix_dzd").eq("published", true)
-      .order("created_at", { ascending: false });
-    for (const p of ((data as { slug: string | null; titre_fr: string | null; prix_dzd: number | null }[]) ?? [])) {
-      if (!p.slug || connus.has(p.slug)) continue;
-      connus.add(p.slug);
-      packs.push({ slug: p.slug, name: p.titre_fr || "Pack", prix: daPrice(p.prix_dzd) });
-    }
-  } catch { /* best-effort */ }
   try {
     const pub = createPublicClient();
     const { data } = await pub.from("pack_snapshots").select("slug, data");
