@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProductDetail, type DetailProduct } from "./product-detail";
 import { FormationInfo, type CourseInfo } from "./formation-info";
 import { PackInfoSection, type PackInfo } from "./pack-info";
+import { PackHero } from "./pack-hero";
 import { ProductCard, type ShopProduct } from "../product-card";
 import { STORE, normLang } from "@/lib/store-i18n";
 
@@ -48,10 +49,16 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
   // Si le produit est un PACK (bundle), on détaille les formations incluses.
   let packInfo: PackInfo | null = null;
+  let packGallery: string[] = [];
+  let packReserveHref = "/offre#inscription";
   if (product.type === "bundle") {
     const ref = ((product as any).files as string[] | null ?? []).find((f) => f.startsWith("pack:"));
     const packId = ref ? ref.slice(5) : null;
     if (packId) {
+      packReserveHref = `/offre?c=${packId}#inscription`;
+      // Galerie propre au pack (carrousel) — lecture résiliente (colonne migration 092).
+      const { data: gal } = await supabase.from("course_packs").select("gallery").eq("id", packId).maybeSingle();
+      if (gal && Array.isArray((gal as any).gallery)) packGallery = ((gal as any).gallery as string[]).filter(Boolean);
       const { data: pack } = await supabase
         .from("course_packs")
         .select(`prix_dzd,
@@ -112,11 +119,32 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <ChevronLeft size={16} className="rtl:rotate-180" /> {t.backToShop}
       </Link>
 
-      <ProductDetail product={product as DetailProduct} lang={lang} />
-
-      {courseInfo && <FormationInfo course={courseInfo} lang={lang} />}
-
-      {packInfo && <PackInfoSection pack={packInfo} lang={lang} />}
+      {product.type === "bundle" && packInfo ? (
+        <>
+          {/* Formation (pack) : en-tête façon page cours + carrousel, puis cours inclus. */}
+          <PackHero
+            data={{
+              title: product.title,
+              description: product.description ?? null,
+              gallery: packGallery,
+              fallbackImages: packInfo.courses.map((c) => c.thumbnail).filter((x): x is string => !!x),
+              formationsCount: packInfo.courses.length,
+              lessonsCount: packInfo.courses.reduce((s, c) => s + (c.lessons ?? 0), 0),
+              priceDzd: packInfo.packDzd,
+              totalDzd: packInfo.totalDzd,
+            }}
+            reserveHref={packReserveHref}
+            reserveLabel={t.reserve}
+          />
+          <PackInfoSection pack={packInfo} lang={lang} />
+        </>
+      ) : (
+        <>
+          <ProductDetail product={product as DetailProduct} lang={lang} />
+          {courseInfo && <FormationInfo course={courseInfo} lang={lang} />}
+          {packInfo && <PackInfoSection pack={packInfo} lang={lang} />}
+        </>
+      )}
 
       {!!related?.length && (
         <section className="mt-16">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PlusCircle, Pencil, Users, UserPlus, ImageUp } from "lucide-react";
+import { PlusCircle, Pencil, Users, UserPlus, ImageUp, Layers } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { aggregateEnrollments } from "@/lib/formateur-stats";
@@ -38,6 +38,10 @@ export default async function FormateurCoursPage() {
           <Link href="/formateur/cours/couvertures"
             className="inline-flex items-center gap-2 bg-white dark:bg-white/[0.06] text-gray-800 dark:text-white border border-cream-200 dark:border-white/15 px-5 py-2.5 rounded-xl font-semibold hover:border-orange-400 transition-colors">
             <ImageUp size={18} /> Images de couverture
+          </Link>
+          <Link href="/formateur/packs/nouveau"
+            className="inline-flex items-center gap-2 bg-violet-700 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-violet-800 transition-colors">
+            <Layers size={18} /> Créer une formation
           </Link>
           <Link href="/formateur/cours/nouveau"
             className="shiny-cta inline-flex items-center gap-2 bg-orange-DEFAULT text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-orange-600 transition-colors">

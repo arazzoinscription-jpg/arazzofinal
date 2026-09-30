@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isFormateur } from "@/lib/roles";
+import { compressImageToWebp } from "@/lib/images";
 
 async function requireStaff() {
   const supabase = await createClient();
@@ -26,16 +27,55 @@ export async function uploadPackImage(formData: FormData) {
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false as const, error: "Photo manquante." };
   if (!file.type.startsWith("image/")) return { ok: false as const, error: "Le fichier doit être une image." };
-  if (file.size > 8 * 1024 * 1024) return { ok: false as const, error: "Image trop volumineuse (max 8 Mo)." };
+  // Les photos de téléphone dépassent souvent 8 Mo : on accepte jusqu'à 15 Mo en
+  // entrée et on COMPRESSE en WebP (léger + affichage rapide). C'est ce qui manquait
+  // avant → les grosses photos étaient refusées et « ne s'affichaient pas ».
+  if (file.size > 15 * 1024 * 1024) return { ok: false as const, error: "Image trop volumineuse (max 15 Mo)." };
 
   const admin = createAdminClient();
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const raw = await file.arrayBuffer();
+  const webp = await compressImageToWebp(raw, 1280, 78);
+  const bytes = webp ? new Uint8Array(webp) : new Uint8Array(raw);
+  const contentType = webp ? "image/webp" : file.type;
+  const ext = webp ? "webp" : ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg");
   const path = `packs/${randomUUID()}.${ext}`;
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const { error } = await admin.storage.from("posts").upload(path, bytes, { contentType: file.type, upsert: false });
+  const { error } = await admin.storage.from("posts").upload(path, bytes, { contentType, upsert: false, cacheControl: "31536000" });
   if (error) return { ok: false as const, error: error.message };
   const url = admin.storage.from("posts").getPublicUrl(path).data.publicUrl;
   return { ok: true as const, url };
+}
+
+/**
+ * Upload UNE photo de la galerie du pack (carrousel), compressée en WebP.
+ * Renvoie l'URL publique ; la galerie (liste d'URLs) est enregistrée avec le pack
+ * au moment de l'enregistrement du formulaire → pas besoin d'un packId ici.
+ */
+export async function uploadPackGalleryImage(formData: FormData) {
+  const { ok } = await requireStaff();
+  if (!ok) return { ok: false as const, error: "Accès refusé." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false as const, error: "Photo manquante." };
+  if (!file.type.startsWith("image/")) return { ok: false as const, error: "Le fichier doit être une image." };
+  if (file.size > 15 * 1024 * 1024) return { ok: false as const, error: "Image trop volumineuse (max 15 Mo)." };
+
+  const admin = createAdminClient();
+  const raw = await file.arrayBuffer();
+  const webp = await compressImageToWebp(raw, 1280, 78);
+  const bytes = webp ? new Uint8Array(webp) : new Uint8Array(raw);
+  const contentType = webp ? "image/webp" : file.type;
+  const ext = webp ? "webp" : ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg");
+  const path = `pack-gallery/${randomUUID()}.${ext}`;
+  const { error } = await admin.storage.from("posts").upload(path, bytes, { contentType, upsert: false, cacheControl: "31536000" });
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const, url: admin.storage.from("posts").getPublicUrl(path).data.publicUrl };
+}
+
+/** Enregistre la galerie du pack (colonne migration 092). Repli silencieux si absente. */
+async function setPackGallerySafe(admin: ReturnType<typeof createAdminClient>, packId: string, gallery: string[] | undefined) {
+  if (!gallery) return;
+  try { await admin.from("course_packs").update({ gallery }).eq("id", packId); }
+  catch { /* migration 092 non appliquée */ }
 }
 
 function slugify(str: string) {
@@ -57,6 +97,7 @@ const PackSchema = z.object({
   published: z.boolean(),
   category_id: z.string().uuid().nullable().optional(),
   courseIds: z.array(z.string().uuid()).min(1, "Sélectionnez au moins un cours."),
+  gallery: z.array(z.string().url()).max(15).optional(),
 });
 
 // Écriture tolérante de la catégorie du pack (colonne migration 074). Si la
@@ -65,6 +106,25 @@ const PackSchema = z.object({
 async function setPackCategorySafe(admin: ReturnType<typeof createAdminClient>, packId: string, categoryId: string | null | undefined) {
   try { await admin.from("course_packs").update({ category_id: categoryId ?? null }).eq("id", packId); }
   catch { /* migration 074 non appliquée */ }
+}
+
+/**
+ * Insère les cours d'un pack EN CONSERVANT L'ORDRE (colonne `ordre`, migration 091).
+ * `courseIds` est déjà dans l'ordre voulu. Repli sans `ordre` si la colonne n'existe
+ * pas encore → la création réussit quand même (ordre par défaut).
+ */
+async function insertPackItemsOrdered(
+  client: { from: (t: string) => any },
+  packId: string,
+  courseIds: string[],
+): Promise<{ error: { message: string } | null }> {
+  const withOrder = courseIds.map((course_id, i) => ({ pack_id: packId, course_id, ordre: i }));
+  let { error } = await client.from("course_pack_items").insert(withOrder);
+  if (error && (error.code === "42703" || /ordre/i.test(error.message ?? ""))) {
+    const bare = courseIds.map((course_id) => ({ pack_id: packId, course_id }));
+    ({ error } = await client.from("course_pack_items").insert(bare));
+  }
+  return { error };
 }
 
 /** Crée un pack de cours (bundle) appartenant au formateur courant. */
@@ -96,12 +156,12 @@ export async function createPack(input: z.infer<typeof PackSchema>) {
 
   if (error || !pack) return { ok: false, error: error?.message ?? "Erreur lors de la création." };
 
-  // Cours inclus dans le pack
-  const items = d.courseIds.map((course_id) => ({ pack_id: pack.id, course_id }));
-  const { error: itemsError } = await supabase.from("course_pack_items").insert(items);
+  // Cours inclus dans le pack, dans l'ordre choisi.
+  const { error: itemsError } = await insertPackItemsOrdered(supabase, pack.id, d.courseIds);
   if (itemsError) return { ok: false, error: itemsError.message };
 
   await setPackCategorySafe(createAdminClient(), pack.id, d.category_id);
+  await setPackGallerySafe(createAdminClient(), pack.id, d.gallery);
 
   revalidatePath("/formateur/packs");
   revalidatePath("/offre");
@@ -144,11 +204,11 @@ export async function updatePack(input: z.infer<typeof PackUpdateSchema>) {
   // Remplace la liste des cours inclus (les items ne portent aucune donnée à préserver).
   const { error: delErr } = await admin.from("course_pack_items").delete().eq("pack_id", d.id);
   if (delErr) return { ok: false, error: delErr.message };
-  const items = d.courseIds.map((course_id) => ({ pack_id: d.id, course_id }));
-  const { error: insErr } = await admin.from("course_pack_items").insert(items);
+  const { error: insErr } = await insertPackItemsOrdered(admin, d.id, d.courseIds);
   if (insErr) return { ok: false, error: insErr.message };
 
   await setPackCategorySafe(admin, d.id, d.category_id);
+  await setPackGallerySafe(admin, d.id, d.gallery);
 
   revalidatePath("/formateur/packs");
   revalidatePath(`/formateur/packs/${d.id}/edit`);

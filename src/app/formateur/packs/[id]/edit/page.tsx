@@ -46,10 +46,23 @@ export default async function EditPackPage({ params }: { params: { id: string } 
     packCategoryId = (pc as { category_id?: string | null } | null)?.category_id ?? null;
   } catch { /* migration 074 non appliquée */ }
 
+  // Galerie du pack (migration 092) — lecture résiliente si la colonne n'existe pas encore.
+  let packGallery: string[] = [];
+  const { data: pg } = await admin.from("course_packs").select("gallery").eq("id", params.id).maybeSingle();
+  if (pg && Array.isArray((pg as any).gallery)) packGallery = (pg as any).gallery as string[];
+
   const { data: cats } = await admin
     .from("categories").select("id, name_fr, slug")
     .in("slug", ["modelisme-femme", "modelisme-homme", "modelisme-enfants"]);
   const categoryOptions = (cats ?? []).map((c) => ({ id: c.id, name: c.name_fr ?? c.slug }));
+
+  // Cours du pack DANS L'ORDRE (colonne `ordre`, migration 091). Lecture résiliente :
+  // si la colonne n'existe pas encore, on garde l'ordre brut des items.
+  let orderedCourseIds: string[] = ((pack.items as any[]) ?? []).map((it) => it.course_id as string);
+  const { data: ordered } = await admin
+    .from("course_pack_items").select("course_id, ordre").eq("pack_id", params.id)
+    .order("ordre", { ascending: true });
+  if (ordered && ordered.length) orderedCourseIds = ordered.map((r: any) => r.course_id as string);
 
   const initial: PackInitial = {
     titre_fr: pack.titre_fr ?? "",
@@ -58,8 +71,9 @@ export default async function EditPackPage({ params }: { params: { id: string } 
     prix_dzd: pack.prix_dzd != null ? String(pack.prix_dzd) : "",
     prix_eur: pack.prix_eur != null ? String(pack.prix_eur) : "",
     thumbnail: pack.thumbnail ?? "",
-    courseIds: ((pack.items as any[]) ?? []).map((it) => it.course_id as string),
+    courseIds: orderedCourseIds,
     category_id: packCategoryId,
+    gallery: packGallery,
   };
 
   return (

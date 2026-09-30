@@ -2,8 +2,8 @@
 
 import { useState, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, Loader2, X } from "lucide-react";
-import { createPack, updatePack, uploadPackImage } from "../actions";
+import { ImagePlus, Loader2, X, ChevronUp, ChevronDown, Images } from "lucide-react";
+import { createPack, updatePack, uploadPackImage, uploadPackGalleryImage } from "../actions";
 import { toast } from "@/components/ui/toast";
 
 export interface PackCourseOption {
@@ -24,6 +24,7 @@ export interface PackInitial {
   thumbnail: string;
   courseIds: string[];
   category_id?: string | null;
+  gallery?: string[];
 }
 
 /** Formulaire de création OU d'édition d'un pack de cours (sélection multiple de cours). */
@@ -41,14 +42,48 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
     thumbnail: initial?.thumbnail ?? "",
     category_id: initial?.category_id ?? "",
   });
-  const [selected, setSelected] = useState<Set<string>>(new Set(initial?.courseIds ?? []));
+  // Liste ORDONNÉE des cours choisis (l'ordre = la séquence de la formation).
+  const [selected, setSelected] = useState<string[]>(initial?.courseIds ?? []);
   const [uploading, startUpload] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Galerie du pack (carrousel de la page pack). Upload immédiat → URLs, enregistrées avec le pack.
+  const [gallery, setGallery] = useState<string[]>(initial?.gallery ?? []);
+  const [galleryBusy, setGalleryBusy] = useState(false);
+  const galleryRef = useRef<HTMLInputElement>(null);
+
+  async function onPickGallery(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setGalleryBusy(true);
+    try {
+      for (const file of files.slice(0, 15 - gallery.length)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await uploadPackGalleryImage(fd);
+        if (res.ok) setGallery((g) => [...g, res.url]);
+        else toast(res.error ?? "Échec de l'upload", "error");
+      }
+    } finally {
+      setGalleryBusy(false);
+      if (galleryRef.current) galleryRef.current.value = "";
+    }
+  }
+  const removeGallery = (url: string) => setGallery((g) => g.filter((u) => u !== url));
+
+  const isSelected = (id: string) => selected.includes(id);
+
   function toggle(id: string) {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  // Déplace un cours dans la séquence (monter / descendre).
+  function move(index: number, dir: -1 | 1) {
     setSelected((s) => {
-      const next = new Set(s);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      const j = index + dir;
+      if (j < 0 || j >= s.length) return s;
+      const next = [...s];
+      [next[index], next[j]] = [next[j], next[index]];
       return next;
     });
   }
@@ -66,8 +101,9 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
     });
   }
 
-  // Total des cours sélectionnés (pour suggérer un prix de pack avantageux)
-  const selectedCourses = courses.filter((c) => selected.has(c.id));
+  // Cours sélectionnés DANS L'ORDRE choisi (pour l'affichage et le prix cumulé).
+  const byId = new Map(courses.map((c) => [c.id, c]));
+  const selectedCourses = selected.map((id) => byId.get(id)).filter(Boolean) as PackCourseOption[];
   const totalDzd = selectedCourses.reduce((sum, c) => sum + (c.prix_dzd ?? 0), 0);
 
   // Catégories auto : union des catégories des cours sélectionnés.
@@ -75,7 +111,7 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
 
   async function submit(e: React.FormEvent, publish: boolean) {
     e.preventDefault();
-    if (selected.size === 0) { setError("Sélectionnez au moins un cours."); return; }
+    if (selected.length === 0) { setError("Sélectionnez au moins un cours."); return; }
     if (!form.titre_fr.trim()) { setError("Le titre est requis."); return; }
     setLoading(true);
     setError("");
@@ -89,7 +125,8 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
       thumbnail: form.thumbnail.trim() || null,
       published: publish,
       category_id: form.category_id || null,
-      courseIds: [...selected],
+      courseIds: selected,
+      gallery,
     };
     const res = isEdit
       ? await updatePack({ id: packId!, ...payload })
@@ -170,15 +207,78 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
               <span className="text-xs font-semibold">{uploading ? "Envoi…" : "Ajouter une photo"}</span>
             </button>
           )}
-          <p className="text-xs text-gray-400 mt-1.5">JPG / PNG · max 8 Mo</p>
+          <p className="text-xs text-gray-400 mt-1.5">JPG / PNG · photo compressée automatiquement (jusqu'à 15 Mo).</p>
         </div>
       </div>
+
+      {/* Galerie du pack : photos du carrousel en haut de la page de la formation. */}
+      <div className="bg-white rounded-2xl p-6 border border-cream-200">
+        <div className="flex items-center gap-2 mb-1">
+          <Images size={18} className="text-orange-600" />
+          <h2 className="font-semibold text-gray-900 text-lg">Galerie de la formation (carrousel)</h2>
+        </div>
+        <p className="text-xs text-gray-400 font-dm mb-4">Ces photos défilent dans le carrousel en haut de la page de la formation (jusqu'à 15).</p>
+
+        {gallery.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+            {gallery.map((url) => (
+              <div key={url} className="relative group aspect-square rounded-xl overflow-hidden border border-cream-200 bg-cream-100">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => removeGallery(url)} aria-label="Retirer"
+                  className="absolute top-1.5 end-1.5 w-8 h-8 grid place-items-center rounded-full bg-black/55 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-red-600">
+                  <X size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickGallery} disabled={galleryBusy} />
+        <button type="button" onClick={() => galleryRef.current?.click()} disabled={galleryBusy || gallery.length >= 15}
+          className="w-full inline-flex items-center justify-center gap-2 border-2 border-dashed border-cream-300 text-gray-600 py-4 rounded-xl font-semibold hover:bg-cream-50 hover:border-orange-300 transition-colors disabled:opacity-60">
+          {galleryBusy ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
+          {galleryBusy ? "Envoi…" : gallery.length ? "Ajouter d'autres photos" : "Téléverser des photos"}
+        </button>
+      </div>
+
+      {/* Séquence de la formation : cours choisis, dans l'ordre, réordonnables. */}
+      {selectedCourses.length > 0 && (
+        <div className="bg-white rounded-2xl p-6 border border-cream-200">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-semibold text-gray-900 text-lg">Ordre de la formation</h2>
+            <span className="text-sm text-gray-400 font-dm">{selectedCourses.length} cours</span>
+          </div>
+          <p className="text-xs text-gray-400 font-dm mb-4">Rangez les cours dans l'ordre du parcours (le 1ᵉʳ en haut). Utilisez les flèches.</p>
+          <div className="space-y-2">
+            {selectedCourses.map((c, i) => (
+              <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl border border-cream-200 bg-cream-50/60">
+                <span className="w-7 h-7 shrink-0 grid place-items-center rounded-lg bg-violet-100 text-violet-700 text-sm font-bold">{i + 1}</span>
+                <span className="flex-1 font-dm text-gray-800 truncate">{c.titre_fr}</span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Monter"
+                    className="w-8 h-8 grid place-items-center rounded-lg border border-cream-200 text-gray-500 hover:bg-white hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <ChevronUp size={16} />
+                  </button>
+                  <button type="button" onClick={() => move(i, 1)} disabled={i === selectedCourses.length - 1} aria-label="Descendre"
+                    className="w-8 h-8 grid place-items-center rounded-lg border border-cream-200 text-gray-500 hover:bg-white hover:text-orange-600 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <ChevronDown size={16} />
+                  </button>
+                  <button type="button" onClick={() => toggle(c.id)} aria-label="Retirer"
+                    className="w-8 h-8 grid place-items-center rounded-lg border border-cream-200 text-gray-400 hover:bg-red-50 hover:text-red-500">
+                    <X size={15} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Sélection des cours */}
       <div className="bg-white rounded-2xl p-6 border border-cream-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-gray-900 text-lg">Cours inclus *</h2>
-          <span className="text-sm text-gray-400 font-dm">{selected.size} sélectionné(s)</span>
+          <span className="text-sm text-gray-400 font-dm">{selected.length} sélectionné(s)</span>
         </div>
 
         {courses.length === 0 ? (
@@ -188,9 +288,9 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
             {courses.map((c) => (
               <label key={c.id}
                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                  selected.has(c.id) ? "border-orange-DEFAULT bg-orange-50" : "border-cream-200 hover:bg-cream-50"
+                  isSelected(c.id) ? "border-orange-DEFAULT bg-orange-50" : "border-cream-200 hover:bg-cream-50"
                 }`}>
-                <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} className="accent-violet-600 w-4 h-4" />
+                <input type="checkbox" checked={isSelected(c.id)} onChange={() => toggle(c.id)} className="accent-violet-600 w-4 h-4" />
                 <span className="flex-1 font-dm text-gray-800">{c.titre_fr}</span>
                 <span className="text-xs text-gray-400">{Number(c.prix_dzd).toLocaleString("fr-DZ")} DA</span>
               </label>
@@ -198,7 +298,7 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
           </div>
         )}
 
-        {selected.size > 0 && (
+        {selected.length > 0 && (
           <p className="text-xs text-gray-500 font-dm mt-3">
             Valeur cumulée des cours : <strong>{totalDzd.toLocaleString("fr-DZ")} DA</strong>
             {form.prix_dzd && Number(form.prix_dzd) < totalDzd && (
