@@ -13,9 +13,11 @@ export const dynamic = "force-dynamic";
  *
  *   • paiement PAS encore confirmé → page « en attente », AUCUN accès. La fiche
  *     voyage avec le livreur avant l'encaissement : la scanner ne doit rien donner.
- *   • paiement confirmé par l'admin (bouton « Confirmer le paiement » du LMS) →
- *       1re fois : e-mail d'accès (e-mail + mot de passe) puis connexion directe ;
- *       ensuite : connexion directe (aucun mot de passe n'est réinitialisé).
+ *   • paiement confirmé (dans Arazzo OS — « Confirmer », qui envoie déjà l'e-mail d'accès et
+ *     pose `fiche_access_sent_at` — ou par le bouton du LMS) →
+ *       connexion directe ; si l'e-mail d'accès n'est pas encore parti (confirmation faite
+ *       dans le LMS), il part à ce 1er scan (e-mail + mot de passe). Aucun mot de passe
+ *       n'est jamais réinitialisé une fois l'e-mail envoyé.
  *
  * Le jeton est aléatoire (256 bits), propre à UNE commande, et n'ouvre que le
  * compte de cette commande. Voir la migration 091.
@@ -77,7 +79,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
       "Inscription enregistrée",
       `<p>Bonjour ${esc((order.full_name ?? "").split(" ")[0] || "")}, votre inscription est bien enregistrée.</p>
        <p><b>Votre paiement à la livraison n’est pas encore confirmé.</b></p>
-       <p>Dès que le paiement est confirmé, <b>scannez de nouveau ce code</b> : vous recevrez vos identifiants par e-mail et votre accès sera ouvert avec votre formation.</p>`,
+       <p>Dès que le paiement est confirmé, vous recevez vos identifiants (e-mail et mot de passe) par e-mail, et <b>en scannant de nouveau ce code</b> vous ouvrez directement votre formation.</p>`,
       "attente",
     );
   }
