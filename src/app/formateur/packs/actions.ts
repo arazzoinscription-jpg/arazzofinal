@@ -97,7 +97,7 @@ const PackSchema = z.object({
   published: z.boolean(),
   category_id: z.string().uuid().nullable().optional(),
   courseIds: z.array(z.string().uuid()).min(1, "Sélectionnez au moins un cours."),
-  gallery: z.array(z.string().url()).max(15).optional(),
+  gallery: z.array(z.string().url()).max(30).optional(),
 });
 
 // Écriture tolérante de la catégorie du pack (colonne migration 074). Si la
@@ -210,9 +210,22 @@ export async function updatePack(input: z.infer<typeof PackUpdateSchema>) {
   await setPackCategorySafe(admin, d.id, d.category_id);
   await setPackGallerySafe(admin, d.id, d.gallery);
 
+  // Synchronise le produit boutique (bundle) : reprend le titre et la PHOTO DU PACK
+  // pour que la vignette boutique affiche bien la photo ajoutée au pack.
+  try {
+    const { data: bundles } = await admin.from("products").select("id, files").eq("type", "bundle");
+    const prod = (bundles ?? []).find((p) => ((p.files as string[]) ?? []).includes(`pack:${d.id}`));
+    if (prod) {
+      const patch: Record<string, unknown> = { title: d.titre_fr };
+      if (d.thumbnail) patch.images = [d.thumbnail];
+      await admin.from("products").update(patch).eq("id", prod.id);
+    }
+  } catch { /* pas bloquant */ }
+
   revalidatePath("/formateur/packs");
   revalidatePath(`/formateur/packs/${d.id}/edit`);
   revalidatePath("/offre");
+  revalidatePath("/boutique");
   return { ok: true, id: d.id };
 }
 

@@ -57,7 +57,7 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
     if (files.length === 0) return;
     setGalleryBusy(true);
     try {
-      for (const file of files.slice(0, 15 - gallery.length)) {
+      for (const file of files.slice(0, 30 - gallery.length)) {
         const fd = new FormData();
         fd.append("file", file);
         const res = await uploadPackGalleryImage(fd);
@@ -217,7 +217,7 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
           <Images size={18} className="text-orange-600" />
           <h2 className="font-semibold text-gray-900 text-lg">Galerie de la formation (carrousel)</h2>
         </div>
-        <p className="text-xs text-gray-400 font-dm mb-4">Ces photos défilent dans le carrousel en haut de la page de la formation (jusqu'à 15).</p>
+        <p className="text-xs text-gray-400 font-dm mb-4">Ces photos défilent dans le carrousel en haut de la page de la formation (jusqu'à 30).</p>
 
         {gallery.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
@@ -234,7 +234,7 @@ export function PackCreateForm({ courses, packId, initial, categoryOptions = [] 
         )}
 
         <input ref={galleryRef} type="file" accept="image/*" multiple className="hidden" onChange={onPickGallery} disabled={galleryBusy} />
-        <button type="button" onClick={() => galleryRef.current?.click()} disabled={galleryBusy || gallery.length >= 15}
+        <button type="button" onClick={() => galleryRef.current?.click()} disabled={galleryBusy || gallery.length >= 30}
           className="w-full inline-flex items-center justify-center gap-2 border-2 border-dashed border-cream-300 text-gray-600 py-4 rounded-xl font-semibold hover:bg-cream-50 hover:border-orange-300 transition-colors disabled:opacity-60">
           {galleryBusy ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
           {galleryBusy ? "Envoi…" : gallery.length ? "Ajouter d'autres photos" : "Téléverser des photos"}

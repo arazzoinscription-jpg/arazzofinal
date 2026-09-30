@@ -106,20 +106,25 @@ export async function publishPack(packId: string, price: number) {
 
   const { data: pack } = await admin
     .from("course_packs")
-    .select("id, titre_fr, description_fr, prix_dzd, formateur_id, items:course_pack_items(course:courses(thumbnail))")
+    .select("id, titre_fr, description_fr, prix_dzd, thumbnail, formateur_id, items:course_pack_items(course:courses(thumbnail))")
     .eq("id", packId).single();
   if (!pack) return { ok: false, error: "Pack introuvable" };
   if (g.role === "formateur" && pack.formateur_id && pack.formateur_id !== g.user.id) {
     return { ok: false, error: "Ce pack ne vous appartient pas." };
   }
 
-  const firstThumb = ((pack.items as any[]) ?? []).map((it) => it.course?.thumbnail).find(Boolean) ?? null;
+  // Image du produit boutique : la PHOTO DU PACK d'abord (celle ajoutée à la création),
+  // sinon une miniature de cours VALIDE (on ignore les URLs mortes de l'ancien WordPress).
+  const validCourseThumb = ((pack.items as any[]) ?? [])
+    .map((it) => it.course?.thumbnail as string | null)
+    .find((u) => u && !u.includes("formation-arazzo.com")) ?? null;
+  const image = (pack as any).thumbnail || validCourseThumb;
   const row = {
     title: pack.titre_fr ?? "Pack",
     description: pack.description_fr ?? null,
     type: "bundle" as const,
     price: Number.isFinite(price) ? price : (pack.prix_dzd ?? 0),
-    images: firstThumb ? [firstThumb] : [],
+    images: image ? [image] : [],
     files: [PACK_REF + pack.id],
     is_active: true,
   };
