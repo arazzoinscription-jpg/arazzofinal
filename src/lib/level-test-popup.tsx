@@ -114,7 +114,10 @@ export default function LevelTestPopup({
   // Sur l'écran de résultat : la personne précise si elle veut la formation EN
   // LIGNE (plateforme) ou EN PRÉSENTIEL (Sétif, El Hidhab) — le bouton d'inscription
   // pointe alors vers la landing EXACTE correspondante.
-  const [mode, setMode] = useState<null | "online" | "presentiel">(null);
+  // Repli : tant que l'OS n'a pas poussé la brique « mode » dans le test (voir
+  // plus bas), la question reste locale. Dès qu'elle est dans le test, c'est une
+  // brique ORDINAIRE (réponse `mode`) — modifiable/traduisible dans l'OS.
+  const [modeLocal, setModeLocal] = useState<null | "online" | "presentiel">(null);
   // « StartTest » ne doit partir qu'UNE fois, au vrai début (1re réponse).
   const started = useRef(false);
   // Événement combiné niveau+format (N1Online, N1Presentiel, …) : une seule fois.
@@ -166,10 +169,13 @@ export default function LevelTestPopup({
 
   const questions = test?.questions ?? [];
   const total = questions.length;
-  // Après les questions du serveur, on insère UNE question locale « mode » (en
-  // ligne / présentiel) — affichée comme les autres —, puis l'écran coordonnées.
-  const totalQ = total + 1;            // questions serveur + question « mode »
-  const surMode = etape === total;     // la question « mode »
+  // « En ligne ou présentiel ? » : brique ordinaire du test (clé `mode`) quand
+  // l'OS l'a poussée ; sinon repli sur une question locale ajoutée à la fin.
+  const modeDansLeTest = questions.some((q) => q.key === "mode");
+  const reponseMode = answers.mode === "online" || answers.mode === "presentiel" ? answers.mode : null;
+  const mode: null | "online" | "presentiel" = modeDansLeTest ? reponseMode : modeLocal;
+  const totalQ = modeDansLeTest ? total : total + 1; // questions serveur (+ repli « mode »)
+  const surMode = !modeDansLeTest && etape === total; // la question « mode » de repli
   const surContact = etape === totalQ; // l'écran « Recevez votre résultat »
   const cur = (surMode || surContact) ? undefined : questions[etape];
   const pct = Math.round((Math.min(etape, totalQ) / (totalQ + 1)) * 100);
@@ -177,7 +183,7 @@ export default function LevelTestPopup({
   const rtl = langue === "ar";
 
   function recommencer() {
-    setResultat(null); setAnswers({}); setAccepte(false); setMode(null);
+    setResultat(null); setAnswers({}); setAccepte(false); setModeLocal(null);
     setContact({ first_name: "", email: "", phone: "" }); setEtape(0); setErreur(null);
     comboFired.current = false; // un nouveau passage pourra ré-émettre l'événement combiné.
   }
@@ -450,7 +456,7 @@ export default function LevelTestPopup({
                     const on = mode === val;
                     return (
                       <button type="button" key={val} aria-pressed={on}
-                        onClick={() => { marquerDebut(); setMode(val); }}
+                        onClick={() => { marquerDebut(); setModeLocal(val); }}
                         style={{
                           textAlign: rtl ? "right" : "left", padding: "12px 10px", borderRadius: 16, overflowWrap: "anywhere",
                           cursor: "pointer", border: `2px solid ${on ? "var(--thread, #5B16F9)" : "rgba(0,0,0,.12)"}`,

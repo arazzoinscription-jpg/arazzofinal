@@ -20,6 +20,8 @@ import { OFFRE, type Lang } from "./offre-i18n";
 import { createClient } from "@/lib/supabase/client";
 import { submitLead, createLeadProofUploadUrl, recordLeadProof, sendPaymentInfo, getCourseFiche, submitDeliveryOrder } from "@/app/actions/rejoindre";
 import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
+import LevelTestPopup from "@/lib/level-test-popup";
+import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 
 /* ── Types partagés ────────────────────────────────────────────────────── */
 export type Level = "debutant" | "intermediaire" | "avance";
@@ -104,6 +106,21 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
   const [phase, setPhase] = useState<"form" | "done">("form");
   const [ficheId, setFicheId] = useState<string | null>(null);
   const [packFicheId, setPackFicheId] = useState<string | null>(null);
+  // Test de niveau : le MÊME popup que sur les autres pages (questions, « en ligne
+  // ou présentiel », coordonnées, résultat) — piloté depuis l'OS (CRM → Tests).
+  const [showTest, setShowTest] = useState(false);
+  const langueTest: "ar" | "fr" = lang === "ar" ? "ar" : "fr";
+  useEffect(() => {
+    // Les boutons « Teste ton niveau » de la page pointent vers #quiz : ils ouvrent le popup.
+    function surClic(e: MouseEvent) {
+      const a = (e.target as HTMLElement | null)?.closest?.('a[href="#quiz"]');
+      if (!a) return;
+      e.preventDefault();
+      setShowTest(true);
+    }
+    document.addEventListener("click", surClic);
+    return () => document.removeEventListener("click", surClic);
+  }, []);
   const ficheFmt = (n: number) => `${Number(n).toLocaleString(lang === "ar" ? "ar-DZ" : "fr-DZ")} ${t.inscription.currency}`;
 
   function pickCourse(level: Level) {
@@ -149,7 +166,7 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
         />
       )}
       <Why lang={lang} />
-      <Quiz lang={lang} courses={courses} onEnroll={(lvl) => enroll(lvl)} />
+      <QuizCta lang={lang} onOpen={() => setShowTest(true)} />
       <Testimonials lang={lang} />
       <DiplomaSection lang={lang} />
       <PaymentMethodsSection lang={lang} />
@@ -159,6 +176,21 @@ export function SalesPage({ lang = "fr", courses = [], pay = null, preselectCour
       {/* Popup détail du pack (niv 1 + niv 2) — accessible depuis « Choisis ton parcours ». */}
       <PackFicheModal packId={packFicheId} lang={lang} onClose={() => setPackFicheId(null)}
         onChoose={(pid) => { setCourseId(pid); setTimeout(() => document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth" }), 60); }} fmt={ficheFmt} />
+
+      {showTest ? (
+        <>
+          <LandingStyles />
+          {/* `.pl` porte les couleurs du popup ; on neutralise son habillage « page entière ». */}
+          <div className="pl" dir={langueTest === "ar" ? "rtl" : "ltr"}
+            style={{ position: "static", background: "none", overflow: "visible", zIndex: "auto", height: 0 }}>
+            <LevelTestPopup
+              slug={langueTest === "ar" ? "niveau-couture-ar" : "niveau-couture"}
+              langue={langueTest} utm={utmDeLURL()}
+              onClose={() => setShowTest(false)}
+              onSubscribe={() => enroll(null)} />
+          </div>
+        </>
+      ) : null}
 
       <footer className="border-t border-cream-200 dark:border-white/10 py-8 text-center text-sm text-gray-400 dark:text-white/40 font-dm">
         © {new Date().getFullYear()} Arazzo Formation — {t.hero.eyebrow}
@@ -899,124 +931,19 @@ function Gallery({ lang }: { lang: Lang }) {
   );
 }
 
-/* ── Quiz interactif → recommandation ──────────────────────────────────── */
-function Quiz({ lang, courses, onEnroll }: { lang: Lang; courses: CourseOption[]; onEnroll: (level: Level) => void }) {
+/* ── Test de niveau : bloc d'appel — le test lui-même est le popup partagé ── */
+function QuizCta({ lang, onOpen }: { lang: Lang; onOpen: () => void }) {
   const t = OFFRE[lang].quiz;
-  const paths = OFFRE[lang].paths;
-  const total = t.questions.length;
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<number[]>(Array(total).fill(-1));
-  const [done, setDone] = useState(false);
-
-  const cur = t.questions[step];
-  const pct = Math.round(((done ? total : step) / total) * 100);
-
-  function pick(i: number) {
-    const next = [...answers]; next[step] = i; setAnswers(next);
-  }
-  function advance() {
-    if (answers[step] < 0) return;
-    if (step < total - 1) setStep(step + 1);
-    else setDone(true);
-  }
-  // Recommandation : moyenne des réponses → niveau 0/1/2
-  const score = answers.reduce((s, a) => s + Math.max(0, a), 0);
-  const levelIdx = score <= 2 ? 0 : score <= 5 ? 1 : 2;
-  const level = LEVELS[levelIdx];
-  const recoCourse = courses.find((c) => c.niveau === level);
-  const recoName = recoCourse?.titre ?? paths.cards[levelIdx].name;
-
   return (
     <Section className="py-20 sm:py-24 bg-white dark:bg-[#120d24]">
       <div id="quiz" className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
-        <div className="text-center mb-8">
+        <div className="text-center rounded-3xl bg-cream-50/70 dark:bg-white/[0.03] border border-cream-200 dark:border-white/10 p-8 sm:p-10 shadow-soft">
           <h2 className="font-playfair text-3xl sm:text-4xl font-bold">{t.title}</h2>
           <p className="text-gray-500 dark:text-white/50 font-dm mt-2">{t.sub}</p>
-        </div>
-
-        <div className="rounded-3xl bg-cream-50/70 dark:bg-white/[0.03] border border-cream-200 dark:border-white/10 p-6 sm:p-8 shadow-soft">
-          {/* Progression */}
-          <div className="flex items-center justify-between text-sm font-dm text-gray-500 dark:text-white/50 mb-2">
-            <span>{pct}%</span>
-            <span>{t.q(Math.min(step + 1, total), total)}</span>
-          </div>
-          <div className="h-2 rounded-full bg-cream-200 dark:bg-white/10 overflow-hidden mb-7">
-            <motion.div className="h-full bg-gradient-to-r from-violet-DEFAULT to-orange-500" animate={{ width: `${pct}%` }} transition={{ duration: 0.4 }} />
-          </div>
-
-          <AnimatePresence mode="wait">
-            {!done ? (
-              <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
-                <h3 className="font-playfair text-xl sm:text-2xl font-bold mb-5">{cur.q}</h3>
-                <div className="space-y-3">
-                  {cur.options.map((opt, i) => {
-                    const on = answers[step] === i;
-                    return (
-                      <button key={i} onClick={() => pick(i)}
-                        className={`w-full text-start flex items-center gap-3 rounded-2xl border px-4 py-3.5 font-dm transition-all ${
-                          on ? "border-orange-DEFAULT bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-200"
-                             : "border-cream-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-orange-300"
-                        }`}>
-                        <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${on ? "border-orange-DEFAULT bg-orange-DEFAULT" : "border-gray-300"}`}>
-                          {on && <CheckCircle2 size={14} className="text-white" />}
-                        </span>
-                        {opt}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="flex items-center justify-between mt-7">
-                  <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 disabled:opacity-40">
-                    <ChevronRight size={16} className="rtl:block ltr:hidden" /><ChevronLeft size={16} className="ltr:block rtl:hidden" /> {t.prev}
-                  </button>
-                  <button onClick={advance} disabled={answers[step] < 0}
-                    className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-orange-600 disabled:opacity-50 transition-colors">
-                    {step < total - 1 ? t.next : t.seeResult}
-                    <ChevronLeft size={16} className="rtl:block ltr:hidden" /><ChevronRight size={16} className="ltr:block rtl:hidden" />
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div key="result" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-2">
-                <span className="inline-flex w-14 h-14 rounded-full bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-300 items-center justify-center mb-4">
-                  <CheckCircle2 size={28} />
-                </span>
-                <p className="text-sm font-bold uppercase tracking-wide text-orange-600 dark:text-orange-300 font-dm">{t.resultTitle}</p>
-                <h3 className="font-playfair text-2xl sm:text-3xl font-bold mt-1">{recoName}</h3>
-                <p className="text-gray-500 dark:text-white/55 font-dm mt-3 max-w-md mx-auto">{t.resultText}</p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center mt-7">
-                  {courses.length > 0 ? (
-                    <button onClick={() => onEnroll(level)} className="inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white px-7 py-3 rounded-2xl font-bold shadow-glow hover:bg-orange-600 transition-colors">
-                      {t.resultCta}
-                    </button>
-                  ) : (
-                    <Link href="/formations" className="inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white px-7 py-3 rounded-2xl font-bold shadow-glow hover:bg-orange-600 transition-colors">
-                      {t.resultCta}
-                    </Link>
-                  )}
-                  <button onClick={() => { setDone(false); setStep(0); setAnswers(Array(total).fill(-1)); }}
-                    className="inline-flex items-center justify-center gap-2 border-2 border-cream-200 dark:border-white/15 px-7 py-3 rounded-2xl font-semibold text-gray-600 dark:text-white/70 hover:bg-cream-50 dark:hover:bg-white/5 transition-colors">
-                    {t.restart}
-                  </button>
-                </div>
-
-                {/* #5 — Débutante totale (jamais utilisé une machine) : on propose
-                    plus d'options + un atelier « utilisation de la machine ». */}
-                {answers[0] === 0 ? (
-                  <div className="mt-6 text-left rounded-2xl border-2 border-dashed border-orange-300 bg-orange-50 dark:bg-orange-500/10 p-5 max-w-md mx-auto">
-                    <p className="font-bold text-orange-700 dark:text-orange-300">🧵 Vous débutez avec la machine ?</p>
-                    <p className="text-sm text-gray-600 dark:text-white/70 mt-1">C’est parfait — commencez en douceur. Nous proposons aussi une <strong>séance spéciale « utilisation de la machine à coudre »</strong> pour bien démarrer.</p>
-                    <div className="flex flex-col sm:flex-row gap-2 mt-4">
-                      <Link href="/offres" className="flex-1 text-center bg-[#5B16F9] text-white py-2.5 rounded-xl font-semibold text-sm">Voir toutes nos formations</Link>
-                      <Link href="/presentiel/utilisation-machine-a-coudre-point-droite" className="flex-1 text-center bg-[#128a4c] text-white py-2.5 rounded-xl font-semibold text-sm hover:brightness-110">🧵 Atelier : utilisation de la machine</Link>
-                    </div>
-                  </div>
-                ) : null}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <button type="button" onClick={onOpen}
+            className="inline-flex items-center gap-2 mt-7 bg-orange-DEFAULT text-white px-8 py-3.5 rounded-2xl font-bold text-lg shadow-glow hover:bg-orange-600 hover:-translate-y-0.5 transition-all">
+            <Sparkles size={18} /> {OFFRE[lang].nav.testLevel}
+          </button>
         </div>
       </div>
     </Section>

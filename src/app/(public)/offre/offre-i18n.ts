@@ -173,7 +173,7 @@ const FR: OffreDict = {
   },
   quiz: {
     title: "Teste ton niveau",
-    sub: "4 questions, 1 minute — on te recommande la formation idéale.",
+    sub: "5 questions, 1 minute — on te recommande la formation idéale.",
     q: (i, n) => `Question ${i} sur ${n}`,
     next: "Suivant", prev: "Précédent", seeResult: "Voir le résultat", restart: "Recommencer",
     questions: [
@@ -349,7 +349,7 @@ const AR: OffreDict = {
   },
   quiz: {
     title: "اختبري مستواك",
-    sub: "4 أسئلة، دقيقة وحدة — ونرشّحو لك الدورة المناسبة.",
+    sub: "5 أسئلة، دقيقة وحدة — ونرشّحو لك الدورة المناسبة.",
     q: (i, n) => `السؤال ${i} من ${n}`,
     next: "التالي", prev: "السابق", seeResult: "شوفي النتيجة", restart: "إعادة",
     questions: [
@@ -525,7 +525,7 @@ const EN: OffreDict = {
   },
   quiz: {
     title: "Test your level",
-    sub: "4 questions, 1 minute — we recommend the ideal course.",
+    sub: "5 questions, 1 minute — we recommend the ideal course.",
     q: (i, n) => `Question ${i} of ${n}`,
     next: "Next", prev: "Previous", seeResult: "See result", restart: "Restart",
     questions: [
