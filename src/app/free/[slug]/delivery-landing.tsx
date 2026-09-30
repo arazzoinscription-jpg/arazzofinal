@@ -74,10 +74,16 @@ const T: Record<"ar" | "fr", any> = {
   },
 };
 
-/** Lecteur : Bunny Stream (iframe), fichier vidéo direct, ou autre intégration https. */
+/**
+ * Lecteur : Bunny Stream (iframe), YouTube (iframe « embed » — une page « watch »
+ * refuse d'être intégrée ; www.youtube.com est autorisé par la CSP du site),
+ * fichier vidéo direct, ou autre intégration https.
+ */
 function lecteurVideo(url: unknown): { kind: "iframe" | "video"; src: string } | null {
   const u = String(url ?? "").trim();
   if (!/^https?:\/\//i.test(u)) return null;
+  const yt = u.match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/i);
+  if (yt) return { kind: "iframe", src: `https://www.youtube.com/embed/${yt[1]}?rel=0` };
   const bunny = u.match(/^https?:\/\/(iframe|player)\.mediadelivery\.net\/(play|embed)\/(\d+)\/([\w-]+)/i);
   if (bunny) return { kind: "iframe", src: `https://iframe.mediadelivery.net/embed/${bunny[3]}/${bunny[4]}?responsive=true` };
   if (/\.(mp4|webm|mov)(\?|$)/i.test(u)) return { kind: "video", src: u };
@@ -266,7 +272,15 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
 
       <div className="pl-wrap">
         <div className="pl-card">
-          {data.cover_image_url ? (
+          {/* Couverture : une VIDÉO (Bunny/YouTube) si elle est choisie dans l'OS,
+              sinon la photo. */}
+          {lecteurVideo(data.cover_video_url)?.kind === "iframe" ? (
+            <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 14, overflow: "hidden", background: "#000" }}>
+              <iframe title={data.title ?? "Couverture"} src={lecteurVideo(data.cover_video_url)!.src} loading="lazy"
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowFullScreen
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} />
+            </div>
+          ) : data.cover_image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={data.cover_image_url} alt="" className="pl-programme-img"
               style={{ width: "100%", borderRadius: 14, aspectRatio: "16 / 8", objectFit: "cover", display: "block" }} />

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { createPublicClient } from "@/lib/supabase/public";
 import DeliveryLanding from "./delivery-landing";
 
 // DELIVERY PAGE — la page de livraison d'un cours GRATUIT, 24/7 sur Vercel.
 // UN SEUL modèle dynamique pour toutes les pages : le contenu (titre, textes,
-// couverture, vidéo Bunny, PDF, CTA, formulaire) vient d'un INSTANTANÉ que
-// Arazzo OS pousse dans Supabase (`delivery_page_snapshots`, migration 088).
+// couverture, vidéo Bunny/YouTube, PDF, CTA, formulaire) vient d'un INSTANTANÉ
+// que Arazzo OS pousse dans Supabase (`delivery_page_snapshots`, migration 088).
 // Lecture en ANON : l'instantané est une donnée publique.
 
 export const dynamic = "force-dynamic";
@@ -16,12 +17,15 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
 /** Un slug arabe peut arriver encodé (%D8%AF…) : on le décode sans jamais planter. */
 function decoder(slug: string) {
   try { return decodeURIComponent(slug); } catch { return slug; }
 }
 
-async function lireInstantane(brut: string): Promise<Record<string, any> | null> {
+/** L'instantané BRUT d'une adresse (ouverte, fermée ou déplacée), ou null. */
+async function lireBrut(brut: string): Promise<Record<string, any> | null> {
   const slug = decoder(brut);
   const supabase = createPublicClient();
   const { data: row } = await supabase
@@ -29,8 +33,11 @@ async function lireInstantane(brut: string): Promise<Record<string, any> | null>
     .select("data")
     .eq("slug", slug)
     .maybeSingle();
-  const data = (row?.data ?? null) as Record<string, any> | null;
-  // Une page dépubliée/archivée garde son instantané, marqué `active: false`.
+  return (row?.data ?? null) as Record<string, any> | null;
+}
+
+/** La page servie : seulement si elle est ouverte (`active`), avec un code promo encore valable. */
+function pageOuverte(data: Record<string, any> | null): Record<string, any> | null {
   if (!data || data.active !== true) return null;
   return { ...data, promo: promoEncoreValable(data.promo) };
 }
@@ -47,15 +54,25 @@ function promoEncoreValable(promo: any) {
   return promo;
 }
 
+/** L'image de partage : la photo de couverture, sinon l'image de la vidéo YouTube. */
+function imagePartage(page: Record<string, any>): string | null {
+  if (page.cover_image_url) return String(page.cover_image_url);
+  const m = String(page.cover_video_url ?? "").match(
+    /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})/i,
+  );
+  return m ? `https://img.youtube.com/vi/${m[1]}/hqdefault.jpg` : null;
+}
+
 // Aperçu du lien quand il est partagé (Facebook, WhatsApp, Instagram…).
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
 ): Promise<Metadata> {
   const { slug } = await params;
-  const page = await lireInstantane(slug);
+  const page = pageOuverte(await lireBrut(slug));
   if (!page) return { title: "Arazzo Formation", robots: { index: false } };
   const title = page.title || "Cours gratuit — Arazzo";
   const description = String(page.welcome_text || page.description || "Un cours offert par Arazzo Formation.").slice(0, 200);
+  const image = imagePartage(page);
   return {
     title,
     description,
@@ -63,14 +80,30 @@ export async function generateMetadata(
       title,
       description,
       type: "website",
-      ...(page.cover_image_url ? { images: [{ url: page.cover_image_url }] } : {}),
+      ...(image ? { images: [{ url: image }] } : {}),
     },
   };
 }
 
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+export default async function Page(
+  { params, searchParams }: { params: Promise<{ slug: string }>; searchParams: SearchParams },
+) {
   const { slug } = await params;
-  const page = await lireInstantane(slug);
+  const brut = await lireBrut(slug);
+
+  // L'adresse a CHANGÉ dans Arazzo OS : l'ancien lien (peut-être déjà partagé)
+  // mène à la nouvelle adresse, en gardant ses paramètres (utm…).
+  const vers = typeof brut?.moved_to === "string" ? brut.moved_to : null;
+  if (brut && brut.active !== true && vers && vers !== decoder(slug)) {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries((await searchParams) ?? {})) {
+      if (typeof v === "string") q.set(k, v);
+    }
+    const qs = q.toString();
+    redirect(`/free/${encodeURIComponent(vers)}${qs ? `?${qs}` : ""}`);
+  }
+
+  const page = pageOuverte(brut);
 
   // Jamais synchronisée, dépubliée ou archivée : message sobre, bilingue.
   if (!page) {
