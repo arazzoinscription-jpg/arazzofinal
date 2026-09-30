@@ -62,13 +62,32 @@ export default async function ProductPage({ params }: { params: { slug: string }
       const { data: pack } = await supabase
         .from("course_packs")
         .select(`prix_dzd,
-          items:course_pack_items(course:courses(slug, titre_fr, niveau, thumbnail, prix_dzd,
+          items:course_pack_items(course:courses(id, slug, titre_fr, niveau, thumbnail, prix_dzd,
             course_categories(category:categories(name_fr)),
             chapters(id, titre, ordre, lessons(id, titre, ordre))))`)
         .eq("id", packId)
         .maybeSingle();
       if (pack) {
         const items = (pack.items as any[]) ?? [];
+
+        // Image d'affichage propre par cours : la 1ʳᵉ photo de sa galerie (migration 090),
+        // sinon sa miniature SI elle n'est pas une URL morte de l'ancien WordPress.
+        // Évite les images brisées (thumbnail formation-arazzo.com) → repli icône propre.
+        const courseIds = items.map((it) => it.course?.id).filter(Boolean) as string[];
+        const galByCourse = new Map<string, string>();
+        if (courseIds.length) {
+          const { data: gals } = await supabase.from("courses").select("id, gallery").in("id", courseIds);
+          for (const g of (gals as any[]) ?? []) {
+            const first = Array.isArray(g.gallery) ? g.gallery.find((u: string) => typeof u === "string" && u) : null;
+            if (first) galByCourse.set(g.id, first);
+          }
+        }
+        const cleanImg = (id: string | undefined, thumb: string | null | undefined): string | null => {
+          if (id && galByCourse.has(id)) return galByCourse.get(id)!;
+          if (thumb && !thumb.includes("formation-arazzo.com")) return thumb;
+          return null;
+        };
+
         const catSet = new Set<string>();
         const courses = items.map((it) => {
           const c = it.course;
@@ -80,7 +99,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
             slug: c?.slug ?? null,
             title: c?.titre_fr ?? "Formation",
             niveau: c?.niveau ?? null,
-            thumbnail: c?.thumbnail ?? null,
+            thumbnail: cleanImg(c?.id, c?.thumbnail),
             chapters: chapters.length,
             lessons: chapters.reduce((s: number, ch: any) => s + ((ch.lessons as any[])?.length ?? 0), 0),
             program: chapters.map((ch: any) => ({

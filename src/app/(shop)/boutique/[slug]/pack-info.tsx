@@ -81,24 +81,31 @@ export function PackInfoSection({ pack, lang = "fr" }: { pack: PackInfo; lang?: 
       <div className={card}>
         <h2 className={`${heading} mb-1`}>{t.contains(pack.courses.length)}</h2>
         <p className="text-gray-500 dark:text-white/50 font-dm mb-5">{t.intro}</p>
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 gap-5">
           {pack.courses.map((c, i) => {
             const inner = (
               <>
-                <div className="w-20 h-20 rounded-xl overflow-hidden bg-cream-100 dark:bg-white/5 flex-shrink-0">
+                {/* Visuel en haut, façon carte de cours */}
+                <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-violet-100 to-blush-50 dark:from-violet-500/15 dark:to-white/5">
                   {c.thumbnail
                     ? <img src={c.thumbnail} alt={c.title} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center"><GraduationCap size={24} className="text-violet-400" /></div>}
+                    : <div className="w-full h-full flex items-center justify-center"><GraduationCap size={34} className="text-violet-300 dark:text-violet-300/60" /></div>}
+                  {c.niveau && (
+                    <span className="absolute top-2.5 start-2.5 inline-flex items-center gap-1 bg-white/90 dark:bg-black/50 backdrop-blur text-[11px] font-bold text-violet-700 dark:text-violet-200 px-2 py-0.5 rounded-full">
+                      <BarChart3 size={11} /> {t.levels[c.niveau] ?? c.niveau}
+                    </span>
+                  )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-gray-900 dark:text-white line-clamp-2 leading-snug">{c.title}</p>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500 dark:text-white/50 font-dm">
-                    {c.niveau && <span className="inline-flex items-center gap-1"><BarChart3 size={12} /> {t.levels[c.niveau] ?? c.niveau}</span>}
+
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 leading-snug">{c.title}</h3>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-gray-500 dark:text-white/50 font-dm">
                     <span className="inline-flex items-center gap-1"><PlayCircle size={12} /> {t.lessons(c.lessons)}</span>
                     <span className="inline-flex items-center gap-1"><FileText size={12} /> {t.chapters(c.chapters)}</span>
                   </div>
+
                   {c.program && c.program.length > 0 && (
-                    <div className="mt-2.5">
+                    <div className="mt-3">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-white/40 mb-1.5">{t.program}</p>
                       <div className="space-y-1.5">
                         {c.program.map((ch, j) => (
@@ -128,17 +135,18 @@ export function PackInfoSection({ pack, lang = "fr" }: { pack: PackInfo; lang?: 
                       </div>
                     </div>
                   )}
+
                   {c.slug && (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-orange-600 dark:text-orange-300 mt-2">
-                      {t.see} <ChevronRight size={13} className="rtl:rotate-180" />
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600 dark:text-orange-300 mt-3">
+                      {t.see} <ChevronRight size={14} className="rtl:rotate-180" />
                     </span>
                   )}
                 </div>
               </>
             );
-            const cls = "flex gap-4 rounded-2xl border border-cream-200 dark:border-white/10 p-3 transition-colors";
+            const cls = "block rounded-2xl border border-cream-200 dark:border-white/10 overflow-hidden transition-colors";
             return c.slug ? (
-              <Link key={i} href={`/formations/${c.slug}`} className={`${cls} hover:border-orange-300 dark:hover:border-orange-400/50 hover:bg-cream-50/50 dark:hover:bg-white/[0.06]`}>
+              <Link key={i} href={`/formations/${c.slug}`} className={`${cls} hover:border-orange-300 dark:hover:border-orange-400/50`}>
                 {inner}
               </Link>
             ) : (
