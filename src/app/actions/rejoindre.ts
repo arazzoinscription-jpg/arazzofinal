@@ -8,6 +8,8 @@ import { sendEmail } from "@/lib/email";
 import { notifyAdminEmail } from "@/lib/admin-notify";
 import { createMagicLink, createPasswordSetupLink } from "@/lib/magic-link";
 import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
+import { verifierCouponOs } from "@/lib/coupon-os";
+import { NIVEAUX } from "@/lib/niveaux";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const PROOFS_BUCKET = "proofs";
@@ -290,7 +292,38 @@ const DeliverySchema = z.object({
   wilaya: z.string().trim().optional().nullable(),
   address: z.string().trim().min(4, "Adresse de livraison requise."),
   courseId: z.string().uuid("Choisissez une formation."),
+  // Slug de la landing (ex. « niveau-1 ») : sert au ciblage des coupons.
+  slug: z.string().trim().max(120).optional().nullable(),
+  // Code promo saisi sur la landing. Le SERVEUR le revérifie auprès d'Arazzo OS et
+  // recalcule le total : on ne fait jamais confiance à la remise du navigateur.
+  coupon_code: z.string().trim().max(60).optional().or(z.literal("")),
 });
+
+const escHtml = (s: unknown) => String(s ?? "")
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const fmtDA = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} DA`;
+
+/**
+ * Insère la commande « paiement à la livraison ». Le code promo est mémorisé sur la
+ * commande (migration 092) ; si cette colonne n'existe pas encore, on réessaie sans
+ * elle : une inscription ne doit jamais échouer parce qu'une migration est en retard.
+ */
+async function insererCommandeCod(
+  admin: ReturnType<typeof createAdminClient>,
+  base: Record<string, unknown>,
+  couponCode: string | null,
+) {
+  if (!couponCode) return admin.from("orders").insert(base).select("id").single();
+  const avec = await admin.from("orders").insert({ ...base, coupon_code: couponCode }).select("id").single();
+  if (!avec.error) return avec;
+  return admin.from("orders").insert(base).select("id").single();
+}
+
+/** Bloc « montant à régler » des e-mails de confirmation (remise incluse). */
+function blocMontant(total: number, remise: number, code: string | null) {
+  return `<p style="color:#4b5563">Montant à régler à la livraison : <strong>${fmtDA(total)}</strong>${
+    remise > 0 && code ? ` <span style="color:#128a4c">(code ${escHtml(code)} : −${fmtDA(remise)})</span>` : ""}.</p>`;
+}
 
 /**
  * Inscription avec PAIEMENT À LA LIVRAISON (société de transport).
@@ -300,7 +333,7 @@ const DeliverySchema = z.object({
 export async function submitDeliveryOrder(input: unknown) {
   const parsed = DeliverySchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
-  const { full_name, email, phone, wilaya, address, courseId } = parsed.data;
+  const { full_name, email, phone, wilaya, address, courseId, slug, coupon_code } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
 
   const admin = createAdminClient();
@@ -309,15 +342,22 @@ export async function submitDeliveryOrder(input: unknown) {
   if (!course || !course.published || !course.visible_inscription) return { ok: false as const, error: "Formation indisponible." };
   const price = Number(course.prix_dzd) || 0;
 
-  const { data: order, error: orderErr } = await admin
-    .from("orders")
-    .insert({
-      status: "pending", full_name, email: cleanEmail, phone,
-      address, wilaya: wilaya ?? null, country: "Algérie",
-      subtotal: price, discount: 0, total: price, payment_method: "cod",
-    })
-    .select("id")
-    .single();
+  // Code promo : verdict de l'OS, total recalculé ICI (jamais celui du navigateur).
+  let remise = 0;
+  let codeOk: string | null = null;
+  if (coupon_code) {
+    const v = await verifierCouponOs({ code: coupon_code, slug, amount: price, email: cleanEmail, phone });
+    if (!v.ok) return { ok: false as const, error: v.error };
+    remise = v.discount;
+    codeOk = v.code;
+  }
+  const total = Math.max(0, price - remise);
+
+  const { data: order, error: orderErr } = await insererCommandeCod(admin, {
+    status: "pending", full_name, email: cleanEmail, phone,
+    address, wilaya: wilaya ?? null, country: "Algérie",
+    subtotal: price, discount: remise, total, payment_method: "cod",
+  }, codeOk);
   if (orderErr || !order) return { ok: false as const, error: orderErr?.message ?? "Inscription impossible." };
 
   const { error: itemErr } = await admin.from("order_items").insert({
@@ -329,7 +369,8 @@ export async function submitDeliveryOrder(input: unknown) {
   try {
     const html = `
       <h2 style="font-family:Georgia,serif;color:#1b0c3c;margin:0 0 8px">Inscription enregistrée ✅</h2>
-      <p style="color:#4b5563">Bonjour ${full_name}, votre demande pour « <strong>${course.titre_fr}</strong> » est bien reçue (paiement à la livraison).</p>
+      <p style="color:#4b5563">Bonjour ${escHtml(full_name)}, votre demande pour « <strong>${escHtml(course.titre_fr)}</strong> » est bien reçue (paiement à la livraison).</p>
+      ${blocMontant(total, remise, codeOk)}
       <ol style="color:#4b5563;line-height:1.8">
         <li>📞 Vous recevrez un <strong>appel de confirmation</strong>.</li>
         <li>🏠 Vous choisissez la livraison <strong>au bureau</strong> ou <strong>à domicile</strong>.</li>
@@ -349,36 +390,70 @@ const DeliveryPackSchema = z.object({
   phone: z.string().trim().min(6, "Téléphone requis."),
   wilaya: z.string().trim().optional().nullable(),
   address: z.string().trim().min(4, "Adresse de livraison requise."),
-  courseIds: z.array(z.string().uuid()).min(1, "Pack invalide."),
-  total: z.number().nonnegative(),
-  packTitle: z.string().trim().optional().nullable(),
+  // Le pack est désigné par son SLUG ; son prix et ses formations sont relus ICI, côté
+  // serveur. Le navigateur n'envoie jamais un prix ni une liste de cours.
+  packSlug: z.string().trim().min(1, "Pack invalide.").max(120),
+  coupon_code: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
+/** Le pack, tel que le SERVEUR le connaît : pack du LMS publié, sinon pack composé de l'OS. */
+async function chargerPackServeur(
+  admin: ReturnType<typeof createAdminClient>,
+  slug: string,
+): Promise<{ titre: string; prix: number; courseIds: string[] } | null> {
+  const { data: pack } = await admin
+    .from("course_packs").select("id, titre_fr, prix_dzd").eq("slug", slug).eq("published", true).maybeSingle();
+  if (pack) {
+    const { data: items } = await admin.from("course_pack_items").select("course_id").eq("pack_id", pack.id);
+    const ids = [...new Set((items ?? []).map((i) => i.course_id).filter((c): c is string => !!c))];
+    return ids.length ? { titre: pack.titre_fr || "Pack", prix: Number(pack.prix_dzd) || 0, courseIds: ids } : null;
+  }
+  const { data: snap } = await admin.from("pack_snapshots").select("data").eq("slug", slug).maybeSingle();
+  const d = (snap?.data ?? null) as Record<string, any> | null;
+  if (!d || d.active === false) return null;
+  const membres: string[] = (Array.isArray(d.pack_courses) && d.pack_courses.length
+    ? d.pack_courses.map((c: { slug?: string }) => c.slug)
+    : d.member_slugs) ?? [];
+  const ids = membres.map((m) => NIVEAUX[m]).filter((x): x is string => !!x);
+  const prix = Number(d.price_amount) || 0;
+  return ids.length && prix > 0 ? { titre: d.name || "Pack", prix, courseIds: ids } : null;
+}
+
 /**
- * Comme `submitDeliveryOrder`, mais pour un PACK composé : UNE commande COD au
- * prix du pack, avec PLUSIEURS `order_items` (les formations membres). Sert le
- * bouton « fiche d'inscription » sur la page /pack/[slug].
+ * Comme `submitDeliveryOrder`, mais pour un PACK : UNE commande COD au prix du pack,
+ * avec PLUSIEURS `order_items` (les formations membres). Sert le bouton « fiche
+ * d'inscription » sur la page /pack/[slug].
  */
 export async function submitDeliveryOrderPack(input: unknown) {
   const parsed = DeliveryPackSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0].message };
-  const { full_name, email, phone, wilaya, address, courseIds, total, packTitle } = parsed.data;
+  const { full_name, email, phone, wilaya, address, packSlug, coupon_code } = parsed.data;
   const cleanEmail = email.trim().toLowerCase();
 
   const admin = createAdminClient();
+  const pack = await chargerPackServeur(admin, packSlug);
+  if (!pack) return { ok: false as const, error: "Pack indisponible." };
   const { data: courses } = await admin
-    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription").in("id", courseIds);
+    .from("courses").select("id, titre_fr, prix_dzd, published, visible_inscription").in("id", pack.courseIds);
   const dispo = (courses ?? []).filter((c) => c.published && c.visible_inscription);
   if (!dispo.length) return { ok: false as const, error: "Pack indisponible." };
+  const packTitle = pack.titre;
 
-  const { data: order, error: orderErr } = await admin
-    .from("orders")
-    .insert({
-      status: "pending", full_name, email: cleanEmail, phone,
-      address, wilaya: wilaya ?? null, country: "Algérie",
-      subtotal: total, discount: 0, total, payment_method: "cod",
-    })
-    .select("id").single();
+  let remise = 0;
+  let codeOk: string | null = null;
+  if (coupon_code) {
+    const v = await verifierCouponOs({ code: coupon_code, slug: packSlug, amount: pack.prix, email: cleanEmail, phone });
+    if (!v.ok) return { ok: false as const, error: v.error };
+    remise = v.discount;
+    codeOk = v.code;
+  }
+  const total = Math.max(0, pack.prix - remise);
+
+  const { data: order, error: orderErr } = await insererCommandeCod(admin, {
+    status: "pending", full_name, email: cleanEmail, phone,
+    address, wilaya: wilaya ?? null, country: "Algérie",
+    subtotal: pack.prix, discount: remise, total, payment_method: "cod",
+  }, codeOk);
   if (orderErr || !order) return { ok: false as const, error: orderErr?.message ?? "Inscription impossible." };
 
   const items = dispo.map((c) => ({ order_id: order.id, course_id: c.id, title: c.titre_fr, price: 0, quantity: 1 }));
@@ -388,7 +463,8 @@ export async function submitDeliveryOrderPack(input: unknown) {
   try {
     const html = `
       <h2 style="font-family:Georgia,serif;color:#1b0c3c;margin:0 0 8px">Inscription enregistrée ✅</h2>
-      <p style="color:#4b5563">Bonjour ${full_name}, votre demande pour le pack « <strong>${packTitle || "Pack"}</strong> » est bien reçue (paiement à la livraison).</p>
+      <p style="color:#4b5563">Bonjour ${escHtml(full_name)}, votre demande pour le pack « <strong>${escHtml(packTitle)}</strong> » est bien reçue (paiement à la livraison).</p>
+      ${blocMontant(total, remise, codeOk)}
       <ol style="color:#4b5563;line-height:1.8">
         <li>📞 Vous recevrez un <strong>appel de confirmation</strong>.</li>
         <li>📦 Le transporteur vous remet une <strong>fiche avec un code-barres d'accès</strong>.</li>

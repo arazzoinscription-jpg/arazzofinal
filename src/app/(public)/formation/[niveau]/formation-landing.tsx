@@ -283,17 +283,19 @@ export default function FormationLanding({ data, textes }: {
       // membres. Sinon : COD mono-cours classique.
       const r = data.is_pack
         ? await submitDeliveryOrderPack({
-          courseIds: (data.pack_courses ?? []).map((c) => c.id).filter(Boolean),
-          total: Number(data.pack_prix) || 0,
-          packTitle: data.name,
+          // Le SERVEUR relit le prix et les formations du pack à partir de son slug
+          // et revérifie le code promo : rien de financier ne vient du navigateur.
+          packSlug: data.niveau,
           full_name: valeurs.full_name.trim(),
           email: valeurs.email.trim(),
           phone: valeurs.phone.trim(),
           wilaya: valeurs.wilaya.trim() || null,
           address: valeurs.address.trim(),
+          coupon_code: coupon.trim() || undefined,
         })
         : await submitDeliveryOrder({
           courseId: data.courseId,
+          slug: data.niveau,
           full_name: valeurs.full_name.trim(),
           email: valeurs.email.trim(),
           phone: valeurs.phone.trim(),
