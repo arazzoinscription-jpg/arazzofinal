@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { enrollAfterPayment } from "@/lib/enrollment";
+import { enrollAfterPayment, ensureOrderAccount } from "@/lib/enrollment";
 import { createAccessLink } from "@/lib/access-link";
 import { sendEmail } from "@/lib/email";
 import { ficheAccessEmail } from "@/lib/fiche-email";
@@ -11,19 +11,22 @@ export const dynamic = "force-dynamic";
 /**
  * QR de la FICHE D'INSCRIPTION (paiement à la livraison) : /fiche/<jeton>.
  *
- *   • paiement PAS encore confirmé → page « en attente », AUCUN accès. La fiche
- *     voyage avec le livreur avant l'encaissement : la scanner ne doit rien donner.
- *   • paiement confirmé (dans Arazzo OS — « Confirmer », qui envoie déjà l'e-mail d'accès et
- *     pose `fiche_access_sent_at` — ou par le bouton du LMS) →
- *       connexion directe ; si l'e-mail d'accès n'est pas encore parti (confirmation faite
- *       dans le LMS), il part à ce 1er scan (e-mail + mot de passe). Aucun mot de passe
- *       n'est jamais réinitialisé une fois l'e-mail envoyé.
+ * Le QR donne TOUJOURS accès à la plateforme (même scanné par le livreur : sans risque) :
+ *   • 1er scan → le compte est créé (SANS aucun cours tant que le paiement n'est pas confirmé),
+ *     un e-mail part avec e-mail + mot de passe + bouton « Accéder à la plateforme », et la page
+ *     dit « voici votre accès » avec le même bouton ;
+ *   • paiement PAS encore confirmé par l'école → message clair : les cours apparaîtront dès la
+ *     confirmation par l'administration ;
+ *   • paiement confirmé (bouton « Confirmer » d'Arazzo OS, qui inscrit aux cours) → les cours sont
+ *     dans l'espace ; le scan ouvre directement la plateforme.
+ * Aucun mot de passe n'est jamais réinitialisé une fois l'e-mail envoyé, et un compte qui
+ * existait déjà n'est jamais ouvert par un simple scan avant confirmation du paiement.
  *
- * Le jeton est aléatoire (256 bits), propre à UNE commande, et n'ouvre que le
- * compte de cette commande. Voir la migration 091.
+ * Le jeton est aléatoire (256 bits), propre à UNE commande. Voir la migration 091.
  */
 
 const PAYE = ["confirmed", "shipped", "delivered"];
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store").replace(/\/$/, "");
 
 /** Mot de passe lisible (sans 0/O/1/l/I ambigus), tiré du générateur cryptographique. */
 function genererMotDePasse(longueur = 10): string {
@@ -40,7 +43,7 @@ function esc(s: unknown) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-function page(status: number, titre: string, corps: string, ton: "ok" | "attente" | "erreur" = "attente") {
+function page(status: number, titre: string, corps: string, ton: "ok" | "attente" | "erreur" = "attente", action?: { href: string; label: string }) {
   const couleur = ton === "ok" ? "#128a4c" : ton === "erreur" ? "#b3261e" : "#5B16F9";
   const fond = ton === "ok" ? "#e6f6ee" : ton === "erreur" ? "#fdecea" : "#efe8ff";
   const icone = ton === "ok" ? "✓" : ton === "erreur" ? "!" : "⏳";
@@ -69,6 +72,7 @@ function page(status: number, titre: string, corps: string, ton: "ok" | "attente
   .encart{background:#fff4e5;border-radius:16px;padding:12px 16px;color:#8a5a00;font-size:.95rem;line-height:1.8;margin:14px 0 4px}
   footer{padding:18px 20px 22px;text-align:center;font-size:.82rem;color:#8b85a0}
   footer b{color:#5B16F9}
+  .bouton{display:inline-block;margin:10px 0 18px;background:#128a4c;color:#fff;padding:15px 34px;border-radius:14px;text-decoration:none;font-weight:700;font-size:1.05rem;box-shadow:0 12px 24px -12px rgba(18,138,76,.7)}
 </style></head>
 <body>
 <main>
@@ -82,6 +86,7 @@ function page(status: number, titre: string, corps: string, ton: "ok" | "attente
     <div class="pastille">${icone}</div>
     <h1>${titre}</h1>
     <div class="texte">${corps}</div>
+    ${action ? `<a class="bouton" href="${action.href}">${action.label}</a>` : ""}
   </section>
   <footer><b>أرازو للتكوين</b> — مدرسة الخياطة، سطيف</footer>
 </main></body></html>`;
@@ -104,55 +109,77 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     return page(404, "الرمز غير معروف", "<p>هذا الرمز غير مرتبط بأي تسجيل. تأكّدي أنه الرمز المطبوع على بطاقة تسجيلك.</p>", "erreur");
   }
 
-  // Paiement pas encore encaissé et confirmé : on n'ouvre RIEN.
-  if (!PAYE.includes(order.status ?? "")) {
-    const prenom = esc((order.full_name ?? "").trim().split(/\s+/)[0] || "");
-    return page(
-      200,
-      "تمّ تسجيلك بنجاح",
-      `<p>مرحبا ${prenom ? `<b>${prenom}</b>` : ""}، تسجيلك تمّ بنجاح.</p>
-       <p><b>دفعك عند الاستلام لم يتم تأكيده بعد.</b></p>
-       <div class="encart">بمجرد تأكيد الدفع تصلك بياناتك (البريد الإلكتروني وكلمة السر) عبر البريد الإلكتروني، وبمسح هذا الرمز مرة أخرى تدخلين مباشرة إلى تكوينك.</div>`,
-      "attente",
-    );
-  }
+  const paye = PAYE.includes(order.status ?? "");
+  const prenom = esc((order.full_name ?? "").trim().split(/\s+/)[0] || "");
 
-  // Paiement confirmé : compte + inscription aux cours (idempotent).
-  const enr = await enrollAfterPayment(order.id);
-  if (!enr.ok || !enr.userId) {
+  // 1) Le compte. TOUJOURS ouvert : le QR donne accès à la plateforme dès le 1er scan, même
+  //    si c'est le livreur qui le scanne. Les COURS, eux, n'arrivent qu'une fois le paiement
+  //    confirmé par l'école : avant, compte SEUL (aucune inscription) ; après, inscription.
+  let userId: string | null = null;
+  if (paye) {
+    const enr = await enrollAfterPayment(order.id);
+    if (enr.ok) userId = enr.userId;
+  } else {
+    const acc = await ensureOrderAccount(order.id);
+    if (acc.ok) userId = acc.userId;
+  }
+  if (!userId) {
     return page(500, "تعذّر التفعيل", "<p>لم نتمكّن من فتح وصولك الآن. تواصلي معنا وسنحلّ الأمر فورا.</p>", "erreur");
   }
 
-  // Première activation : identifiants par e-mail (une seule fois par commande).
+  // Compte NEUF de cette commande (créé depuis, jamais connecté) : on peut sans risque lui
+  // donner un mot de passe et une connexion directe. Un compte qui existait déjà garde SON
+  // mot de passe et n'est jamais ouvert par un simple scan avant confirmation du paiement.
+  const { data: au } = await admin.auth.admin.getUserById(userId);
+  const compteDeCetteCommande = Boolean(
+    au?.user?.created_at
+    && new Date(au.user.created_at).getTime() >= new Date(order.created_at).getTime()
+    && !au.user.last_sign_in_at,
+  );
+  const connexionDirecte = compteDeCetteCommande || paye;
+
+  // 2) E-mail d'accès (une seule fois par commande) : e-mail + mot de passe + bouton, avec un
+  //    message clair sur ce qui est disponible (cours dès la confirmation du paiement).
+  let emailJusteEnvoye = false;
   if (!order.fiche_access_sent_at && order.email) {
     let motDePasse: string | null = null;
-    const { data: au } = await admin.auth.admin.getUserById(enr.userId);
-    const creeAvecCetteCommande = au?.user?.created_at
-      && new Date(au.user.created_at).getTime() >= new Date(order.created_at).getTime();
-    // Un compte qui existait AVANT cette commande garde SON mot de passe.
-    if (creeAvecCetteCommande) {
+    if (compteDeCetteCommande) {
       const nouveau = genererMotDePasse();
-      const { error } = await admin.auth.admin.updateUserById(enr.userId, { password: nouveau });
+      const { error } = await admin.auth.admin.updateUserById(userId, { password: nouveau });
       if (!error) motDePasse = nouveau;
     }
-    const lien = await createAccessLink(enr.userId);
+    const lienMail = connexionDirecte ? await createAccessLink(userId) : null;
     const titres = ((order.order_items as { title?: string | null }[]) ?? []).map((i) => i.title).filter(Boolean);
     const { subject, html } = ficheAccessEmail({
       name: order.full_name,
       email: order.email,
       password: motDePasse,
       formation: titres.length ? titres.join(" + ") : null,
-      loginUrl: lien.ok && lien.url ? lien.url : process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store",
+      paid: paye,
+      loginUrl: lienMail?.ok && lienMail.url ? lienMail.url : `${SITE}/connexion`,
     });
     const r = await sendEmail({ to: order.email, category: "welcome", force: true, subject, html });
     // Marqué « envoyé » seulement si l'e-mail est parti : sinon le prochain scan réessaie.
-    if (r.ok) await admin.from("orders").update({ fiche_access_sent_at: new Date().toISOString() }).eq("id", order.id);
+    if (r.ok) {
+      await admin.from("orders").update({ fiche_access_sent_at: new Date().toISOString() }).eq("id", order.id);
+      emailJusteEnvoye = true;
+    }
   }
 
-  // Connexion directe (lien branché, 48 h) → tableau de bord, cours inscrits.
-  const acces = await createAccessLink(enr.userId);
-  if (!acces.ok || !acces.url) {
-    return page(500, "تعذّر الدخول التلقائي", "<p>وصولك جاهز، لكن الدخول التلقائي لم ينجح. استعملي البريد الإلكتروني الذي أرسلناه لك.</p>", "erreur");
-  }
-  return NextResponse.redirect(acces.url);
+  // 3) La page : « voici votre accès à la plateforme » + bouton d'entrée.
+  const acces = connexionDirecte ? await createAccessLink(userId) : null;
+  const href = acces?.ok && acces.url ? acces.url : `${SITE}/connexion`;
+  const messageCours = paye
+    ? "<p><b>تمّ تأكيد دفعك.</b> تكوينك متوفّر الآن في فضائك.</p>"
+    : `<div class="encart">حسابك على المنصة جاهز. <b>ستظهر دوراتك في فضائك بمجرد تأكيد الدفع من طرف إدارة المدرسة.</b> يمكنك الدخول الآن والتعرّف على المنصة.</div>`;
+  const messageMail = emailJusteEnvoye
+    ? "<p>أرسلنا إلى بريدك الإلكتروني بيانات الدخول (البريد الإلكتروني وكلمة السر).</p>"
+    : (order.fiche_access_sent_at ? "<p>بيانات الدخول أُرسلت إلى بريدك الإلكتروني.</p>" : "");
+  return page(
+    200,
+    "هذا هو وصولك إلى المنصة",
+    `<p>مرحبا ${prenom ? `<b>${prenom}</b>` : ""}، تسجيلك تمّ بنجاح.</p>${messageCours}${messageMail}`,
+    "ok",
+    { href, label: "الدخول إلى المنصة" },
+  );
 }

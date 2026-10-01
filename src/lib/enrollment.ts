@@ -122,3 +122,47 @@ export async function enrollAfterPayment(orderId: string): Promise<EnrollResult>
 
   return { ok: true, userId, isNewAccount, enrolled };
 }
+
+/**
+ * Compte client d'une commande SANS aucune inscription à un cours : crée (ou retrouve) le
+ * compte et le relie à la commande. Sert au QR de la fiche d'inscription : la cliente a
+ * accès à la plateforme dès le premier scan, ses cours n'arrivent qu'à la confirmation du
+ * paiement (`enrollAfterPayment`). Idempotent.
+ */
+export async function ensureOrderAccount(orderId: string): Promise<{
+  ok: boolean; userId: string | null; isNewAccount: boolean; error?: string;
+}> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("orders").select("id, customer_id, email, full_name").eq("id", orderId).maybeSingle();
+  if (!order) return { ok: false, userId: null, isNewAccount: false, error: "Commande introuvable." };
+
+  let userId = order.customer_id as string | null;
+  let isNewAccount = false;
+  if (!userId && order.email) {
+    const email = String(order.email).trim().toLowerCase();
+    const { data: existing } = await admin.from("users").select("id").eq("email", email).maybeSingle();
+    if (existing) {
+      userId = existing.id;
+    } else {
+      const { data: created, error } = await admin.auth.admin.createUser({
+        email, email_confirm: true,
+        user_metadata: { nom: order.full_name ?? email.split("@")[0] },
+      });
+      if (error || !created?.user) {
+        return { ok: false, userId: null, isNewAccount: false, error: error?.message ?? "Création de compte impossible." };
+      }
+      userId = created.user.id;
+      isNewAccount = true;
+    }
+    await admin.from("orders").update({ customer_id: userId }).eq("id", order.id);
+  }
+  if (!userId) return { ok: false, userId: null, isNewAccount, error: "Aucun client associé." };
+
+  // Profil (au cas où le trigger handle_new_user ne l'aurait pas créé).
+  const { data: profile } = await admin.from("users").select("id").eq("id", userId).maybeSingle();
+  if (!profile) {
+    await admin.from("users").insert({ id: userId, email: order.email ?? "", nom: order.full_name ?? "Cliente" });
+  }
+  return { ok: true, userId, isNewAccount };
+}
