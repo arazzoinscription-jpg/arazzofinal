@@ -42,16 +42,48 @@ function esc(s: unknown) {
 
 function page(status: number, titre: string, corps: string, ton: "ok" | "attente" | "erreur" = "attente") {
   const couleur = ton === "ok" ? "#128a4c" : ton === "erreur" ? "#b3261e" : "#5B16F9";
-  const icone = ton === "ok" ? "✅" : ton === "erreur" ? "⚠️" : "⏳";
-  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8">
+  const fond = ton === "ok" ? "#e6f6ee" : ton === "erreur" ? "#fdecea" : "#efe8ff";
+  const icone = ton === "ok" ? "✓" : ton === "erreur" ? "!" : "⏳";
+  const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
-<title>${titre} — Arazzo Formation</title></head>
-<body style="margin:0;font-family:'DM Sans',Arial,sans-serif;background:#f6f3ff;color:#2b2444;display:grid;place-items:center;min-height:100vh;padding:20px;">
-<main style="max-width:440px;width:100%;background:#fff;border-radius:22px;padding:34px 26px;text-align:center;box-shadow:0 20px 50px -24px rgba(75,59,199,.35);">
-  <div style="font-size:44px;">${icone}</div>
-  <h1 style="font-family:Georgia,serif;color:${couleur};font-size:1.5rem;margin:10px 0 12px;">${titre}</h1>
-  <div style="line-height:1.65;color:#4a4468;">${corps}</div>
-  <p style="margin:26px 0 0;font-size:.85rem;color:#8b85a0;">Arazzo Formation — École de couture, Sétif</p>
+<title>${titre} — أرازو للتكوين</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;700&display=swap">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,Arial,sans-serif;color:#2b2444;
+    background:radial-gradient(120% 70% at 100% 0%,#e9defe 0%,transparent 60%),radial-gradient(100% 60% at 0% 100%,#ffe9da 0%,transparent 55%),#f6f3ff;
+    display:flex;align-items:center;justify-content:center;padding:20px}
+  main{width:100%;max-width:460px;background:#fff;border-radius:28px;overflow:hidden;box-shadow:0 28px 60px -26px rgba(75,59,199,.45)}
+  header{background:linear-gradient(135deg,#2A0880 0%,#5B16F9 100%);padding:26px 20px 22px;text-align:center;color:#fff}
+  .logo{width:84px;height:84px;margin:0 auto 10px;border-radius:50%;background:#fff;display:grid;place-items:center;border:4px solid #FE7223;box-shadow:0 10px 24px rgba(0,0,0,.28)}
+  .logo img{width:58px;height:58px;object-fit:contain}
+  .marque{font-size:1.55rem;font-weight:700;letter-spacing:.5px}
+  .sous-marque{font-size:.82rem;color:#d9c9ff;margin-top:2px}
+  .couture{border:0;border-top:3px dashed #FE7223;margin:0}
+  .corps{padding:28px 26px 8px;text-align:center}
+  .pastille{width:64px;height:64px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-size:30px;font-weight:700;background:${fond};color:${couleur}}
+  h1{font-size:1.45rem;color:${couleur};margin:0 0 14px;line-height:1.4}
+  .texte{line-height:1.95;color:#4a4468;font-size:1.02rem}
+  .texte p{margin:0 0 10px}
+  .encart{background:#fff4e5;border-radius:16px;padding:12px 16px;color:#8a5a00;font-size:.95rem;line-height:1.8;margin:14px 0 4px}
+  footer{padding:18px 20px 22px;text-align:center;font-size:.82rem;color:#8b85a0}
+  footer b{color:#5B16F9}
+</style></head>
+<body>
+<main>
+  <header>
+    <div class="logo"><img src="/arazzo-icon.png" alt="أرازو"></div>
+    <div class="marque">أرازو</div>
+    <div class="sous-marque">للتكوين في الخياطة والباترون</div>
+  </header>
+  <hr class="couture">
+  <section class="corps">
+    <div class="pastille">${icone}</div>
+    <h1>${titre}</h1>
+    <div class="texte">${corps}</div>
+  </section>
+  <footer><b>أرازو للتكوين</b> — مدرسة الخياطة، سطيف</footer>
 </main></body></html>`;
   return new NextResponse(html, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 }
@@ -59,7 +91,7 @@ function page(status: number, titre: string, corps: string, ton: "ok" | "attente
 export async function GET(_req: NextRequest, { params }: { params: { token: string } }) {
   const token = (params.token ?? "").trim();
   if (!/^[a-f0-9]{32,64}$/i.test(token)) {
-    return page(404, "Code introuvable", "<p>Ce code n’est pas valide. Vérifiez qu’il s’agit bien du code imprimé sur votre fiche d’inscription.</p>", "erreur");
+    return page(404, "الرمز غير صالح", "<p>هذا الرمز غير صالح. تأكّدي أنه الرمز المطبوع على بطاقة تسجيلك.</p>", "erreur");
   }
 
   const admin = createAdminClient();
@@ -69,17 +101,18 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
     .eq("fiche_token", token)
     .maybeSingle();
   if (!order || order.payment_method !== "cod") {
-    return page(404, "Code introuvable", "<p>Ce code n’est associé à aucune inscription. Vérifiez qu’il s’agit bien du code imprimé sur votre fiche.</p>", "erreur");
+    return page(404, "الرمز غير معروف", "<p>هذا الرمز غير مرتبط بأي تسجيل. تأكّدي أنه الرمز المطبوع على بطاقة تسجيلك.</p>", "erreur");
   }
 
   // Paiement pas encore encaissé et confirmé : on n'ouvre RIEN.
   if (!PAYE.includes(order.status ?? "")) {
+    const prenom = esc((order.full_name ?? "").trim().split(/\s+/)[0] || "");
     return page(
       200,
-      "Inscription enregistrée",
-      `<p>Bonjour ${esc((order.full_name ?? "").split(" ")[0] || "")}, votre inscription est bien enregistrée.</p>
-       <p><b>Votre paiement à la livraison n’est pas encore confirmé.</b></p>
-       <p>Dès que le paiement est confirmé, vous recevez vos identifiants (e-mail et mot de passe) par e-mail, et <b>en scannant de nouveau ce code</b> vous ouvrez directement votre formation.</p>`,
+      "تمّ تسجيلك بنجاح",
+      `<p>مرحبا ${prenom ? `<b>${prenom}</b>` : ""}، تسجيلك تمّ بنجاح.</p>
+       <p><b>دفعك عند الاستلام لم يتم تأكيده بعد.</b></p>
+       <div class="encart">بمجرد تأكيد الدفع تصلك بياناتك (البريد الإلكتروني وكلمة السر) عبر البريد الإلكتروني، وبمسح هذا الرمز مرة أخرى تدخلين مباشرة إلى تكوينك.</div>`,
       "attente",
     );
   }
@@ -87,7 +120,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   // Paiement confirmé : compte + inscription aux cours (idempotent).
   const enr = await enrollAfterPayment(order.id);
   if (!enr.ok || !enr.userId) {
-    return page(500, "Activation impossible", "<p>Nous n’avons pas pu ouvrir votre accès pour le moment. Contactez-nous, nous le réglons tout de suite.</p>", "erreur");
+    return page(500, "تعذّر التفعيل", "<p>لم نتمكّن من فتح وصولك الآن. تواصلي معنا وسنحلّ الأمر فورا.</p>", "erreur");
   }
 
   // Première activation : identifiants par e-mail (une seule fois par commande).
@@ -119,7 +152,7 @@ export async function GET(_req: NextRequest, { params }: { params: { token: stri
   // Connexion directe (lien branché, 48 h) → tableau de bord, cours inscrits.
   const acces = await createAccessLink(enr.userId);
   if (!acces.ok || !acces.url) {
-    return page(500, "Activation impossible", "<p>Votre accès est prêt, mais la connexion automatique a échoué. Utilisez l’e-mail que nous venons de vous envoyer.</p>", "erreur");
+    return page(500, "تعذّر الدخول التلقائي", "<p>وصولك جاهز، لكن الدخول التلقائي لم ينجح. استعملي البريد الإلكتروني الذي أرسلناه لك.</p>", "erreur");
   }
   return NextResponse.redirect(acces.url);
 }
