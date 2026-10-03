@@ -14,6 +14,12 @@ const nextConfig = {
   // sont mises en cache au bord → l'egress Supabase n'est touché qu'au 1ᵉʳ chargement.
   // (Voir CDN_CACHE.md. Le passage des URLs vers /media est piloté par
   //  NEXT_PUBLIC_USE_MEDIA_CDN pour n'activer qu'une fois Cloudflare en place.)
+  // ── Anciennes adresses de formations (slug renommé) → nouvelle adresse (301) ──
+  async redirects() {
+    return [
+      { source: "/formations/niveau-3-soiree-moulage", destination: "/formations/niveau-3-soiree-patronnage-corsage", permanent: true },
+    ];
+  },
   async rewrites() {
     const sb = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!sb) return [];
