@@ -44,7 +44,7 @@ const T: Record<"ar" | "fr", any> = {
     placesLeft: (n: number) => (n <= 0 ? "اكتمل العدد" : `بقيت ${n} أماكن فقط!`),
     seatsFull: "اكتمل العدد — قائمة الانتظار", takeSeat: "أحجز مكاني",
     groupN: (n: number) => `المجموعة ${n}`,
-    sentBadge: "✓ تم إرسال طلبك — سنتصل بك عبر واتساب لتأكيد مكانك.",
+    sentBadge: "✓ تم إرسال طلبك — لإتمام التسجيل، مرّي بمركز التكوين مع ملفك.",
     interestedCount: (n: number) => `${n} مهتمة حاليًا`,
     fName: "الاسم", fPhone: "رقم واتساب", fEmail: "البريد الإلكتروني", optional: "(اختياري)", fCity: "المدينة",
     phName: "اسمك", phPhone: "0X XX XX XX XX", phEmail: "you@example.com", phCity: "سطيف",
@@ -54,15 +54,16 @@ const T: Record<"ar" | "fr", any> = {
     pricingTitle: "الأسعار والتوقيت", perMonth: "/ الشهر", priceFrom: "ابتداءً من",
     importantTitle: "⭐ ملاحظة مهمة",
     send: "إرسال…",
-    note: "هذا ليس تسجيلاً نهائيًا بعد. سنتصل بك عبر واتساب لتأكيد مكانك واليوم المعتمد للمجموعة.",
+    note: "هذا ليس تسجيلاً نهائيًا بعد. لإتمام تسجيلك، يجب أن تمرّي بمركز التكوين مع ملفك الرسمي (العنوان وموقع المركز أدناه).",
     consent: "أوافق على أن يتم التواصل معي من طرف Arazzo Formation بخصوص تسجيلي.",
     errConsent: "يرجى الموافقة لكي نتمكن من التواصل معك.",
     errDays: (n: number) => `هذه الطريقة مكثّفة (${n} أيام في الأسبوع): يرجى اختيار ${n} أيام على الأقل من المواعيد.`,
     errValidation: "يرجى إدخال اسمك ورقم واتساب.",
     errGeneric: "تعذّر الإرسال.",
     merciTitle: "شكرًا لك! تم التسجيل.",
-    merciNote: "سنتصل بك عبر واتساب حالما تكتمل المجموعة، لتأكيد مكانك واليوم المعتمد.",
-    merciMap: "🗺️ حدّدي موقع المركز في انتظار ذلك",
+    merciNote: "لإتمام تسجيلك، مرّي بمركز التكوين وأحضري معك ملفك الرسمي. لا يُعتبر التسجيل نهائيًا إلا بعد إيداع الملف كاملاً ومصادقة إدارة المركز عليه.",
+    merciMap: "🗺️ موقع مركز التكوين على الخريطة",
+    dossierTitle: "📌 الملف المطلوب عند التسجيل بالمركز",
     pied: "Arazzo · مدرسة الخياطة — سطيف",
     closed: "هذا التكوين غير مفتوح حاليًا.",
     toggle: "Français",
@@ -82,7 +83,7 @@ const T: Record<"ar" | "fr", any> = {
     placesLeft: (n: number) => (n <= 0 ? "Complet" : `Plus que ${n} place${n > 1 ? "s" : ""} !`),
     seatsFull: "Complet — liste d’attente", takeSeat: "Je prends ma place",
     groupN: (n: number) => `Groupe ${n}`,
-    sentBadge: "✓ Votre demande est envoyée — on vous appelle pour confirmer votre place.",
+    sentBadge: "✓ Votre demande est envoyée — pour finaliser, passez par le centre de formation avec votre dossier.",
     interestedCount: (n: number) => `${n} intéressée${n > 1 ? "s" : ""} en ce moment`,
     fName: "Prénom", fPhone: "WhatsApp", fEmail: "E-mail", optional: "(optionnel)", fCity: "Ville",
     phName: "Votre prénom", phPhone: "0X XX XX XX XX", phEmail: "vous@exemple.com", phCity: "Sétif",
@@ -92,15 +93,16 @@ const T: Record<"ar" | "fr", any> = {
     pricingTitle: "Tarifs & horaires", perMonth: "/ mois", priceFrom: "À partir de",
     importantTitle: "⭐ À noter",
     send: "Envoi…",
-    note: "Ce n’est pas encore une inscription : nous vous rappellerons sur WhatsApp pour confirmer votre place et le créneau retenu.",
+    note: "Ce n’est pas encore une inscription définitive : pour la finaliser, vous devez passer par notre centre de formation avec votre dossier (adresse et localisation ci-dessous).",
     consent: "J’accepte d’être recontactée par Arazzo Formation au sujet de mon inscription.",
     errConsent: "Merci de cocher la case pour qu’on puisse vous recontacter.",
     errDays: (n: number) => `Cette méthode est accélérée (${n}×/semaine) : merci de choisir au moins ${n} jours dans les créneaux.`,
     errValidation: "Merci d’indiquer votre prénom et votre numéro WhatsApp.",
     errGeneric: "Envoi impossible.",
     merciTitle: "Merci ! C’est bien noté.",
-    merciNote: "Nous vous rappellerons sur WhatsApp dès que le groupe sera constitué, pour confirmer votre place et le jour retenu.",
-    merciMap: "🗺️ Repérer le centre en attendant",
+    merciNote: "Pour finaliser votre inscription, passez par notre centre de formation avec votre dossier officiel. L’inscription n’est définitive qu’après dépôt du dossier complet et validation par l’administration du centre.",
+    merciMap: "🗺️ Ouvrir la localisation du centre",
+    dossierTitle: "📌 Dossier à apporter au centre",
     pied: "Arazzo · École de couture — Sétif",
     closed: "Cette offre n’est pas ouverte pour le moment.",
     toggle: "العربية",
@@ -152,6 +154,11 @@ function titreAvecAccent(nom: string) {
 }
 
 const cssVar = (k: string, v: string) => ({ [k]: v }) as React.CSSProperties;
+
+/** Le dossier est saisi à la main dans l'OS : on retire les « ** » et on garde « — » entre FR et AR. */
+function nettoyerDossier(s: string) {
+  return String(s ?? "").replace(/\s*\*{2,}\s*/g, " ").replace(/\s+\*\s+/g, " — ").replace(/\s+/g, " ").trim();
+}
 
 export default function PresentielLanding({ data, textes }: {
   data: OfferView;
@@ -552,6 +559,18 @@ export default function PresentielLanding({ data, textes }: {
                 ? <>أنتِ الآن مسجّلة كمهتمة بـ <strong>{nomAffiche}</strong>.</>
                 : <>Vous êtes enregistrée comme intéressée par <strong>{nomAffiche}</strong>.</>}</p>
               <p className="pl-note">{t.merciNote}</p>
+              {(center.dossier_items?.length || center.dossier_notice) ? (
+                <div className="pl-dossier" style={{ textAlign: "start", marginTop: 16 }}>
+                  <div className="pl-dossier-tete" style={{ color: "var(--orange, #FE7223)" }}>{t.dossierTitle}</div>
+                  {center.dossier_notice ? <p>{nettoyerDossier(center.dossier_notice)}</p> : null}
+                  {center.dossier_items?.length ? (
+                    <ul style={{ margin: "8px 0 0", paddingInlineStart: 20, textAlign: "start" }}>
+                      {center.dossier_items.map((it: string, i: number) => <li key={i}>{nettoyerDossier(it)}</li>)}
+                    </ul>
+                  ) : null}
+                  {center.address ? <p className="pl-adresse" style={{ marginTop: 10 }}>{center.address}</p> : null}
+                </div>
+              ) : null}
               {center.maps_url ? (
                 <a className="pl-map-btn" href={center.maps_url} target="_blank" rel="noreferrer" style={{ marginTop: 16 }}>
                   {t.merciMap}

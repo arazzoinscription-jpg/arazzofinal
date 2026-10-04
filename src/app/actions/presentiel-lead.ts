@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
+import { presentielConfirmationEmail } from "@/lib/presentiel-email";
 
 // Capture d'un PROSPECT présentiel (formation/atelier à Sétif), 24/7, sans
 // tunnel. Le prospect est écrit dans Supabase (`presentiel_leads`) ; Arazzo OS
@@ -77,7 +78,7 @@ export async function submitPresentielLead(input: unknown) {
     .join("");
   const adminHtml = `
     <h2 style="font-family:Georgia,serif;color:#2A0880;margin:0 0 10px">🏫 Nouveau prospect présentiel</h2>
-    <p style="color:#4b5563">Un prospect a été enregistré sur le site. Il sera importé dans le CRM d'Arazzo OS à la prochaine synchronisation. Rappelez-le sur WhatsApp pour confirmer sa place et le créneau.</p>
+    <p style="color:#4b5563">Un prospect a été enregistré sur le site. Il sera importé dans le CRM d'Arazzo OS à la prochaine synchronisation. Il a reçu un e-mail lui demandant de passer par le centre de formation avec son dossier pour finaliser son inscription ; vous pouvez le contacter sur WhatsApp si besoin.</p>
     <table style="width:100%;border-collapse:collapse;background:#f6f3ff;border-radius:12px">${trs}</table>`;
   try {
     await sendEmail({
@@ -86,18 +87,47 @@ export async function submitPresentielLead(input: unknown) {
     });
   } catch { /* l'e-mail admin ne doit pas bloquer le prospect */ }
 
-  // 3. Confirmation au prospect (best-effort) si une adresse est connue.
+  // 3. Confirmation au prospect (best-effort) si une adresse est connue : le MÊME e-mail
+  //    que dans Arazzo OS (écran présentiel). Il dit la vérité sur la suite — passer par le
+  //    CENTRE DE FORMATION avec son dossier, bouton de localisation joint — et reprend les
+  //    informations de l'offre, lues dans l'instantané poussé par l'OS.
   if (d.email) {
-    const prospectHtml = `
-      <h2 style="font-family:Georgia,serif;color:#2A0880;margin:0 0 10px">C'est bien noté 🌸</h2>
-      <p style="color:#4b5563">Bonjour ${esc(d.first_name)}, votre intérêt pour <b>${esc(offerName)}</b> (présentiel, à Sétif) est enregistré.</p>
-      <p style="color:#4b5563">Nous vous rappellerons sur <b>WhatsApp</b> pour confirmer votre place et le jour retenu. Ce n'est pas encore une inscription définitive.</p>
-      <p style="color:#9ca3af;font-size:13px">Arazzo Formation — Sétif</p>`;
+    let offre: Record<string, any> = {};
     try {
-      await sendEmail({
-        to: d.email, category: "welcome", force: true,
-        subject: "Votre intérêt pour la formation présentielle Arazzo", html: prospectHtml,
-      });
+      const supabase = createPublicClient();
+      const { data: snap } = await supabase
+        .from("presentiel_snapshots").select("data").eq("slug", d.slug).maybeSingle();
+      offre = (snap?.data as Record<string, any>) ?? {};
+    } catch { /* l'e-mail part quand même, avec ce qu'on sait (nom de l'offre) */ }
+
+    const lang = d.lang === "fr" ? "fr" : "ar";
+    const formule = Array.isArray(offre.formulas)
+      ? offre.formulas.find((x: any) => x?.id === d.formula_id) ?? null
+      : null;
+    const { subject, html } = presentielConfirmationEmail({
+      lang,
+      offerName: lang === "ar" && offre.name_ar ? offre.name_ar : (offre.name || offerName),
+      city: offre.city,
+      sessionLabel: offre.session_label,
+      formulaLabel: formule?.label,
+      sessionDuration: formule?.session_duration,
+      durationLabel: formule?.duration_label ?? offre.duration_label,
+      sessionsCount: offre.sessions_count,
+      priceLabel: formule?.price_label,
+      priceMonth: offre.price_month,
+      priceTotal: offre.price_total,
+      priceCurrency: offre.price_currency,
+      scheduleLabel: formule?.schedule_label ?? offre.schedule_label,
+      startEstimate: offre.start_estimate ?? offre.session_label,
+      placesRemaining: offre.seats?.left,
+      capacity: offre.seats?.total,
+      availabilities: d.availabilities ?? [],
+      addons: offre.addons ?? [],
+      importantNote: offre.important_note,
+      center: offre.center ?? null,
+    });
+    try {
+      await sendEmail({ to: d.email, category: "welcome", force: true, subject, html });
     } catch { /* best-effort */ }
   }
 
