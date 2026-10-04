@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,13 +13,15 @@ import { sourceLabel, isFacebookVideoUrl, facebookEmbedSrc, type CommunityItem }
 import { cdnImage } from "@/lib/storage-cdn";
 import { pickTrackForKey } from "@/lib/feed-music";
 import { CommunityTabs } from "./community-tabs";
+import { FeedWelcome } from "@/components/community/feed-welcome";
+import type { Promo } from "@/app/free/[slug]/promo-banner";
 
 interface Comment {
   id: string; content: string; created_at: string; author_id: string;
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean }) {
+export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null } | null }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
@@ -30,6 +32,13 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
   // (l'IntersectionObserver rappelle onActive plusieurs fois pour la même slide,
   //  ce qui rouvrait le popup juste après « Plus tard »).
   const promptedRef = useRef<Set<number>>(new Set());
+  // L'accueil des nouvelles visiteuses (test de niveau + code promo) : tant qu'il est ouvert, l'invitation
+  // à se connecter ne s'ouvre pas par-dessus (jamais deux fenêtres à la fois).
+  const welcomeOuvertRef = useRef(false);
+  const surAccueilOuvert = useCallback((ouvert: boolean) => {
+    welcomeOuvertRef.current = ouvert;
+    if (ouvert) setGate(null);
+  }, []);
 
   // Feed 100 % PUBLIC : les visiteurs voient tout, sans limite ni blocage.
   // Une invitation à se connecter (toujours refermable) apparaît de temps en temps.
@@ -69,7 +78,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
     if (!isGuest) return;
     const idx = shown.findIndex((x) => x.id === id);
     // 4ᵉ, 9ᵉ, 14ᵉ… slide → invitation douce, UNE seule fois par slide.
-    if (idx >= 3 && (idx - 3) % 5 === 0 && !promptedRef.current.has(idx)) {
+    if (idx >= 3 && (idx - 3) % 5 === 0 && !promptedRef.current.has(idx) && !welcomeOuvertRef.current) {
       promptedRef.current.add(idx);
       setGate("soft");
     }
@@ -145,6 +154,16 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
       {fbOpen && <Portal><FacebookAddSheet onClose={() => setFbOpen(false)} /></Portal>}
 
       {gate && <Portal><GuestGate onClose={() => setGate(null)} /></Portal>}
+
+      {/* Accueil des nouvelles visiteuses : le test de niveau après 2-3 s de défilement, un code promo en cadeau. */}
+      {isGuest && (
+        <FeedWelcome
+          promo={welcome?.promo ?? null}
+          items={shown}
+          blocked={gate !== null || commentPost !== null || fbOpen}
+          onOpenChange={surAccueilOuvert}
+        />
+      )}
     </div>
   );
 }
@@ -335,7 +354,7 @@ function Slide({
   const isBunny = !item.mediaUrl && !!item.videoHls;
 
   return (
-    <section ref={ref} className="relative h-[100dvh] w-full snap-start snap-always flex items-center justify-center overflow-hidden bg-black">
+    <section ref={ref} id={`feed-slide-${item.id}`} className="relative h-[100dvh] w-full snap-start snap-always flex items-center justify-center overflow-hidden bg-black">
       {/* Média */}
       {item.mediaKind === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element

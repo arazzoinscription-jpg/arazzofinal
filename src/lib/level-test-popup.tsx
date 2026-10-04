@@ -24,6 +24,8 @@ import { useEffect, useRef, useState } from "react";
 import { submitLevelTest } from "@/app/actions/level-test";
 import { pixelEvent, pixelCustom } from "@/lib/pixel-events";
 import { osTrackEvent } from "@/lib/os-track";
+// Le code promo de fin de test (feed, landings…) : même encart que les Delivery Pages.
+import PromoBanner, { type Promo } from "@/app/free/[slug]/promo-banner";
 
 type PublicQuestion = {
   key: string; kind: string; q: string; description?: string | null;
@@ -91,13 +93,17 @@ const T: Record<"ar" | "fr", any> = {
 const ACCENT = "var(--thread, #5B16F9)";
 
 export default function LevelTestPopup({
-  slug, langue, utm, onClose, onSubscribe,
+  slug, langue, utm, onClose, onSubscribe, promo, onResult,
 }: {
   slug: string;
   langue: "ar" | "fr";
   utm?: Record<string, string>;
   onClose: () => void;
   onSubscribe?: () => void;
+  /** Un code promo montré À LA FIN du test (le cadeau de la personne qui va jusqu'au bout). Absent = rien. */
+  promo?: Promo | null;
+  /** Appelé UNE fois quand le résultat est obtenu (test réellement terminé). */
+  onResult?: (resultat: any) => void;
 }) {
   // Textes personnalisables dans l'OS (par-dessus les défauts). Chargés côté
   // client car le popup est un composant partagé (pas de page serveur à lui).
@@ -238,6 +244,7 @@ export default function LevelTestPopup({
       });
       if (!res.ok) { setErreur(t.errGeneric); return; }
       setResultat(res.result);
+      try { onResult?.(res.result); } catch { /* un rappel hôte ne doit jamais casser le test */ }
       // Pixel : le test est TERMINÉ et le résultat obtenu → « TestCompleted »
       // (toujours, même anonyme), avec le niveau N1/N2/N3 en paramètre.
       {
@@ -312,6 +319,13 @@ export default function LevelTestPopup({
             </h1>
             {resultat.explanation ? (
               <p className="pl-lede" style={{ maxWidth: 420, margin: "10px auto 0" }}>{resultat.explanation}</p>
+            ) : null}
+
+            {/* Le cadeau de fin de test : le code promo du moment (jamais un code expiré ou épuisé : filtré en amont). */}
+            {promo?.code ? (
+              <div style={{ margin: "20px 0 0", textAlign: rtl ? "right" : "left" }}>
+                <PromoBanner promo={promo} langue={langue} />
+              </div>
             ) : null}
 
             {skills.length ? (

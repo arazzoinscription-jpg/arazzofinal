@@ -6,15 +6,21 @@ import { getActiveLiveForViewer } from "@/lib/live";
 import { FEED_LIBRARY_ID } from "@/lib/bunny/stream";
 import { CommunityFab } from "@/components/community/community-fab";
 import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
+import { loadFeedWelcome } from "@/lib/feed-welcome";
 import { FeedClient } from "./feed-client";
 
 export const metadata = { title: "Communauté — Arazzo" };
 export const dynamic = "force-dynamic";
+// Le code promo de l'accueil est relu à CHAQUE visite (jamais un code expiré servi depuis le cache de données).
+export const fetchCache = "force-no-store";
 
 export default async function CommunautePage() {
   // Feed 100 % PUBLIC (visiteurs inclus, sans limite ni blocage). Une invitation
   // à se connecter, toujours refermable, est gérée côté client.
   const { me, items } = await loadCommunityFeed();
+
+  // L'accueil du feed (test de niveau + code promo) ne concerne que les visiteuses non connectées.
+  const welcome = me ? null : await loadFeedWelcome();
 
   let role = "guest";
   let live = null;
@@ -34,7 +40,7 @@ export default async function CommunautePage() {
           <Radio size={16} /> <span className="text-sm font-bold">EN DIRECT — {live.titre}</span>
         </Link>
       )}
-      <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} />
+      <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} welcome={welcome} />
       {/* Bouton « + » flottant : staff → vidéo/actualité ; élève → reel (≤ 2 min).
           Visible pour tout membre CONNECTÉ ; les visiteurs sont invités à se connecter. */}
       {me && <CommunityFab role={role} />}
