@@ -50,6 +50,9 @@ const T: Record<"ar" | "fr", any> = {
     phName: "اسمك", phPhone: "0X XX XX XX XX", phEmail: "you@example.com", phCity: "سطيف",
     slotsLegend: "ما هي الأيام التي يمكنك الحضور فيها؟",
     slotsHint: "اختاري كل الأوقات المناسبة لك — سنعتمد اليوم الأكثر طلبًا.",
+    dayFilter: "تصفية حسب اليوم",
+    allDays: "كل الأيام",
+    chosenSlots: "الأوقات التي اخترتِها",
     formulaLegend: "اختاري طريقة الدراسة (المدة، التوقيت والسعر)",
     pricingTitle: "الأسعار والتوقيت", perMonth: "/ الشهر", priceFrom: "ابتداءً من",
     importantTitle: "⭐ ملاحظة مهمة",
@@ -89,6 +92,9 @@ const T: Record<"ar" | "fr", any> = {
     phName: "Votre prénom", phPhone: "0X XX XX XX XX", phEmail: "vous@exemple.com", phCity: "Sétif",
     slotsLegend: "Quels jours pouvez-vous venir ?",
     slotsHint: "Cochez tous les créneaux qui vous conviennent — on retiendra le plus demandé.",
+    dayFilter: "Filtrer par journée",
+    allDays: "Toutes les journées",
+    chosenSlots: "Vos créneaux choisis",
     formulaLegend: "Choisissez votre méthode de cours (durée, horaires & prix)",
     pricingTitle: "Tarifs & horaires", perMonth: "/ mois", priceFrom: "À partir de",
     importantTitle: "⭐ À noter",
@@ -116,6 +122,20 @@ const JOUR_AR: Record<string, string> = {
 const PERIODE_AR: Record<string, string> = { matin: "صباحًا", "apres-midi": "بعد الظهر", soir: "مساءً" };
 const PERIODE_FR: Record<string, string> = { matin: "matin", "apres-midi": "après-midi", soir: "soir" };
 
+/** Le jour d'un créneau (`samedi-apres-midi` → `samedi`). */
+function jourDuCreneau(id: string) {
+  const s = String(id ?? "");
+  for (const p of ["matin", "apres-midi", "soir"]) {
+    if (s.endsWith(`-${p}`)) return s.slice(0, s.length - p.length - 1);
+  }
+  return s;
+}
+/** La semaine commence le samedi, comme le centre. */
+const ORDRE_JOURS = ["samedi", "dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi"];
+const JOUR_FR: Record<string, string> = {
+  samedi: "Samedi", dimanche: "Dimanche", lundi: "Lundi", mardi: "Mardi",
+  mercredi: "Mercredi", jeudi: "Jeudi", vendredi: "Vendredi",
+};
 function slotLabelAr(id: string) {
   const s = String(id ?? "");
   for (const p of ["matin", "apres-midi", "soir"]) {
@@ -170,6 +190,8 @@ export default function PresentielLanding({ data, textes }: {
   const [etape, setEtape] = useState<"form" | "done">("form");
   const [valeurs, setValeurs] = useState({ first_name: "", phone: "", email: "", city: "" });
   const [creneaux, setCreneaux] = useState<string[]>([]);
+  // Filtre « par journée » de la liste des créneaux (vide = toutes les journées).
+  const [jourFiltre, setJourFiltre] = useState<string>("");
   const [formule, setFormule] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [dejaEnvoye, setDejaEnvoye] = useState(false);
@@ -522,19 +544,57 @@ export default function PresentielLanding({ data, textes }: {
                   <fieldset className="pl-slots-box">
                     <legend>{t.slotsLegend}</legend>
                     <p className="pl-slots-hint">{t.slotsHint}</p>
-                    <div className="pl-slots">
-                      {def.availability_slots.map((slot: any) => {
-                        const on = creneaux.includes(slot.id);
-                        const label = langue === "ar" ? slotLabelAr(slot.id) : slot.label;
-                        return (
-                          <button type="button" key={slot.id} className="pl-slot" data-on={on ? "true" : undefined}
-                            onClick={() => basculerCreneau(slot.id)} aria-pressed={on}>
-                            <span className="pl-slot-tick" aria-hidden="true">{on ? "✓" : ""}</span>
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {(() => {
+                      const tous = def.availability_slots as any[];
+                      const jours = ORDRE_JOURS.filter((j) => tous.some((x: any) => jourDuCreneau(x.id) === j));
+                      const visibles = jourFiltre ? tous.filter((x: any) => jourDuCreneau(x.id) === jourFiltre) : tous;
+                      const libelle = (id: string) => (langue === "ar" ? slotLabelAr(id) : (tous.find((x: any) => x.id === id)?.label ?? id));
+                      return (
+                        <>
+                          {/* Filtre par journée : on ne voit que les créneaux du jour choisi. Les créneaux déjà cochés restent cochés. */}
+                          {jours.length > 1 ? (
+                            <>
+                            <p className="pl-slots-hint" style={{ margin: "0 0 6px", fontWeight: 600 }}>{t.dayFilter} :</p>
+                            <div className="pl-slots" role="group" aria-label={t.dayFilter} style={{ marginBottom: 10 }}>
+                              <button type="button" className="pl-slot" data-on={!jourFiltre ? "true" : undefined}
+                                aria-pressed={!jourFiltre} onClick={() => setJourFiltre("")}>
+                                {t.allDays}
+                              </button>
+                              {jours.map((j) => {
+                                const n = creneaux.filter((id: string) => jourDuCreneau(id) === j).length;
+                                const actif = jourFiltre === j;
+                                return (
+                                  <button type="button" key={j} className="pl-slot" data-on={actif ? "true" : undefined}
+                                    aria-pressed={actif} onClick={() => setJourFiltre(actif ? "" : j)}>
+                                    {langue === "ar" ? JOUR_AR[j] : JOUR_FR[j]}
+                                    {n > 0 ? <small style={{ opacity: 0.8 }}>{" · "}{n} ✓</small> : null}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            </>
+                          ) : null}
+                          <div className="pl-slots">
+                            {visibles.map((slot: any) => {
+                              const on = creneaux.includes(slot.id);
+                              const label = langue === "ar" ? slotLabelAr(slot.id) : slot.label;
+                              return (
+                                <button type="button" key={slot.id} className="pl-slot" data-on={on ? "true" : undefined}
+                                  onClick={() => basculerCreneau(slot.id)} aria-pressed={on}>
+                                  <span className="pl-slot-tick" aria-hidden="true">{on ? "✓" : ""}</span>
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {jourFiltre && creneaux.length > 0 ? (
+                            <p className="pl-slots-hint" style={{ marginTop: 8 }}>
+                              {t.chosenSlots} : {creneaux.map(libelle).join(" · ")}
+                            </p>
+                          ) : null}
+                        </>
+                      );
+                    })()}
                   </fieldset>
                 ) : null}
 
