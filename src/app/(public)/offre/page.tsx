@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { SalesPage, type CourseOption, type PayInfo, type ModelismeGroup } from "./sales-page";
 import { normLang, isRtl } from "./offre-i18n";
 import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
@@ -20,6 +21,9 @@ export const metadata = {
 };
 
 export default async function OffrePage({ searchParams }: { searchParams: { c?: string } }) {
+  // La page des OFFRES (/offres) remplace cette page. On ne garde /offre que pour les liens « réserver » qui
+  // pré-sélectionnent une formation (?c=…, ex. depuis la boutique) ; tout le reste part vers /offres.
+  if (typeof searchParams?.c !== "string" || !searchParams.c) redirect("/offres");
   const lang = normLang((await cookies()).get("lang")?.value);
   const admin = createAdminClient();
   const preselectCourseId = typeof searchParams?.c === "string" ? searchParams.c : null;

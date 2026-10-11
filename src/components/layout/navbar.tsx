@@ -56,7 +56,7 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
     { href: "/formations", label: t.formations },
     { href: "/patrons", label: t.patrons },
     { href: "/boutique", label: t.boutique },
-    { href: "/offre", label: t.offre },
+    { href: "/offres", label: t.offre },
     { href: "/a-propos", label: t.apropos },
   ];
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");

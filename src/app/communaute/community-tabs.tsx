@@ -13,7 +13,7 @@ const TABS = [
   { href: "/communaute", label: "Pour toi", icon: Sparkles, match: (p: string) => p === "/communaute" },
   { href: "/communaute/actualites", label: "Actualité", icon: Newspaper, match: (p: string) => p.startsWith("/communaute/actualites") },
   { href: "/communaute/groupes", label: "Groups", icon: Users, match: (p: string) => p.startsWith("/communaute/groupes") },
-  { href: "/offre", label: "Offre", icon: Tag, match: (p: string) => p.startsWith("/offre") },
+  { href: "/offres", label: "Offre", icon: Tag, match: (p: string) => p.startsWith("/offre") },
 ];
 
 export function CommunityTabs() {
