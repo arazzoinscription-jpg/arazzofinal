@@ -3,6 +3,9 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { EmailCategory } from "@/lib/email-templates";
 
+/** Le contenu gardé au journal (borné : un e-mail énorme ne doit pas alourdir la base). */
+const contenu = (html: string) => String(html ?? "").slice(0, 200_000);
+
 const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder_build_key");
 const FROM = process.env.RESEND_FROM || "onboarding@resend.dev";
 
@@ -36,7 +39,7 @@ export async function sendEmail({ userId, to, category, subject, html, force }: 
         if (cats[category] === false) {
           await admin.from("email_log").insert({
             user_id: userId ?? null, to_email: to, category, subject, status: "skipped",
-            error: "Catégorie désactivée par l'admin (Préférences)",
+            error: "Catégorie désactivée par l'admin (Préférences)", html: contenu(html), source: "lms",
           });
           return { ok: false, skipped: true as const };
         }
@@ -54,7 +57,7 @@ export async function sendEmail({ userId, to, category, subject, html, force }: 
     const allowed = prefs ? (prefs as Record<string, boolean>)[category] !== false : true;
     if (!allowed) {
       await admin.from("email_log").insert({
-        user_id: userId, to_email: to, category, subject, status: "skipped",
+        user_id: userId, to_email: to, category, subject, status: "skipped", html: contenu(html), source: "lms",
       });
       return { ok: false, skipped: true as const };
     }
@@ -72,14 +75,14 @@ export async function sendEmail({ userId, to, category, subject, html, force }: 
 
     await admin.from("email_log").insert({
       user_id: userId ?? null, to_email: to, category, subject,
-      status: "sent", resend_id: data?.id ?? null,
+      status: "sent", resend_id: data?.id ?? null, html: contenu(html), source: "lms",
     });
     return { ok: true as const, skipped: false as const, id: data?.id };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
     await admin.from("email_log").insert({
       user_id: userId ?? null, to_email: to, category, subject,
-      status: "failed", error: msg,
+      status: "failed", error: msg, html: contenu(html), source: "lms",
     });
     return { ok: false as const, skipped: false as const, error: msg };
   }

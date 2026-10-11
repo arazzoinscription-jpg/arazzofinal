@@ -5,8 +5,35 @@ import { Resend } from "resend";
 export const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder_build_key");
 const FROM = process.env.RESEND_FROM || "noreply@formation-arazzo.store";
 
+/**
+ * Envoie ET journalise dans `email_log` (comme `sendEmail`), pour que CES e-mails aussi apparaissent dans le journal
+ * commun (LMS + OS) avec leur contenu. Le journal ne fait jamais échouer un envoi.
+ */
+async function envoyer(msg: { from: string; to: string; subject: string; html: string }, category: string) {
+  let resendId: string | null = null;
+  let erreur: string | null = null;
+  try {
+    const r = await resend.emails.send(msg);
+    resendId = (r as { data?: { id?: string } })?.data?.id ?? null;
+    const e = (r as { error?: unknown })?.error;
+    if (e) erreur = typeof e === "string" ? e : JSON.stringify(e);
+    return r;
+  } catch (e) {
+    erreur = e instanceof Error ? e.message : String(e);
+    throw e;
+  } finally {
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin");
+      await createAdminClient().from("email_log").insert({
+        to_email: msg.to, category, subject: msg.subject, status: erreur ? "failed" : "sent",
+        resend_id: resendId, error: erreur, html: String(msg.html ?? "").slice(0, 200_000), source: "lms",
+      });
+    } catch { /* best-effort */ }
+  }
+}
+
 export async function sendWelcomeEmail(to: string, nom: string) {
-  await resend.emails.send({
+  await envoyer({
     from: FROM,
     to,
     subject: "Bienvenue sur Arazzo Formation ! 🎓",
@@ -33,7 +60,7 @@ export async function sendWelcomeEmail(to: string, nom: string) {
         </div>
       </div>
     `,
-  });
+  }, "welcome");
 }
 
 export async function sendPurchaseConfirmationEmail(
@@ -42,7 +69,7 @@ export async function sendPurchaseConfirmationEmail(
   courseTitre: string,
   dashboardUrl: string
 ) {
-  await resend.emails.send({
+  await envoyer({
     from: FROM,
     to,
     subject: `Accès confirmé — ${courseTitre}`,
@@ -70,7 +97,7 @@ export async function sendPurchaseConfirmationEmail(
         </div>
       </div>
     `,
-  });
+  }, "purchase");
 }
 
 export async function sendCertificateEmail(
@@ -79,7 +106,7 @@ export async function sendCertificateEmail(
   courseTitre: string,
   certificateUrl: string
 ) {
-  await resend.emails.send({
+  await envoyer({
     from: FROM,
     to,
     subject: `🎓 Votre certificat — ${courseTitre}`,
@@ -107,7 +134,7 @@ export async function sendCertificateEmail(
         </div>
       </div>
     `,
-  });
+  }, "certificate");
 }
 
 export async function sendMagicLinkEmail(
@@ -115,7 +142,7 @@ export async function sendMagicLinkEmail(
   nom: string,
   magicLink: string
 ) {
-  await resend.emails.send({
+  await envoyer({
     from: FROM,
     to,
     subject: "Votre lien de connexion Arazzo Formation",
@@ -140,5 +167,5 @@ export async function sendMagicLinkEmail(
         </div>
       </div>
     `,
-  });
+  }, "magic_link");
 }
