@@ -48,7 +48,7 @@ const T: Record<"ar" | "fr", any> = {
     prev: "→ السابق", next: "التالي", cont: "متابعة",
     contactTitle: "استلمي نتيجتك",
     contactText: "اتركي معلوماتك لتصلك نتيجتك والتكوين المناسب لك. هذا اختياري — يمكنك رؤية النتيجة بدونه.",
-    phName: "الاسم", phEmail: "البريد الإلكتروني", phPhone: "رقم واتساب",
+    phName: "الاسم", phEmail: "البريد الإلكتروني *", phPhone: "رقم واتساب",
     consent: "أوافق على استلام نتيجتي ونصائح عبر البريد الإلكتروني.",
     submit: "شوفي نتيجتي", submitting: "جارٍ الحساب…",
     privacy: "معلوماتك تبقى سرية وتُستعمل فقط للتواصل معك.",
@@ -62,6 +62,7 @@ const T: Record<"ar" | "fr", any> = {
     atelierBtn: "🧵 ورشة: استعمال ماكينة الخياطة",
     restart: "إعادة الاختبار",
     errRequired: "يرجى الإجابة على كل الأسئلة.",
+    errEmail: "اكتبي الإيميل تاعك (ضروري باش نبعثولك النتيجة والعرض).",
     errGeneric: "تعذّر الحساب. حاولي مرة أخرى.",
     loading: "جارٍ التحميل…", unavailable: "الاختبار غير متاح حاليًا.",
   },
@@ -71,7 +72,7 @@ const T: Record<"ar" | "fr", any> = {
     prev: "← Précédent", next: "Suivant", cont: "Continuer",
     contactTitle: "Recevez votre résultat",
     contactText: "Laissez vos coordonnées pour recevoir votre niveau et la formation recommandée. C’est facultatif — vous pouvez voir votre résultat sans.",
-    phName: "Prénom", phEmail: "E-mail", phPhone: "Téléphone",
+    phName: "Prénom", phEmail: "E-mail *", phPhone: "Téléphone",
     consent: "J’accepte de recevoir mon résultat et des conseils par e-mail.",
     submit: "Voir mon résultat", submitting: "Calcul…",
     privacy: "Vos informations restent privées et servent à vous recontacter.",
@@ -85,6 +86,7 @@ const T: Record<"ar" | "fr", any> = {
     atelierBtn: "🧵 Atelier : utilisation de la machine à coudre",
     restart: "Refaire le test",
     errRequired: "Merci de répondre à toutes les questions.",
+    errEmail: "Merci d’indiquer votre e-mail (obligatoire pour recevoir votre résultat et l’offre).",
     errGeneric: "Calcul impossible. Réessayez.",
     loading: "Chargement…", unavailable: "Le test n’est pas disponible pour le moment.",
   },
@@ -229,6 +231,8 @@ export default function LevelTestPopup({
     setErreur(null);
     const manquantes = test.questions.filter((q) => q.required !== false && !answers[q.key]);
     if (manquantes.length || !mode) { setErreur(t.errRequired); return; }
+    // L'e-mail est OBLIGATOIRE : sans lui, pas de résultat envoyé ni de suivi possible.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim())) { setErreur(t.errEmail); return; }
     setEnvoi(true);
     try {
       const email = contact.email.trim();
@@ -396,7 +400,7 @@ export default function LevelTestPopup({
                       onChange={(e) => setContact((c) => ({ ...c, first_name: e.target.value }))} />
                   </label>
                   <label className="pl-field">
-                    <input type="email" value={contact.email} placeholder={t.phEmail} autoComplete="email"
+                    <input type="email" required value={contact.email} placeholder={t.phEmail} autoComplete="email"
                       onChange={(e) => setContact((c) => ({ ...c, email: e.target.value }))} />
                   </label>
                   <label className="pl-field">
