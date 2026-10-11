@@ -136,6 +136,9 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
           active={activeId === it.id}
           // Précharge la slide suivante (vidéo + image) pour un défilement instantané.
           preload={idx === activeIndex + 1}
+          // Seules la slide active et ses voisines montent un lecteur vidéo : les autres n'affichent que leur image
+          // (sinon le navigateur charge TOUTES les vidéos du feed en même temps — très lourd).
+          near={activeIndex < 0 ? idx < 2 : Math.abs(idx - activeIndex) <= 1}
           muted={muted}
           bunnyLibraryId={bunnyLibraryId}
           meId={meId}
@@ -260,9 +263,9 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
 }
 
 function Slide({
-  item, active, preload = false, muted, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
+  item, active, preload = false, near = true, muted, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
 }: {
-  item: CommunityItem; active: boolean; preload?: boolean; muted: boolean; bunnyLibraryId: string;
+  item: CommunityItem; active: boolean; preload?: boolean; near?: boolean; muted: boolean; bunnyLibraryId: string;
   meId: string; canModerate: boolean; isGuest: boolean; onGuest: () => void;
   onActive: () => void; onOpenComments: () => void;
 }) {
@@ -276,6 +279,10 @@ function Slide({
   const musicUrl = track?.url ?? null;
   const musicTitle = track?.title ?? null;
   const hasMusic = !!musicUrl;
+  // La vidéo joue-t-elle VRAIMENT (une image à l'écran) ? Tant que non : image d'attente + roue, et pas de musique
+  // (sinon : écran noir avec la musique). Illisible (format non pris en charge, fichier absent) : on le dit.
+  const [joue, setJoue] = useState(false);
+  const [illisible, setIllisible] = useState(false);
   const [liked, setLiked] = useState(item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
   const [shareOpen, setShareOpen] = useState(false);
@@ -320,19 +327,26 @@ function Slide({
     return () => obs.disconnect();
   }, [onActive]);
 
-  // Lecture/pause de la vidéo native selon l'état actif.
+  // Lecture/pause de la vidéo native selon l'état actif. Le « muet » est posé sur l'élément AVANT play() (React ne le
+  // reflète pas toujours à temps) ; si la lecture avec son est refusée, on relance en muet plutôt que rester noir.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (active) { v.play().catch(() => {}); } else { v.pause(); v.currentTime = 0; }
-  }, [active]);
+    if (active) {
+      v.muted = muted || hasMusic;
+      v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+    } else { v.pause(); v.currentTime = 0; setJoue(false); }
+  }, [active, near, muted, hasMusic]);
 
-  // Musique de fond : lecture en boucle quand la slide est active, coupée sinon.
+  // Musique de fond : en boucle sur la slide active, MAIS seulement quand l'image est là (vidéo qui joue, image, Bunny,
+  // Facebook) — jamais sur un écran noir.
+  const estVideoNative = item.mediaKind !== "image" && !isFacebookVideoUrl(item.mediaUrl) && !!item.mediaUrl;
+  const imagePrete = !estVideoNative || joue;
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    if (active) { a.currentTime = 0; a.play().catch(() => {}); } else { a.pause(); }
-  }, [active]);
+    if (active && imagePrete) { a.play().catch(() => {}); } else { a.pause(); if (!active) a.currentTime = 0; }
+  }, [active, imagePrete]);
 
   // Le son de la musique suit l'état muet global (activé au 1ᵉʳ geste, comme la vidéo).
   useEffect(() => {
@@ -394,15 +408,37 @@ function Slide({
           // eslint-disable-next-line @next/next/no-img-element
           item.thumbnail && <img src={item.thumbnail} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
         )
+      ) : !near ? (
+        // Loin de l'écran : juste l'image (aucune vidéo chargée).
+        item.thumbnail
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={cdnImage(item.thumbnail)} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
+          : <div className="absolute inset-0 bg-[#0b0818]" />
       ) : (
-        <video
-          ref={videoRef}
-          src={item.mediaUrl ?? ""}
-          poster={item.thumbnail ?? undefined}
-          muted={muted || hasMusic} loop playsInline
-          preload={active || preload ? "auto" : "metadata"}
-          className="absolute inset-0 w-full h-full object-contain"
-        />
+        <>
+          <video
+            ref={videoRef}
+            // Sans miniature, « #t=0.1 » fait afficher la 1ʳᵉ image de la vidéo au lieu d'un écran noir.
+            src={item.mediaUrl ? (item.thumbnail ? item.mediaUrl : `${item.mediaUrl}#t=0.1`) : ""}
+            poster={item.thumbnail ? cdnImage(item.thumbnail) : undefined}
+            muted={muted || hasMusic} loop playsInline
+            preload={active ? "auto" : "metadata"}
+            onPlaying={() => { setJoue(true); setIllisible(false); }}
+            onWaiting={() => setJoue(false)}
+            onError={() => { setIllisible(true); setJoue(false); }}
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+          {active && !joue && !illisible ? (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Loader2 className="animate-spin text-white/80" size={40} />
+            </div>
+          ) : null}
+          {illisible ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 text-white/80 px-8 text-center pointer-events-none">
+              <span className="font-dm text-sm">Cette vidéo ne peut pas être lue sur cet appareil.</span>
+            </div>
+          ) : null}
+        </>
       )}
 
       {/* Musique de fond (bibliothèque interne) : jouée en boucle sur la slide active. */}
