@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Maximize2, Minimize2, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Player } from "player.js";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +32,8 @@ export function LessonWatch({
   initialPct,
   minPct,
   isCompleted,
+  prevHref = null,
+  nextHref = null,
 }: {
   lessonId: string;
   courseId: string;
@@ -38,6 +42,9 @@ export function LessonWatch({
   initialPct: number;
   minPct: number;
   isCompleted: boolean;
+  /** Leçon précédente / suivante (déjà filtrées : jamais une leçon verrouillée). */
+  prevHref?: string | null;
+  nextHref?: string | null;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -49,6 +56,56 @@ export function LessonWatch({
   const [done, setDone] = useState(isCompleted);
   const [loading, setLoading] = useState(false);
   const isBunny = !!src && src.includes("mediadelivery.net");
+
+  // ── Mode CINÉMA : après 1 minute de lecture, la vidéo passe en grand (tout l'écran). Sur un téléphone tenu en
+  //    vertical (ou rotation bloquée), elle est tournée d'un quart de tour pour remplir l'écran comme en paysage.
+  //    Une fois que l'élève le referme, on ne le rouvre plus tout seul pour cette leçon.
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [cinema, setCinema] = useState(false);
+  const [tourne, setTourne] = useState(false);
+  const tempsLu = useRef(0);
+  const dernierT = useRef<number | null>(null);
+  const refermeParEleve = useRef(false);
+  const portrait = () => typeof window !== "undefined" && window.innerHeight > window.innerWidth;
+
+  const ouvrirCinema = useCallback(() => {
+    setCinema(true);
+    setTourne(portrait());
+    // Vrai plein écran + paysage quand le navigateur l'accepte (Android) ; sinon, le mode cinéma suffit.
+    const el = wrapperRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
+    try {
+      const p = el?.requestFullscreen?.();
+      if (p && typeof (p as Promise<void>).then === "function") {
+        (p as Promise<void>).then(() => {
+          setTourne(false);
+          (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => setTourne(portrait()));
+        }).catch(() => { /* refusé (pas de geste) : le mode cinéma reste */ });
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  const fermerCinema = useCallback(() => {
+    refermeParEleve.current = true;
+    setCinema(false);
+    setTourne(false);
+    try { if (document.fullscreenElement) document.exitFullscreen?.(); } catch { /* ignore */ }
+    try { (screen.orientation as unknown as { unlock?: () => void })?.unlock?.(); } catch { /* ignore */ }
+  }, []);
+
+  // Échap ferme ; la rotation suit l'orientation tant que le mode cinéma est ouvert (hors vrai plein écran).
+  useEffect(() => {
+    if (!cinema) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") fermerCinema(); };
+    const onResize = () => { if (!document.fullscreenElement) setTourne(portrait()); };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+      document.body.style.overflow = "";
+    };
+  }, [cinema, fermerCinema]);
 
   // Sauvegarde de la progression (throttle + à la sortie)
   function save(ended = false) {
@@ -82,6 +139,14 @@ export function LessonWatch({
             if (!t) return;
             last.current = { position: t.seconds, duration: t.duration };
             if (t.duration > 0) setPct(Math.min(100, (t.seconds / t.duration) * 100));
+            // Temps RÉELLEMENT regardé (sauts ignorés) : à 60 s, la vidéo passe en grand.
+            const d = dernierT.current == null ? 0 : t.seconds - dernierT.current;
+            dernierT.current = t.seconds;
+            if (d > 0 && d < 3) tempsLu.current += d;
+            if (tempsLu.current >= 60 && !refermeParEleve.current) {
+              refermeParEleve.current = true; // une seule fois tout seul
+              ouvrirCinema();
+            }
           });
           player!.on("ended", () => { last.current.position = last.current.duration; save(true); setPct(100); });
         });
@@ -139,15 +204,46 @@ export function LessonWatch({
           </div>
         </div>
       ) : (
-        <div className="bunny-player-wrapper rounded-2xl overflow-hidden shadow-2xl bg-black">
+        <div ref={wrapperRef}
+          className={`bunny-player-wrapper rounded-2xl overflow-hidden shadow-2xl bg-black${cinema ? " lecteur-cinema" : ""}${cinema && tourne ? " lecteur-tourne" : ""}`}>
           <iframe
             ref={iframeRef}
             src={src}
             loading="lazy"
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen; screen-wake-lock"
             allowFullScreen
             title="Lecteur vidéo Arazzo Formation"
           />
+          {/* Commandes du mode cinéma (elles tournent avec la vidéo). */}
+          {cinema ? (
+            <div className="absolute top-2 end-2 z-10 flex items-center gap-2">
+              {prevHref ? <Link href={prevHref} className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center" aria-label="Vidéo précédente"><ChevronLeft size={20} /></Link> : null}
+              {nextHref ? <Link href={nextHref} className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center" aria-label="Vidéo suivante"><ChevronRight size={20} /></Link> : null}
+              <button type="button" onClick={() => setTourne((x) => !x)} className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center" aria-label="Tourner la vidéo"><RotateCw size={18} /></button>
+              <button type="button" onClick={fermerCinema} className="w-10 h-10 rounded-full bg-black/60 text-white flex items-center justify-center" aria-label="Réduire"><Minimize2 size={18} /></button>
+            </div>
+          ) : null}
+        </div>
+      )}
+
+      {/* Précédente / Suivante + Agrandir */}
+      {(prevHref || nextHref || (src && !error)) && (
+        <div className="mt-3 flex items-center gap-2">
+          {prevHref ? (
+            <Link href={prevHref} className="inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-cream-200 bg-white text-sm font-semibold text-gray-700 hover:bg-cream-50">
+              <ChevronLeft size={16} /> Précédente
+            </Link>
+          ) : <span />}
+          {src && !error ? (
+            <button type="button" onClick={ouvrirCinema} className="mx-auto inline-flex items-center gap-1 px-3 py-2 rounded-xl border border-violet-200 bg-violet-50 text-sm font-semibold text-violet-700">
+              <Maximize2 size={15} /> Plein écran
+            </button>
+          ) : null}
+          {nextHref ? (
+            <Link href={nextHref} className="ms-auto inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-orange-DEFAULT text-white text-sm font-semibold hover:bg-orange-600">
+              Suivante <ChevronRight size={16} />
+            </Link>
+          ) : null}
         </div>
       )}
 

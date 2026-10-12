@@ -11,6 +11,8 @@ import { LessonSidebar } from "./lesson-sidebar";
 import { LessonQA, type QA } from "./lesson-qa";
 import { LessonPractical, type Practical } from "./lesson-practical";
 import { PayNextInstallmentButton } from "./pay-next-installment";
+import { Section } from "./section";
+import { TravauxAutres } from "./travaux-autres";
 
 export default async function LessonPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -185,6 +187,28 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .order("created_at", { ascending: false });
   if (!canViewAllPracticals) pQuery = pQuery.eq("user_id", user.id);
   const { data: pRows } = await pQuery;
+  // Les travaux des AUTRES élèves de cette leçon (pour s'inspirer) : photos / vidéos / note, SANS les retours ni les
+  // corrections de la formatrice (qui restent privés entre elle et l'élève).
+  const { data: autresRows } = await extrasAdmin
+    .from("lesson_practicals")
+    .select("id, user_id, photo_url, video_url, note, status, created_at, author:users(nom)")
+    .eq("lesson_id", lesson.id)
+    .neq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(120);
+  const autres: Practical[] = (autresRows ?? []).filter((p: any) => p.photo_url || p.video_url).map((p: any) => ({
+    id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, annotation_url: null, note: p.note,
+    feedback: null, status: p.status, created_at: p.created_at, authorName: p.author?.nom ?? "Élève",
+  }));
+
+  // Leçon précédente / suivante dans l'ordre du programme (jamais une leçon d'un chapitre verrouillé).
+  const ordre = [...(((course?.chapters as any[]) ?? []))].sort((a, b) => a.ordre - b.ordre)
+    .flatMap((ch: any) => [...((ch.lessons as any[]) ?? [])].sort((a: any, b: any) => a.ordre - b.ordre)
+      .filter((l: any) => !lockedChapterIds.has(ch.id) || l.is_preview));
+  const ici = ordre.findIndex((l: any) => l.id === lesson.id);
+  const prevHref = ici > 0 ? `/dashboard/cours/${ordre[ici - 1].id}` : null;
+  const nextHref = ici >= 0 && ici < ordre.length - 1 ? `/dashboard/cours/${ordre[ici + 1].id}` : null;
+
   const practicals: Practical[] = (pRows ?? []).map((p: any) => ({
     id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, annotation_url: p.annotation_url ?? null, note: p.note,
     feedback: p.feedback, status: p.status, created_at: p.created_at, authorName: p.author?.nom ?? "Élève",
@@ -213,7 +237,19 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </div>
         )}
 
+        {/* Programme du cours EN HAUT sur téléphone (juste devant la vidéo) */}
+        <LessonSidebar
+          variant="mobile"
+          chapters={(course?.chapters as any[]) ?? []}
+          currentLessonId={lesson.id}
+          completedLessons={completedLessons}
+          lockedChapterIds={lockedChapterIds}
+          unlockMonthByChapter={access.unlockMonthByChapter}
+        />
+
         <LessonWatch
+          prevHref={prevHref}
+          nextHref={nextHref}
           lessonId={lesson.id}
           courseId={course?.id}
           videoUrl={lesson.video_url_bunny}
@@ -255,9 +291,13 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </div>
         )}
 
+        {/* Sous la vidéo : tout dans UNE LISTE — un clic sur une ligne l'ouvre. */}
+        <div className="mt-6 space-y-3">
+          {((lesson as { devoir?: string | null }).devoir || courseHomework) ? (
+            <Section icone="📋" titre="Travaux à faire" badge={(lesson as { devoir_obligatoire?: boolean | null }).devoir_obligatoire ? "★ Obligatoire" : null} ouvert>
         {/* Devoir à faire (consigne du formateur, niveau leçon) */}
         {(lesson as { devoir?: string | null }).devoir && (
-          <div className="mt-6 rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-blush-50 p-5">
+          <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 to-blush-50 p-5">
             <div className="flex items-center flex-wrap gap-2.5 mb-2">
               <span className="w-9 h-9 rounded-xl bg-violet-DEFAULT/15 text-violet-700 flex items-center justify-center"><ClipboardList size={18} /></span>
               <h3 className="font-playfair text-xl font-bold text-gray-900">Devoir à faire — cette leçon</h3>
@@ -282,7 +322,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
         {/* Devoir à faire (consigne du formateur, niveau cours) */}
         {courseHomework && (
-          <div className="mt-6 rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-blush-50 p-5">
+          <div className="mt-3 rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-blush-50 p-5">
             <div className="flex items-center gap-2.5 mb-2">
               <span className="w-9 h-9 rounded-xl bg-orange-DEFAULT/15 text-orange-600 flex items-center justify-center"><ClipboardList size={18} /></span>
               <h3 className="font-playfair text-xl font-bold text-gray-900">Devoir à faire</h3>
@@ -292,15 +332,25 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </div>
         )}
 
-        {/* Q&R formatrice ↔ élève */}
-        <LessonQA lessonId={lesson.id} items={qa} meId={user.id} isStaff={isStaff} />
-
-        {/* Travaux pratiques (photo + vidéo) */}
-        <LessonPractical lessonId={lesson.id} meId={user.id} isStaff={isStaff} submissions={practicals} />
+            </Section>
+          ) : null}
+          <Section icone="💬" titre="Questions / Réponses" compte={qa.filter((q) => !q.parent_id).length}>
+            <LessonQA lessonId={lesson.id} items={qa} meId={user.id} isStaff={isStaff} />
+          </Section>
+          <Section icone="🪡" titre={isStaff ? "Travaux pratiques des élèves" : "Mes travaux pratiques"} compte={practicals.length}>
+            <LessonPractical lessonId={lesson.id} meId={user.id} isStaff={isStaff} submissions={practicals} />
+          </Section>
+          {!canViewAllPracticals ? (
+            <Section icone="👀" titre="Les travaux des autres élèves" compte={autres.length}>
+              <TravauxAutres travaux={autres} />
+            </Section>
+          ) : null}
+        </div>
       </div>
 
-      {/* Sidebar — chapters + lessons */}
+      {/* Sidebar — chapters + lessons (ordinateur ; sur téléphone, le menu est en haut) */}
       <LessonSidebar
+        variant="desktop"
         chapters={(course?.chapters as any[]) ?? []}
         currentLessonId={lesson.id}
         completedLessons={completedLessons}

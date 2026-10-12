@@ -10,22 +10,55 @@ export function LessonSidebar({
   completedLessons,
   lockedChapterIds,
   unlockMonthByChapter,
+  variant = "all",
 }: {
   chapters: any[];
   currentLessonId: string;
   completedLessons: Set<string>;
   lockedChapterIds?: Set<string>;
   unlockMonthByChapter?: Record<string, number>;
+  /** "mobile" = menu déroulant EN HAUT (téléphone, juste devant la vidéo) ; "desktop" = colonne de droite (ordinateur). */
+  variant?: "all" | "mobile" | "desktop";
 }) {
   const sorted = [...chapters].sort((a, b) => a.ordre - b.ordre);
+  const toutes = sorted.flatMap((c) => [...((c.lessons as any[]) ?? [])].sort((a: any, b: any) => a.ordre - b.ordre));
+  const rang = toutes.findIndex((l: any) => l.id === currentLessonId) + 1;
+  const faites = toutes.filter((l: any) => completedLessons.has(l.id)).length;
+
+  if (variant === "mobile") {
+    return (
+      <details className="lg:hidden bg-white rounded-2xl border border-cream-200 overflow-hidden mb-3 group">
+        <summary className="list-none cursor-pointer p-3.5 flex items-center gap-3 bg-cream-50">
+          <span className="text-lg">📚</span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-semibold text-gray-900 text-sm">Programme du cours</span>
+            <span className="block text-xs text-gray-500">Leçon {rang || "—"}/{toutes.length} · {faites} terminée(s)</span>
+          </span>
+          <span className="text-gray-400 text-sm transition-transform group-open:rotate-180">▼</span>
+        </summary>
+        <div className="max-h-[60vh] overflow-y-auto divide-y divide-cream-100 border-t border-cream-100">
+          {liste()}
+        </div>
+      </details>
+    );
+  }
 
   return (
-    <aside className="w-full lg:w-72 flex-shrink-0">
+    <aside className={variant === "desktop" ? "hidden lg:block lg:w-72 flex-shrink-0" : "w-full lg:w-72 flex-shrink-0"}>
       <div className="bg-white rounded-2xl border border-cream-200 overflow-hidden">
         <div className="p-4 border-b border-cream-100 bg-cream-50">
           <h2 className="font-semibold text-gray-900 text-sm">Programme du cours</h2>
         </div>
         <div className="max-h-[70vh] overflow-y-auto divide-y divide-cream-100">
+          {liste()}
+        </div>
+      </div>
+    </aside>
+  );
+
+  function liste() {
+    return (
+      <>
           {sorted.map((chapter) => {
             const locked = lockedChapterIds?.has(chapter.id) ?? false;
             const unlockMonth = unlockMonthByChapter?.[chapter.id];
@@ -91,8 +124,7 @@ export function LessonSidebar({
             </div>
             );
           })}
-        </div>
-      </div>
-    </aside>
-  );
+      </>
+    );
+  }
 }

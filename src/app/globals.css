@@ -149,6 +149,29 @@ p {
   border: 0;
 }
 
+/* Mode CINÉMA du lecteur de leçon : la vidéo occupe tout l'écran (sans recharger l'iframe). */
+.bunny-player-wrapper.lecteur-cinema {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  width: 100vw;
+  height: 100dvh;
+  padding-bottom: 0;
+  border-radius: 0 !important;
+  background: #000;
+}
+/* Téléphone tenu (ou bloqué) en VERTICAL : on tourne la vidéo d'un quart de tour pour qu'elle
+   remplisse l'écran comme en paysage, même si la rotation automatique est verrouillée. */
+.bunny-player-wrapper.lecteur-cinema.lecteur-tourne {
+  inset: auto;
+  top: 0;
+  left: 100vw;
+  width: 100dvh;
+  height: 100vw;
+  transform: rotate(90deg);
+  transform-origin: top left;
+}
+
 /* ── Scrollbar élégante ─────────────────────────────────────── */
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: #f5f0eb; }
