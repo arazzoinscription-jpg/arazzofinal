@@ -69,7 +69,55 @@ function isMissingMusicColumn(error: { message?: string; code?: string } | null)
   return error.code === "42703" || /music_(url|title)/.test(error.message ?? "");
 }
 
-/** Feed global « Pour toi » — réservé aux inscrits, plus récent d'abord. */
+/** Mélange (Fisher-Yates) : un ordre différent à chaque ouverture du feed. */
+function melanger<T>(liste: T[]): T[] {
+  const a = liste.slice();
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * Les VÊTEMENTS réalisés en travaux pratiques arrivent seuls dans le feed : chaque travail pratique qui a une VIDÉO
+ * (le devoir demande « une vidéo d'une pièce cousue ») et n'est pas encore partagé devient une publication (auteur =
+ * l'élève, lien « Voir le cours »). Les PHOTOS seules ne sont PAS partagées : ce sont surtout les résumés et dessins
+ * du cahier. Une passe au plus toutes les 10 minutes par serveur, par lots ; best-effort (le feed ne casse jamais).
+ */
+let dernierePasseTravaux = 0;
+async function partagerTravauxPratiques(admin: ReturnType<typeof createAdminClient>) {
+  if (Date.now() - dernierePasseTravaux < 10 * 60_000) return;
+  dernierePasseTravaux = Date.now();
+  try {
+    const { data: deja } = await admin.from("community_media").select("practical_id").not("practical_id", "is", null).limit(5000);
+    const partages = new Set((deja ?? []).map((r: any) => r.practical_id));
+    const { data: travaux } = await admin
+      .from("lesson_practicals")
+      .select("id, user_id, video_url, note, created_at, lesson:lessons(chapter:chapters(course_id))")
+      .not("video_url", "is", null)
+      .neq("video_url", "")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    const nouveaux = (travaux ?? []).filter((t: any) => !partages.has(t.id)).slice(0, 60);
+    for (const t of nouveaux as any[]) {
+      // eslint-disable-next-line no-await-in-loop
+      const { data: post } = await admin.from("posts")
+        .insert({ author_id: t.user_id, group_id: null, content: t.note ?? null, published: true })
+        .select("id").single();
+      if (!post) continue;
+      // eslint-disable-next-line no-await-in-loop
+      const { error } = await admin.from("community_media").insert({
+        post_id: post.id, source_type: "practical", media_kind: "video", media_url: t.video_url, thumbnail_url: null,
+        course_id: t.lesson?.chapter?.course_id ?? null, practical_id: t.id, status: "ready",
+      });
+      // eslint-disable-next-line no-await-in-loop
+      if (error) await admin.from("posts").delete().eq("id", post.id);
+    }
+  } catch { /* best-effort : jamais bloquant pour le feed */ }
+}
+
+/** Feed global « Pour toi » — ouvert à tous ; ordre ALÉATOIRE à chaque ouverture (un nouveau modèle à chaque visite). */
 export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; items: CommunityItem[] }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -77,16 +125,19 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
   // dans tous les cas ; l'invitation à s'inscrire est gérée côté client.
 
   const admin = createAdminClient();
+  await partagerTravauxPratiques(admin);
+  // On prend un large choix (les 300 plus récents), puis on MÉLANGE : à chaque ouverture, un ordre différent.
   const run = (sel: string) => admin
     .from("community_media")
     .select(sel)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(300);
   let { data: rows, error } = await run(SELECT);
   if (isMissingMusicColumn(error)) ({ data: rows } = await run(SELECT_BASE));
 
-  const items = (rows ?? [])
-    .filter((r: any) => r.post && (r.post.published ?? true))
+  const items = melanger((rows ?? [])
+    .filter((r: any) => r.post && (r.post.published ?? true)))
+    .slice(0, 60)
     .map((r: any) => mapRow(r, user?.id ?? ""));
 
   return { me: user ? { id: user.id } : null, items };

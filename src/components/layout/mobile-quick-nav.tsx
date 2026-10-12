@@ -12,7 +12,7 @@ export function MobileQuickNav({ compact = false }: { compact?: boolean }) {
   const items = [
     { name: "Accueil", url: "/", icon: Home },
     { name: "Mon espace", url: "/dashboard", icon: LayoutGrid },
-    { name: "Offre", url: "/offre", icon: Ticket, color: "text-orange-600 dark:text-orange-300 hover:text-orange-700" },
+    { name: "Offre", url: "/offres", icon: Ticket, color: "text-orange-600 dark:text-orange-300 hover:text-orange-700" },
     { name: "Communauté", url: "/communaute", icon: Clapperboard, color: "text-teal-600 dark:text-teal-300 hover:text-teal-700" },
     { name: "Formation", url: "/formations", icon: GraduationCap },
     { name: "Patron", url: "/patrons", icon: Scissors },

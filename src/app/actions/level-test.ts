@@ -16,10 +16,11 @@ const Schema = z.object({
   contact: z.object({
     first_name: z.string().trim().max(120).optional().or(z.literal("")),
     last_name: z.string().trim().max(120).optional().or(z.literal("")),
-    email: z.string().email().optional().or(z.literal("")),
+    // E-mail OBLIGATOIRE : sans lui, ni résultat envoyé ni suivi (l'OS dédoublonne sur l'e-mail et le téléphone).
+    email: z.string().trim().email(),
     phone: z.string().trim().max(40).optional().or(z.literal("")),
     city: z.string().trim().max(120).optional().or(z.literal("")),
-  }).optional(),
+  }),
   utm: z.record(z.string(), z.string()).optional(),
   consent: z.boolean().optional(),
 });

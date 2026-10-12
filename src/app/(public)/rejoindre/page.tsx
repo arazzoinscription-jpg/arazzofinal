@@ -4,5 +4,5 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default function RejoindrePage() {
-  redirect("/offre");
+  redirect("/offres");
 }
