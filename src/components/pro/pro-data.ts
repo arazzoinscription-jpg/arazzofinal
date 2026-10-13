@@ -101,6 +101,10 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Étudiants", ar: "الطلاب", en: "Students" },
   },
   {
+    key: "suivi", icon: TrendingUp, home: "/admin/suivi", items: [], match: ["/admin/suivi/"],
+    label: { fr: "Suivi pédagogique", ar: "المتابعة البيداغوجية", en: "Learning follow-up" },
+  },
+  {
     key: "gestion", icon: UserCog, home: "/admin/gestion", items: [],
     label: { fr: "Gestion Formateurs & Étudiants", ar: "إدارة المدرّبين والطلاب", en: "Trainers & Students Management" },
   },

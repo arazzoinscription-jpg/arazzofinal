@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:suivi": "tsx --test src/lib/student-care/*.test.ts",
     "migrate:csv": "tsx scripts/import-csv-students.ts",
     "migrate:courses": "tsx scripts/import-tutor-courses.ts",
     "cap:sync": "cap sync",
