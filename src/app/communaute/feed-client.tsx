@@ -51,14 +51,31 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
   // donc en muet (pour que la vidéo se lance), puis on active le son au TOUT
   // PREMIER geste (toucher / scroll / clic) — ce qui arrive dès qu'on ouvre le
   // feed. Résultat : le son s'active « tout seul » dès qu'on commence à regarder.
+  // UNE seule fois : si on coupe le son ensuite avec le bouton, il reste coupé. Et si ce 1ᵉʳ geste est un appui
+  // sur le bouton son, c'est le bouton qui décide (sinon il annulerait son propre effet).
   useEffect(() => {
-    if (!muted) return;
-    const unmute = () => setMuted(false);
-    const opts = { once: true, passive: true } as AddEventListenerOptions;
     const evs: (keyof WindowEventMap)[] = ["pointerdown", "mousedown", "click", "touchstart", "keydown", "wheel", "scroll"];
-    evs.forEach((e) => window.addEventListener(e, unmute, opts));
-    return () => evs.forEach((e) => window.removeEventListener(e, unmute));
-  }, [muted]);
+    const premierGeste = (e: Event) => {
+      evs.forEach((ev) => window.removeEventListener(ev, premierGeste));
+      if (e.target instanceof Element && e.target.closest("[data-feed-son]")) return;
+      setMuted(false);
+    };
+    evs.forEach((ev) => window.addEventListener(ev, premierGeste, { passive: true }));
+    return () => evs.forEach((ev) => window.removeEventListener(ev, premierGeste));
+  }, []);
+
+  // Bulle « Touchez pour couper le son » à côté du bouton son : seulement à la 1ʳᵉ visite, quelques secondes.
+  const [astuceSon, setAstuceSon] = useState(false);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("arazzo_feed_astuce_son")) return;
+      localStorage.setItem("arazzo_feed_astuce_son", "1");
+    } catch { /* stockage indisponible : on montre quand même la bulle */ }
+    setAstuceSon(true);
+    const t = setTimeout(() => setAstuceSon(false), 7000);
+    return () => clearTimeout(t);
+  }, []);
+  const basculerSon = useCallback(() => { setMuted((m) => !m); setAstuceSon(false); }, []);
 
   // ── Préconnexion aux hôtes média (accélère le 1ᵉʳ chargement) ─────────────
   // Ouvre à l'avance la connexion (DNS + TLS) vers Bunny (vidéos) et le CDN des
@@ -84,7 +101,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
     }
   }
 
-  // Barre du haut : Retour · logo→site · dashboard · son + onglets bascule.
+  // Barre du haut : Retour · logo→site · dashboard · Facebook + onglets bascule (le bouton son est sur la vidéo).
   const topBar = (
     <div className="fixed top-0 inset-x-0 z-30 pt-[max(10px,env(safe-area-inset-top))] pb-2 bg-[#0b0818]/90 backdrop-blur-md border-b border-white/10">
       <div className="flex items-center gap-2 px-3">
@@ -96,10 +113,6 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
         <button onClick={() => (isGuest ? setGate("soft") : setFbOpen(true))} aria-label="Partager une vidéo Facebook"
           className="w-9 h-9 grid place-items-center rounded-full bg-[#1877F2] text-white shrink-0"><Facebook size={17} /></button>
-        <button onClick={() => setMuted((m) => !m)} aria-label="Son"
-          className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0">
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-        </button>
       </div>
       {/* Menu UNIQUE de la communauté (Pour toi · Actualité · Groups · Offre) */}
       <div className="mt-1.5"><CommunityTabs /></div>
@@ -140,6 +153,8 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
           // (sinon le navigateur charge TOUTES les vidéos du feed en même temps — très lourd).
           near={activeIndex < 0 ? idx < 2 : Math.abs(idx - activeIndex) <= 1}
           muted={muted}
+          onToggleMute={basculerSon}
+          astuceSon={astuceSon && activeId === it.id}
           bunnyLibraryId={bunnyLibraryId}
           meId={meId}
           canModerate={canModerate}
@@ -263,9 +278,10 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
 }
 
 function Slide({
-  item, active, preload = false, near = true, muted, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
+  item, active, preload = false, near = true, muted, onToggleMute, astuceSon = false, bunnyLibraryId, meId, canModerate, isGuest, onGuest, onActive, onOpenComments,
 }: {
-  item: CommunityItem; active: boolean; preload?: boolean; near?: boolean; muted: boolean; bunnyLibraryId: string;
+  item: CommunityItem; active: boolean; preload?: boolean; near?: boolean; muted: boolean; onToggleMute: () => void;
+  astuceSon?: boolean; bunnyLibraryId: string;
   meId: string; canModerate: boolean; isGuest: boolean; onGuest: () => void;
   onActive: () => void; onOpenComments: () => void;
 }) {
@@ -451,6 +467,24 @@ function Slide({
 
       {/* Actions latérales */}
       <div className="absolute right-3 bottom-28 z-20 flex flex-col items-center gap-5 text-white">
+        {/* Son (vidéo + musique). Pas sur une photo sans musique (rien à couper) ni sur Facebook (son géré par son lecteur). */}
+        {(hasMusic || (item.mediaKind !== "image" && !isFacebook)) && (
+          <div className="relative flex flex-col items-center gap-1">
+            <button data-feed-son onClick={onToggleMute} aria-label={muted ? "Activer le son" : "Couper le son"}
+              className="flex flex-col items-center gap-1">
+              <span className="relative w-12 h-12 grid place-items-center rounded-full bg-black/30 backdrop-blur">
+                {astuceSon && <span className="absolute inset-0 rounded-full bg-orange-500/50 animate-ping" />}
+                {muted ? <VolumeX size={24} /> : <Volume2 size={24} />}
+              </span>
+              <span className="text-xs font-semibold">{muted ? "Muet" : "Son"}</span>
+            </button>
+            {astuceSon && (
+              <span className="absolute right-14 top-3 whitespace-nowrap bg-white text-gray-900 text-xs font-semibold font-dm px-3 py-1.5 rounded-full shadow-lg pointer-events-none animate-fade-in">
+                {muted ? "Touchez pour activer le son 🔊" : "Touchez pour couper le son 🔇"}
+              </span>
+            )}
+          </div>
+        )}
         <button onClick={onLike} className="flex flex-col items-center gap-1">
           <span className={`w-12 h-12 grid place-items-center rounded-full bg-black/30 backdrop-blur ${liked ? "text-orange-500" : "text-white"}`}>
             <Heart size={26} fill={liked ? "currentColor" : "none"} />
