@@ -68,28 +68,63 @@ export function LessonWatch({
   const refermeParEleve = useRef(false);
   const portrait = () => typeof window !== "undefined" && window.innerHeight > window.innerWidth;
 
+  // Bloquer l'écran en paysage (Android, en plein écran seulement) ; rend true si le téléphone a accepté.
+  const bloquerPaysage = async () => {
+    try {
+      const o = screen.orientation as unknown as { lock?: (o: string) => Promise<void> } | undefined;
+      if (!o?.lock) return false;
+      await o.lock("landscape");
+      return true;
+    } catch { return false; }
+  };
+  const pleinEcranPar = useRef<"cadre" | null>(null);
+
   const ouvrirCinema = useCallback(() => {
     setCinema(true);
-    setTourne(portrait());
-    // Vrai plein écran + paysage quand le navigateur l'accepte (Android) ; sinon, le mode cinéma suffit.
+    // PAS de quart de tour tout de suite : sur Android, le vrai plein écran + paysage arrive juste après. Tourner
+    // d'abord la vidéo puis la remettre droite faisait « clignoter » l'écran (vertical → horizontal en une fraction de
+    // seconde). On ne tourne la vidéo qu'en dernier recours : plein écran refusé, ou paysage refusé (iPhone…).
+    setTourne(false);
     const el = wrapperRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => void }) | null;
+    const secours = () => setTourne(portrait());
     try {
-      const p = el?.requestFullscreen?.();
+      const p = el?.requestFullscreen?.({ navigationUI: "hide" } as FullscreenOptions);
       if (p && typeof (p as Promise<void>).then === "function") {
-        (p as Promise<void>).then(() => {
-          setTourne(false);
-          (screen.orientation as unknown as { lock?: (o: string) => Promise<void> })?.lock?.("landscape").catch(() => setTourne(portrait()));
-        }).catch(() => { /* refusé (pas de geste) : le mode cinéma reste */ });
-      }
-    } catch { /* ignore */ }
+        (p as Promise<void>).then(async () => {
+          pleinEcranPar.current = "cadre";
+          if (!(await bloquerPaysage())) secours();
+        }).catch(secours);
+      } else secours();
+    } catch { secours(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fermerCinema = useCallback(() => {
     refermeParEleve.current = true;
+    pleinEcranPar.current = null;
     setCinema(false);
     setTourne(false);
     try { if (document.fullscreenElement) document.exitFullscreen?.(); } catch { /* ignore */ }
     try { (screen.orientation as unknown as { unlock?: () => void })?.unlock?.(); } catch { /* ignore */ }
+  }, []);
+
+  // Le plein écran du LECTEUR lui-même (bouton ⛶ dans la vidéo Bunny) : on bloque aussi en paysage, pour que le
+  // téléphone ne rebascule pas en vertical. À la sortie du plein écran (bouton retour…), on libère la rotation et on
+  // referme le mode cinéma qu'on avait ouvert.
+  useEffect(() => {
+    const surChangement = () => {
+      if (document.fullscreenElement) { void bloquerPaysage(); return; }
+      try { (screen.orientation as unknown as { unlock?: () => void })?.unlock?.(); } catch { /* ignore */ }
+      if (pleinEcranPar.current === "cadre") {
+        pleinEcranPar.current = null;
+        refermeParEleve.current = true;
+        setCinema(false);
+        setTourne(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", surChangement);
+    return () => document.removeEventListener("fullscreenchange", surChangement);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Échap ferme ; la rotation suit l'orientation tant que le mode cinéma est ouvert (hors vrai plein écran).
