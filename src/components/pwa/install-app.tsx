@@ -20,7 +20,7 @@ type BeforeInstallPromptEvent = Event & {
 
 const CLE = "arazzo-install-plus-tard";
 const MASQUE_JOURS = 7;
-const ESPACES_EXCLUS = ["/admin", "/formateur", "/studio", "/patronniste", "/auth", "/login", "/register"];
+const ESPACES_EXCLUS = ["/application", "/admin", "/formateur", "/studio", "/patronniste", "/auth", "/login", "/register"];
 
 function estInstallee(): boolean {
   if (typeof window === "undefined") return false;
