@@ -16,22 +16,23 @@ const ROLE_LABEL: Record<string, string> = { admin: "Arazzo", formateur: "Format
 export default async function CommunityProfilePage({ params }: { params: { id: string } }) {
   // Profil PUBLIC : consultable par les visiteurs (me = null), qui sont invités
   // à se connecter au moment d'interagir (bouton Suivre).
-  const { me, items } = await loadUserMedia(params.id);
-
+  // Chargements LANCÉS ENSEMBLE (avant : 5 étapes l'une après l'autre, chacune attendant la base).
   const lang = normLang((await cookies()).get("lang")?.value) as "fr" | "ar" | "en";
-  const profile = await loadProfile(params.id);
+  const [{ me, items }, profile] = await Promise.all([loadUserMedia(params.id), loadProfile(params.id)]);
   const name = profile?.nom ?? "Membre";
   const isMe = me?.id === params.id;
 
   const likes = items.reduce((s, i) => s + i.likeCount, 0);
-  const { followers, following, isFollowing } = await loadFollowInfo(params.id, me?.id ?? null);
 
   // Créateur (formateur / patronniste / admin) → portfolio de ses créations.
   // Élève → parcours d'apprentissage.
   const role = profile?.role ?? "eleve";
   const isCreator = role === "formateur" || role === "patronniste" || role === "admin";
-  const portfolio = isCreator ? await loadCreatorPortfolio(params.id, role) : null;
-  const journey = isCreator ? null : await loadStudentJourney(params.id, lang);
+  const [{ followers, following, isFollowing }, portfolio, journey] = await Promise.all([
+    loadFollowInfo(params.id, me?.id ?? null),
+    isCreator ? loadCreatorPortfolio(params.id, role) : Promise.resolve(null),
+    isCreator ? Promise.resolve(null) : loadStudentJourney(params.id, lang),
+  ]);
 
   return (
     <div className="min-h-[100dvh] bg-[#0b0818] text-white">

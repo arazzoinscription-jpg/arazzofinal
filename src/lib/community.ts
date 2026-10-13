@@ -83,12 +83,13 @@ function melanger<T>(liste: T[]): T[] {
  * Les VÊTEMENTS réalisés en travaux pratiques arrivent seuls dans le feed : chaque travail pratique qui a une VIDÉO
  * (le devoir demande « une vidéo d'une pièce cousue ») et n'est pas encore partagé devient une publication (auteur =
  * l'élève, lien « Voir le cours »). Les PHOTOS seules ne sont PAS partagées : ce sont surtout les résumés et dessins
- * du cahier. Une passe au plus toutes les 10 minutes par serveur, par lots ; best-effort (le feed ne casse jamais).
+ * du cahier. Par lots ; best-effort.
+ *
+ * Exécuté par le cron de nuit (/api/cron/nightly) — PLUS pendant l'ouverture du feed : à chaque démarrage à froid
+ * d'un serveur, la passe lisait jusqu'à 5 500 lignes et créait les publications une par une AVANT d'afficher le feed.
  */
-let dernierePasseTravaux = 0;
-async function partagerTravauxPratiques(admin: ReturnType<typeof createAdminClient>) {
-  if (Date.now() - dernierePasseTravaux < 10 * 60_000) return;
-  dernierePasseTravaux = Date.now();
+export async function partagerTravauxPratiques(admin: ReturnType<typeof createAdminClient>): Promise<{ partages: number }> {
+  let crees = 0;
   try {
     const { data: deja } = await admin.from("community_media").select("practical_id").not("practical_id", "is", null).limit(5000);
     const partages = new Set((deja ?? []).map((r: any) => r.practical_id));
@@ -113,8 +114,10 @@ async function partagerTravauxPratiques(admin: ReturnType<typeof createAdminClie
       });
       // eslint-disable-next-line no-await-in-loop
       if (error) await admin.from("posts").delete().eq("id", post.id);
+      else crees += 1;
     }
-  } catch { /* best-effort : jamais bloquant pour le feed */ }
+  } catch { /* best-effort */ }
+  return { partages: crees };
 }
 
 /** Feed global « Pour toi » — ouvert à tous ; ordre ALÉATOIRE à chaque ouverture (un nouveau modèle à chaque visite). */
@@ -125,19 +128,28 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
   // dans tous les cas ; l'invitation à s'inscrire est gérée côté client.
 
   const admin = createAdminClient();
-  await partagerTravauxPratiques(admin);
   // On prend un large choix (les 300 plus récents), puis on MÉLANGE : à chaque ouverture, un ordre différent.
-  const run = (sel: string) => admin
+  // 1) Liste LÉGÈRE (identifiants seulement) des 300 plus récents publiés…
+  const { data: legers } = await admin
     .from("community_media")
-    .select(sel)
+    .select("id, post:posts!inner(published)")
     .order("created_at", { ascending: false })
     .limit(300);
-  let { data: rows, error } = await run(SELECT);
-  if (isMissingMusicColumn(error)) ({ data: rows } = await run(SELECT_BASE));
-
-  const items = melanger((rows ?? [])
+  const choisis = melanger((legers ?? [])
     .filter((r: any) => r.post && (r.post.published ?? true)))
     .slice(0, 60)
+    .map((r: any) => r.id as string);
+  if (!choisis.length) return { me: user ? { id: user.id } : null, items: [] };
+
+  // 2) …puis le DÉTAIL (auteur, j'aime, commentaires) des 60 affichés seulement — avant, les 300
+  //    étaient chargés avec tous leurs « j'aime » pour en montrer 60.
+  const run = (sel: string) => admin.from("community_media").select(sel).in("id", choisis);
+  let { data: rows, error } = await run(SELECT);
+  if (isMissingMusicColumn(error)) ({ data: rows } = await run(SELECT_BASE));
+  const parId = new Map((rows ?? []).map((r: any) => [r.id as string, r]));
+  const items = choisis
+    .map((id) => parId.get(id))
+    .filter((r: any) => r && r.post && (r.post.published ?? true))
     .map((r: any) => mapRow(r, user?.id ?? ""));
 
   return { me: user ? { id: user.id } : null, items };

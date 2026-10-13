@@ -5,6 +5,7 @@ import { GET as formateurDigest } from "../formateur-digest/route";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runProspectInactivity } from "@/lib/prospects";
 import { cleanupOldLogs } from "@/lib/cleanup-logs";
+import { partagerTravauxPratiques } from "@/lib/community";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,6 +42,13 @@ export async function GET(req: NextRequest) {
     results["prospect-inactivity"] = await runProspectInactivity(createAdminClient());
   } catch (e) {
     results["prospect-inactivity"] = { error: e instanceof Error ? e.message : String(e) };
+  }
+
+  // Vidéos de travaux pratiques → publications du feed (sortie du chargement du feed, qui en était ralenti).
+  try {
+    results["feed-travaux-pratiques"] = await partagerTravauxPratiques(createAdminClient());
+  } catch (e) {
+    results["feed-travaux-pratiques"] = { error: e instanceof Error ? e.message : String(e) };
   }
 
   // Purge des vieux journaux (analytics, emails, notifications, activité) →

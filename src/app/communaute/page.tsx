@@ -26,9 +26,13 @@ export default async function CommunautePage() {
   let live = null;
   if (me) {
     const admin = createAdminClient();
-    const { data: prof } = await admin.from("users").select("role").eq("id", me.id).maybeSingle();
+    // Rôle et direct en cours : lus EN MÊME TEMPS (avant : l'un après l'autre).
+    const [{ data: prof }, enDirect] = await Promise.all([
+      admin.from("users").select("role").eq("id", me.id).maybeSingle(),
+      getActiveLiveForViewer(admin, me.id),
+    ]);
     role = prof?.role ?? "eleve";
-    live = await getActiveLiveForViewer(admin, me.id);
+    live = enDirect;
   }
 
   return (
