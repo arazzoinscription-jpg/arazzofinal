@@ -45,14 +45,14 @@ export function ResumeRappels({ l, maintenant }: { l: LiveComplet; maintenant: D
   );
 }
 
-export function ListeLives({ lives, maintenant }: { lives: LiveComplet[]; maintenant: Date }) {
+export function ListeLives({ base, lives, maintenant }: { base: string; lives: LiveComplet[]; maintenant: Date }) {
   if (!lives.length) return <div className="bg-white rounded-2xl border border-gray-100 text-center py-12 text-gray-500">Aucun live sur cette période.</div>;
   return (
     <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50">
       {lives.map((l) => {
         const st = statutLive(l.live, maintenant);
         return (
-          <Link key={l.live.id} href={`/admin/lives/${l.live.id}`} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-gray-50 ${st === "annule" ? "opacity-60" : ""}`}>
+          <Link key={l.live.id} href={`${base}/lives/${l.live.id}`} className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-gray-50 ${st === "annule" ? "opacity-60" : ""}`}>
             <div className="w-44 shrink-0">
               <div className="text-sm font-semibold text-gray-900 capitalize">{dateLongue(l.live.starts_at)}</div>
               <div className="text-xs text-gray-500">{heureCourte(l.live.starts_at)} (Alger) · {l.live.duree_minutes ?? "?"} min</div>

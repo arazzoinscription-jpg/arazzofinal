@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { CalendarPlus, Radio, Mail, MessageCircle, Megaphone, type LucideIcon } from "lucide-react";
-import { COMMANDES, EVENEMENT_MESSAGERIE, type Commande, type DetailMessagerie } from "@/lib/classe/communication";
+import { commandesPour, EVENEMENT_MESSAGERIE, type Commande, type DetailMessagerie } from "@/lib/classe/communication";
 
 const ICONE: Record<Commande["cle"], LucideIcon> = {
   programmer_live: CalendarPlus, passer_live: Radio, email: Mail, message: MessageCircle, annonce: Megaphone,
@@ -36,12 +36,12 @@ function Contenu({ c }: { c: Commande }) {
 }
 
 /** Barre de commande de l'enseignante : chaque bouton ouvre un outil EXISTANT, ou dit qu'il reste à connecter. */
-export function BarreCommande() {
-  const base = "group flex items-center gap-2.5 sm:gap-3 rounded-2xl px-3 sm:px-3.5 py-2.5 sm:py-3 bg-gradient-to-br shadow-sm border border-black/5 hover:shadow-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B16F9]";
+export function BarreCommande({ base }: { base: string }) {
+  const style = "group flex items-center gap-2.5 sm:gap-3 rounded-2xl px-3 sm:px-3.5 py-2.5 sm:py-3 bg-gradient-to-br shadow-sm border border-black/5 hover:shadow-md transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B16F9]";
   return (
     <nav aria-label="Commandes de l'enseignante" className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2.5 mb-6">
-      {COMMANDES.map((c) => {
-        const classes = `${base} ${TON[c.cle]}`;
+      {commandesPour(base).map((c) => {
+        const classes = `${style} ${TON[c.cle]}`;
         if (c.etat === "a_connecter") {
           return (
             <details key={c.cle} className="relative">

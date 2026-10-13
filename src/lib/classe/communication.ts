@@ -20,11 +20,12 @@ export interface Commande {
   detail: string;
 }
 
-/** La barre de commande de l'enseignante : chaque bouton dit ce qu'il fait vraiment. */
-export const COMMANDES: readonly Commande[] = [
+/** La barre de commande de l'enseignante (selon l'espace : /admin ou /formateur) : chaque bouton dit ce qu'il fait vraiment. */
+export function commandesPour(base: string): readonly Commande[] {
+  return [
   {
-    cle: "programmer_live", libelle: "Programmer un live", etat: "branche", href: "/admin/lives/nouveau",
-    detail: "Ouvre la programmation des lives pédagogiques (/admin/lives).",
+    cle: "programmer_live", libelle: "Programmer un live", etat: "branche", href: `${base}/lives/nouveau`,
+    detail: "Ouvre la programmation des lives pédagogiques.",
   },
   {
     cle: "passer_live", libelle: "Passer en live", etat: "branche", href: "/formateur/sessions",
@@ -43,6 +44,10 @@ export const COMMANDES: readonly Commande[] = [
     detail: "Ouvre le Centre d'annonces existant (espace de l'élève + e-mail en option). L'envoi part quand VOUS validez là-bas.",
   },
 ];
+}
+
+/** Version administration (compatibilité). */
+export const COMMANDES: readonly Commande[] = commandesPour("/admin");
 
 /** Événement écouté par la bulle de messagerie du site pour s'ouvrir (sur une élève, si précisée). */
 export const EVENEMENT_MESSAGERIE = "arazzo:messagerie";

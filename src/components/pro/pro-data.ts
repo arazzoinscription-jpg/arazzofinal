@@ -37,6 +37,18 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     ],
   },
   {
+    key: "classe", icon: School, home: "/formateur/classe", items: [], match: ["/formateur/classe/"],
+    label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
+  },
+  {
+    key: "suivi", icon: TrendingUp, home: "/formateur/suivi", items: [], match: ["/formateur/suivi/"],
+    label: { fr: "Suivi pédagogique", ar: "المتابعة البيداغوجية", en: "Learning follow-up" },
+  },
+  {
+    key: "lives", icon: Video, home: "/formateur/lives", items: [], match: ["/formateur/lives/"],
+    label: { fr: "Lives pédagogiques", ar: "البث المباشر التعليمي", en: "Teaching lives" },
+  },
+  {
     key: "studio", icon: Clapperboard, home: "/studio", items: [], match: ["/studio"],
     label: { fr: "Studio (Reels)", ar: "استوديو (ريلز)", en: "Studio (Reels)" },
   },

@@ -23,8 +23,10 @@ const champ = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:
  * sans JavaScript. Les heures sont TOUJOURS celles d'Alger.
  */
 export function FormulaireLive({
-  action, valeurs, niveaux, mode, serie,
+  base, action, valeurs, niveaux, mode, serie,
 }: {
+  /** Espace d'où vient le formulaire (/admin ou /formateur) : l'action le revérifie côté serveur. */
+  base: string;
   action: (f: FormData) => Promise<void>;
   valeurs: ValeursLive;
   niveaux: CoursNiveau[];
@@ -37,6 +39,7 @@ export function FormulaireLive({
   const canauxCoches: Set<Canal> = canaux.size ? canaux : new Set<Canal>(mode === "creer" ? ["notification"] : []);
   return (
     <form action={action} className="space-y-5">
+      <input type="hidden" name="base" value={base} />
       {valeurs.id ? <input type="hidden" name="id" value={valeurs.id} /> : null}
 
       {mode === "modifier" && serie ? (

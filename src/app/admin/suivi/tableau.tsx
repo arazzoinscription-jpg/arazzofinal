@@ -7,8 +7,8 @@ import {
 import { dateCourte } from "@/lib/student-care/time";
 import { Val, BadgeAction, BadgeStatut, BadgeNiveau, Barre } from "./cellule";
 
-function lienFiche(s: SuiviEleve, depuis: string | null) {
-  return `/admin/suivi/${s.user_id}${depuis ? `?depuis=${depuis}` : ""}`;
+function lienFiche(base: string, s: SuiviEleve, depuis: string | null) {
+  return `${base}/suivi/${s.user_id}${depuis ? `?depuis=${depuis}` : ""}`;
 }
 
 function Formation({ s }: { s: SuiviEleve }) {
@@ -42,7 +42,7 @@ function Action({ s }: { s: SuiviEleve }) {
 }
 
 /** Tableau des élèves : une ligne par élève (cartes sur téléphone). */
-export function TableauSuivi({ eleves, maintenantIso, depuis }: { eleves: SuiviEleve[]; maintenantIso: string; depuis: string | null }) {
+export function TableauSuivi({ base, eleves, maintenantIso, depuis }: { base: string; eleves: SuiviEleve[]; maintenantIso: string; depuis: string | null }) {
   const maintenant = new Date(maintenantIso);
   if (eleves.length === 0) {
     return (
@@ -71,7 +71,7 @@ export function TableauSuivi({ eleves, maintenantIso, depuis }: { eleves: SuiviE
             {eleves.map((s) => (
               <tr key={s.user_id} className="hover:bg-gray-50/60">
                 <td className="px-3 py-3 min-w-[170px]">
-                  <Link href={lienFiche(s, depuis)} className="font-semibold text-gray-900 hover:text-orange-600">{s.nom}</Link>
+                  <Link href={lienFiche(base, s, depuis)} className="font-semibold text-gray-900 hover:text-orange-600">{s.nom}</Link>
                   <div className="text-xs text-gray-500 break-all">{s.email ?? "—"}</div>
                   <div className="mt-1"><Val c={celluleTelephone(s)} petit /></div>
                   <div className="mt-1"><BadgeStatut statut={s.statut} /></div>
@@ -113,7 +113,7 @@ export function TableauSuivi({ eleves, maintenantIso, depuis }: { eleves: SuiviE
           <div key={s.user_id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <Link href={lienFiche(s, depuis)} className="font-semibold text-gray-900">{s.nom}</Link>
+                <Link href={lienFiche(base, s, depuis)} className="font-semibold text-gray-900">{s.nom}</Link>
                 <div className="text-xs text-gray-500 break-all">{s.email ?? "—"}</div>
               </div>
               <BadgeStatut statut={s.statut} />

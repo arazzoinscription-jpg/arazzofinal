@@ -14,7 +14,7 @@ const PAS = 60;
 const NIVEAUX: CodeNiveau[] = ["N1", "N2", "N3"];
 
 /** Grille de la classe : recherche + filtres instantanés, gardés dans l'adresse (partageable). */
-export function GrilleClasse({ cartes, initiaux }: { cartes: CarteEleve[]; initiaux: FiltresClasse }) {
+export function GrilleClasse({ cartes, initiaux, base }: { cartes: CarteEleve[]; initiaux: FiltresClasse; base: string }) {
   const [q, setQ] = useState(initiaux.q);
   const [niveau, setNiveau] = useState<CodeNiveau | null>(initiaux.niveau);
   const [t, setT] = useState<Teinte | null>(initiaux.teinte);
@@ -88,7 +88,7 @@ export function GrilleClasse({ cartes, initiaux }: { cartes: CarteEleve[]; initi
         </div>
       ) : (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4">
-          {liste.slice(0, limite).map((c) => <li key={c.id}><CarteEleveVue c={c} /></li>)}
+          {liste.slice(0, limite).map((c) => <li key={c.id}><CarteEleveVue c={c} base={base} /></li>)}
         </ul>
       )}
       {liste.length > limite ? (

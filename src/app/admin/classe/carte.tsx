@@ -16,11 +16,11 @@ export function Avatar({ c, taille = "md" }: { c: Pick<CarteEleve, "nom" | "init
   );
 }
 
-export function CarteEleveVue({ c }: { c: CarteEleve }) {
+export function CarteEleveVue({ c, base }: { c: CarteEleve; base: string }) {
   const s = STYLE_TEINTE[c.teinte];
   return (
     <Link
-      href={`/admin/classe/${c.id}`}
+      href={`${base}/classe/${c.id}`}
       className={`group relative flex flex-col items-center text-center bg-white rounded-2xl border border-gray-100 border-t-4 ${s.carte} px-3 pt-5 pb-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5B16F9]`}
     >
       {c.alertes > 0 ? (

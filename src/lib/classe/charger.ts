@@ -8,7 +8,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chargerEleve, chargerSuivi, type DetailEleve, type ResultatSuivi } from "../student-care/read";
 import { paquets } from "../student-care/paginate";
-import type { Seuils } from "../student-care/rules";
+import type { Seuils, SuiviEleve } from "../student-care/rules";
 import { avatarSur, trierCartes, versCarte, type CarteEleve } from "./vue";
 
 type Client = SupabaseClient;
@@ -33,12 +33,13 @@ export interface Classe {
 
 export async function chargerClasse(
   admin: Client,
-  { jourDebut, seuils, maintenant }: { jourDebut: string; seuils: Seuils; maintenant: Date },
+  { jourDebut, seuils, maintenant, garder }: { jourDebut: string; seuils: Seuils; maintenant: Date; garder?: (s: SuiviEleve) => boolean },
 ): Promise<Classe> {
   const res = await chargerSuivi(admin, { jourDebut, seuils, maintenant });
-  const { avatars, ok } = await lireAvatars(admin, res.eleves.map((e) => e.user_id));
+  const eleves = garder ? res.eleves.filter(garder) : res.eleves;
+  const { avatars, ok } = await lireAvatars(admin, eleves.map((e) => e.user_id));
   return {
-    cartes: trierCartes(res.eleves.map((s) => versCarte(s, avatars.get(s.user_id) ?? null, maintenant, seuils.active_jours))),
+    cartes: trierCartes(eleves.map((s) => versCarte(s, avatars.get(s.user_id) ?? null, maintenant, seuils.active_jours))),
     suivi: { complet: res.complet, avertissements: res.avertissements, calcule_le: res.calcule_le },
     photos_lues: ok,
   };
