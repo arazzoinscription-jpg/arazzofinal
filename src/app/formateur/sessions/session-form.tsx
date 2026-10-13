@@ -41,7 +41,7 @@ export function SessionForm({ courses }: { courses: { id: string; titre_fr: stri
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Date & heure *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">Date & heure (heure d&apos;Alger) *</label>
           <input type="datetime-local" value={form.starts_at} onChange={(e) => setForm({ ...form, starts_at: e.target.value })} required
             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-500" />
         </div>

@@ -4,6 +4,7 @@ import { brandedSiteUrl } from "@/lib/site-url";
 import { SessionForm } from "./session-form";
 import { DeleteSessionButton } from "./delete-button";
 import { GoLivePanel } from "./go-live-panel";
+import { migrationAbsente } from "@/lib/live-care/repli";
 
 export const metadata = { title: "Sessions live — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -26,18 +27,27 @@ export default async function FormateurSessionsPage() {
     ? { id: liveRow.id as string, titre: (liveRow.titre as string) ?? "Direct", audience: (liveRow.audience as string) ?? "public", shareUrl: `${brandedSiteUrl()}/live/${liveRow.access_token}` }
     : null;
 
-  const { data: sessions } = await supabase
-    .from("live_sessions")
-    .select("id, titre, starts_at, meet_url, replay_url, course:courses(titre_fr)")
-    .eq("formateur_id", user!.id)
-    .order("starts_at", { ascending: false });
+  // `cancelled_at`, `created_via`, `series_id` viennent de la migration 096 ; sans elle, requête d'origine.
+  const champs = "id, titre, starts_at, meet_url, replay_url, course:courses(titre_fr)";
+  let { data: sessions, error: errSessions } = await supabase
+    .from("live_sessions").select(`${champs}, cancelled_at, created_via, series_id`).eq("formateur_id", user!.id).order("starts_at", { ascending: false });
+  if (errSessions && migrationAbsente(errSessions)) {
+    const repli = await supabase.from("live_sessions").select(champs).eq("formateur_id", user!.id).order("starts_at", { ascending: false });
+    sessions = repli.data as typeof sessions;
+  }
+  const annule = (s: unknown) => Boolean((s as { cancelled_at?: string | null }).cancelled_at);
+  const parAdmin = (s: unknown) => {
+    const x = s as { created_via?: string | null; series_id?: string | null };
+    return x.created_via === "admin_lives" || Boolean(x.series_id);
+  };
 
   const now = Date.now();
   const upcoming = (sessions ?? []).filter((s) => new Date(s.starts_at).getTime() >= now);
   const past = (sessions ?? []).filter((s) => new Date(s.starts_at).getTime() < now);
 
   function fmt(iso: string) {
-    return new Date(iso).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    // Heure d'ALGER (le serveur tourne en UTC).
+    return new Date(iso).toLocaleString("fr-FR", { timeZone: "Africa/Algiers", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   }
 
   return (
@@ -60,16 +70,16 @@ export default async function FormateurSessionsPage() {
         {upcoming.length === 0 ? (
           <p className="text-gray-400 font-dm text-sm">Aucune session planifiée.</p>
         ) : upcoming.map((s) => (
-          <div key={s.id} className="bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-4">
+          <div key={s.id} className={`bg-white rounded-2xl p-4 border border-cream-200 flex items-center gap-4 ${annule(s) ? "opacity-60" : ""}`}>
             <div className="w-14 h-14 rounded-xl bg-orange-DEFAULT text-white flex flex-col items-center justify-center flex-shrink-0">
               <span className="text-lg">🎥</span>
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold text-gray-900 font-dm">{s.titre}</div>
+              <div className={`font-semibold text-gray-900 font-dm ${annule(s) ? "line-through" : ""}`}>{s.titre}{annule(s) ? <span className="ms-2 text-xs font-normal text-red-600 no-underline">annulé par l&apos;administration</span> : null}</div>
               <div className="text-sm text-gray-500 font-dm">📅 {fmt(s.starts_at)} · {(s.course as any)?.titre_fr ?? "Toutes"}</div>
               {s.meet_url && <a href={s.meet_url} target="_blank" rel="noopener noreferrer" className="text-xs text-orange-600 hover:underline">{s.meet_url}</a>}
             </div>
-            <DeleteSessionButton id={s.id} />
+            <DeleteSessionButton id={s.id} programmeeParAdmin={parAdmin(s)} />
           </div>
         ))}
       </div>
@@ -89,7 +99,7 @@ export default async function FormateurSessionsPage() {
                 ? <a href={s.replay_url} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 font-semibold hover:underline">▶ Replay disponible</a>
                 : <span className="text-xs text-gray-400">Pas de replay</span>}
             </div>
-            <DeleteSessionButton id={s.id} />
+            <DeleteSessionButton id={s.id} programmeeParAdmin={parAdmin(s)} />
           </div>
         ))}
       </div>

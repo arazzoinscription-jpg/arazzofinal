@@ -222,6 +222,25 @@ export async function chargerSuivi(
   };
 }
 
+/**
+ * Le suivi (statut, action recommandée…) d'une liste précise d'élèves, toutes
+ * inscriptions confondues — pour d'autres écrans (ex. élèves concernées par un live).
+ * Mêmes règles que le tableau ; seuls les comptes « élève » sont rendus.
+ */
+export async function suiviPourEleves(
+  admin: Client,
+  ids: string[],
+  { seuils, maintenant }: { seuils: Seuils; maintenant: Date },
+): Promise<{ suivis: Map<string, SuiviEleve>; complet: boolean }> {
+  const { entrees, complet } = await lireEntrees(admin, [...new Set(ids)], maintenant);
+  const suivis = new Map<string, SuiviEleve>();
+  for (const e of entrees) {
+    const s = calculerSuivi(e, { debutIso: "1970-01-01T00:00:00.000Z", maintenant, seuils });
+    if (s) suivis.set(e.profil.id, s);
+  }
+  return { suivis, complet };
+}
+
 export interface DetailEleve {
   suivi: SuiviEleve;
   /** Vrai si l'élève n'a aucune inscription depuis la date de suivi (affichée quand même). */

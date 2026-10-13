@@ -4,6 +4,10 @@ import { LiveView } from "@/components/live/live-view";
 
 export const metadata = { title: "Direct — Arazzo Formation" };
 export const dynamic = "force-dynamic";
+// Jamais de cache de données : un direct ARRÊTÉ ne doit plus être visible par son lien
+// (sans ceci, la lecture Supabase pouvait être resservie depuis le cache de Next).
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 /**
  * Page de direct par LIEN PRIVÉ : accessible à toute personne possédant le lien
