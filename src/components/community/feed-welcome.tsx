@@ -9,30 +9,30 @@
  *
  *   1. Invitation : « Tu es en train de découvrir Arazzo → tiens, si tu veux savoir où tu te situes, voilà le test. »
  *      [Faire le test]  ·  [Ignorer]
- *   2. Si elle ignore (ou ferme le test avant la fin) : un COUP D'ŒIL sur notre façon de former — une petite
- *      vidéo du tableau de bord publiée dans le feed. Le bouton y mène en faisant défiler le feed jusqu'à elle.
- *      Cette vidéo est repérée par son TITRE (le début de sa légende suffit), réglé dans Arazzo OS
- *      (« Textes des landings » → page « feed » → clé `tourVideoTitle`). Sans titre, ou si la vidéo n'est pas
- *      (encore) dans le feed, cette 2e étape est simplement sautée.
+ *   2. Si elle ignore (ou ferme le test avant la fin) : une DELIVERY PAGE s'ouvre en fenêtre — la page de cours
+ *      gratuit (vidéo « comment on forme nos candidates », formulaire, code promo) EXACTEMENT comme sur
+ *      `/free/<adresse>`. C'est la même page : mêmes textes, même formulaire, même déblocage, même code promo.
+ *      Laquelle ? Celle dont l'adresse est réglée dans l'OS (« Textes des landings » → « feed »). On peut donc
+ *      la remplacer par un vrai cours gratuit quand on veut, sans toucher au code.
  *
  * Règles de politesse (une visiteuse n'est jamais harcelée) :
  *   - jamais pour une personne connectée ;
  *   - jamais deux fenêtres en même temps : on attend que l'invitation à se connecter, les commentaires, etc.
  *     soient fermés ;
- *   - une personne qui a TERMINÉ le test (ou qui l'a ignoré 3 fois) n'est plus sollicitée ; entre deux
- *     invitations, au moins 3 jours ;
- *   - tout est refermable, et rien ne bloque le feed.
+ *   - une personne qui a TERMINÉ le test, ou qui a déjà reçu le cours gratuit (formulaire rempli), n'est plus
+ *     sollicitée ; sinon au moins 3 jours entre deux invitations, 3 invitations au plus ;
+ *   - tout est refermable (✕, Échap, clic à côté), et rien ne bloque le feed.
  *
- * Les textes ont un défaut FR/AR ici ; l'équipe peut les réécrire dans l'OS (même mécanisme que le test).
+ * Les textes de l'invitation ont un défaut FR/AR ici ; l'équipe peut les réécrire dans l'OS.
  */
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Gift, X, ClipboardList, Play } from "lucide-react";
+import { Gift, X, ClipboardList } from "lucide-react";
 import LevelTestPopup from "@/lib/level-test-popup";
+import DeliveryLanding from "@/app/free/[slug]/delivery-landing";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import type { Promo } from "@/app/free/[slug]/promo-banner";
-import type { CommunityItem } from "@/lib/community-types";
 
 // ── Réglages ────────────────────────────────────────────────────────────────
 /** Après le PREMIER geste de défilement : le temps de voir la 1re vidéo avant d'être sollicitée. */
@@ -50,7 +50,7 @@ const CLE_LANGUE = "arazzo_delivery_langue";
 const SLUG_TEST = { fr: "niveau-couture", ar: "niveau-couture-ar" } as const;
 
 type Langue = "fr" | "ar";
-type Etape = null | "invite" | "test" | "tour";
+type Etape = null | "invite" | "test" | "cours";
 type Memoire = { done?: boolean; seen?: number; last?: number };
 type Textes = Record<string, string>;
 
@@ -58,25 +58,17 @@ const T: Record<Langue, Textes> = {
   fr: {
     inviteTitle: "Bienvenue sur Arazzo 👋",
     inviteText: "Tu es en train de découvrir Arazzo → tiens, si tu veux savoir où tu te situes, voilà le test.",
-    invitePromo: "🎁 Un code promo t’attend à la fin du test.",
+    invitePromo: "Un code promo t’attend à la fin du test.",
     inviteCta: "Faire le test de niveau",
     inviteSkip: "Ignorer",
-    tourTitle: "Un coup d’œil sur notre façon de former",
-    tourText: "Découvre en quelques secondes comment nos candidates sont accompagnées : voici le tableau de bord.",
-    tourCta: "Voir la vidéo",
-    tourSkip: "Non merci",
     close: "Fermer",
   },
   ar: {
     inviteTitle: "مرحبا بيكِ في أرازو 👋",
     inviteText: "راكِ تكتشفي أرازو ← إذا حبيتي تعرفي وين راكِ واقفة، هاك الاختبار.",
-    invitePromo: "🎁 كود تخفيض ينتظرك في نهاية الاختبار.",
+    invitePromo: "كود تخفيض ينتظرك في نهاية الاختبار.",
     inviteCta: "قومي باختبار المستوى",
     inviteSkip: "تجاهلي",
-    tourTitle: "نظرة سريعة على طريقة تكويننا",
-    tourText: "اكتشفي في ثوانٍ كيف نرافق المتكوّنات: هذه لوحة المتابعة.",
-    tourCta: "شوفي الفيديو",
-    tourSkip: "لا، شكرًا",
     close: "إغلاق",
   },
 };
@@ -100,26 +92,6 @@ export function peutInviter(m: Memoire, maintenant = Date.now()): boolean {
   return true;
 }
 
-/** Réduit un texte à l'essentiel pour comparer deux légendes (accents, voyelles arabes, ponctuation, casse). */
-export function normaliser(texte: string): string {
-  return String(texte ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ًͯ-ٰٟـ]/g, "")
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
-}
-
-/** La vidéo du feed dont la légende commence par (ou contient) le titre donné. Titre vide = aucune. */
-export function trouverVideo(items: CommunityItem[], titre: string | null | undefined): CommunityItem | null {
-  const cle = normaliser(titre ?? "");
-  if (cle.length < 3) return null;
-  const videos = items.filter((i) => i.mediaKind === "video" || i.videoHls || i.mediaUrl);
-  return videos.find((i) => normaliser(i.caption ?? "").startsWith(cle))
-    ?? videos.find((i) => normaliser(i.caption ?? "").includes(cle))
-    ?? null;
-}
-
 function Portal({ children }: { children: ReactNode }) {
   const [monte, setMonte] = useState(false);
   useEffect(() => setMonte(true), []);
@@ -133,10 +105,12 @@ const PORTEE_KIT: CSSProperties = {
 };
 
 export function FeedWelcome({
-  promo, items, blocked, onOpenChange,
+  page, promo, blocked, onOpenChange,
 }: {
+  /** La Delivery Page à proposer en 2e fenêtre (instantané public), ou `null` : alors pas de 2e fenêtre. */
+  page: Record<string, any> | null;
+  /** Le code promo du moment (celui de cette page), montré à la fin du test. */
   promo: Promo | null;
-  items: CommunityItem[];
   /** Une autre fenêtre du feed est ouverte : on attend. */
   blocked: boolean;
   /** Dit au feed qu'une fenêtre d'accueil est ouverte (pour qu'il n'ouvre pas la sienne par-dessus). */
@@ -157,24 +131,25 @@ export function FeedWelcome({
   ouvertureRef.current = onOpenChange;
 
   const t: Textes = { ...T[langue], ...(surcharges[langue] ?? {}) };
-  // Le titre de la vidéo : celui de la langue choisie, sinon l'autre (une légende n'a qu'une langue).
-  const titreVideo = (surcharges[langue]?.tourVideoTitle || surcharges[langue === "fr" ? "ar" : "fr"]?.tourVideoTitle || "").trim();
-  const video = trouverVideo(items, titreVideo);
   const rtl = langue === "ar";
+  const slugPage = page ? String(page.slug ?? "") : "";
 
   const signaler = useCallback((ouvert: boolean) => { ouvertureRef.current?.(ouvert); }, []);
 
   // 1) Mémoire + langue, une fois montée (jamais au rendu serveur).
   useEffect(() => {
-    setAutorise(peutInviter(lireMemoire()));
+    let dejaRecu = false;
+    // Elle a déjà rempli le formulaire de la Delivery Page proposée : elle a SON cours, on la laisse tranquille.
+    try { dejaRecu = Boolean(slugPage) && window.localStorage.getItem(`delivery_sent_${slugPage}`) === "1"; } catch { /* ignore */ }
+    setAutorise(!dejaRecu && peutInviter(lireMemoire()));
     try {
       const gardee = window.localStorage.getItem(CLE_LANGUE);
       if (gardee === "ar" || gardee === "fr") { setLangue(gardee); return; }
     } catch { /* ignore */ }
     if ((navigator.language || "").toLowerCase().startsWith("ar")) setLangue("ar");
-  }, []);
+  }, [slugPage]);
 
-  // 2) Les textes réglés dans l'OS (page « feed »), par-dessus les défauts. Best-effort.
+  // 2) Les textes de l'invitation réglés dans l'OS (page « feed »), par-dessus les défauts. Best-effort.
   useEffect(() => {
     let vivant = true;
     (async () => {
@@ -225,14 +200,22 @@ export function FeedWelcome({
     };
   }, [autorise, signaler]);
 
-  function fermer() {
+  const fermer = useCallback(() => {
     setEtape(null);
     signaler(false);
-  }
+  }, [signaler]);
 
-  /** Elle ignore : on lui propose le coup d'œil sur notre façon de former — seulement si la vidéo existe. */
+  // Échap referme la Delivery Page (elle est plein écran).
+  useEffect(() => {
+    if (etape !== "cours") return undefined;
+    const surTouche = (e: KeyboardEvent) => { if (e.key === "Escape") fermer(); };
+    window.addEventListener("keydown", surTouche);
+    return () => window.removeEventListener("keydown", surTouche);
+  }, [etape, fermer]);
+
+  /** Elle ignore : on lui ouvre la Delivery Page (vidéo + formulaire + code promo) — seulement si elle existe. */
   function ignorer() {
-    if (video) setEtape("tour");
+    if (page) setEtape("cours");
     else fermer();
   }
 
@@ -248,16 +231,9 @@ export function FeedWelcome({
   }
 
   function fermerTest() {
-    // Un test fermé avant la fin = ignoré : on propose le coup d'œil. Un test terminé : on la laisse tranquille.
+    // Un test fermé avant la fin = ignoré : on ouvre la Delivery Page. Un test terminé : on la laisse tranquille.
     if (termine.current) fermer();
     else ignorer();
-  }
-
-  function voirVideo() {
-    const cible = video ? document.getElementById(`feed-slide-${video.id}`) : null;
-    fermer();
-    // Après la fermeture (le feed ne bouge plus) : on amène la vidéo à l'écran.
-    window.setTimeout(() => cible?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
   }
 
   if (!etape) return null;
@@ -324,29 +300,14 @@ export function FeedWelcome({
         </Portal>
       )}
 
-      {etape === "tour" && (
+      {etape === "cours" && page && (
         <Portal>
-          <div className="fixed inset-0 z-[75] flex items-end sm:items-center sm:justify-center" dir={rtl ? "rtl" : "ltr"}
-            role="dialog" aria-modal="true" aria-label={t.tourTitle} onClick={fermer}>
-            <div className="absolute inset-0 bg-black/55" />
-            <div onClick={(e) => e.stopPropagation()}
-              className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-6 pb-[max(24px,env(safe-area-inset-bottom))] text-center">
-              <button type="button" onClick={fermer} aria-label={t.close}
-                className="absolute top-3 end-3 w-8 h-8 grid place-items-center rounded-full bg-gray-100 text-gray-500"><X size={16} /></button>
-              <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-orange-DEFAULT text-white mt-4 mb-4">
-                <Play size={26} />
-              </span>
-              <h3 className="font-playfair text-2xl font-bold text-violet-950 mb-2">{t.tourTitle}</h3>
-              <p className="text-gray-700 font-dm text-[15px] leading-relaxed mb-5">{t.tourText}</p>
-              <div className="flex flex-col gap-2.5">
-                <button type="button" onClick={voirVideo}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-orange-DEFAULT text-white py-3 rounded-2xl font-bold hover:bg-orange-600 transition-colors">
-                  <Play size={18} /> {t.tourCta}
-                </button>
-                <button type="button" onClick={fermer} className="text-sm text-gray-400 font-dm mt-1 hover:text-gray-600">{t.tourSkip}</button>
-              </div>
-            </div>
-          </div>
+          {/* La Delivery Page, TELLE QUELLE (plein écran) : vidéo, formulaire, déblocage, code promo. */}
+          <DeliveryLanding data={page} />
+          <button type="button" onClick={fermer} aria-label={t.close}
+            className="fixed top-3 start-3 z-[260] w-10 h-10 grid place-items-center rounded-full bg-black/70 text-white shadow-lg">
+            <X size={20} />
+          </button>
         </Portal>
       )}
     </>

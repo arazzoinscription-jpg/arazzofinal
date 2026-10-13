@@ -21,7 +21,7 @@ interface Comment {
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null } | null }) {
+export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null; page: Record<string, any> | null } | null }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
@@ -161,8 +161,8 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
       {/* Accueil des nouvelles visiteuses : le test de niveau après 2-3 s de défilement, un code promo en cadeau. */}
       {isGuest && (
         <FeedWelcome
+          page={welcome?.page ?? null}
           promo={welcome?.promo ?? null}
-          items={shown}
           blocked={gate !== null || commentPost !== null || fbOpen}
           onOpenChange={surAccueilOuvert}
         />
@@ -368,7 +368,7 @@ function Slide({
   const isBunny = !item.mediaUrl && !!item.videoHls;
 
   return (
-    <section ref={ref} id={`feed-slide-${item.id}`} className="relative h-[100dvh] w-full snap-start snap-always flex items-center justify-center overflow-hidden bg-black">
+    <section ref={ref} className="relative h-[100dvh] w-full snap-start snap-always flex items-center justify-center overflow-hidden bg-black">
       {/* Média */}
       {item.mediaKind === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element
