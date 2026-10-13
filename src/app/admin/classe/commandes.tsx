@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { CalendarPlus, Radio, Mail, MessageCircle, Megaphone, type LucideIcon } from "lucide-react";
-import { commandesPour, EVENEMENT_MESSAGERIE, type Commande, type DetailMessagerie } from "@/lib/classe/communication";
+import { commandesPour, type Commande } from "@/lib/classe/communication";
+import { ouvrirMessagerie } from "@/lib/classe/ouvrir-messagerie";
 
 const ICONE: Record<Commande["cle"], LucideIcon> = {
   programmer_live: CalendarPlus, passer_live: Radio, email: Mail, message: MessageCircle, annonce: Megaphone,
@@ -15,10 +16,8 @@ const TON: Record<Commande["cle"], string> = {
   annonce: "from-orange-500 to-orange-600 text-white",
 };
 
-/** Ouvre la bulle « Messagerie » du site (sur une élève si `detail.id`). N'envoie rien. */
-export function ouvrirMessagerie(detail: DetailMessagerie = {}) {
-  window.dispatchEvent(new CustomEvent<DetailMessagerie>(EVENEMENT_MESSAGERIE, { detail }));
-}
+/** Ré-export : la fiche élève l'importe d'ici. */
+export { ouvrirMessagerie };
 
 function Contenu({ c }: { c: Commande }) {
   const Icone = ICONE[c.cle];

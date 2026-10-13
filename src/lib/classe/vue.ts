@@ -76,10 +76,10 @@ export function normaliser(texte: string): string {
   return texte.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 }
 
-/** URL d'avatar acceptée : http(s) seulement (jamais javascript: ou data:). */
+/** URL d'avatar acceptée : http(s), ou /media/… (CDN des médias du site) — jamais javascript: ni data:. */
 export function avatarSur(url: string | null | undefined): string | null {
   const u = (url ?? "").trim();
-  return /^https?:\/\//i.test(u) ? u : null;
+  return /^https?:\/\//i.test(u) || /^\/media\/[^/]/.test(u) ? u : null;
 }
 
 export function versCarte(s: SuiviEleve, avatar: string | null, maintenant: Date, seuilActiveJours: number): CarteEleve {

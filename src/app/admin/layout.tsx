@@ -5,6 +5,7 @@ import { LogOut, Search, Scissors } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/toast";
 import { ChatWidget } from "@/components/messaging/chat-widget";
+import { SignalPresence } from "@/components/presence/presence";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
@@ -113,6 +114,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Toaster />
       </main>
       <ChatWidget />
+      {/* Présence « en ligne » visible des élèves (page « Ma classe ») — temps réel, rien en base. */}
+      <SignalPresence userId={user.id} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import {
   TrendingUp, Trophy, Video, FolderOpen, Award,
   Package, Receipt, FileText, Store, Ruler,
   Newspaper, UsersRound, Megaphone, LifeBuoy,
-  User, Lock, Bell, Clapperboard, Scissors, MessageCircle,
+  User, Lock, Bell, Clapperboard, Scissors, MessageCircle, School,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "./dash-i18n";
@@ -18,6 +18,10 @@ export const SECTIONS: NavSection[] = [
   {
     key: "home", icon: LayoutDashboard, home: "/dashboard", items: [],
     label: { fr: "Tableau de bord", ar: "لوحة التحكم", en: "Dashboard" },
+  },
+  {
+    key: "classe", icon: School, home: "/dashboard/classe", items: [],
+    label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
   },
   {
     key: "learn", icon: GraduationCap, home: "/dashboard/progression",

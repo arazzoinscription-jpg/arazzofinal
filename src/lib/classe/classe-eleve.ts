@@ -1,0 +1,119 @@
+/**
+ * « Ma classe » CÔTÉ ÉLÈVE — ce qu'une élève voit de sa classe. Données VOLONTAIREMENT limitées :
+ *  - ses enseignantes (photo, nom, niveaux qu'elles encadrent) ;
+ *  - ses camarades (photo, PSEUDO — ou prénom + initiale —, niveaux en commun) — AUCUNE progression,
+ *    AUCUN statut de suivi : un clic ouvre leur profil communauté, comme depuis le feed.
+ *    (La communauté promet un pseudo « pour protéger votre vie privée » : jamais le nom complet ici.)
+ * Les comptes d'équipe (formatrice, admin) ne sont jamais listés comme camarades.
+ * LECTURE SEULE.
+ */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getRoles } from "../roles";
+import { NIVEAU_PAR_COURS } from "../student-care/levels";
+import { lireTout, paquets } from "../student-care/paginate";
+import { avatarSur, initiales, normaliser } from "./vue";
+
+export interface PersonneClasse {
+  id: string;
+  nom: string;
+  initiales: string;
+  avatar: string | null;
+  /** Niveaux (N1/N2/N3) ou titres des cours partagés avec l'élève. */
+  niveaux: string[];
+  cle: string;
+}
+export type EnseignanteClasse = Omit<PersonneClasse, "cle">;
+
+export interface ClasseEleve {
+  cours: { id: string; titre: string; niveau: string | null }[];
+  enseignantes: EnseignanteClasse[];
+  camarades: PersonneClasse[];
+  complet: boolean;
+}
+
+interface Personne { id: string; nom: string | null; username?: string | null; avatar_url: string | null; role: string | null; roles: string[] | null }
+
+/** Nom montré aux CAMARADES : le pseudo s'il existe, sinon « Prénom I. » (jamais le nom complet). */
+export function nomCamarade(p: Pick<Personne, "nom" | "username">): string {
+  const pseudo = (p.username ?? "").trim();
+  if (pseudo) return pseudo;
+  const mots = (p.nom ?? "").replace(/\(.*?\)/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (!mots.length) return "Membre";
+  return mots.length === 1 ? mots[0] : `${mots[0]} ${mots[mots.length - 1].charAt(0).toLocaleUpperCase("fr")}.`;
+}
+
+const libelleCours = (c: { id: string; titre: string }) => NIVEAU_PAR_COURS.get(c.id) ?? c.titre;
+
+/** Module PUR : assemble la classe d'une élève à partir des lignes lues. */
+export function construireClasseEleve({ moi, cours, inscriptions, personnes }: {
+  moi: string;
+  cours: { id: string; titre: string; formateur_id: string | null }[];
+  inscriptions: { user_id: string; course_id: string }[];
+  personnes: Personne[];
+}): Omit<ClasseEleve, "complet"> {
+  const parId = new Map(personnes.map((p) => [p.id, p]));
+  const coursParId = new Map(cours.map((c) => [c.id, c]));
+  const estEquipe = (p: Personne) => getRoles(p).some((r) => r === "formateur" || r === "admin");
+  const nom = (p: Personne) => (p.nom ?? "").trim() || "Membre";
+
+  // Enseignantes : les formatrices des cours suivis.
+  const coursParEnseignante = new Map<string, string[]>();
+  for (const c of cours) {
+    if (!c.formateur_id || c.formateur_id === moi) continue;
+    coursParEnseignante.set(c.formateur_id, [...(coursParEnseignante.get(c.formateur_id) ?? []), libelleCours(c)]);
+  }
+  const enseignantes = [...coursParEnseignante.entries()]
+    .map(([id, niveaux]) => ({ id, p: parId.get(id), niveaux }))
+    .filter((x): x is { id: string; p: Personne; niveaux: string[] } => Boolean(x.p))
+    .map(({ id, p, niveaux }) => ({ id, nom: nom(p), initiales: initiales(nom(p)), avatar: avatarSur(p.avatar_url), niveaux: [...new Set(niveaux)].sort() }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+
+  // Camarades : les autres ÉLÈVES inscrites à au moins un des mêmes cours.
+  const coursPartages = new Map<string, Set<string>>();
+  for (const i of inscriptions) {
+    if (i.user_id === moi || !coursParId.has(i.course_id)) continue;
+    coursPartages.set(i.user_id, (coursPartages.get(i.user_id) ?? new Set()).add(i.course_id));
+  }
+  const camarades = [...coursPartages.entries()]
+    .map(([id, ids]) => ({ id, p: parId.get(id), ids }))
+    .filter((x): x is { id: string; p: Personne; ids: Set<string> } => Boolean(x.p) && !estEquipe(x.p as Personne) && !coursParEnseignante.has(x.id))
+    .map(({ id, p, ids }) => ({
+      id, nom: nomCamarade(p), initiales: initiales(nomCamarade(p)), avatar: avatarSur(p.avatar_url),
+      niveaux: [...new Set([...ids].map((c) => libelleCours(coursParId.get(c)!)))].sort(),
+      cle: normaliser(nomCamarade(p)),
+    }))
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+
+  return {
+    cours: cours.map((c) => ({ id: c.id, titre: c.titre, niveau: NIVEAU_PAR_COURS.get(c.id) ?? null }))
+      .sort((a, b) => (a.niveau ?? "Z").localeCompare(b.niveau ?? "Z")),
+    enseignantes,
+    camarades,
+  };
+}
+
+/** Lit la classe d'une élève (client service fourni par l'appelant ; tout est filtré par SES cours). */
+export async function chargerClasseEleve(admin: SupabaseClient, moi: string): Promise<ClasseEleve> {
+  const mes = await admin.from("enrollments").select("course_id").eq("user_id", moi);
+  if (mes.error) throw new Error(`Inscriptions illisibles : ${mes.error.message}`);
+  const ids = [...new Set((mes.data ?? []).map((e: { course_id: string }) => e.course_id))];
+  if (!ids.length) return { cours: [], enseignantes: [], camarades: [], complet: true };
+
+  const c = await admin.from("courses").select("id, titre_fr, formateur_id").in("id", ids);
+  if (c.error) throw new Error(`Cours illisibles : ${c.error.message}`);
+  const cours = (c.data ?? []).map((x: { id: string; titre_fr: string | null; formateur_id: string | null }) => ({ id: x.id, titre: x.titre_fr ?? "Formation", formateur_id: x.formateur_id }));
+
+  const ins = await lireTout<{ user_id: string; course_id: string }>((de, a) => admin
+    .from("enrollments").select("user_id, course_id").in("course_id", ids).order("id").range(de, a));
+
+  const qui = [...new Set([...ins.lignes.map((i) => i.user_id), ...cours.map((x) => x.formateur_id).filter(Boolean) as string[]])];
+  const personnes: Personne[] = [];
+  for (const lot of paquets(qui, 100)) {
+    // eslint-disable-next-line no-await-in-loop
+    const r = await admin.from("users").select("id, nom, username, avatar_url, role, roles").in("id", lot);
+    if (r.error) throw new Error(`Profils illisibles : ${r.error.message}`);
+    personnes.push(...((r.data ?? []) as Personne[]));
+  }
+  return { ...construireClasseEleve({ moi, cours, inscriptions: ins.lignes, personnes }), complet: ins.complet };
+}
