@@ -4,7 +4,7 @@ import {
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
   Settings, Mail, ScrollText, MessageCircle, SlidersHorizontal,
-  Shapes, Ruler, Clapperboard, FileText,
+  Shapes, Ruler, Clapperboard, FileText, School,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "@/app/dashboard/dash-i18n";
@@ -99,6 +99,10 @@ export const ADMIN_SECTIONS: ProSection[] = [
   {
     key: "students", icon: GraduationCap, home: "/admin/etudiants", items: [],
     label: { fr: "Étudiants", ar: "الطلاب", en: "Students" },
+  },
+  {
+    key: "classe", icon: School, home: "/admin/classe", items: [], match: ["/admin/classe/"],
+    label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
   },
   {
     key: "suivi", icon: TrendingUp, home: "/admin/suivi", items: [], match: ["/admin/suivi/"],
