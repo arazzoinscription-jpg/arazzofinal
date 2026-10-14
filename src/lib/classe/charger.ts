@@ -6,7 +6,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { chargerEleve, chargerSuivi, type DetailEleve, type ResultatSuivi } from "../student-care/read";
+import { chargerEleve, chargerSuivi, suiviPourEleves, type DetailEleve, type ResultatSuivi } from "../student-care/read";
 import { paquets } from "../student-care/paginate";
 import type { Seuils, SuiviEleve } from "../student-care/rules";
 import { avatarSur, trierCartes, versCarte, type CarteEleve } from "./vue";
@@ -41,6 +41,32 @@ export async function chargerClasse(
   return {
     cartes: trierCartes(eleves.map((s) => versCarte(s, avatars.get(s.user_id) ?? null, maintenant, seuils.active_jours))),
     suivi: { complet: res.complet, avertissements: res.avertissements, calcule_le: res.calcule_le },
+    photos_lues: ok,
+  };
+}
+
+/**
+ * La classe d'un GROUPE : ses membres, avec les mêmes règles de suivi (toutes inscriptions,
+ * quelle que soit la date de début du suivi). Les membres sans inscription ou hors de l'espace
+ * ne sont pas affichés (signalé dans les avertissements).
+ */
+export async function chargerClasseMembres(
+  admin: Client,
+  ids: string[],
+  { seuils, maintenant, garder }: { seuils: Seuils; maintenant: Date; garder?: (s: SuiviEleve) => boolean },
+): Promise<Classe> {
+  const { suivis, complet } = await suiviPourEleves(admin, ids, { seuils, maintenant });
+  const tous = [...suivis.values()];
+  const eleves = garder ? tous.filter(garder) : tous;
+  const { avatars, ok } = await lireAvatars(admin, eleves.map((e) => e.user_id));
+  const avertissements: string[] = [];
+  if (!complet) avertissements.push("Lecture incomplète : la liste n'est pas exhaustive.");
+  const sansSuivi = new Set(ids).size - tous.length;
+  if (sansSuivi > 0) avertissements.push(`${sansSuivi} membre(s) sans inscription à une formation (ou compte d'équipe) : non affiché(s).`);
+  if (tous.length > eleves.length) avertissements.push(`${tous.length - eleves.length} membre(s) inscrit(s) hors de vos cours : non affiché(s).`);
+  return {
+    cartes: trierCartes(eleves.map((s) => versCarte(s, avatars.get(s.user_id) ?? null, maintenant, seuils.active_jours))),
+    suivi: { complet, avertissements, calcule_le: maintenant.toISOString() },
     photos_lues: ok,
   };
 }

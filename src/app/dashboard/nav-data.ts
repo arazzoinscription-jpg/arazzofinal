@@ -20,8 +20,16 @@ export const SECTIONS: NavSection[] = [
     label: { fr: "Tableau de bord", ar: "لوحة التحكم", en: "Dashboard" },
   },
   {
-    key: "classe", icon: School, home: "/dashboard/classe", items: [],
+    key: "classe", icon: School, home: "/dashboard/classe",
     label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
+    items: [
+      { href: "/dashboard/classe", icon: School, label: { fr: "Ma classe", ar: "قسمي", en: "My class" } },
+      { href: "/dashboard/sessions", icon: Video, label: { fr: "Sessions live", ar: "حصص مباشرة", en: "Live sessions" } },
+      { href: "/dashboard/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "الأعمال التطبيقية", en: "Practical work" } },
+      { href: "/dashboard/questions", icon: MessageCircle, label: { fr: "Questions / Réponses", ar: "الأسئلة والأجوبة", en: "Q&A" } },
+      { href: "/dashboard/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
+      { href: "/dashboard/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
+    ],
   },
   {
     key: "learn", icon: GraduationCap, home: "/dashboard/progression",
@@ -30,12 +38,9 @@ export const SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard/progression", icon: TrendingUp, label: { fr: "Progression", ar: "التقدّم", en: "Progress" } },
       { href: "/dashboard/recompenses", icon: Trophy, label: { fr: "Récompenses", ar: "المكافآت", en: "Rewards" } },
-      { href: "/dashboard/sessions", icon: Video, label: { fr: "Sessions live", ar: "حصص مباشرة", en: "Live sessions" } },
       { href: "/dashboard/ressources", icon: FolderOpen, label: { fr: "Ressources", ar: "الموارد", en: "Resources" } },
       { href: "/dashboard/certificats", icon: Award, label: { fr: "Certificats", ar: "الشهادات", en: "Certificates" } },
       { href: "/dashboard/diplome", icon: GraduationCap, label: { fr: "Mon diplôme", ar: "شهادتي", en: "My diploma" } },
-      { href: "/dashboard/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "الأعمال التطبيقية", en: "Practical work" } },
-      { href: "/dashboard/questions", icon: MessageCircle, label: { fr: "Questions / Réponses", ar: "الأسئلة والأجوبة", en: "Q&A" } },
     ],
   },
   {
@@ -63,8 +68,6 @@ export const SECTIONS: NavSection[] = [
     items: [
       { href: "/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
       { href: "/dashboard/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
-      { href: "/dashboard/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
-      { href: "/dashboard/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
       { href: "/dashboard/support", icon: LifeBuoy, label: { fr: "Support", ar: "الدعم", en: "Support" } },
     ],
   },

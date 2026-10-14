@@ -4,10 +4,10 @@ import { LIBELLE_TEINTE, type CarteEleve } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "./teintes";
 
 /** Photo de l'élève si elle existe, sinon ses initiales. L'anneau coloré = activité pédagogique (pas la présence). */
-export function Avatar({ c, taille = "md" }: { c: Pick<CarteEleve, "nom" | "initiales" | "avatar" | "teinte">; taille?: "md" | "lg" }) {
-  const dim = taille === "lg" ? "w-24 h-24 text-3xl" : "w-16 h-16 text-xl";
+export function Avatar({ c, taille = "md" }: { c: Pick<CarteEleve, "nom" | "initiales" | "avatar" | "teinte">; taille?: "sm" | "md" | "lg" }) {
+  const dim = taille === "lg" ? "w-24 h-24 text-3xl ring-4" : taille === "sm" ? "w-10 h-10 text-xs ring-2" : "w-16 h-16 text-xl ring-4";
   return (
-    <div className={`${dim} rounded-full ring-4 ring-offset-2 ${STYLE_TEINTE[c.teinte].anneau} overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#5B16F9] to-[#2A0880] text-white font-playfair font-bold flex items-center justify-center`}>
+    <div title={taille === "sm" ? c.nom : undefined} className={`${dim} rounded-full ring-offset-2 ${STYLE_TEINTE[c.teinte].anneau} overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#5B16F9] to-[#2A0880] text-white font-playfair font-bold flex items-center justify-center`}>
       {c.avatar
         // eslint-disable-next-line @next/next/no-img-element
         ? <img src={c.avatar} alt={`Photo de ${c.nom}`} className="w-full h-full object-cover" loading="lazy" referrerPolicy="no-referrer" />

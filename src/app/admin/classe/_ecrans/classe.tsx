@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { voitEleve, type Espace } from "@/lib/espace/portee";
 import { lireReglages } from "@/lib/student-care/load";
 import { dateCourte, dateHeure, estJourValide } from "@/lib/student-care/time";
-import { chargerClasse } from "@/lib/classe/load";
+import { chargerClasse, chargerClasseMembres } from "@/lib/classe/load";
+import { groupesDeLespace } from "@/lib/classe/groupes";
 import { LIBELLE_TEINTE, TEINTES, avatarSur, compterTeintes, initiales, lireFiltresClasse } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "../teintes";
 import { BarreCommande } from "../commandes";
@@ -82,17 +83,26 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
   // La photo de l'enseignante connectée, en haut (les élèves la voient aussi sur leur « Ma classe »).
   const { data: moi } = await admin.from("users").select("nom, avatar_url").eq("id", espace.userId).maybeSingle();
   const enseignante = moi ? { id: espace.userId, nom: (moi.nom as string | null) ?? "Enseignante", avatar: avatarSur(moi.avatar_url as string | null) } : null;
-  const classe = await chargerClasse(admin, { jourDebut, seuils: etat.reglages.seuils, maintenant, garder: (e) => voitEleve(espace, e.formations) });
+  // Groupes = classes : « ?groupe=<id> » montre la classe d'un groupe (créatrice ou administration).
+  const groupes = await groupesDeLespace(admin, espace);
+  const groupeDemande = un(searchParams.groupe);
+  const groupe = groupeDemande ? groupes.find((g) => g.id === groupeDemande) ?? null : null;
+  const garder = (e: { formations: { course_id: string }[] }) => voitEleve(espace, e.formations);
+  const classe = groupe
+    ? await chargerClasseMembres(admin, groupe.membres, { seuils: etat.reglages.seuils, maintenant, garder })
+    : await chargerClasse(admin, { jourDebut, seuils: etat.reglages.seuils, maintenant, garder });
   const total = compterTeintes(classe.cartes);
   const seuils = etat.reglages.seuils;
 
   return (
     <Cadre>
       <Tableau
-        titre="Ma classe"
+        titre={groupe ? groupe.nom : "Ma classe"}
         enseignante={enseignante}
         sousTitre={<>
-          {classe.cartes.length} élève{classe.cartes.length > 1 ? "s" : ""} inscrite{classe.cartes.length > 1 ? "s" : ""}{espace.cours !== null ? " à vos cours" : ""} depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}
+          {groupe
+            ? <>Classe du groupe · {classe.cartes.length} élève{classe.cartes.length > 1 ? "s" : ""} suivie{classe.cartes.length > 1 ? "s" : ""}</>
+            : <>{classe.cartes.length} élève{classe.cartes.length > 1 ? "s" : ""} inscrite{classe.cartes.length > 1 ? "s" : ""}{espace.cours !== null ? " à vos cours" : ""} depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}</>}
           <span className="text-white/60"> · données du {dateHeure(classe.suivi.calcule_le)} (Alger)</span>
         </>}
       >
@@ -108,6 +118,22 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
 
       <BarreCommande base={b} />
 
+      {groupes.length > 0 ? (
+        <nav aria-label="Classes par groupe" className="mb-4 flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="text-gray-500 font-semibold me-1">Groupes :</span>
+          <Link href={`${b}/classe`} className={`rounded-full border px-3 py-1.5 font-semibold ${!groupe ? "bg-[#5B16F9] border-[#5B16F9] text-white" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}>Toute la classe</Link>
+          {groupes.map((g) => (
+            <Link key={g.id} href={`${b}/classe?groupe=${g.id}`} className={`rounded-full border px-3 py-1.5 font-semibold ${groupe?.id === g.id ? "bg-[#5B16F9] border-[#5B16F9] text-white" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
+              {g.nom} <span className={groupe?.id === g.id ? "text-white/80" : "text-gray-400"}>{g.membres.length}</span>
+            </Link>
+          ))}
+          {groupe ? <Link href={`/formateur/groupes/${groupe.id}`} className="ms-auto text-orange-600 font-semibold hover:underline">Gérer le groupe (membres, publications, WhatsApp) →</Link> : null}
+        </nav>
+      ) : null}
+      {groupeDemande && !groupe ? (
+        <div className="mb-3 rounded-xl px-4 py-2 text-sm border bg-amber-50 border-amber-200 text-amber-800">Ce groupe n&apos;existe pas ou ne fait pas partie de votre espace.</div>
+      ) : null}
+
       {classe.suivi.avertissements.map((a) => (
         <div key={a} className={`mb-3 rounded-xl px-4 py-2 text-sm border ${classe.suivi.complet ? "bg-gray-50 border-gray-100 text-gray-600" : "bg-red-50 border-red-200 text-red-700 font-semibold"}`}>{a}</div>
       ))}
@@ -118,7 +144,7 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
       {classe.cartes.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-14 text-gray-500">
           <div className="text-4xl mb-2" aria-hidden>🪑</div>
-          Aucune élève inscrite depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}.
+          {groupe ? "Aucune élève suivie dans ce groupe." : <>Aucune élève inscrite depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}.</>}
         </div>
       ) : (
         <GrilleClasse base={b} cartes={classe.cartes} initiaux={lireFiltresClasse(searchParams)} />

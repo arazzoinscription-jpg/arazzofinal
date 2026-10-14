@@ -42,13 +42,16 @@ export default async function FormateurGroupPage({ params }: { params: { id: str
 
   return (
     <div>
-      <Link href="/formateur/groupes" className="text-sm text-orange-600 font-semibold hover:underline">← Mes groupes</Link>
+      <Link href="/formateur/groupes" className="text-sm text-orange-600 font-semibold hover:underline">← Groupes (classes)</Link>
 
       <div className="my-4 flex items-center gap-4">
         {group.cover_image_url && <img src={group.cover_image_url} alt="" className="w-16 h-16 rounded-2xl object-cover" />}
         <div>
           <h1 className="font-playfair text-3xl font-bold text-gray-900">{group.name}</h1>
           {group.description && <p className="text-gray-500 font-dm">{group.description}</p>}
+          <Link href={`/formateur/classe?groupe=${group.id}`} className="inline-block mt-2 bg-[#5B16F9] text-white text-sm px-4 py-1.5 rounded-lg font-semibold hover:bg-[#4a10d0]">
+            Voir la classe du groupe →
+          </Link>
         </div>
       </div>
 

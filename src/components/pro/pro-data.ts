@@ -4,7 +4,7 @@ import {
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
   Settings, Mail, ScrollText, MessageCircle, SlidersHorizontal,
-  Shapes, Ruler, Clapperboard, FileText, School,
+  Shapes, Ruler, Clapperboard, FileText, School, Radio,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "@/app/dashboard/dash-i18n";
@@ -30,38 +30,36 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
       { href: "/formateur/cours", icon: BookOpen, label: { fr: "Cours", ar: "الدورات", en: "Courses" } },
       { href: "/formateur/cours/nouveau", icon: PlusCircle, label: { fr: "Nouveau cours", ar: "دورة جديدة", en: "New course" } },
       { href: "/formateur/quiz", icon: FileQuestion, label: { fr: "Quiz", ar: "اختبارات", en: "Quizzes" } },
-      { href: "/formateur/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "أعمال تطبيقية", en: "Practical work" } },
       { href: "/formateur/diplomes", icon: GraduationCap, label: { fr: "Diplômes", ar: "الشهادات", en: "Diplomas" } },
       { href: "/formateur/ressources", icon: FolderOpen, label: { fr: "Ressources", ar: "الموارد", en: "Resources" } },
       { href: "/formateur/packs", icon: Package, label: { fr: "Packs de cours", ar: "حزم الدورات", en: "Course packs" } },
     ],
   },
   {
-    key: "classe", icon: School, home: "/formateur/classe", items: [], match: ["/formateur/classe/"],
+    key: "classe", icon: School, home: "/formateur/classe", match: ["/formateur/classe/", "/formateur/suivi/", "/formateur/lives/"],
     label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
-  },
-  {
-    key: "suivi", icon: TrendingUp, home: "/formateur/suivi", items: [], match: ["/formateur/suivi/"],
-    label: { fr: "Suivi pédagogique", ar: "المتابعة البيداغوجية", en: "Learning follow-up" },
-  },
-  {
-    key: "lives", icon: Video, home: "/formateur/lives", items: [], match: ["/formateur/lives/"],
-    label: { fr: "Lives pédagogiques", ar: "البث المباشر التعليمي", en: "Teaching lives" },
+    items: [
+      { href: "/formateur/classe", icon: School, label: { fr: "Vue de la classe", ar: "عرض القسم", en: "Class view" } },
+      { href: "/formateur/suivi", icon: TrendingUp, label: { fr: "Suivi pédagogique", ar: "المتابعة البيداغوجية", en: "Learning follow-up" } },
+      { href: "/formateur/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "أعمال تطبيقية", en: "Practical work" } },
+      { href: "/formateur/questions", icon: MessageCircle, label: { fr: "Questions / Réponses", ar: "الأسئلة والأجوبة", en: "Q&A" } },
+      { href: "/formateur/lives", icon: Video, label: { fr: "Lives pédagogiques", ar: "البث المباشر التعليمي", en: "Teaching lives" } },
+      { href: "/formateur/sessions", icon: Radio, label: { fr: "Sessions live & direct", ar: "حصص مباشرة", en: "Live sessions" } },
+      { href: "/formateur/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
+      { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Groupes (classes)", ar: "المجموعات (الأقسام)", en: "Groups (classes)" } },
+    ],
   },
   {
     key: "studio", icon: Clapperboard, home: "/studio", items: [], match: ["/studio"],
     label: { fr: "Studio (Reels)", ar: "استوديو (ريلز)", en: "Studio (Reels)" },
   },
   {
-    key: "community", icon: Users, home: "/formateur/groupes",
+    key: "community", icon: Users, home: "/formateur/etudiants",
     label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
     items: [
       { href: "/formateur/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
       { href: "/formateur/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
-      { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Mes groupes", ar: "مجموعاتي", en: "My groups" } },
       { href: "/formateur/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
-      { href: "/formateur/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
-      { href: "/formateur/questions", icon: MessageCircle, label: { fr: "Questions des élèves", ar: "أسئلة الطلاب", en: "Student questions" } },
       { href: "/formateur/etudiantes-inactives", icon: UserMinus, label: { fr: "Étudiantes inactives", ar: "طالبات غير نشطات", en: "Inactive students" } },
       { href: "/formateur/tickets", icon: LifeBuoy, label: { fr: "Tickets support", ar: "تذاكر الدعم", en: "Support tickets" } },
     ],
@@ -69,10 +67,6 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
   {
     key: "shop", icon: ShoppingBag, home: "/formateur/boutique", items: [],
     label: { fr: "Mise en vente", ar: "العرض للبيع", en: "Sell" },
-  },
-  {
-    key: "live", icon: Video, home: "/formateur/sessions", items: [],
-    label: { fr: "Sessions live", ar: "حصص مباشرة", en: "Live sessions" },
   },
   {
     key: "revenue", icon: TrendingUp, home: "/formateur/stats",
@@ -113,16 +107,18 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Étudiants", ar: "الطلاب", en: "Students" },
   },
   {
-    key: "classe", icon: School, home: "/admin/classe", items: [], match: ["/admin/classe/"],
+    key: "classe", icon: School, home: "/admin/classe", match: ["/admin/classe/", "/admin/suivi/", "/admin/lives/"],
     label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
-  },
-  {
-    key: "suivi", icon: TrendingUp, home: "/admin/suivi", items: [], match: ["/admin/suivi/"],
-    label: { fr: "Suivi pédagogique", ar: "المتابعة البيداغوجية", en: "Learning follow-up" },
-  },
-  {
-    key: "lives", icon: Video, home: "/admin/lives", items: [], match: ["/admin/lives/"],
-    label: { fr: "Lives pédagogiques", ar: "البث المباشر التعليمي", en: "Teaching lives" },
+    items: [
+      { href: "/admin/classe", icon: School, label: { fr: "Vue de la classe", ar: "عرض القسم", en: "Class view" } },
+      { href: "/admin/suivi", icon: TrendingUp, label: { fr: "Suivi pédagogique", ar: "المتابعة البيداغوجية", en: "Learning follow-up" } },
+      { href: "/admin/lives", icon: Video, label: { fr: "Lives pédagogiques", ar: "البث المباشر التعليمي", en: "Teaching lives" } },
+      { href: "/formateur/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "أعمال تطبيقية", en: "Practical work" } },
+      { href: "/formateur/questions", icon: MessageCircle, label: { fr: "Questions / Réponses", ar: "الأسئلة والأجوبة", en: "Q&A" } },
+      { href: "/formateur/sessions", icon: Radio, label: { fr: "Sessions live & direct", ar: "حصص مباشرة", en: "Live sessions" } },
+      { href: "/formateur/annonces", icon: Megaphone, label: { fr: "Annonces", ar: "الإعلانات", en: "Announcements" } },
+      { href: "/formateur/groupes", icon: UsersRound, label: { fr: "Groupes (classes)", ar: "المجموعات (الأقسام)", en: "Groups (classes)" } },
+    ],
   },
   {
     key: "gestion", icon: UserCog, home: "/admin/gestion", items: [],
