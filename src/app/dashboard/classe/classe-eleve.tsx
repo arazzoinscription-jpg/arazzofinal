@@ -93,6 +93,21 @@ export function ClasseEleveVue({ enseignantes, camarades, niveaux }: { enseignan
                 <div className="mt-1 flex flex-wrap justify-center gap-1">
                   {c.niveaux.map((n) => <span key={n} className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-[#5B16F9]/10 text-[#5B16F9]">{n}</span>)}
                 </div>
+                {c.progression.length ? (
+                  <div className="w-full mt-3 space-y-1.5">
+                    {c.progression.map((p) => (
+                      <div key={p.cours} title={p.pct === null ? `${p.cours} : cours sans leçon` : `${p.cours} : ${p.faites}/${p.total} leçons terminées`}>
+                        <div className="flex justify-between text-[11px] text-gray-500">
+                          <span className="truncate">{c.progression.length > 1 ? p.cours : "Progression"}</span>
+                          <span className="font-semibold text-gray-700">{p.pct === null ? "—" : `${p.pct} %`}</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden mt-0.5" aria-hidden>
+                          <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-orange-600" style={{ width: `${p.pct ?? 0}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 <span className="mt-3 text-[11px] text-orange-600 font-semibold">Voir son profil →</span>
               </Link>
             </li>
@@ -105,7 +120,8 @@ export function ClasseEleveVue({ enseignantes, camarades, niveaux }: { enseignan
         </div>
       ) : null}
       <p className="text-xs text-gray-400 mt-6">
-        Vous voyez vos camarades des mêmes cours et leur profil communauté. Leur suivi pédagogique reste privé.
+        Vous voyez vos camarades des mêmes cours, leur progression (leçons terminées) dans ces cours et leur profil communauté.
+        Leur suivi pédagogique (statut, relances) reste privé.
         « En ligne » signifie que l&apos;enseignante a son espace Arazzo ouvert en ce moment.
       </p>
     </div>

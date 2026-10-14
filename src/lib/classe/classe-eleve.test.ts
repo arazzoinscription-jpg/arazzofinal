@@ -39,13 +39,30 @@ test("camarades : pseudo s'il existe, sinon prénom + initiale — jamais le nom
   assert.equal(nomCamarade({ nom: null, username: null }), "Membre");
 });
 
-test("classe élève : aucune donnée de suivi ne sort (seulement profil public)", () => {
+test("camarades : barre de progression par cours partagé (leçons terminées), jamais inventée", () => {
+  const r = construireClasseEleve({
+    moi: "moi",
+    cours: [{ id: N1, titre: "Niveau 1", formateur_id: null }, { id: AUTRE, titre: "Patron numérique", formateur_id: null }],
+    inscriptions: [{ user_id: "moi", course_id: N1 }, { user_id: "amina", course_id: N1 }, { user_id: "amina", course_id: AUTRE }, { user_id: "basma", course_id: N1 }],
+    personnes: [personne("amina", "Amina"), personne("basma", "Basma")],
+    progres: [
+      { user_id: "amina", course_id: N1, faites: 3, total: 12 },
+      { user_id: "amina", course_id: N1, faites: 6, total: 12 }, // 2e inscription au même cours : la plus avancée
+      { user_id: "amina", course_id: AUTRE, faites: 0, total: 0 }, // cours sans leçon
+    ],
+  });
+  const amina = r.camarades.find((c) => c.nom === "Amina")!;
+  assert.deepEqual(amina.progression, [{ cours: "N1", pct: 50, faites: 6, total: 12 }, { cours: "Patron numérique", pct: null, faites: 0, total: 0 }]);
+  assert.deepEqual(r.camarades.find((c) => c.nom === "Basma")!.progression, []); // donnée absente : pas de barre
+});
+
+test("classe élève : aucune donnée de suivi ne sort (seulement profil public + progression)", () => {
   const r = construireClasseEleve({
     moi: "moi",
     cours: [{ id: N1, titre: "Niveau 1", formateur_id: null }],
     inscriptions: [{ user_id: "moi", course_id: N1 }, { user_id: "amina", course_id: N1 }],
     personnes: [personne("amina", "Amina")],
   });
-  assert.deepEqual(Object.keys(r.camarades[0]).sort(), ["avatar", "cle", "id", "initiales", "niveaux", "nom"]);
+  assert.deepEqual(Object.keys(r.camarades[0]).sort(), ["avatar", "cle", "id", "initiales", "niveaux", "nom", "progression"]);
   assert.deepEqual(r.enseignantes, []); // cours sans formatrice : rien d'inventé
 });

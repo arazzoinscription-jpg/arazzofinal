@@ -1,8 +1,9 @@
 /**
  * « Ma classe » CÔTÉ ÉLÈVE — ce qu'une élève voit de sa classe. Données VOLONTAIREMENT limitées :
  *  - ses enseignantes (photo, nom, niveaux qu'elles encadrent) ;
- *  - ses camarades (photo, PSEUDO — ou prénom + initiale —, niveaux en commun) — AUCUNE progression,
- *    AUCUN statut de suivi : un clic ouvre leur profil communauté, comme depuis le feed.
+ *  - ses camarades (photo, PSEUDO — ou prénom + initiale —, niveaux en commun) et leur PROGRESSION
+ *    (leçons terminées, en %) dans les cours partagés — la même donnée que leur profil communauté.
+ *    AUCUN statut de suivi, aucune relance : un clic ouvre leur profil communauté, comme depuis le feed.
  *    (La communauté promet un pseudo « pour protéger votre vie privée » : jamais le nom complet ici.)
  * Les comptes d'équipe (formatrice, admin) ne sont jamais listés comme camarades.
  * LECTURE SEULE.
@@ -10,6 +11,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getRoles } from "../roles";
+import { VUE_INSCRIPTIONS } from "../student-care/read";
 import { NIVEAU_PAR_COURS } from "../student-care/levels";
 import { lireTout, paquets } from "../student-care/paginate";
 import { avatarSur, initiales, normaliser } from "./vue";
@@ -21,9 +23,11 @@ export interface PersonneClasse {
   avatar: string | null;
   /** Niveaux (N1/N2/N3) ou titres des cours partagés avec l'élève. */
   niveaux: string[];
+  /** Progression dans chaque cours partagé (leçons terminées / leçons du cours) ; pct null = cours sans leçon. */
+  progression: { cours: string; pct: number | null; faites: number; total: number }[];
   cle: string;
 }
-export type EnseignanteClasse = Omit<PersonneClasse, "cle">;
+export type EnseignanteClasse = Omit<PersonneClasse, "cle" | "progression">;
 
 export interface ClasseEleve {
   cours: { id: string; titre: string; niveau: string | null }[];
@@ -46,12 +50,21 @@ export function nomCamarade(p: Pick<Personne, "nom" | "username">): string {
 const libelleCours = (c: { id: string; titre: string }) => NIVEAU_PAR_COURS.get(c.id) ?? c.titre;
 
 /** Module PUR : assemble la classe d'une élève à partir des lignes lues. */
-export function construireClasseEleve({ moi, cours, inscriptions, personnes }: {
+export function construireClasseEleve({ moi, cours, inscriptions, personnes, progres = [] }: {
   moi: string;
   cours: { id: string; titre: string; formateur_id: string | null }[];
   inscriptions: { user_id: string; course_id: string }[];
   personnes: Personne[];
+  /** Leçons terminées par élève et par cours (vue du suivi). Absent = progression non affichée. */
+  progres?: { user_id: string; course_id: string; faites: number; total: number }[];
 }): Omit<ClasseEleve, "complet"> {
+  const progresDe = new Map<string, { faites: number; total: number }>();
+  for (const p of progres) {
+    const cle = `${p.user_id}|${p.course_id}`;
+    const deja = progresDe.get(cle);
+    // Deux inscriptions au même cours : on garde la plus avancée (jamais additionnées).
+    if (!deja || p.faites > deja.faites) progresDe.set(cle, { faites: Math.max(0, p.faites), total: Math.max(0, p.total) });
+  }
   const parId = new Map(personnes.map((p) => [p.id, p]));
   const coursParId = new Map(cours.map((c) => [c.id, c]));
   const estEquipe = (p: Personne) => getRoles(p).some((r) => r === "formateur" || r === "admin");
@@ -81,6 +94,15 @@ export function construireClasseEleve({ moi, cours, inscriptions, personnes }: {
     .map(({ id, p, ids }) => ({
       id, nom: nomCamarade(p), initiales: initiales(nomCamarade(p)), avatar: avatarSur(p.avatar_url),
       niveaux: [...new Set([...ids].map((c) => libelleCours(coursParId.get(c)!)))].sort(),
+      progression: [...ids]
+        .map((c) => ({ c, pr: progresDe.get(`${id}|${c}`) }))
+        .filter((x): x is { c: string; pr: { faites: number; total: number } } => Boolean(x.pr))
+        .map(({ c, pr }) => ({
+          cours: libelleCours(coursParId.get(c)!),
+          pct: pr.total > 0 ? Math.min(100, Math.round((pr.faites / pr.total) * 100)) : null,
+          faites: Math.min(pr.faites, pr.total || pr.faites), total: pr.total,
+        }))
+        .sort((a, b) => a.cours.localeCompare(b.cours)),
       cle: normaliser(nomCamarade(p)),
     }))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
@@ -115,5 +137,15 @@ export async function chargerClasseEleve(admin: SupabaseClient, moi: string): Pr
     if (r.error) throw new Error(`Profils illisibles : ${r.error.message}`);
     personnes.push(...((r.data ?? []) as Personne[]));
   }
-  return { ...construireClasseEleve({ moi, cours, inscriptions: ins.lignes, personnes }), complet: ins.complet };
+  // Progression : la vue du suivi (migration 095). Si elle est illisible, la classe s'affiche sans barres.
+  let progres: { user_id: string; course_id: string; faites: number; total: number }[] = [];
+  let progresComplet = true;
+  try {
+    const pr = await lireTout<{ user_id: string; course_id: string; lessons_done: number | null; lessons_total: number | null }>((de, a) => admin
+      .from(VUE_INSCRIPTIONS).select("enrollment_id, user_id, course_id, lessons_done, lessons_total").in("course_id", ids).order("enrollment_id").range(de, a));
+    progres = pr.lignes.map((l) => ({ user_id: l.user_id, course_id: l.course_id, faites: Number(l.lessons_done) || 0, total: Number(l.lessons_total) || 0 }));
+    progresComplet = pr.complet;
+  } catch { progres = []; }
+
+  return { ...construireClasseEleve({ moi, cours, inscriptions: ins.lignes, personnes, progres }), complet: ins.complet && progresComplet };
 }
