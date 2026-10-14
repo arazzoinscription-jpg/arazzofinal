@@ -8,6 +8,8 @@ import { CommunityFab } from "@/components/community/community-fab";
 import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
 import { loadFeedWelcome } from "@/lib/feed-welcome";
 import { FeedClient } from "./feed-client";
+import { MemoirePositionFeed } from "@/components/community/memoire-position-feed";
+import { SignalPresenceMembre } from "@/components/presence/membres";
 
 export const metadata = { title: "Communauté — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -44,6 +46,9 @@ export default async function CommunautePage() {
           <Radio size={16} /> <span className="text-sm font-bold">EN DIRECT — {live.titre}</span>
         </Link>
       )}
+      {/* Retour d'un profil : on revient à la même vidéo (sans toucher au lecteur du feed). */}
+      <MemoirePositionFeed />
+      {me && <SignalPresenceMembre userId={me.id} />}
       <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} welcome={welcome} />
       {/* Bouton « + » flottant : staff → vidéo/actualité ; élève → reel (≤ 2 min).
           Visible pour tout membre CONNECTÉ ; les visiteurs sont invités à se connecter. */}

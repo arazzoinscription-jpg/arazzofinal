@@ -15,21 +15,21 @@ export default async function MaClasseElevePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Tout est filtré par les cours de l'élève connectée ; seules des données de profil public
-  // (nom, photo, niveaux en commun) sortent du serveur — jamais de progression ni de statut.
+  // Camarades = membres des groupes de l'élève connectée (et eux seuls) ; seules des données de profil public
+  // (pseudo, photo, niveaux en commun, progression des cours communs) sortent du serveur — jamais de statut de suivi.
   const classe = await chargerClasseEleve(createAdminClient(), user.id);
   const niveaux = [...new Set(classe.camarades.flatMap((c) => c.niveaux))].sort();
 
   return (
     <div>
-      <DashHeader index="16" eyebrow="Apprentissage" title="Ma classe" subtitle="Votre enseignante et vos camarades de cours." />
+      <DashHeader index="16" eyebrow="Apprentissage" title="Ma classe" subtitle="Votre enseignante et les camarades de votre groupe." />
       {classe.cours.length === 0 ? (
         <div className="bg-white rounded-2xl p-8 border border-cream-200 text-center text-gray-500">
           <div className="text-4xl mb-2" aria-hidden>🎓</div>
           Vous n&apos;êtes inscrite à aucun cours pour le moment : votre classe apparaîtra dès votre inscription.
         </div>
       ) : (
-        <ClasseEleveVue enseignantes={classe.enseignantes} camarades={classe.camarades} niveaux={niveaux} />
+        <ClasseEleveVue enseignantes={classe.enseignantes} camarades={classe.camarades} niveaux={niveaux} groupes={classe.groupes} />
       )}
     </div>
   );

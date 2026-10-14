@@ -1,19 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Mail, MessageCircle, Phone, Ban } from "lucide-react";
+import { Copy, Mail, MessageCircle, Phone, Send } from "lucide-react";
 import { lienMailto, lienWhatsApp } from "@/lib/classe/communication";
 import { ouvrirMessagerie } from "../commandes";
+import { EnvoiEmail } from "../envoi-email";
 
 /**
- * Préparer une communication individuelle. RIEN n'est envoyé depuis ce panneau :
+ * Communication individuelle :
  *  - messagerie du site : la conversation s'ouvre avec le texte pré-rempli, l'enseignante envoie ;
  *  - WhatsApp / e-mail : l'application de l'enseignante s'ouvre avec un brouillon ;
- *  - e-mail envoyé PAR LE SITE : n'existe pas encore → affiché « à connecter ».
+ *  - e-mail envoyé PAR LE SITE : vérification puis confirmation explicite (le serveur revérifie tout).
  */
-export function Communication({ eleve, modele }: {
+export function Communication({ base, eleve, modele, serviceEmail }: {
+  base: string;
   eleve: { id: string; nom: string; email: string | null; telephone: string | null; telephoneSource: string | null };
   modele: { sujet: string; corps: string };
+  serviceEmail: boolean;
 }) {
   const [sujet, setSujet] = useState(modele.sujet);
   const [texte, setTexte] = useState(modele.corps);
@@ -29,8 +32,8 @@ export function Communication({ eleve, modele }: {
   return (
     <section id="communication" className="mt-4 bg-white rounded-2xl border border-gray-100 p-5 scroll-mt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-        <h2 className="font-semibold text-gray-900 font-dm">Préparer une communication</h2>
-        <span className="text-xs rounded-full bg-gray-100 text-gray-600 px-2.5 py-1">Rien n&apos;est envoyé depuis ce panneau</span>
+        <h2 className="font-semibold text-gray-900 font-dm">Communiquer avec l&apos;élève</h2>
+        <span className="text-xs rounded-full bg-gray-100 text-gray-600 px-2.5 py-1">Rien ne part sans votre confirmation</span>
       </div>
       <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
         <div className="space-y-2">
@@ -62,13 +65,17 @@ export function Communication({ eleve, modele }: {
           <button type="button" onClick={copier} className={`${bouton} bg-white border border-gray-200 text-gray-700 hover:bg-gray-50`}>
             <Copy size={16} /> {copie ? "Texte copié" : "Copier le texte"}
           </button>
-
-          <div className="mt-1 rounded-xl border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-[12px] text-amber-900">
-            <div className="flex items-center gap-1.5 font-semibold"><Ban size={14} /> Envoyer un e-mail depuis le site — à connecter</div>
-            Le site n&apos;a pas encore d&apos;envoi d&apos;e-mail individuel depuis l&apos;administration (avec journal et désinscription). Rien n&apos;est simulé.
-          </div>
         </div>
       </div>
+      <details className="mt-4 rounded-xl border border-gray-100 bg-gray-50/60 p-3">
+        <summary className="cursor-pointer list-none flex items-center gap-2 text-sm font-semibold text-gray-800">
+          <Send size={16} aria-hidden /> Envoyer cet e-mail depuis le site
+          <span className={`ms-auto text-[11px] font-semibold ${serviceEmail ? "text-gray-500" : "text-amber-700"}`}>{serviceEmail ? "vérification + confirmation" : "service e-mail non configuré"}</span>
+        </summary>
+        <div className="mt-3">
+          <EnvoiEmail base={base} cible={{ type: "eleve", id: eleve.id }} libelleCible={eleve.nom} message={{ sujet, corps: texte }} serviceEmail={serviceEmail} />
+        </div>
+      </details>
     </section>
   );
 }

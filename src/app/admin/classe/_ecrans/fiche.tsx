@@ -15,6 +15,7 @@ import { TravauxEleve } from "../travaux";
 import { LIBELLE_TEINTE, initiales, teinte } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "../teintes";
 import { modeleMessage } from "@/lib/classe/communication";
+import { emailConfigure } from "@/lib/classe/commande";
 import { BadgeAction, Val } from "../../suivi/cellule";
 import { Avatar } from "../carte";
 import { Communication } from "../[id]/communication";
@@ -251,6 +252,8 @@ export async function EcranFicheClasse({ espace, params, searchParams }: { espac
       </div>
 
       <Communication
+        base={b}
+        serviceEmail={emailConfigure(process.env.RESEND_API_KEY)}
         eleve={{ id: s.user_id, nom: s.nom, email: s.email, telephone: s.telephone?.valeur ?? null, telephoneSource: s.telephone?.source ?? null }}
         modele={modele}
       />

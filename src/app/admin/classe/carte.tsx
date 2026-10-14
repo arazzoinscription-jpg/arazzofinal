@@ -2,8 +2,9 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { LIBELLE_TEINTE, type CarteEleve } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "./teintes";
+import { ActiviteDe, PointEnLigne } from "@/components/presence/activite";
 
-/** Photo de l'élève si elle existe, sinon ses initiales. L'anneau coloré = activité pédagogique (pas la présence). */
+/** Photo de l'élève si elle existe, sinon ses initiales. L'anneau coloré = activité pédagogique ; le point vert (carte) = en ligne. */
 export function Avatar({ c, taille = "md" }: { c: Pick<CarteEleve, "nom" | "initiales" | "avatar" | "teinte">; taille?: "sm" | "md" | "lg" }) {
   const dim = taille === "lg" ? "w-24 h-24 text-3xl ring-4" : taille === "sm" ? "w-10 h-10 text-xs ring-2" : "w-16 h-16 text-xl ring-4";
   return (
@@ -28,13 +29,14 @@ export function CarteEleveVue({ c, base }: { c: CarteEleve; base: string }) {
           <AlertTriangle size={12} aria-hidden /> {c.alertes}
         </span>
       ) : null}
-      <Avatar c={c} />
+      <span className="relative"><Avatar c={c} /><PointEnLigne id={c.id} className="w-4 h-4 bottom-0 right-0" /></span>
       <div className="mt-3 font-semibold text-gray-900 font-dm leading-tight line-clamp-2 min-h-[2.5rem]">{c.nom}</div>
       <div className="mt-1 flex flex-wrap justify-center gap-1 min-h-[1.25rem]">
         {c.niveaux.length
           ? c.niveaux.map((n) => <span key={n} className="px-1.5 py-0.5 rounded-md text-[11px] font-bold bg-[#5B16F9]/10 text-[#5B16F9]">{n}</span>)
           : <span className="text-[11px] text-gray-400">Hors niveaux</span>}
       </div>
+      <ActiviteDe id={c.id} />
 
       <div className="w-full mt-3">
         {c.progression && c.progression.pct !== null ? (

@@ -16,7 +16,8 @@ export const CANAL_PRESENCE = "arazzo-enseignantes-en-ligne";
 export function SignalPresence({ userId }: { userId: string }) {
   useEffect(() => {
     const supabase = createClient();
-    const canal = supabase.channel(CANAL_PRESENCE, { config: { presence: { key: userId } } });
+    // `enabled: true` : sans écoute « presence » sur ce canal, la présence n'est activée qu'explicitement.
+    const canal = supabase.channel(CANAL_PRESENCE, { config: { presence: { key: userId, enabled: true } } });
     canal.subscribe(async (statut) => {
       if (statut === "SUBSCRIBED") await canal.track({ en_ligne_depuis: new Date().toISOString() });
     });

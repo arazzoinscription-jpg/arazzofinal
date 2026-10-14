@@ -1,15 +1,17 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { voitEleve, type Espace } from "@/lib/espace/portee";
+import { niveauxAutorises, voitEleve, type Espace } from "@/lib/espace/portee";
+import { coursNiveaux } from "@/lib/live-care/load";
+import { emailConfigure } from "@/lib/classe/commande";
 import { lireReglages } from "@/lib/student-care/load";
 import { dateCourte, dateHeure, estJourValide } from "@/lib/student-care/time";
 import { chargerClasse, chargerClasseMembres } from "@/lib/classe/load";
 import { groupesDeLespace } from "@/lib/classe/groupes";
 import { LIBELLE_TEINTE, TEINTES, avatarSur, compterTeintes, initiales, lireFiltresClasse } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "../teintes";
-import { BarreCommande } from "../commandes";
-import { GrilleClasse } from "../grille";
+import { ClasseInteractive } from "../classe-interactive";
+import { bandeauDe } from "@/app/formateur/groupes/carte-groupe";
 
 
 type Params = Record<string, string | string[] | undefined>;
@@ -46,6 +48,18 @@ function Tableau({ titre, sousTitre, children, enseignante }: { titre: string; s
   );
 }
 
+/** Ce que l'Espace de commande doit savoir : niveaux de l'espace, direct RÉELLEMENT en cours, service e-mail configuré. */
+async function etatCommande(admin: ReturnType<typeof createAdminClient>, espace: Espace) {
+  let niveaux: { id: string; code: "N1" | "N2" | "N3"; titre: string }[] = [];
+  try {
+    niveaux = niveauxAutorises(espace, await coursNiveaux(admin)).map((n) => ({ id: n.id, code: n.code, titre: n.titre }));
+  } catch { niveaux = []; }
+  const live = await admin.from("live_sessions").select("titre").eq("formateur_id", espace.userId).eq("is_live", true)
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const direct = !live.error && live.data ? { titre: ((live.data as { titre: string | null }).titre ?? "Direct") } : null;
+  return { niveaux, direct, serviceEmail: emailConfigure(process.env.RESEND_API_KEY) };
+}
+
 /** « Ma classe » — administration (toutes les élèves) ou formatrice (élèves de ses cours). */
 export async function EcranClasse({ espace, searchParams }: { espace: Espace; searchParams: Params }) {
   const b = espace.base;
@@ -64,17 +78,23 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
     );
   }
 
+  const commande = await etatCommande(admin, espace);
   const depuisParam = un(searchParams.depuis);
   const jourDebut = estJourValide(depuisParam) ? depuisParam : etat.reglages.start_date;
   if (!jourDebut) {
     return (
       <Cadre>
         <Tableau titre="Ma classe" sousTitre="Choisissez d'abord la date de début de suivi." />
-        <BarreCommande base={b} />
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-12 text-gray-600">
-          La classe regroupe les élèves inscrites depuis la date de suivi.{" "}
-          <Link href={`${b}/suivi`} className="text-[#5B16F9] font-semibold hover:underline">Choisir la date dans le suivi pédagogique →</Link>
-        </div>
+        <ClasseInteractive
+          base={b} cartes={[]} initiaux={lireFiltresClasse(searchParams)} niveaux={commande.niveaux} groupes={[]} groupeCourant={null}
+          direct={commande.direct} serviceEmail={commande.serviceEmail}
+          vide={(
+            <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-12 text-gray-600">
+              La classe regroupe les élèves inscrites depuis la date de suivi.{" "}
+              <Link href={`${b}/suivi`} className="text-[#5B16F9] font-semibold hover:underline">Choisir la date dans le suivi pédagogique →</Link>
+            </div>
+          )}
+        />
       </Cadre>
     );
   }
@@ -116,39 +136,66 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
         </div>
       </Tableau>
 
-      <BarreCommande base={b} />
+      <ClasseInteractive
+        base={b}
+        cartes={classe.cartes}
+        initiaux={lireFiltresClasse(searchParams)}
+        niveaux={commande.niveaux}
+        groupes={groupes.map((g) => ({ id: g.id, nom: g.nom, membres: g.membres.length }))}
+        groupeCourant={groupe?.id ?? null}
+        direct={commande.direct}
+        serviceEmail={commande.serviceEmail}
+        milieu={<>
+          {groupes.length > 0 ? (
+            <nav aria-label="Classes par groupe" className="mb-4">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <span className="text-xs text-gray-500 font-semibold">Classes par groupe</span>
+                <span className="flex gap-3 text-xs font-semibold">
+                  {groupe ? <Link href={`/formateur/groupes/${groupe.id}`} className="text-orange-600 hover:underline">Gérer ce groupe →</Link> : null}
+                  <Link href="/formateur/groupes" className="text-[#5B16F9] hover:underline">Tous les groupes →</Link>
+                </span>
+              </div>
+              <ul className="flex gap-2 overflow-x-auto pb-1 snap-x sm:flex-wrap sm:overflow-visible">
+                <li className="snap-start shrink-0">
+                  <Link href={`${b}/classe`} aria-current={!groupe ? "page" : undefined}
+                    className={`flex items-center gap-2.5 rounded-2xl border px-3 py-2 min-w-[150px] transition ${!groupe ? "bg-[#5B16F9] border-[#5B16F9] text-white shadow-sm" : "bg-white border-gray-200 text-gray-800 hover:border-[#5B16F9]/40 hover:shadow-sm"}`}>
+                    <span className={`w-8 h-8 rounded-xl flex items-center justify-center text-base ${!groupe ? "bg-white/20" : "bg-[#5B16F9]/10"}`} aria-hidden>🏫</span>
+                    <span className="leading-tight"><span className="block text-xs font-semibold">Toute la classe</span><span className={`block text-[11px] ${!groupe ? "text-white/80" : "text-gray-500"}`}>tous les groupes</span></span>
+                  </Link>
+                </li>
+                {groupes.map((g) => {
+                  const actif = groupe?.id === g.id;
+                  return (
+                    <li key={g.id} className="snap-start shrink-0">
+                      <Link href={`${b}/classe?groupe=${g.id}`} aria-current={actif ? "page" : undefined}
+                        className={`flex items-center gap-2.5 rounded-2xl border px-3 py-2 min-w-[150px] max-w-[230px] transition ${actif ? "bg-[#5B16F9] border-[#5B16F9] text-white shadow-sm" : "bg-white border-gray-200 text-gray-800 hover:border-[#5B16F9]/40 hover:shadow-sm"}`}>
+                        <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-playfair font-bold ${actif ? "bg-white/20" : "bg-gradient-to-br " + bandeauDe(g.id) + " text-white"}`} aria-hidden>{(g.nom.trim()[0] ?? "G").toUpperCase()}</span>
+                        <span className="leading-tight min-w-0"><span className="block text-xs font-semibold truncate" title={g.nom}>{g.nom}</span><span className={`block text-[11px] ${actif ? "text-white/80" : "text-gray-500"}`}>{g.membres.length} membre{g.membres.length > 1 ? "s" : ""}</span></span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          ) : null}
+          {groupeDemande && !groupe ? (
+            <div className="mb-3 rounded-xl px-4 py-2 text-sm border bg-amber-50 border-amber-200 text-amber-800">Ce groupe n&apos;existe pas ou ne fait pas partie de votre espace.</div>
+          ) : null}
 
-      {groupes.length > 0 ? (
-        <nav aria-label="Classes par groupe" className="mb-4 flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="text-gray-500 font-semibold me-1">Groupes :</span>
-          <Link href={`${b}/classe`} className={`rounded-full border px-3 py-1.5 font-semibold ${!groupe ? "bg-[#5B16F9] border-[#5B16F9] text-white" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}>Toute la classe</Link>
-          {groupes.map((g) => (
-            <Link key={g.id} href={`${b}/classe?groupe=${g.id}`} className={`rounded-full border px-3 py-1.5 font-semibold ${groupe?.id === g.id ? "bg-[#5B16F9] border-[#5B16F9] text-white" : "bg-white border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
-              {g.nom} <span className={groupe?.id === g.id ? "text-white/80" : "text-gray-400"}>{g.membres.length}</span>
-            </Link>
+          {classe.suivi.avertissements.map((a) => (
+            <div key={a} className={`mb-3 rounded-xl px-4 py-2 text-sm border ${classe.suivi.complet ? "bg-gray-50 border-gray-100 text-gray-600" : "bg-red-50 border-red-200 text-red-700 font-semibold"}`}>{a}</div>
           ))}
-          {groupe ? <Link href={`/formateur/groupes/${groupe.id}`} className="ms-auto text-orange-600 font-semibold hover:underline">Gérer le groupe (membres, publications, WhatsApp) →</Link> : null}
-        </nav>
-      ) : null}
-      {groupeDemande && !groupe ? (
-        <div className="mb-3 rounded-xl px-4 py-2 text-sm border bg-amber-50 border-amber-200 text-amber-800">Ce groupe n&apos;existe pas ou ne fait pas partie de votre espace.</div>
-      ) : null}
-
-      {classe.suivi.avertissements.map((a) => (
-        <div key={a} className={`mb-3 rounded-xl px-4 py-2 text-sm border ${classe.suivi.complet ? "bg-gray-50 border-gray-100 text-gray-600" : "bg-red-50 border-red-200 text-red-700 font-semibold"}`}>{a}</div>
-      ))}
-      {!classe.photos_lues ? (
-        <div className="mb-3 rounded-xl px-4 py-2 text-sm border bg-gray-50 border-gray-100 text-gray-600">Photos de profil non lues : les initiales sont affichées à la place.</div>
-      ) : null}
-
-      {classe.cartes.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-14 text-gray-500">
-          <div className="text-4xl mb-2" aria-hidden>🪑</div>
-          {groupe ? "Aucune élève suivie dans ce groupe." : <>Aucune élève inscrite depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}.</>}
-        </div>
-      ) : (
-        <GrilleClasse base={b} cartes={classe.cartes} initiaux={lireFiltresClasse(searchParams)} />
-      )}
+          {!classe.photos_lues ? (
+            <div className="mb-3 rounded-xl px-4 py-2 text-sm border bg-gray-50 border-gray-100 text-gray-600">Photos de profil non lues : les initiales sont affichées à la place.</div>
+          ) : null}
+        </>}
+        vide={(
+          <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-14 text-gray-500">
+            <div className="text-4xl mb-2" aria-hidden>🪑</div>
+            {groupe ? "Aucune élève suivie dans ce groupe." : <>Aucune élève inscrite depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}.</>}
+          </div>
+        )}
+      />
 
       <details className="mt-6 bg-white rounded-2xl border border-gray-100 p-4 text-sm text-gray-600">
         <summary className="cursor-pointer font-semibold text-gray-800">Comment lire les couleurs ?</summary>
@@ -161,7 +208,8 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
           <li><b className="text-gray-500">Pointillés</b> : données indisponibles (inscription importée de l&apos;ancien système, historique antérieur non enregistré).</li>
         </ul>
         <p className="mt-3 text-xs text-gray-500">
-          Les couleurs reflètent la <b>dernière activité pédagogique enregistrée</b>, pas une présence en ligne : le site ne sait pas qui est connectée en ce moment.
+          Les couleurs reflètent la <b>dernière activité pédagogique enregistrée</b>, pas la présence. Le <b className="text-emerald-700">point vert</b> sur la photo = élève en ligne en ce moment
+          (une page Arazzo ouverte, sauf si elle a choisi le mode discrète), avec ce qu&apos;elle a indiqué faire : cours théorique, patronage, couture ou modèle en cours.
           Seuils réglables dans le <Link href={`${b}/suivi`} className="underline">suivi pédagogique</Link>.
         </p>
       </details>

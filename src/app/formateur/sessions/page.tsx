@@ -58,7 +58,7 @@ export default async function FormateurSessionsPage() {
       </div>
 
       {/* Passer en direct MAINTENANT (YouTube/Facebook intégré + audience) */}
-      <div className="mb-10">
+      <div id="direct" className="mb-10 scroll-mt-6">
         <GoLivePanel groups={groups ?? []} current={current} />
       </div>
 

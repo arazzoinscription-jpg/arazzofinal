@@ -1,10 +1,11 @@
 /**
  * « Ma classe » CÔTÉ ÉLÈVE — ce qu'une élève voit de sa classe. Données VOLONTAIREMENT limitées :
  *  - ses enseignantes (photo, nom, niveaux qu'elles encadrent) ;
- *  - ses camarades (photo, PSEUDO — ou prénom + initiale —, niveaux en commun) et leur PROGRESSION
+ *  - ses camarades DE GROUPE seulement (photo, PSEUDO — ou prénom + initiale —, niveaux en commun) et leur PROGRESSION
  *    (leçons terminées, en %) dans les cours partagés — la même donnée que leur profil communauté.
  *    AUCUN statut de suivi, aucune relance : un clic ouvre leur profil communauté, comme depuis le feed.
  *    (La communauté promet un pseudo « pour protéger votre vie privée » : jamais le nom complet ici.)
+ * Les élèves des AUTRES groupes n'apparaissent pas ici (elles restent visibles sur le feed communauté).
  * Les comptes d'équipe (formatrice, admin) ne sont jamais listés comme camarades.
  * LECTURE SEULE.
  */
@@ -25,14 +26,19 @@ export interface PersonneClasse {
   niveaux: string[];
   /** Progression dans chaque cours partagé (leçons terminées / leçons du cours) ; pct null = cours sans leçon. */
   progression: { cours: string; pct: number | null; faites: number; total: number }[];
+  /** Groupes (de l'élève connectée) dont cette camarade fait partie. */
+  groupes: string[];
   cle: string;
 }
-export type EnseignanteClasse = Omit<PersonneClasse, "cle" | "progression">;
+export type EnseignanteClasse = Omit<PersonneClasse, "cle" | "progression" | "groupes">;
+export interface GroupeClasse { id: string; nom: string; membres: string[] }
 
 export interface ClasseEleve {
   cours: { id: string; titre: string; niveau: string | null }[];
   enseignantes: EnseignanteClasse[];
   camarades: PersonneClasse[];
+  /** Les groupes de l'élève (= ses classes). Vide : pas encore de groupe, donc pas de camarades. */
+  groupes: { id: string; nom: string; nb: number }[];
   complet: boolean;
 }
 
@@ -50,13 +56,16 @@ export function nomCamarade(p: Pick<Personne, "nom" | "username">): string {
 const libelleCours = (c: { id: string; titre: string }) => NIVEAU_PAR_COURS.get(c.id) ?? c.titre;
 
 /** Module PUR : assemble la classe d'une élève à partir des lignes lues. */
-export function construireClasseEleve({ moi, cours, inscriptions, personnes, progres = [] }: {
+export function construireClasseEleve({ moi, cours, inscriptions, personnes, progres = [], groupes }: {
   moi: string;
   cours: { id: string; titre: string; formateur_id: string | null }[];
   inscriptions: { user_id: string; course_id: string }[];
   personnes: Personne[];
   /** Leçons terminées par élève et par cours (vue du suivi). Absent = progression non affichée. */
   progres?: { user_id: string; course_id: string; faites: number; total: number }[];
+  /** Groupes DE L'ÉLÈVE avec leurs membres : les camarades sont alors les membres de ces groupes, et eux seuls.
+   *  Absent = ancien mode (élèves des mêmes cours). */
+  groupes?: GroupeClasse[];
 }): Omit<ClasseEleve, "complet"> {
   const progresDe = new Map<string, { faites: number; total: number }>();
   for (const p of progres) {
@@ -82,13 +91,19 @@ export function construireClasseEleve({ moi, cours, inscriptions, personnes, pro
     .map(({ id, p, niveaux }) => ({ id, nom: nom(p), initiales: initiales(nom(p)), avatar: avatarSur(p.avatar_url), niveaux: [...new Set(niveaux)].sort() }))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 
-  // Camarades : les autres ÉLÈVES inscrites à au moins un des mêmes cours.
+  // Cours partagés avec chaque autre élève (niveaux en commun, progression).
   const coursPartages = new Map<string, Set<string>>();
   for (const i of inscriptions) {
     if (i.user_id === moi || !coursParId.has(i.course_id)) continue;
     coursPartages.set(i.user_id, (coursPartages.get(i.user_id) ?? new Set()).add(i.course_id));
   }
-  const camarades = [...coursPartages.entries()]
+  // Camarades : les membres de MES groupes (mode groupes) — sinon les élèves des mêmes cours.
+  const groupesDe = new Map<string, string[]>();
+  for (const g of groupes ?? []) for (const id of g.membres) if (id !== moi) groupesDe.set(id, [...(groupesDe.get(id) ?? []), g.id]);
+  const visibles: [string, Set<string>][] = groupes
+    ? [...groupesDe.keys()].map((id) => [id, coursPartages.get(id) ?? new Set<string>()])
+    : [...coursPartages.entries()];
+  const camarades = visibles
     .map(([id, ids]) => ({ id, p: parId.get(id), ids }))
     .filter((x): x is { id: string; p: Personne; ids: Set<string> } => Boolean(x.p) && !estEquipe(x.p as Personne) && !coursParEnseignante.has(x.id))
     .map(({ id, p, ids }) => ({
@@ -103,6 +118,7 @@ export function construireClasseEleve({ moi, cours, inscriptions, personnes, pro
           faites: Math.min(pr.faites, pr.total || pr.faites), total: pr.total,
         }))
         .sort((a, b) => a.cours.localeCompare(b.cours)),
+      groupes: groupesDe.get(id) ?? [],
       cle: normaliser(nomCamarade(p)),
     }))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
@@ -112,6 +128,8 @@ export function construireClasseEleve({ moi, cours, inscriptions, personnes, pro
       .sort((a, b) => (a.niveau ?? "Z").localeCompare(b.niveau ?? "Z")),
     enseignantes,
     camarades,
+    groupes: (groupes ?? []).map((g) => ({ id: g.id, nom: g.nom, nb: camarades.filter((c) => c.groupes.includes(g.id)).length }))
+      .sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
   };
 }
 
@@ -120,7 +138,7 @@ export async function chargerClasseEleve(admin: SupabaseClient, moi: string): Pr
   const mes = await admin.from("enrollments").select("course_id").eq("user_id", moi);
   if (mes.error) throw new Error(`Inscriptions illisibles : ${mes.error.message}`);
   const ids = [...new Set((mes.data ?? []).map((e: { course_id: string }) => e.course_id))];
-  if (!ids.length) return { cours: [], enseignantes: [], camarades: [], complet: true };
+  if (!ids.length) return { cours: [], enseignantes: [], camarades: [], groupes: [], complet: true };
 
   const c = await admin.from("courses").select("id, titre_fr, formateur_id").in("id", ids);
   if (c.error) throw new Error(`Cours illisibles : ${c.error.message}`);
@@ -129,7 +147,22 @@ export async function chargerClasseEleve(admin: SupabaseClient, moi: string): Pr
   const ins = await lireTout<{ user_id: string; course_id: string }>((de, a) => admin
     .from("enrollments").select("user_id, course_id").in("course_id", ids).order("id").range(de, a));
 
-  const qui = [...new Set([...ins.lignes.map((i) => i.user_id), ...cours.map((x) => x.formateur_id).filter(Boolean) as string[]])];
+  // Mes groupes (= mes classes) et leurs membres : seules ces élèves seront mes camarades.
+  const mg = await admin.from("group_members").select("group_id").eq("user_id", moi);
+  if (mg.error) throw new Error(`Groupes illisibles : ${mg.error.message}`);
+  const gids = [...new Set(((mg.data ?? []) as { group_id: string }[]).map((x) => x.group_id))];
+  const groupes: GroupeClasse[] = [];
+  if (gids.length) {
+    const g = await admin.from("groups").select("id, name").in("id", gids);
+    if (g.error) throw new Error(`Groupes illisibles : ${g.error.message}`);
+    const m = await lireTout<{ group_id: string; user_id: string }>((de, a) => admin
+      .from("group_members").select("group_id, user_id").in("group_id", gids).order("group_id").order("user_id").range(de, a));
+    for (const x of (g.data ?? []) as { id: string; name: string | null }[]) {
+      groupes.push({ id: x.id, nom: (x.name ?? "").trim() || "Groupe", membres: m.lignes.filter((l) => l.group_id === x.id).map((l) => l.user_id) });
+    }
+  }
+
+  const qui = [...new Set([...groupes.flatMap((g) => g.membres), ...cours.map((x) => x.formateur_id).filter(Boolean) as string[]])];
   const personnes: Personne[] = [];
   for (const lot of paquets(qui, 100)) {
     // eslint-disable-next-line no-await-in-loop
@@ -147,5 +180,5 @@ export async function chargerClasseEleve(admin: SupabaseClient, moi: string): Pr
     progresComplet = pr.complet;
   } catch { progres = []; }
 
-  return { ...construireClasseEleve({ moi, cours, inscriptions: ins.lignes, personnes, progres }), complet: ins.complet && progresComplet };
+  return { ...construireClasseEleve({ moi, cours, inscriptions: ins.lignes, personnes, progres, groupes }), complet: ins.complet && progresComplet };
 }

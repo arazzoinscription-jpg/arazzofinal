@@ -63,6 +63,37 @@ test("classe élève : aucune donnée de suivi ne sort (seulement profil public 
     inscriptions: [{ user_id: "moi", course_id: N1 }, { user_id: "amina", course_id: N1 }],
     personnes: [personne("amina", "Amina")],
   });
-  assert.deepEqual(Object.keys(r.camarades[0]).sort(), ["avatar", "cle", "id", "initiales", "niveaux", "nom", "progression"]);
+  assert.deepEqual(Object.keys(r.camarades[0]).sort(), ["avatar", "cle", "groupes", "id", "initiales", "niveaux", "nom", "progression"]);
   assert.deepEqual(r.enseignantes, []); // cours sans formatrice : rien d'inventé
+});
+
+test("groupes : l'élève ne voit QUE les camarades de ses groupes (pas les autres élèves du même cours)", () => {
+  const r = construireClasseEleve({
+    moi: "moi",
+    cours: [{ id: N1, titre: "Niveau 1", formateur_id: "prof" }],
+    inscriptions: [
+      { user_id: "moi", course_id: N1 }, { user_id: "amina", course_id: N1 },
+      { user_id: "basma", course_id: N1 }, { user_id: "chahra", course_id: N1 },
+    ],
+    personnes: [personne("amina", "Amina"), personne("basma", "Basma"), personne("dounia", "Dounia"), personne("prof", "Prof", "formateur"), personne("chahra", "Chahra")],
+    groupes: [
+      { id: "g1", nom: "Groupe du soir", membres: ["moi", "amina", "prof", "dounia"] }, // Dounia : autre cours, même groupe
+      { id: "g2", nom: "Atelier robes", membres: ["moi", "amina"] },
+    ],
+  });
+  // Basma et Chahra suivent le même cours mais ne sont dans aucun de mes groupes : invisibles ici.
+  assert.deepEqual(r.camarades.map((c) => [c.nom, c.groupes.join("+"), c.niveaux.join("+")]), [["Amina", "g1+g2", "N1"], ["Dounia", "g1", ""]]);
+  assert.deepEqual(r.groupes, [{ id: "g2", nom: "Atelier robes", nb: 1 }, { id: "g1", nom: "Groupe du soir", nb: 2 }]);
+});
+
+test("groupes : sans groupe, aucune camarade (et rien d'inventé)", () => {
+  const r = construireClasseEleve({
+    moi: "moi",
+    cours: [{ id: N1, titre: "Niveau 1", formateur_id: null }],
+    inscriptions: [{ user_id: "moi", course_id: N1 }, { user_id: "amina", course_id: N1 }],
+    personnes: [personne("amina", "Amina")],
+    groupes: [],
+  });
+  assert.deepEqual(r.camarades, []);
+  assert.deepEqual(r.groupes, []);
 });

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Toaster } from "@/components/ui/toast";
 import { ChatWidget } from "@/components/messaging/chat-widget";
 import { SignalPresence } from "@/components/presence/presence";
+import { SignalPresenceMembre } from "@/components/presence/membres";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { LangSwitcher } from "@/app/dashboard/lang-switcher";
 import { normLang, isRtl } from "@/app/dashboard/dash-i18n";
@@ -116,6 +117,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <ChatWidget />
       {/* Présence « en ligne » visible des élèves (page « Ma classe ») — temps réel, rien en base. */}
       <SignalPresence userId={user.id} />
+      <SignalPresenceMembre userId={user.id} />
     </div>
   );
 }

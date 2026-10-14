@@ -20,7 +20,7 @@ export interface Commande {
   detail: string;
 }
 
-/** La barre de commande de l'enseignante (selon l'espace : /admin ou /formateur) : chaque bouton dit ce qu'il fait vraiment. */
+/** Les actions de l'Espace de commande (selon l'espace : /admin ou /formateur) : chaque entrée dit ce qu'elle fait vraiment. */
 export function commandesPour(base: string): readonly Commande[] {
   return [
   {
@@ -28,12 +28,12 @@ export function commandesPour(base: string): readonly Commande[] {
     detail: "Ouvre la programmation des lives pédagogiques.",
   },
   {
-    cle: "passer_live", libelle: "Passer en live", etat: "branche", href: "/formateur/sessions",
+    cle: "passer_live", libelle: "Passer en live", etat: "branche", href: "/formateur/sessions#direct",
     detail: "Ouvre « Passer en direct » de l'espace formatrice (YouTube / Facebook, audience publique, groupe ou lien secret).",
   },
   {
-    cle: "email", libelle: "Envoyer un email", etat: "a_connecter",
-    detail: "À connecter : le site n'a pas d'envoi d'e-mail individuel depuis l'administration. Sur une fiche élève, vous pouvez PRÉPARER l'e-mail dans votre propre messagerie. Pour toute la classe : « Annonce de classe », option e-mail.",
+    cle: "email", libelle: "Envoyer un e-mail", etat: "branche",
+    detail: "Envoyé PAR LE SITE (service e-mail existant) à une élève, un niveau ou un groupe de votre espace : vérification des destinataires, puis confirmation explicite. Bloqué si le service e-mail n'est pas configuré.",
   },
   {
     cle: "message", libelle: "Message individuel", etat: "branche",
@@ -41,7 +41,7 @@ export function commandesPour(base: string): readonly Commande[] {
   },
   {
     cle: "annonce", libelle: "Annonce de classe", etat: "branche", href: "/formateur/annonces",
-    detail: "Ouvre le Centre d'annonces existant (espace de l'élève + e-mail en option). L'envoi part quand VOUS validez là-bas.",
+    detail: "Publie via le Centre d'annonces existant aux élèves du niveau choisi : aperçu du nombre de destinataires, puis confirmation.",
   },
 ];
 }

@@ -9,14 +9,21 @@ import {
 import type { CodeNiveau } from "@/lib/student-care/levels";
 import { CarteEleveVue } from "./carte";
 import { STYLE_TEINTE } from "./teintes";
+import { StylesActivite } from "@/components/presence/activite";
 
 const PAS = 60;
 const NIVEAUX: CodeNiveau[] = ["N1", "N2", "N3"];
 
 /** Grille de la classe : recherche + filtres instantanés, gardés dans l'adresse (partageable). */
-export function GrilleClasse({ cartes, initiaux, base }: { cartes: CarteEleve[]; initiaux: FiltresClasse; base: string }) {
+export function GrilleClasse({ cartes, initiaux, base, niveauPartage }: {
+  cartes: CarteEleve[]; initiaux: FiltresClasse; base: string;
+  /** Niveau partagé avec l'Espace de commande (sinon, état propre à la grille). */
+  niveauPartage?: { valeur: CodeNiveau | null; changer: (n: CodeNiveau | null) => void };
+}) {
   const [q, setQ] = useState(initiaux.q);
-  const [niveau, setNiveau] = useState<CodeNiveau | null>(initiaux.niveau);
+  const [niveauLocal, setNiveauLocal] = useState<CodeNiveau | null>(initiaux.niveau);
+  const niveau = niveauPartage ? niveauPartage.valeur : niveauLocal;
+  const setNiveau = niveauPartage ? niveauPartage.changer : setNiveauLocal;
   const [t, setT] = useState<Teinte | null>(initiaux.teinte);
   const [limite, setLimite] = useState(PAS);
 
@@ -40,6 +47,7 @@ export function GrilleClasse({ cartes, initiaux, base }: { cartes: CarteEleve[];
 
   return (
     <div>
+      <StylesActivite />
       <div className="bg-white rounded-2xl border border-gray-100 p-3 sm:p-4 mb-5 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
           <label className="relative flex-1">

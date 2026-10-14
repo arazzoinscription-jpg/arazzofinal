@@ -91,12 +91,12 @@ test("recherche sans accents, filtres niveau et statut, tri par urgence", () => 
   assert.deepEqual(lireFiltresClasse({ niveau: "N3", teinte: "jaune" }), { q: "", niveau: "N3", teinte: "jaune" });
 });
 
-test("barre de commande : l'e-mail individuel est « à connecter », les autres ouvrent un outil existant", () => {
+test("espace de commande : chaque action est branchée sur un outil existant", () => {
   const parCle = new Map(COMMANDES.map((c) => [c.cle, c]));
-  assert.equal(parCle.get("email")?.etat, "a_connecter");
+  assert.ok(COMMANDES.every((c) => c.etat === "branche"));
   assert.equal(parCle.get("email")?.href, undefined);
   assert.equal(parCle.get("programmer_live")?.href, "/admin/lives/nouveau");
-  assert.equal(parCle.get("passer_live")?.href, "/formateur/sessions");
+  assert.equal(parCle.get("passer_live")?.href, "/formateur/sessions#direct");
   assert.equal(parCle.get("annonce")?.href, "/formateur/annonces");
   assert.equal(parCle.get("message")?.etat, "branche");
 });
@@ -114,6 +114,21 @@ test("brouillons : prénom, cours, liens qui OUVRENT l'application de l'enseigna
   assert.equal(lienWhatsApp(null, "Salut"), null);
 });
 
+// Seul fichier autorisé à envoyer : l'action e-mail de l'espace de commande (confirmation + configuration vérifiées avant).
+const ENVOI_AUTORISE = "commande-actions.ts";
+// Seul fichier autorisé à faire un appel réseau : le client du Centre d'annonces existant.
+const RESEAU_AUTORISE = "annonce-api.ts";
+
+test("garde-fou : l'action e-mail vérifie confirmation, configuration et limite AVANT tout envoi", () => {
+  const code = readFileSync(join(process.cwd(), "src", "app", "admin", "classe", ENVOI_AUTORISE), "utf8");
+  const envoi = code.indexOf("await sendEmail(");
+  assert.ok(envoi > 0, "appel d'envoi introuvable");
+  for (const garde of ["entree.confirmation !== true", "emailConfigure(process.env.RESEND_API_KEY)", "LIMITE_EMAILS", "dejaEnvoye"]) {
+    const i = code.indexOf(garde);
+    assert.ok(i > 0 && i < envoi, `garde « ${garde} » absente ou placée après l'envoi`);
+  }
+});
+
 test("garde-fou : « Ma classe » n'importe aucun module d'envoi et n'écrit rien en base", () => {
   const racine = process.cwd();
   const dossiers = [join(racine, "src", "lib", "classe"), join(racine, "src", "app", "admin", "classe")];
@@ -124,9 +139,16 @@ test("garde-fou : « Ma classe » n'importe aucun module d'envoi et n'écrit rie
   });
   const sources = dossiers.flatMap(fichiers);
   assert.ok(sources.length >= 8, "fichiers de « Ma classe » non trouvés");
-  for (const f of sources) {
+  for (const f of sources.filter((x) => !x.endsWith(ENVOI_AUTORISE))) {
     const code = readFileSync(f, "utf8");
     const nom = relative(racine, f);
+    if (f.endsWith(RESEAU_AUTORISE)) {
+      // Seul appel réseau : le Centre d'annonces existant (qui revérifie tout côté serveur).
+      assert.match(code, /fetch\(ROUTE_ANNONCES,/);
+      assert.equal((code.match(/fetch\s*\(/g) ?? []).length, 1, `${nom} : un seul appel réseau attendu`);
+      assert.match(code, /ROUTE_ANNONCES = "\/api\/announcements\/send"/);
+      continue;
+    }
     assert.doesNotMatch(code, /from\s+["']@\/lib\/(email|email-templates|push|whatsapp-server|admin-notify|resend)["']/, `${nom} : import d'un module d'envoi`);
     assert.doesNotMatch(code, /\b(sendEmail|sendChatMessage|sendMessageCore|sendPushToUsers)\s*\(/, `${nom} : appel d'envoi`);
     assert.doesNotMatch(code, /\.(insert|upsert|update|delete)\s*\(/, `${nom} : écriture en base`);

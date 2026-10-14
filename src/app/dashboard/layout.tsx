@@ -25,6 +25,7 @@ import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 import { CelebrationListener } from "@/components/celebration/celebration-listener";
 import { PseudoPrompt } from "@/components/community/pseudo-prompt";
 import { PublicationConsentPopup } from "@/components/community/publication-consent-popup";
+import { SignalPresenceMembre } from "@/components/presence/membres";
 
 const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
 
@@ -194,6 +195,8 @@ export default async function DashboardLayout({
         <PublicationConsentPopup userId={user.id} username={profile?.username ?? null} />
       )}
       <ChatWidget />
+      {/* « En ligne » + activité choisie, visibles des camarades — temps réel, rien en base (mode discrète possible). */}
+      <SignalPresenceMembre userId={user.id} />
     </div>
   );
 }
