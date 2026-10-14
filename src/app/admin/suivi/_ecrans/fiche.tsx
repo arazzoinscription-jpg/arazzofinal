@@ -4,6 +4,8 @@ import { ArrowLeft } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { voitEleve, type Espace } from "@/lib/espace/portee";
 import { chargerEleve, lireReglages } from "@/lib/student-care/load";
+import { lireTravauxEleve } from "@/lib/classe/travaux";
+import { TravauxEleve } from "@/app/admin/classe/travaux";
 import {
   CONSERVATION_JOURS, celluleActivite, celluleConnexion, celluleLeconConsultee, celluleProgression,
   celluleQuiz, celluleTelephone, celluleTravaux, celluleVideo, celluleCertificats, type Cellule,
@@ -62,6 +64,8 @@ export async function EcranFicheSuivi({ espace, params, searchParams }: { espace
   if (!fiche || !voitEleve(espace, fiche.suivi.formations)) notFound();
   const s = fiche.suivi;
   const retour = `${b}/suivi${estJourValide(d) ? `?depuis=${d}` : ""}`;
+  // Ses travaux pratiques à ELLE (formatrice : seulement ceux de ses cours).
+  const { travaux, complet: travauxComplets } = await lireTravauxEleve(admin, s.user_id, espace.cours);
 
   return (
     <div className="px-4 lg:px-8 py-6 max-w-5xl">
@@ -74,6 +78,7 @@ export async function EcranFicheSuivi({ espace, params, searchParams }: { espace
           <h1 className="font-playfair text-3xl font-bold text-gray-900">{s.nom}</h1>
           <div className="text-sm text-gray-500 break-all">{s.email ?? "—"}{s.pseudo ? ` · @${s.pseudo}` : ""}</div>
           <div className="mt-1"><Val c={celluleTelephone(s)} /></div>
+          <Link href={`/communaute/u/${s.user_id}`} className="inline-block mt-1 text-sm font-semibold text-orange-600 hover:underline">Profil communauté →</Link>
         </div>
         <div className="text-right space-y-1">
           <BadgeStatut statut={s.statut} />
@@ -110,7 +115,7 @@ export async function EcranFicheSuivi({ espace, params, searchParams }: { espace
           <Ligne libelle="Travaux pratiques" c={celluleTravaux(s)} />
           <Ligne libelle="Certificats" c={celluleCertificats(s)} />
           <div className="mt-3 flex flex-wrap gap-3 text-xs">
-            <Link className="text-orange-600 hover:underline" href="/formateur/pratiques">Travaux à corriger →</Link>
+            <Link className="text-orange-600 hover:underline" href={`/formateur/pratiques?eleve=${s.user_id}`}>Ses travaux à corriger →</Link>
             <Link className="text-orange-600 hover:underline" href="/formateur/questions">Questions des élèves →</Link>
           </div>
         </Bloc>
@@ -130,6 +135,8 @@ export async function EcranFicheSuivi({ espace, params, searchParams }: { espace
           ) : null}
         </div>
       ) : null}
+
+      <div className="mt-4"><TravauxEleve userId={s.user_id} travaux={travaux} complet={travauxComplets} /></div>
 
       <section className="bg-white rounded-2xl border border-gray-100 p-5 mt-4 overflow-x-auto">
         <h2 className="font-semibold text-gray-900 mb-1">Formations</h2>

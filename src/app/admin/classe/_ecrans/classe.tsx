@@ -18,14 +18,14 @@ function Cadre({ children }: { children: React.ReactNode }) {
   return <div className="px-4 lg:px-8 py-6 max-w-[1500px]">{children}</div>;
 }
 
-function Tableau({ titre, sousTitre, children, enseignante }: { titre: string; sousTitre: React.ReactNode; children?: React.ReactNode; enseignante?: { nom: string; avatar: string | null } | null }) {
+function Tableau({ titre, sousTitre, children, enseignante }: { titre: string; sousTitre: React.ReactNode; children?: React.ReactNode; enseignante?: { id: string; nom: string; avatar: string | null } | null }) {
   // Le « tableau noir » de la classe : titre, période, répartition.
   return (
     <header className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2A0880] via-[#3f10c2] to-[#5B16F9] text-white px-5 sm:px-8 py-6 mb-5 shadow-lg">
       <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10" aria-hidden />
       <div className="absolute right-24 -bottom-16 w-40 h-40 rounded-full bg-orange-400/20" aria-hidden />
       {enseignante ? (
-        <div className="relative float-right ms-4 mb-2 flex flex-col items-center text-center">
+        <Link href={`/communaute/u/${enseignante.id}`} title="Voir mon profil communauté" className="relative float-right ms-4 mb-2 flex flex-col items-center text-center hover:opacity-90">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden ring-4 ring-white/40 bg-white/20 flex items-center justify-center font-playfair text-3xl font-bold">
             {enseignante.avatar
               // eslint-disable-next-line @next/next/no-img-element
@@ -33,7 +33,7 @@ function Tableau({ titre, sousTitre, children, enseignante }: { titre: string; s
               : <span>{initiales(enseignante.nom)}</span>}
           </div>
           <div className="mt-1.5 text-xs text-white/80 max-w-[8rem] truncate">{enseignante.nom}</div>
-        </div>
+        </Link>
       ) : null}
       <div className="relative">
         <p className="text-xs uppercase tracking-[0.2em] text-white/70 font-dm">Arazzo · Classe virtuelle</p>
@@ -81,7 +81,7 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
   const maintenant = new Date();
   // La photo de l'enseignante connectée, en haut (les élèves la voient aussi sur leur « Ma classe »).
   const { data: moi } = await admin.from("users").select("nom, avatar_url").eq("id", espace.userId).maybeSingle();
-  const enseignante = moi ? { nom: (moi.nom as string | null) ?? "Enseignante", avatar: avatarSur(moi.avatar_url as string | null) } : null;
+  const enseignante = moi ? { id: espace.userId, nom: (moi.nom as string | null) ?? "Enseignante", avatar: avatarSur(moi.avatar_url as string | null) } : null;
   const classe = await chargerClasse(admin, { jourDebut, seuils: etat.reglages.seuils, maintenant, garder: (e) => voitEleve(espace, e.formations) });
   const total = compterTeintes(classe.cartes);
   const seuils = etat.reglages.seuils;

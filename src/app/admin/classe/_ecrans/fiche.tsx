@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, CalendarPlus, ClipboardList, Send } from "lucide-react";
+import { ArrowLeft, CalendarPlus, ClipboardList, Send, UserRound } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { voitEleve, type Espace } from "@/lib/espace/portee";
 import { lireReglages } from "@/lib/student-care/load";
@@ -10,6 +10,8 @@ import {
   celluleActivite, celluleConnexion, celluleLeconConsultee, celluleQuiz, celluleTravaux, celluleVideo, type Cellule,
 } from "@/lib/student-care/display";
 import { chargerFiche } from "@/lib/classe/load";
+import { lireTravauxEleve } from "@/lib/classe/travaux";
+import { TravauxEleve } from "../travaux";
 import { LIBELLE_TEINTE, initiales, teinte } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "../teintes";
 import { modeleMessage } from "@/lib/classe/communication";
@@ -74,6 +76,8 @@ export async function EcranFicheClasse({ espace, params, searchParams }: { espac
   if (!fiche || !voitEleve(espace, fiche.detail.suivi.formations)) notFound();
   const { detail, avatar } = fiche;
   const s = detail.suivi;
+  // Ses travaux pratiques à ELLE (formatrice : seulement ceux de ses cours).
+  const { travaux, complet: travauxComplets } = await lireTravauxEleve(admin, s.user_id, espace.cours);
   const t = teinte(s);
   const style = STYLE_TEINTE[t];
   const terminees = s.formations.filter((f) => f.pourcentage === 100 || f.certificat_le);
@@ -119,6 +123,7 @@ export async function EcranFicheClasse({ espace, params, searchParams }: { espac
         <div className="mt-5 flex flex-wrap gap-2">
           <Link href={`${b}/classe`} className={`${boutonRaccourci} bg-gray-100 text-gray-700 hover:bg-gray-200`}><ArrowLeft size={15} /> La classe</Link>
           <Link href={`${b}/suivi/${s.user_id}`} className={`${boutonRaccourci} bg-[#5B16F9]/10 text-[#5B16F9] hover:bg-[#5B16F9]/15`}><ClipboardList size={15} /> Consulter le suivi complet</Link>
+          <Link href={`/communaute/u/${s.user_id}`} className={`${boutonRaccourci} bg-white border border-gray-200 text-gray-700 hover:bg-gray-50`}><UserRound size={15} /> Profil communauté</Link>
           <a href="#communication" className={`${boutonRaccourci} bg-orange-500 text-white hover:bg-orange-600`}><Send size={15} /> Préparer une communication</a>
           <Link href={`${b}/lives/nouveau`} className={`${boutonRaccourci} bg-white border border-gray-200 text-gray-700 hover:bg-gray-50`}><CalendarPlus size={15} /> Programmer un live</Link>
         </div>
@@ -193,7 +198,7 @@ export async function EcranFicheClasse({ espace, params, searchParams }: { espac
             <Indicateur libelle="Questions posées" c={s.questions.posees ? { etat: "valeur", texte: `${s.questions.posees} (dont ${s.questions.sans_reponse} sans réponse)` } : { etat: "aucune", texte: "Aucune question" }} />
           </div>
           <div className="mt-3 flex flex-wrap gap-3 text-xs">
-            <Link className="text-orange-600 hover:underline" href="/formateur/pratiques">Travaux à corriger →</Link>
+            <Link className="text-orange-600 hover:underline" href={`/formateur/pratiques?eleve=${s.user_id}`}>Ses travaux à corriger →</Link>
             <Link className="text-orange-600 hover:underline" href="/formateur/questions">Questions des élèves →</Link>
           </div>
         </Panneau>
@@ -224,6 +229,8 @@ export async function EcranFicheClasse({ espace, params, searchParams }: { espac
             <div className="flex justify-between gap-3"><dt className="text-gray-500">Téléphone</dt><dd className="text-right">{s.telephone ? <>{s.telephone.valeur}<span className="block text-[11px] text-gray-400">{s.telephone.source}</span></> : <span className="text-gray-400 italic">non disponible</span>}</dd></div>
           </dl>
         </Panneau>
+
+        <div className="lg:col-span-3 min-w-0"><TravauxEleve userId={s.user_id} travaux={travaux} complet={travauxComplets} /></div>
 
         <Panneau titre="Historique" className="lg:col-span-3">
           {evenements.length === 0 ? <p className="text-sm text-gray-500">Aucun événement enregistré.</p> : (
