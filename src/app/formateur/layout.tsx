@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ChatWidget } from "@/components/messaging/chat-widget";
+import { SignalPresence } from "@/components/presence/presence";
+import { SignalPresenceMembre } from "@/components/presence/membres";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { Toaster } from "@/components/ui/toast";
 import { LangSwitcher } from "@/app/dashboard/lang-switcher";
@@ -127,6 +129,9 @@ export default async function FormateurLayout({
       </main>
       <Toaster />
       <ChatWidget />
+      {/* Présence « en ligne » visible des élèves (page « Ma classe ») — temps réel, rien en base. */}
+      <SignalPresence userId={user.id} />
+      <SignalPresenceMembre userId={user.id} />
     </div>
   );
 }

@@ -58,6 +58,26 @@ export function ChatWidget() {
     setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }), 50);
   }
 
+  // Ouverture depuis un autre écran (ex. « Ma classe ») : événement `arazzo:messagerie`,
+  // éventuellement sur une élève précise avec un brouillon. N'ENVOIE RIEN : l'utilisatrice
+  // relit et appuie elle-même sur « Envoyer ».
+  useEffect(() => {
+    function ouvrir(e: Event) {
+      const d = (e as CustomEvent<{ id?: string; nom?: string; texte?: string }>).detail ?? {};
+      setOpen(true);
+      refreshInbox();
+      if (d.id) {
+        openConversation(d.id, d.nom ?? "Élève", "eleve");
+        if (d.texte) setText(d.texte);
+      } else {
+        setView("list"); setActive(null);
+      }
+    }
+    window.addEventListener("arazzo:messagerie", ouvrir);
+    return () => window.removeEventListener("arazzo:messagerie", ouvrir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Rafraîchit la conversation ouverte toutes les 6 s
   useEffect(() => {
     if (view !== "conv" || !active) return;

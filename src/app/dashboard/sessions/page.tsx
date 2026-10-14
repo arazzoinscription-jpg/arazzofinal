@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { DashHeader } from "../dash-header";
+import { livesVisibles } from "@/lib/live-care/visibles";
+import { migrationAbsente } from "@/lib/live-care/repli";
 
 export const metadata = { title: "Sessions live — Arazzo Formation" };
 export const dynamic = "force-dynamic";
@@ -14,19 +16,32 @@ export default async function StudentSessionsPage() {
   const { data: enrolls } = await supabase.from("enrollments").select("course_id").eq("user_id", user.id);
   const courseIds = (enrolls ?? []).map((e) => e.course_id);
 
-  // Sessions : globales (course_id null) OU des cours suivis
-  const { data: all } = await supabase
-    .from("live_sessions")
-    .select("id, titre, description, starts_at, meet_url, replay_url, course_id, course:courses(titre_fr)")
-    .order("starts_at", { ascending: true });
+  // Sessions : globales (course_id null) OU des cours suivis — niveaux multiples et
+  // annulation pris en compte (migration 096) ; sans 096, requête d'origine.
+  const champs = "id, titre, description, starts_at, meet_url, replay_url, course_id, audience, course:courses(titre_fr)";
+  let { data: all, error } = await supabase
+    .from("live_sessions").select(`${champs}, cancelled_at`).order("starts_at", { ascending: true });
+  if (error && migrationAbsente(error)) {
+    const repli = await supabase.from("live_sessions").select(champs).order("starts_at", { ascending: true });
+    all = repli.data as typeof all;
+  }
+  const coursParLive = new Map<string, string[]>();
+  const ids = (all ?? []).map((s) => s.id as string);
+  if (ids.length) {
+    const { data: liens } = await supabase.from("live_session_courses").select("session_id, course_id").in("session_id", ids);
+    for (const x of (liens ?? []) as { session_id: string; course_id: string }[]) {
+      coursParLive.set(x.session_id, [...(coursParLive.get(x.session_id) ?? []), x.course_id]);
+    }
+  }
 
-  const visible = (all ?? []).filter((s) => !s.course_id || courseIds.includes(s.course_id));
+  const visible = livesVisibles((all ?? []) as (NonNullable<typeof all>[number] & { cancelled_at?: string | null })[], new Set(courseIds), coursParLive);
   const now = Date.now();
   const upcoming = visible.filter((s) => new Date(s.starts_at).getTime() >= now - 2 * 3600 * 1000);
   const past = visible.filter((s) => new Date(s.starts_at).getTime() < now - 2 * 3600 * 1000).reverse();
 
   function fmt(iso: string) {
-    return new Date(iso).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    // Heure d'ALGER (le serveur tourne en UTC).
+    return new Date(iso).toLocaleString("fr-FR", { timeZone: "Africa/Algiers", weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   }
   function countdown(iso: string) {
     const diff = new Date(iso).getTime() - now;

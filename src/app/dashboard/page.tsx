@@ -7,6 +7,8 @@ import { BuyerHome } from "./buyer-home";
 import { CommunityGlobe } from "./community-globe";
 import { TelegramProofPopup } from "./telegram-proof-popup";
 import { getTelegramProofState } from "./telegram-proof-actions";
+import { migrationAbsente } from "@/lib/live-care/repli";
+import { livesVisibles } from "@/lib/live-care/visibles";
 import {
   Reveal, StaggerGroup, StaggerItem, StaggerLink, CtaLink, AnimatedBadge, HoverTile, Counter,
 } from "./anim";
@@ -49,17 +51,35 @@ export default async function DashboardPage() {
 
   const { data: enrollments } = await supabase
     .from("enrollments")
-    .select(`id, course:courses(id, titre_fr, thumbnail, ordre, chapters(lessons(id)))`)
+    .select(`id, course_id, course:courses(id, titre_fr, thumbnail, ordre, chapters(lessons(id)))`)
     .eq("user_id", user!.id).order("paid_at", { ascending: false });
 
   const { data: progressRecords } = await supabase
     .from("progress").select("lesson_id, completed_at").eq("user_id", user!.id);
   const completed = new Set((progressRecords ?? []).map((p) => p.lesson_id));
 
-  const { data: nextSessions } = await supabase
-    .from("live_sessions").select("titre, starts_at").gte("starts_at", new Date().toISOString())
-    .order("starts_at", { ascending: true }).limit(1);
-  const nextSession = nextSessions?.[0] as { titre?: string; starts_at?: string } | undefined;
+  // Prochain live QUE L'ÉLÈVE VOIT dans /dashboard/sessions : global ou d'un de ses niveaux,
+  // non annulé (colonnes et table de la migration 096 ; sans elles, requête d'origine).
+  const depuis = new Date().toISOString();
+  let { data: prochains, error: errNext } = await supabase
+    .from("live_sessions").select("id, titre, starts_at, course_id, audience, cancelled_at").gte("starts_at", depuis)
+    .order("starts_at", { ascending: true }).limit(200);
+  if (errNext && migrationAbsente(errNext)) {
+    const repli = await supabase.from("live_sessions").select("id, titre, starts_at, course_id, audience").gte("starts_at", depuis)
+      .order("starts_at", { ascending: true }).limit(200);
+    prochains = repli.data as typeof prochains;
+  }
+  const coursParLive = new Map<string, string[]>();
+  const idsProchains = (prochains ?? []).map((s) => s.id as string);
+  if (idsProchains.length) {
+    const { data: liens } = await supabase.from("live_session_courses").select("session_id, course_id").in("session_id", idsProchains);
+    for (const x of (liens ?? []) as { session_id: string; course_id: string }[]) {
+      coursParLive.set(x.session_id, [...(coursParLive.get(x.session_id) ?? []), x.course_id]);
+    }
+  }
+  const coursSuivis = new Set((enrollments ?? []).map((e) => e.course_id as string));
+  const nextSession = livesVisibles((prochains ?? []) as (NonNullable<typeof prochains>[number] & { cancelled_at?: string | null })[], coursSuivis, coursParLive)[0] as
+    { titre?: string; starts_at?: string } | undefined;
 
   type Course = { id: string; titre: string; thumbnail: string | null; ordre: number | null; total: number; done: number; pct: number; firstLesson: string | null };
   const courses: Course[] = (enrollments ?? []).map((e) => {

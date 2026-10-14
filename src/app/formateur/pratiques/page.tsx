@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
@@ -22,7 +23,12 @@ async function fetchInChunks(
   return out;
 }
 
-export default async function PratiquesPage() {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default async function PratiquesPage({ searchParams }: { searchParams: { eleve?: string | string[] } }) {
+  // « ?eleve=<id> » : seulement les travaux de cette élève (lien depuis sa fiche de suivi / Ma classe).
+  const brutEleve = Array.isArray(searchParams.eleve) ? searchParams.eleve[0] : searchParams.eleve;
+  const eleve = brutEleve && UUID.test(brutEleve) ? brutEleve : null;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -35,27 +41,26 @@ export default async function PratiquesPage() {
 
   // 1) Travaux à corriger (submitted/reviewed) + travaux déjà validés (approved, récents).
   //    Les validés RESTENT visibles afin de pouvoir les partager sur le feed à tout moment.
-  const { data: pendingSubs } = await admin
+  let pendingQuery = admin
     .from("lesson_practicals")
     .select("id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
-    .in("status", ["submitted", "reviewed"])
-    .order("created_at", { ascending: true });
+    .in("status", ["submitted", "reviewed"]);
+  if (eleve) pendingQuery = pendingQuery.eq("user_id", eleve);
+  const { data: pendingSubs } = await pendingQuery.order("created_at", { ascending: true });
   // Validés : triés par VALIDATION récente (reviewed_at) pour que le travail
   // qu'on vient de valider apparaisse tout en haut de « À partager ». Fallback
   // sur created_at si la colonne reviewed_at n'existe pas encore (migration 076).
   const APPROVED_SELECT = "id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)";
-  let { data: approvedSubs, error: approvedErr } = await admin
-    .from("lesson_practicals")
-    .select(APPROVED_SELECT)
-    .eq("status", "approved")
+  const approvedBase = () => {
+    const q = admin.from("lesson_practicals").select(APPROVED_SELECT).eq("status", "approved");
+    return eleve ? q.eq("user_id", eleve) : q;
+  };
+  let { data: approvedSubs, error: approvedErr } = await approvedBase()
     .order("reviewed_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(2000);
   if (approvedErr) {
-    ({ data: approvedSubs } = await admin
-      .from("lesson_practicals")
-      .select(APPROVED_SELECT)
-      .eq("status", "approved")
+    ({ data: approvedSubs } = await approvedBase()
       .order("created_at", { ascending: false })
       .limit(2000));
   }
@@ -117,6 +122,10 @@ export default async function PratiquesPage() {
     courseTitle: courseTitle.get(lessonCourse.get(s.lesson_id) ?? "") ?? "",
   });
 
+  const nomEleve = eleve
+    ? ((await admin.from("users").select("nom").eq("id", eleve).maybeSingle()).data?.nom as string | undefined) ?? null
+    : null;
+
   const pendingRows = (pendingSubs ?? []).filter(owns).map(toRow);
   const approvedRows = (approvedSubs ?? []).filter(owns).map(toRow);
 
@@ -128,6 +137,13 @@ export default async function PratiquesPage() {
           Corrigez les réalisations de vos élèves : laissez un retour, validez ou demandez à retravailler.
         </p>
       </div>
+
+      {eleve ? (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
+          <span>Travaux de <b>{nomEleve ?? "cette élève"}</b> seulement.</span>
+          <Link href="/formateur/pratiques" className="font-semibold underline">Voir les travaux de toutes les élèves</Link>
+        </div>
+      ) : null}
 
       {/* Sélection multiple + suppression en masse (client) */}
       <PracticalsBoard pending={pendingRows} approved={approvedRows} sharedIds={[...sharedSet]} />

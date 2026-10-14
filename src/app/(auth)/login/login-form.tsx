@@ -56,6 +56,9 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
 
   // Message si l'élève a été déconnecté parce que son compte a été utilisé ailleurs.
   useEffect(() => {
+    // Lien de l'e-mail d'accès (« Accéder à ma formation ») : l'e-mail est déjà rempli, il reste le mot de passe.
+    const prerempli = (new URLSearchParams(window.location.search).get("email") ?? "").replace(/\s+/g, "").slice(0, 200);
+    if (prerempli.includes("@")) setEmail(prerempli);
     if (new URLSearchParams(window.location.search).get("error") === "autre_appareil") {
       setNotice(t.otherDevice);
     }
@@ -67,7 +70,14 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     setError("");
 
     const supabase = createClient();
-    let { error } = await supabase.auth.signInWithPassword({ email, password });
+    const mail = email.trim();
+    let { error } = await supabase.auth.signInWithPassword({ email: mail, password });
+    // Mot de passe COLLÉ depuis l'e-mail d'accès : certaines messageries y glissent des espaces ou un retour à la
+    // ligne (mot de passe coupé en deux). Refusé tel quel → on réessaie une fois sans ces espaces.
+    const sansEspaces = password.replace(/\s+/g, "");
+    if (error && sansEspaces !== password && sansEspaces) {
+      ({ error } = await supabase.auth.signInWithPassword({ email: mail, password: sansEspaces }));
+    }
 
     // Compte « non confirmé » (ancienne inscription bloquée) → on confirme
     // automatiquement puis on retente. Le mot de passe est revalidé à la 2ᵉ tentative.

@@ -5,9 +5,12 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isFormateur } from "@/lib/roles";
+import { hasRole, isFormateur } from "@/lib/roles";
 import { resolveLive } from "@/lib/live";
 import { brandedSiteUrl } from "@/lib/site-url";
+import { lireDateHeureLocale, migrationAbsente } from "@/lib/live-care/repli";
+import { annulerLive } from "@/lib/live-care/load";
+import { instantAlger } from "@/lib/live-care/temps";
 
 const SessionSchema = z.object({
   titre: z.string().min(2, "Titre trop court"),
@@ -24,7 +27,21 @@ async function requireStaff() {
   if (!user) return { supabase, user: null, ok: false };
   const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
   const ok = isFormateur(prof);
-  return { supabase, user, ok };
+  return { supabase, user, ok, estAdmin: hasRole(prof, "admin") };
+}
+
+/**
+ * Propriétaire et origine d'une session (colonnes de la migration 096 si elle est appliquée).
+ * Une formatrice n'agit que sur SES sessions ; l'administratrice sur toutes.
+ */
+async function lireCible(id: string) {
+  const admin = createAdminClient();
+  const r = await admin.from("live_sessions").select("id, formateur_id, created_via, series_id").eq("id", id).maybeSingle();
+  if (r.error && migrationAbsente(r.error)) {
+    const repli = await admin.from("live_sessions").select("id, formateur_id").eq("id", id).maybeSingle();
+    return { admin, cible: repli.data as { id: string; formateur_id: string; created_via?: string | null; series_id?: string | null } | null, erreur: repli.error?.message };
+  }
+  return { admin, cible: r.data as { id: string; formateur_id: string; created_via?: string | null; series_id?: string | null } | null, erreur: r.error?.message };
 }
 
 export async function createSession(input: z.infer<typeof SessionSchema>) {
@@ -35,12 +52,21 @@ export async function createSession(input: z.infer<typeof SessionSchema>) {
   if (!ok || !user) return { ok: false, error: "Accès refusé." };
 
   const d = parsed.data;
+  // Le champ « datetime-local » donne une heure SANS fuseau, pensée à Alger. Le serveur
+  // tourne en UTC : `new Date("…T19:00")` y donnait 19:00 UTC (= 20:00 à Alger).
+  const local = lireDateHeureLocale(d.starts_at);
+  let startsAt: string;
+  try {
+    startsAt = local ? instantAlger(local.jour, local.heure) : new Date(d.starts_at).toISOString();
+  } catch {
+    return { ok: false, error: "Date ou heure invalide." };
+  }
   const { error } = await supabase.from("live_sessions").insert({
     formateur_id: user.id,
     titre: d.titre,
     description: d.description || null,
     course_id: d.course_id || null,
-    starts_at: new Date(d.starts_at).toISOString(),
+    starts_at: startsAt,
     meet_url: d.meet_url || null,
     replay_url: d.replay_url || null,
   });
@@ -50,8 +76,26 @@ export async function createSession(input: z.infer<typeof SessionSchema>) {
 }
 
 export async function deleteSession(id: string) {
-  const { supabase, ok } = await requireStaff();
-  if (!ok) return { ok: false, error: "Accès refusé." };
+  const { supabase, user, ok, estAdmin } = await requireStaff();
+  if (!ok || !user) return { ok: false, error: "Accès refusé." };
+  const { admin, cible, erreur } = await lireCible(id);
+  if (erreur) return { ok: false, error: erreur };
+  if (!cible) return { ok: false, error: "Session introuvable." };
+  if (cible.formateur_id !== user.id && !estAdmin) return { ok: false, error: "Cette session ne vous appartient pas." };
+
+  // Programmée par l'administration (/admin/lives) : ANNULÉE, pas effacée — la ligne reste,
+  // la série ne la recrée pas, ses rappels passent en « annulé », le cron reste verrouillé.
+  if (cible.created_via === "admin_lives" || cible.series_id) {
+    try {
+      await annulerLive(admin, id, "occurrence", "Retirée par la formatrice (/formateur/sessions)", { userId: user.id, maintenant: new Date(), niveaux: [] });
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Annulation impossible." };
+    }
+    revalidatePath("/formateur/sessions");
+    revalidatePath("/admin/lives");
+    return { ok: true, annulee: true };
+  }
+
   const { error } = await supabase.from("live_sessions").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/formateur/sessions");
@@ -59,8 +103,12 @@ export async function deleteSession(id: string) {
 }
 
 export async function addReplay(id: string, replayUrl: string) {
-  const { supabase, ok } = await requireStaff();
-  if (!ok) return { ok: false, error: "Accès refusé." };
+  const { supabase, user, ok, estAdmin } = await requireStaff();
+  if (!ok || !user) return { ok: false, error: "Accès refusé." };
+  const { cible, erreur } = await lireCible(id);
+  if (erreur) return { ok: false, error: erreur };
+  if (!cible) return { ok: false, error: "Session introuvable." };
+  if (cible.formateur_id !== user.id && !estAdmin) return { ok: false, error: "Cette session ne vous appartient pas." };
   const { error } = await supabase.from("live_sessions").update({ replay_url: replayUrl }).eq("id", id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/formateur/sessions");

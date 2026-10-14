@@ -19,6 +19,25 @@ type BeforeInstallPromptEvent = Event & {
 };
 type Os = "android" | "ios";
 
+/** Les vidéos « comment installer » (Bunny), une par téléphone. */
+const VIDEOS: Record<Os, string> = {
+  android: "https://iframe.mediadelivery.net/embed/504717/25baee7b-a6f2-4fa6-8338-5af9107a7a40?autoplay=false&preload=true&responsive=true",
+  ios: "https://iframe.mediadelivery.net/embed/504717/fa2e5eb8-f51f-4193-8aa2-16a5130af735?autoplay=false&preload=true&responsive=true",
+};
+
+function VideoDemo({ os }: { os: Os }) {
+  return (
+    <div className="mt-5">
+      <p className="text-sm font-semibold mb-2">🎬 {os === "ios" ? "Regardez comment faire sur iPhone" : "Regardez comment faire sur Android"} <span dir="rtl" className="opacity-75">· شوفي كيفاش</span></p>
+      <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl bg-black shadow-lg" style={{ aspectRatio: "9 / 16" }}>
+        <iframe key={os} src={VIDEOS[os]} title={os === "ios" ? "Installer l’application sur iPhone" : "Installer l’application sur Android"}
+          loading="lazy" allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen" allowFullScreen
+          className="absolute inset-0 w-full h-full border-0" />
+      </div>
+    </div>
+  );
+}
+
 function signaler(cb: string | null, evt: "vue" | "installe" | "declare") {
   if (!cb || !/^https:\/\/[^\s]+\/v1\/public\/app\/[\w.-]+$/.test(cb)) return;
   const url = `${cb}?evt=${evt}`;
@@ -31,6 +50,9 @@ function signaler(cb: string | null, evt: "vue" | "installe" | "declare") {
 export function InstallerApp() {
   const params = useSearchParams();
   const cb = params.get("cb");
+  // Venue de l'e-mail d'accès (`?email=`) : « Accéder à ma formation » ouvre la connexion avec l'e-mail déjà rempli.
+  const emailAcces = (params.get("email") ?? "").replace(/\s+/g, "");
+  const lienFormation = emailAcces.includes("@") ? `/login?email=${encodeURIComponent(emailAcces)}` : "/login";
   const [os, setOs] = useState<Os | null>(params.get("os") === "ios" ? "ios" : params.get("os") === "android" ? "android" : null);
   const [evenement, setEvenement] = useState<BeforeInstallPromptEvent | null>(null);
   const [installee, setInstallee] = useState(false);
@@ -82,15 +104,25 @@ export function InstallerApp() {
         <p className="mt-1 text-base" dir="rtl">تطبيق Arazzo مجاني : الدروس والباترونات ديما معاك</p>
       </div>
 
+      {/* 1) ACCÉDER À MA FORMATION tout de suite (le site marche aussi sans l'application). */}
+      <a href={lienFormation} className="mt-6 block w-full text-center rounded-2xl bg-[#128a4c] text-white font-bold text-base py-4 shadow-lg">
+        ✅ Accéder à ma formation
+        <span className="block text-xs font-normal opacity-90" dir="rtl">ادخلي لدروسك</span>
+      </a>
+      {emailAcces.includes("@") ? <p className="mt-1 text-center text-xs opacity-70">Votre e-mail sera déjà rempli : il ne reste que le mot de passe reçu par e-mail.</p> : null}
+
+      {/* 2) INSTALLER L'APPLICATION pour la suite. */}
+      <p className="mt-8 text-center font-bold">📲 Et installez l’application pour retrouver vos cours d’un seul geste</p>
+
       {installee ? (
-        <div className="mt-8 rounded-2xl bg-green-50 border border-green-200 p-5 text-center">
+        <div className="mt-4 rounded-2xl bg-green-50 border border-green-200 p-5 text-center">
           <p className="text-lg font-bold text-green-800">✅ Merci, l’application est installée !</p>
           <p className="mt-1" dir="rtl">شكرا ! التطبيق راهو على تيليفونك 🌸</p>
           <p className="mt-2 text-sm opacity-75">Retrouvez l’icône Arazzo sur l’écran d’accueil de votre téléphone.</p>
         </div>
       ) : (
         <>
-          <div className="mt-8 flex gap-3">
+          <div className="mt-4 flex gap-3">
             <button type="button" className={bouton(os === "android")} onClick={installerAndroid}>🤖 Android</button>
             <button type="button" className={bouton(os === "ios")} onClick={() => setOs("ios")}>🍎 iPhone</button>
           </div>
@@ -128,6 +160,8 @@ export function InstallerApp() {
               </>
             )}
           </div>
+
+          {os ? <VideoDemo os={os} /> : null}
         </>
       )}
     </div>
