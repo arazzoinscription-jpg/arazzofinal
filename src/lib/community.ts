@@ -316,3 +316,34 @@ export async function loadStudentJourney(userId: string, lang: "fr" | "ar" | "en
     courses,
   };
 }
+
+/**
+ * Résultats de modèles publiés depuis moins de 24 h (alerte « Bravo ! » du feed), noms PUBLICS.
+ * Tableau vide si la migration 100 n'est pas appliquée ou en cas d'erreur (le feed ne casse jamais).
+ */
+export async function loadResultatsRecents(): Promise<import("@/lib/resultats").ResultatVue[]> {
+  const admin = createAdminClient();
+  const depuis = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+  const { data, error } = await admin
+    .from("community_media")
+    .select("id, media_kind, media_url, bunny_video_id, thumbnail_url, created_at, post:posts!inner(content, published, author:users(id, nom, username, avatar_url, role, roles))")
+    .eq("source_type", "student_result")
+    .gte("created_at", depuis)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error) return [];
+  return ((data ?? []) as any[])
+    .filter((r) => r.post && (r.post.published ?? true) && r.post.author)
+    .map((r) => ({
+      id: r.id as string,
+      auteurId: r.post.author.id as string,
+      auteur: nomPublic(r.post.author),
+      avatar: cdnImage(r.post.author.avatar_url ?? null),
+      kind: r.media_kind as "image" | "video",
+      mediaUrl: r.media_url ?? null,
+      videoHls: r.bunny_video_id ? bunnyPlaybackUrls(r.bunny_video_id).hls : null,
+      thumbnail: r.thumbnail_url ?? null,
+      legende: r.post.content ?? null,
+      createdAt: r.created_at as string,
+    }));
+}

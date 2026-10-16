@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { ACTIVITES, AUCUNE, LIBELLE_ACTIVITE, arrondirPct, type CodeActivite, type MonActivite } from "@/lib/presence-membres";
 import { changerMienne, etatDe, lireMienne, useMembresEnLigne, type EtatEnLigne } from "./membres";
+import { PublierResultat } from "./publier-resultat";
 
 /**
  * « Ce que je fais en ce moment » : 4 activités animées, choisies par l'élève sur son profil.
@@ -209,6 +210,10 @@ export function ChoixActivite({ sombre = false }: { sombre?: boolean }) {
             onChange={(e) => choisir({ ...a, pct: arrondirPct(e.target.value) ?? 0, le: Date.now() })} />
           <span className="mt-1 flex"><BarreModele pct={a.pct ?? 0} /></span>
         </label>
+      ) : null}
+      {a.code === "modele" ? (
+        // Résultat publié : le statut « modèle en cours » se termine.
+        <PublierResultat sombre={sombre} onPublie={() => choisir({ ...a, code: null, pct: null, le: Date.now() })} />
       ) : null}
       <label className={`mt-3 flex items-start gap-2 text-xs ${sombre ? "text-white/70" : "text-gray-600"}`}>
         <input type="checkbox" checked={a.discrete} onChange={(e) => choisir({ ...a, discrete: e.target.checked })} className="mt-0.5" />

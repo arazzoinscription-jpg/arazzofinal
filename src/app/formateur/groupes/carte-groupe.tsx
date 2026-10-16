@@ -23,8 +23,10 @@ export function bandeauDe(id: string): string {
 const VISIBLES = 6;
 
 /** Petite carte d'un groupe (= une classe) : qui en fait partie, où en sont-elles, et les deux actions. */
-export function CarteGroupe({ g, membres, peutSupprimer }: {
+export function CarteGroupe({ g, membres, peutSupprimer, inscription }: {
   g: { id: string; nom: string; description: string | null; couverture: string | null; membres: string[] };
+  /** Groupe en ligne à places (migration 101) : inscription ouverte et nombre de places. */
+  inscription?: { ouverte: boolean; capacite: number | null } | null;
   /** Membres suivis dans l'espace (photo + couleur de suivi). */
   membres: CarteEleve[];
   peutSupprimer: boolean;
@@ -45,6 +47,11 @@ export function CarteGroupe({ g, membres, peutSupprimer }: {
 
       <div className="flex-1 flex flex-col px-4 pt-7 pb-4">
         <h3 className="font-semibold text-gray-900 font-dm leading-tight line-clamp-1" title={g.nom}>{g.nom}</h3>
+        {inscription?.ouverte ? (
+          <span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10.5px] font-semibold">
+            🎟️ Inscription ouverte{inscription.capacite ? ` · ${Math.min(g.membres.length, inscription.capacite)}/${inscription.capacite}` : ""}
+          </span>
+        ) : null}
         <p className="text-xs text-gray-500 font-dm line-clamp-2 min-h-[2rem] mt-0.5">{g.description || "—"}</p>
         <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-gray-600 font-semibold">
           <Users size={13} aria-hidden /> {g.membres.length} membre{g.membres.length > 1 ? "s" : ""}

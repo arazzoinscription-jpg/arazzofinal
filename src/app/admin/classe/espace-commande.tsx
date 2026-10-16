@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { CalendarPlus, ChevronDown, Mail, Megaphone, MessageCircle, Radio, type LucideIcon } from "lucide-react";
+import { BellRing, CalendarPlus, ChevronDown, Mail, Megaphone, MessageCircle, Radio, type LucideIcon } from "lucide-react";
 import type { CodeNiveau } from "@/lib/student-care/levels";
 import type { CibleCommande, EtapeEnvoi } from "@/lib/classe/commande";
 import { prenom } from "@/lib/classe/communication";
@@ -10,12 +10,13 @@ import { ouvrirMessagerie } from "@/lib/classe/ouvrir-messagerie";
 import { apercuAnnonce, publierAnnonce, type ApercuAnnonce } from "./annonce-api";
 import { EnvoiEmail } from "./envoi-email";
 import { Etapes } from "./etapes";
+import { PanneauCloche } from "./panneau-cloche";
 
 export interface NiveauCommande { id: string; code: CodeNiveau; titre: string }
 export interface EleveCommande { id: string; nom: string; niveaux: CodeNiveau[] }
 export interface GroupeCommande { id: string; nom: string; membres: number }
 
-type Panneau = "message" | "annonce" | "email" | null;
+type Panneau = "message" | "annonce" | "email" | "cloche" | null;
 
 const champ = "mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#5B16F9]/30";
 
@@ -248,7 +249,7 @@ export function EspaceCommande({ base, niveaux, niveau, changerNiveau, eleves, g
       </div>
       {horsEspace ? <p className="mb-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900">Le niveau {niveau} ne fait pas partie de vos cours : les actions collectives ne peuvent pas le viser.</p> : null}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-2.5">
         <Tuile icone={CalendarPlus} titre="Programmer un live" ton="from-[#5B16F9] to-[#3a0fb0] text-white"
           href={`${base}/lives/nouveau${choisi ? `?niveau=${choisi.code}` : ""}`}
           sous={choisi ? `Formulaire pré-rempli : ${choisi.code}` : "Ouvre la programmation"} />
@@ -263,8 +264,10 @@ export function EspaceCommande({ base, niveaux, niveau, changerNiveau, eleves, g
           sous="Messagerie du site, pré-remplie" />
         <Tuile icone={Megaphone} titre="Annonce de classe" ton="from-orange-500 to-orange-600 text-white" actif={panneau === "annonce"} onClick={() => basculer("annonce")}
           sous={choisi ? `Élèves du ${choisi.code}, après aperçu` : "Choisir un niveau"} />
-        <Tuile icone={Mail} titre="Envoyer un e-mail" ton="from-white to-gray-50 text-gray-800" large actif={panneau === "email"} onClick={() => basculer("email")}
+        <Tuile icone={Mail} titre="Envoyer un e-mail" ton="from-white to-gray-50 text-gray-800" actif={panneau === "email"} onClick={() => basculer("email")}
           sous={serviceEmail ? "Après vérification et confirmation" : <span className="text-amber-700 font-semibold">Service e-mail non configuré</span>} />
+        <Tuile icone={BellRing} titre="Cloche de classe" ton="from-amber-400 to-orange-500 text-white" actif={panneau === "cloche"} onClick={() => basculer("cloche")}
+          sous="Sonne sur le téléphone des élèves" />
       </div>
 
       {panneau ? (
@@ -272,6 +275,7 @@ export function EspaceCommande({ base, niveaux, niveau, changerNiveau, eleves, g
           {panneau === "message" ? <PanneauMessage base={base} eleves={elevesDuNiveau} /> : null}
           {panneau === "annonce" ? <PanneauAnnonce key={choisi?.id ?? "aucun"} niveau={choisi} serviceEmail={serviceEmail} /> : null}
           {panneau === "email" ? <PanneauEmail base={base} niveau={choisi} eleves={elevesDuNiveau} groupes={groupes} groupeCourant={groupeCourant} serviceEmail={serviceEmail} /> : null}
+          {panneau === "cloche" ? <PanneauCloche key={choisi?.id ?? "aucun"} base={base} niveau={choisi ? { id: choisi.id, code: choisi.code } : null} groupes={groupes} groupeCourant={groupeCourant} /> : null}
         </div>
       ) : null}
     </section>

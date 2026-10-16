@@ -129,6 +129,19 @@ test("garde-fou : l'action e-mail vérifie confirmation, configuration et limite
   }
 });
 
+test("garde-fou : la cloche vérifie confirmation, message et heure AVANT de créer ou d'envoyer", () => {
+  const code = readFileSync(join(process.cwd(), "src", "app", "admin", "classe", "cloche-actions.ts"), "utf8");
+  const debut = code.indexOf("export async function creerClocheAction");
+  const corps = code.slice(debut);
+  const creation = corps.indexOf("await creerCloche(");
+  const envoi = corps.indexOf("await sonnerCloche(");
+  assert.ok(creation > 0 && envoi > creation, "création puis envoi introuvables");
+  for (const garde of ["entree.confirmation !== true", "validerMessageCloche(", "lireQuand(", "etatMigrationCloches(", "elevesVisees("]) {
+    const i = corps.indexOf(garde);
+    assert.ok(i > 0 && i < creation, `garde « ${garde} » absente ou placée après la création`);
+  }
+});
+
 test("garde-fou : « Ma classe » n'importe aucun module d'envoi et n'écrit rien en base", () => {
   const racine = process.cwd();
   const dossiers = [join(racine, "src", "lib", "classe"), join(racine, "src", "app", "admin", "classe")];

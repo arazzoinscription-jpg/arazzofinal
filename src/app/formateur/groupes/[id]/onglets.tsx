@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageCircle, Newspaper, Users } from "lucide-react";
+import { MessageCircle, Newspaper, Ticket, Users } from "lucide-react";
 
-const ICONES = { publications: Newspaper, membres: Users, whatsapp: MessageCircle } as const;
+const ICONES = { publications: Newspaper, membres: Users, inscriptions: Ticket, whatsapp: MessageCircle } as const;
 export type CleOnglet = keyof typeof ICONES;
 
 /** Gestion d'un groupe en onglets (publications · membres · WhatsApp) ; l'onglet ouvert reste dans l'adresse. */
@@ -15,7 +15,10 @@ export function OngletsGroupe({ onglets, initial }: {
   useEffect(() => {
     const u = new URL(window.location.href);
     u.searchParams.set("onglet", actif);
-    window.history.replaceState(null, "", u.toString());
+    if (u.toString() === window.location.href) return;
+    // On garde l'état d'historique de Next.js : un état vide déclenche une navigation qui fait perdre
+    // la réponse des actions serveur en cours (l'onglet « Inscriptions » restait sur « Chargement… »).
+    window.history.replaceState({ ...(window.history.state ?? {}) }, "", u.toString());
   }, [actif]);
   return (
     <div>

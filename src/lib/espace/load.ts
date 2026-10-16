@@ -34,3 +34,17 @@ export async function espaceFormatrice(): Promise<Espace | null> {
 export function espacePour(base: Base): Promise<Espace | null> {
   return base === "/formateur" ? espaceFormatrice() : espaceAdmin();
 }
+
+/**
+ * Espace d'une personne désignée (sans session) — pour un envoi PROGRAMMÉ qui doit garder les droits
+ * de son autrice (ex. cloche de classe). null si elle n'est plus ni formatrice ni administratrice.
+ */
+export async function espaceDeCompte(userId: string): Promise<Espace | null> {
+  const admin = createAdminClient();
+  const { data: profil } = await admin.from("users").select("role, roles").eq("id", userId).maybeSingle();
+  if (!isFormateur(profil)) return null;
+  if (isAdmin(profil)) return { base: "/admin", userId, estAdmin: true, cours: null };
+  const { data: cours, error } = await admin.from("courses").select("id").eq("formateur_id", userId);
+  if (error) throw new Error(`Cours de la formatrice illisibles : ${error.message}`);
+  return { base: "/formateur", userId, estAdmin: false, cours: new Set((cours ?? []).map((c: { id: string }) => c.id)) };
+}

@@ -72,3 +72,18 @@ export async function destinatairesPour(admin: SupabaseClient, e: Espace, cible:
     }))
     .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
 }
+
+/** Identifiants des ÉLÈVES visées (espace vérifié, comptes d'équipe exclus) — pour la cloche de classe. */
+export async function elevesVisees(admin: SupabaseClient, e: Espace, cible: CibleCommande): Promise<string[]> {
+  const ids = await idsVises(admin, e, cible);
+  const eleves: string[] = [];
+  for (const lot of paquets(ids, 100)) {
+    // eslint-disable-next-line no-await-in-loop
+    const u = await admin.from("users").select("id, role, roles").in("id", lot);
+    if (u.error) throw new Error(`Profils illisibles : ${u.error.message}`);
+    for (const p of (u.data ?? []) as { id: string; role: string | null; roles: string[] | null }[]) {
+      if (!getRoles(p).some((r) => r === "formateur" || r === "admin")) eleves.push(p.id);
+    }
+  }
+  return eleves;
+}

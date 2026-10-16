@@ -40,7 +40,10 @@ export function GrilleClasse({ cartes, initiaux, base, niveauPartage }: {
     if (niveau) garder.niveau = niveau;
     if (t) garder.teinte = t;
     const s = new URLSearchParams(garder).toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${s ? `?${s}` : ""}`);
+    const cible = `${window.location.pathname}${s ? `?${s}` : ""}`;
+    if (cible === `${window.location.pathname}${window.location.search}`) return;
+    // État d'historique de Next.js conservé (un état vide relance une navigation et fait perdre les actions en cours).
+    window.history.replaceState({ ...(window.history.state ?? {}) }, "", cible);
   }, [q, niveau, t]);
 
   const puce = (actif: boolean) => `inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${actif ? "bg-[#5B16F9] border-[#5B16F9] text-white shadow-sm" : "bg-white hover:bg-gray-50"}`;

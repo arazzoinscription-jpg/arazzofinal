@@ -38,6 +38,12 @@ export default async function FormateurGroupesPage() {
   }
 
   const suivies = new Set(groupes.flatMap((g) => g.membres.filter((id) => cartes.has(id))));
+  // Inscriptions en ligne (migration 101) : lues si disponibles, sinon rien n'est affiché.
+  const inscriptions = new Map<string, { ouverte: boolean; capacite: number | null }>();
+  if (groupes.length) {
+    const r = await admin.from("groups").select("id, inscription_ouverte, capacite").in("id", groupes.map((g) => g.id));
+    if (!r.error) for (const x of (r.data ?? []) as { id: string; inscription_ouverte: boolean; capacite: number | null }[]) inscriptions.set(x.id, { ouverte: x.inscription_ouverte, capacite: x.capacite });
+  }
 
   return (
     <div>
@@ -76,6 +82,7 @@ export default async function FormateurGroupesPage() {
                 g={g}
                 membres={g.membres.map((id) => cartes.get(id)).filter((c): c is CarteEleve => Boolean(c))}
                 peutSupprimer={espace.estAdmin || g.creatrice === espace.userId}
+                inscription={inscriptions.get(g.id) ?? null}
               />
             </li>
           ))}

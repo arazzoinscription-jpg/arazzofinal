@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Radio } from "lucide-react";
-import { loadCommunityFeed } from "@/lib/community";
+import { loadCommunityFeed, loadResultatsRecents } from "@/lib/community";
+import { AlerteResultats } from "@/components/community/alerte-resultats";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveLiveForViewer } from "@/lib/live";
 import { FEED_LIBRARY_ID } from "@/lib/bunny/stream";
@@ -19,7 +20,7 @@ export const fetchCache = "force-no-store";
 export default async function CommunautePage() {
   // Feed 100 % PUBLIC (visiteurs inclus, sans limite ni blocage). Une invitation
   // à se connecter, toujours refermable, est gérée côté client.
-  const { me, items } = await loadCommunityFeed();
+  const [{ me, items }, resultats] = await Promise.all([loadCommunityFeed(), loadResultatsRecents()]);
 
   // L'accueil du feed (test de niveau + code promo) ne concerne que les visiteuses non connectées.
   const welcome = me ? null : await loadFeedWelcome();
@@ -48,6 +49,8 @@ export default async function CommunautePage() {
       )}
       {/* Retour d'un profil : on revient à la même vidéo (sans toucher au lecteur du feed). */}
       <MemoirePositionFeed />
+      {/* « Bravo ! … a terminé son modèle » : 24 h après la publication du résultat. */}
+      <AlerteResultats resultats={resultats} bibliotheque={FEED_LIBRARY_ID} />
       {me && <SignalPresenceMembre userId={me.id} />}
       <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} welcome={welcome} />
       {/* Bouton « + » flottant : staff → vidéo/actualité ; élève → reel (≤ 2 min).

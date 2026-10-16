@@ -8,6 +8,7 @@ import { MembersManager, type Member } from "./members-manager";
 import { GroupWhatsAppManager } from "./whatsapp-manager";
 import { ArrowLeft, School } from "lucide-react";
 import { OngletsGroupe, type CleOnglet } from "./onglets";
+import { ReglagesInscription } from "./reglages-inscription";
 import { bandeauDe } from "../carte-groupe";
 
 export const metadata = { title: "Groupe — Arazzo Formation" };
@@ -81,6 +82,7 @@ export default async function FormateurGroupPage({ params, searchParams }: { par
         onglets={[
           { cle: "publications", titre: "Publications", compte: posts.length, contenu: me ? <div className="max-w-3xl"><Feed posts={posts} me={me} groupId={group.id} /></div> : null },
           { cle: "membres", titre: "Membres", compte: members.length, contenu: <div className="max-w-2xl"><MembersManager groupId={group.id} members={members} /></div> },
+          { cle: "inscriptions", titre: "Inscriptions", contenu: <ReglagesInscription groupId={group.id} /> },
           { cle: "whatsapp", titre: "WhatsApp", contenu: <div className="max-w-2xl"><GroupWhatsAppManager groupId={group.id} initialLink={group.whatsapp_link ?? null} disabled={!!group.whatsapp_disabled} /></div> },
         ]}
       />

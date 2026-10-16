@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EcouteCloche } from "@/components/cloche/ecoute-cloche";
 import { BoutonMaClasse } from "@/components/layout/bouton-ma-classe";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -198,6 +199,8 @@ export default async function DashboardLayout({
       <ChatWidget />
       {/* Accès direct à « Ma classe », depuis toutes les pages de l'espace. */}
       <BoutonMaClasse href="/dashboard/classe" />
+      {/* Cloche de la classe : bannière + son quand l'enseignante la fait sonner. */}
+      <EcouteCloche userId={user.id} />
       {/* « En ligne » + activité choisie, visibles des camarades — temps réel, rien en base (mode discrète possible). */}
       <SignalPresenceMembre userId={user.id} />
     </div>

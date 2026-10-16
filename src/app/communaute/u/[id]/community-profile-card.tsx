@@ -5,6 +5,8 @@ import { UserPlus, Check } from "lucide-react";
 import { toggleFollow, listFollowers, listFollowing, listProfileLikers, type CommunityPerson } from "@/app/actions/community";
 import { toast } from "@/components/ui/toast";
 import { PeopleModal } from "./people-modal";
+import { PhotoAvecStory } from "@/components/stories/barre-stories";
+import type { StoryVue } from "@/lib/stories/regles";
 
 interface Props {
   userId: string;
@@ -22,6 +24,8 @@ interface Props {
   /** Visiteur non connecté : le profil reste visible, les interactions invitent à se connecter. */
   isGuest?: boolean;
   lang?: "fr" | "ar" | "en";
+  /** Stories actives (24 h) de ce membre — membres connectés seulement. */
+  stories?: { liste: StoryVue[]; meId: string | null; moderation: boolean; bibliotheque: string };
 }
 
 const FOLLOW_T = {
@@ -40,7 +44,7 @@ type ModalKind = "followers" | "following" | "likes" | null;
 
 /** Carte de profil communauté — stats animées + bouton d'abonnement + listes cliquables. */
 export function CommunityProfileCard({
-  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, isGuest = false, lang = "fr",
+  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, isGuest = false, lang = "fr", stories,
 }: Props) {
   const ft = FOLLOW_T[lang];
   const [aLikes, setALikes] = useState(0);
@@ -110,9 +114,16 @@ export function CommunityProfileCard({
         <div className="px-6 pt-6 pb-6">
           {/* Avatar + bouton suivre (plus de bandeau violet : la photo est mise en avant) */}
           <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-orange-DEFAULT grid place-items-center text-white text-3xl font-bold shadow-lg ring-1 ring-cream-200 dark:ring-white/10">
-              {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : initial}
-            </div>
+            {(() => {
+              const photo = (
+                <div className="w-24 h-24 rounded-full overflow-hidden bg-orange-DEFAULT grid place-items-center text-white text-3xl font-bold shadow-lg ring-1 ring-cream-200 dark:ring-white/10">
+                  {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : initial}
+                </div>
+              );
+              return stories ? (
+                <PhotoAvecStory stories={stories.liste} meId={stories.meId} moderation={stories.moderation} bibliotheque={stories.bibliotheque} ajouter={isMe} taille="lg">{photo}</PhotoAvecStory>
+              ) : photo;
+            })()}
             {!isMe && (
               <button onClick={onFollow} disabled={pending}
                 className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold transition-colors disabled:opacity-70 ${

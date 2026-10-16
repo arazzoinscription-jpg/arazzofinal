@@ -11,6 +11,7 @@ import { groupesDeLespace } from "@/lib/classe/groupes";
 import { LIBELLE_TEINTE, TEINTES, avatarSur, compterTeintes, initiales, lireFiltresClasse } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "../teintes";
 import { ClasseInteractive } from "../classe-interactive";
+import { AjouterStory } from "@/components/stories/ajouter-story";
 import { bandeauDe } from "@/app/formateur/groupes/carte-groupe";
 
 
@@ -37,6 +38,9 @@ function Tableau({ titre, sousTitre, children, enseignante }: { titre: string; s
           </div>
           <div className="mt-1.5 text-xs text-white/80 max-w-[8rem] truncate">{enseignante.nom}</div>
         </Link>
+      ) : null}
+      {enseignante ? (
+        <div className="relative float-right clear-right ms-4 -mt-1 mb-2"><AjouterStory sombre /></div>
       ) : null}
       <div className="relative">
         <p className="text-xs uppercase tracking-[0.2em] text-white/70 font-dm">Arazzo · Classe virtuelle</p>

@@ -8,6 +8,8 @@ import { normaliser } from "@/lib/classe/vue";
 import { ouvrirMessagerie } from "@/lib/classe/ouvrir-messagerie";
 import { PastillePresence, useEnseignantesEnLigne } from "@/components/presence/presence";
 import { ActiviteDe, ChoixActivite, PointEnLigne, StylesActivite } from "@/components/presence/activite";
+import { BarreStories } from "@/components/stories/barre-stories";
+import type { StoryVue } from "@/lib/stories/regles";
 
 const PAS = 48;
 
@@ -24,9 +26,11 @@ function Photo({ nom, initiales, avatar, taille }: { nom: string; initiales: str
 }
 
 /** « Ma classe » côté élève : enseignante(s) en haut, puis les camarades DE SES GROUPES (jamais le suivi). */
-export function ClasseEleveVue({ enseignantes, camarades, niveaux, groupes }: {
+export function ClasseEleveVue({ enseignantes, camarades, niveaux, groupes, stories }: {
   enseignantes: EnseignanteClasse[]; camarades: PersonneClasse[]; niveaux: string[];
   groupes: { id: string; nom: string; nb: number }[];
+  /** Stories de la classe (24 h) : la mienne, les enseignantes, les camarades de mes groupes. */
+  stories?: { liste: StoryVue[]; meId: string; monAvatar: string | null; bibliotheque: string };
 }) {
   const presence = useEnseignantesEnLigne();
   const [q, setQ] = useState("");
@@ -68,6 +72,18 @@ export function ClasseEleveVue({ enseignantes, camarades, niveaux, groupes }: {
       </section>
 
       <StylesActivite />
+      {stories ? (
+        <BarreStories
+          stories={stories.liste}
+          meId={stories.meId}
+          bibliotheque={stories.bibliotheque}
+          personnes={[
+            { id: stories.meId, nom: "Moi", avatar: stories.monAvatar },
+            ...enseignantes.map((e) => ({ id: e.id, nom: e.nom, avatar: e.avatar })),
+            ...camarades.map((c) => ({ id: c.id, nom: c.nom, avatar: c.avatar })),
+          ]}
+        />
+      ) : null}
       <div className="mb-6"><ChoixActivite /></div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center mb-4">

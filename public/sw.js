@@ -31,10 +31,23 @@ self.addEventListener("push", (event) => {
     silent: Boolean(data.silent),
     data: { url: data.url || "/dashboard" },
   };
+  // Cloche de classe : vibration « ding-ding-dong » et notification qui reste affichée jusqu'au toucher.
+  // (Un site ne peut pas imposer un son personnalisé app fermée : le téléphone joue son son de notification.)
+  const cloche = data.tag === "cloche";
+  if (cloche) {
+    options.vibrate = [500, 200, 500, 200, 900];
+    options.requireInteraction = true;
+    options.renotify = true;
+  }
 
   event.waitUntil(
     (async () => {
       await self.registration.showNotification(title, options);
+      // Page du site ouverte : elle fait sonner une vraie cloche et affiche la bannière.
+      if (cloche) {
+        const fenetres = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        for (const f of fenetres) f.postMessage({ type: "cloche", title, body: options.body });
+      }
       // Badge chiffré sur l'icône de l'app (« 2, 3, 5 » comme les apps natives).
       // Fonctionne app fermée grâce au nombre envoyé dans le push (badgeCount).
       if (typeof data.badgeCount === "number" && self.navigator && "setAppBadge" in self.navigator) {

@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { getLandingTexts } from "@/lib/landing-texts";
 import FormationLanding from "./formation-landing";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { jaugeNiveau } from "@/lib/groupes-places-load";
 
 // Landing NATIVE (24/7 sur Vercel, base Supabase du LMS). Chaque niveau vendu
 // correspond à un cours du LMS. Le DESIGN est désormais identique à l'OS et à la
@@ -54,6 +56,8 @@ export default async function Page({ params }: { params: Promise<{ niveau: strin
     price_amount: course?.prix_dzd ?? null,
     sessions_count: sessions || null,
     program_url: programUrl,
+    // Groupe en ligne ouvert à l'inscription : places prises (rouges) / restantes.
+    seats: await jaugeNiveau(createAdminClient(), courseId).catch(() => null),
   };
 
   // Textes d'interface éventuellement personnalisés dans l'OS (best-effort).

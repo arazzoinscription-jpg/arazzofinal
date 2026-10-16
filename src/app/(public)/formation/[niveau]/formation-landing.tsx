@@ -38,8 +38,8 @@ type CourseView = {
   pack_cumul?: number;
   pack_prix?: number;
   pack_eco?: number;
-  // Jauge de places (poussée par l'OS) : { total, taken, interested }.
-  seats?: { total?: number; taken?: number; interested?: number } | null;
+  // Jauge de places du groupe en ligne ouvert : { total, taken, interested, groupe }.
+  seats?: { total?: number; taken?: number; interested?: number; groupe?: string | null } | null;
 };
 
 const CLE_LANGUE = "arazzo_formation_langue";
@@ -480,6 +480,7 @@ export default function FormationLanding({ data, textes }: {
                 <SeatsBanner
                   seats={data.seats as any}
                   t={t}
+                  groupInfo={data.seats.groupe ?? null}
                   onTake={() => { const el = document.getElementById("pl-form"); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); }}
                 />
               ) : null}

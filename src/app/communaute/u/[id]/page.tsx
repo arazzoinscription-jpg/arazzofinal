@@ -12,6 +12,9 @@ import { BoutonRetour } from "@/components/community/bouton-retour";
 import { SignalPresenceMembre } from "@/components/presence/membres";
 import { ChoixActivite, PresenceDe } from "@/components/presence/activite";
 import { niveauxDuMembre } from "@/lib/niveaux-membre";
+import { storiesActives } from "@/lib/stories/load";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdmin } from "@/lib/roles";
 import { estEquipePublique, nomPublic } from "@/lib/nom-public";
 
 export const metadata = { title: "Profil — Communauté Arazzo" };
@@ -43,6 +46,10 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
     // Niveau inscrit : montré aux membres connectés seulement (pas aux visiteurs).
     me && !isCreator ? niveauxDuMembre(params.id) : Promise.resolve([] as string[]),
   ]);
+  // Stories (24 h) : visibles des membres connectés ; l'administration peut les modérer.
+  const [stories, monProfil] = me
+    ? await Promise.all([storiesActives(createAdminClient(), [params.id]), createAdminClient().from("users").select("role, roles").eq("id", me.id).maybeSingle()])
+    : [[], { data: null }];
 
   return (
     <div className="min-h-[100dvh] bg-[#0b0818] text-white">
@@ -72,6 +79,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           isFollowing={isFollowing}
           isGuest={!me}
           lang={lang}
+          stories={me ? { liste: stories, meId: me.id, moderation: isAdmin(monProfil.data), bibliotheque: FEED_LIBRARY_ID } : undefined}
         />
 
         {isMe && pseudoAutomatique ? (
