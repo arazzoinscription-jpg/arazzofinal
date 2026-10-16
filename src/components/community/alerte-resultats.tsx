@@ -43,7 +43,7 @@ function VoirResultat({ r, bibliotheque, onFermer }: { r: ResultatVue; bibliothe
  * Alerte du feed : « 🎉 Bravo ! … a terminé son modèle — Voir le résultat », pendant 24 h après la publication.
  * Chaque personne peut la fermer (retenu sur son appareil).
  */
-export function AlerteResultats({ resultats, bibliotheque }: { resultats: ResultatVue[]; bibliotheque: string }) {
+export function AlerteResultats({ resultats, bibliotheque, decalage = 0 }: { resultats: ResultatVue[]; bibliotheque: string; decalage?: number }) {
   const [fermes, setFermes] = useState<Set<string>>(new Set());
   const [pret, setPret] = useState(false);
   const [ouvert, setOuvert] = useState<ResultatVue | null>(null);
@@ -61,7 +61,8 @@ export function AlerteResultats({ resultats, bibliotheque }: { resultats: Result
   if (!pret || !r) return ouvert ? <VoirResultat r={ouvert} bibliotheque={bibliotheque} onFermer={() => setOuvert(null)} /> : null;
   return (
     <>
-      <div role="status" className="fixed z-40 inset-x-3 sm:inset-x-auto sm:start-1/2 sm:-translate-x-1/2 sm:w-[440px] top-[calc(env(safe-area-inset-top)+112px)] rounded-2xl bg-gradient-to-r from-[#FE7223] to-[#5B16F9] text-white shadow-2xl px-3 py-2.5 flex items-center gap-3">
+      {/* Juste sous la barre du haut du feed (sa hauteur varie avec la barre de stories). */}
+      <div role="status" style={{ top: `calc(var(--feed-haut, calc(env(safe-area-inset-top) + 104px)) + ${8 + decalage}px)` }} className="fixed z-40 inset-x-3 sm:inset-x-auto sm:start-1/2 sm:-translate-x-1/2 sm:w-[440px] rounded-2xl bg-gradient-to-r from-[#FE7223] to-[#5B16F9] text-white shadow-2xl px-3 py-2.5 flex items-center gap-3">
         <button type="button" onClick={() => setOuvert(r)} className="flex items-center gap-3 min-w-0 flex-1 text-left" aria-label="Voir le résultat">
           <span className="w-11 h-11 rounded-xl overflow-hidden bg-white/20 flex-shrink-0 flex items-center justify-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}

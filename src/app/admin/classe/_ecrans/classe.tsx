@@ -40,7 +40,7 @@ function Tableau({ titre, sousTitre, children, enseignante }: { titre: string; s
         </Link>
       ) : null}
       {enseignante ? (
-        <div className="relative float-right clear-right ms-4 -mt-1 mb-2"><AjouterStory sombre /></div>
+        <div className="relative float-right clear-right ms-4 -mt-1 mb-2"><AjouterStory sombre equipe /></div>
       ) : null}
       <div className="relative">
         <p className="text-xs uppercase tracking-[0.2em] text-white/70 font-dm">Arazzo · Classe virtuelle</p>

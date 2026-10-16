@@ -3,6 +3,8 @@
  * visible 24 h par les membres connectés, autour de la photo de profil (anneau coloré).
  */
 
+import type { Calque } from "./calques";
+
 export const DUREE_STORY_MAX_S = 30;
 export const VIE_STORY_MS = 24 * 60 * 60_000;
 export const PHOTO_STORY_MAX_OCTETS = 8 * 1024 * 1024;
@@ -15,7 +17,7 @@ export interface StoryVue {
   userId: string;
   nom: string;
   avatar: string | null;
-  kind: "image" | "video";
+  kind: "image" | "video" | "texte";
   /** Photo : son URL ; vidéo : l'identifiant Bunny (lecteur intégré). */
   mediaUrl: string | null;
   bunnyVideoId: string | null;
@@ -23,6 +25,12 @@ export interface StoryVue {
   duree: number | null;
   legende: string | null;
   createdAt: string;
+  /** Texte, dessin, autocollants, question, sondage, compte à rebours, lien (migration 102). */
+  calques: Calque[];
+  /** Fond d'une story « texte seul ». */
+  fond: string | null;
+  /** L'autrice fait partie de l'équipe (enseignante, administration) : affichée en premier. */
+  equipe: boolean;
 }
 
 export function verifierPhotoStory(f: { type: string; size: number }): string | null {
@@ -52,6 +60,31 @@ export function regrouper(stories: StoryVue[], maintenant: Date): Map<string, St
     m.set(s.userId, [...(m.get(s.userId) ?? []), s]);
   }
   return m;
+}
+
+/**
+ * Ordre de la barre de stories : l'équipe d'abord (comme demandé : « l'enseignante toujours en premier »).
+ *  0 · moi, si je fais partie de l'équipe ;
+ *  1 · MES enseignantes (celles de mes cours), dans l'ordre donné ;
+ *  2 · le reste de l'équipe ;
+ *  3 · moi (élève) ;
+ *  4 · les autres : stories pas encore vues d'abord, puis les plus récentes.
+ * `ids` peut contenir `meId` même sans story (bulle « Ma story + »).
+ */
+export function ordreBarre(ids: string[], parPersonne: Map<string, StoryVue[]>, opts: {
+  meId: string | null; moiEquipe: boolean; enseignantes: string[]; vues: Set<string>;
+}): string[] {
+  const rang = (id: string) => {
+    if (id === opts.meId) return opts.moiEquipe ? 0 : 3;
+    if (opts.enseignantes.includes(id)) return 1;
+    return parPersonne.get(id)?.[0]?.equipe ? 2 : 4;
+  };
+  const nonVue = (id: string) => (parPersonne.get(id) ?? []).some((s) => !opts.vues.has(s.id));
+  const recente = (id: string) => (parPersonne.get(id) ?? []).reduce((m, s) => (s.createdAt > m ? s.createdAt : m), "");
+  return [...new Set(ids)].sort((a, b) => rang(a) - rang(b)
+    || (rang(a) === 1 ? opts.enseignantes.indexOf(a) - opts.enseignantes.indexOf(b) : 0)
+    || Number(nonVue(b)) - Number(nonVue(a))
+    || recente(b).localeCompare(recente(a)));
 }
 
 /** « il y a 3 h », « il y a 12 min ». */

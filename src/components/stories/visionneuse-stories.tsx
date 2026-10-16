@@ -1,22 +1,106 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Trash2, X } from "lucide-react";
+import { Eye, Loader2, Trash2, X } from "lucide-react";
 import { DUREE_PHOTO_MS, ilYa, type StoryVue } from "@/lib/stories/regles";
-import { supprimerStory } from "@/app/actions/stories";
+import { REACTIONS } from "@/lib/stories/calques";
+import { etatStories, interagirStory, statsStory, supprimerStory, voirStory, type EtatStoryVue, type StatsStory } from "@/app/actions/stories";
+import { FondStory, RenduCalques, STYLE_CADRE, ZONE_CADRE, type Interactions } from "./rendu-calques";
+import { signalerPleinEcran } from "./editeur-story";
+import { noterVues } from "./vues-locales";
 
 export interface GroupeStories { userId: string; nom: string; avatar: string | null; stories: StoryVue[] }
 
+/** Une question ou un sondage laisse le temps de lire et de répondre. */
+const BONUS_INTERACTIF_MS = 4000;
+
+/** Pour l'autrice : qui a vu, les réponses à sa question, les sondages, les réactions. */
+function PanneauActivite({ story, onFermer }: { story: StoryVue; onFermer: () => void }) {
+  const [stats, setStats] = useState<StatsStory | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  useEffect(() => {
+    let actif = true;
+    statsStory(story.id).then((r) => { if (!actif) return; if (r.ok) setStats(r.stats); else setErreur(r.erreur); });
+    return () => { actif = false; };
+  }, [story.id]);
+  const sondages = story.calques.filter((c) => c.type === "sondage");
+  const heure = (iso: string) => {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Algiers" });
+  };
+
+  return (
+    <div className="absolute inset-0 z-30 bg-black/50 flex items-end" onClick={onFermer}>
+      <div className="w-full max-h-[72%] overflow-y-auto rounded-t-3xl bg-white text-gray-900 px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-200" aria-hidden />
+        {erreur ? <p className="text-sm text-gray-600">{erreur}</p> : !stats ? (
+          <p className="text-sm text-gray-500 flex items-center gap-2"><Loader2 size={16} className="animate-spin" aria-hidden /> Chargement…</p>
+        ) : (
+          <div className="space-y-5">
+            {sondages.map((c) => {
+              const r = stats.sondages[c.id];
+              return (
+                <section key={c.id}>
+                  <h3 className="text-sm font-semibold mb-2">📊 {c.question} <span className="text-gray-400 font-normal">· {r?.total ?? 0} vote{(r?.total ?? 0) > 1 ? "s" : ""}</span></h3>
+                  {c.choix.map((ch, k) => (
+                    <div key={k} className="relative overflow-hidden rounded-xl border border-gray-200 px-3 py-2 mb-1.5 text-sm">
+                      <span className="absolute inset-y-0 start-0 bg-[#5B16F9]/15" style={{ width: `${r?.pct[k] ?? 0}%` }} aria-hidden />
+                      <span className="relative flex justify-between"><span>{ch}</span><span className="font-semibold">{r?.nombres[k] ?? 0} · {r?.pct[k] ?? 0} %</span></span>
+                    </div>
+                  ))}
+                </section>
+              );
+            })}
+            {stats.reponses.length || story.calques.some((c) => c.type === "question") ? (
+              <section>
+                <h3 className="text-sm font-semibold mb-2">💬 Réponses ({stats.reponses.length})</h3>
+                {stats.reponses.length ? (
+                  <ul className="space-y-2">
+                    {stats.reponses.map((r, k) => (
+                      <li key={k} className="rounded-2xl bg-gray-50 px-3 py-2">
+                        <div className="text-xs text-gray-500">{r.nom} · {heure(r.quand)}</div>
+                        <p className="text-sm whitespace-pre-wrap break-words">{r.texte}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : <p className="text-sm text-gray-500">Pas encore de réponse.</p>}
+              </section>
+            ) : null}
+            {stats.reactions.length ? (
+              <section>
+                <h3 className="text-sm font-semibold mb-2">Réactions ({stats.reactions.length})</h3>
+                <ul className="flex flex-wrap gap-2">
+                  {stats.reactions.map((r, k) => <li key={k} className="rounded-full bg-gray-100 px-3 py-1 text-sm">{r.emoji} {r.nom}</li>)}
+                </ul>
+              </section>
+            ) : null}
+            <section>
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5"><Eye size={16} aria-hidden /> Vue par {stats.vues.length} personne{stats.vues.length > 1 ? "s" : ""}</h3>
+              {stats.vues.length ? (
+                <ul className="divide-y divide-gray-100">
+                  {stats.vues.map((v, k) => <li key={k} className="py-1.5 text-sm flex justify-between"><span>{v.nom}</span><span className="text-gray-400 text-xs">{heure(v.quand)}</span></li>)}
+                </ul>
+              ) : <p className="text-sm text-gray-500">Personne pour l&apos;instant.</p>}
+            </section>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
- * Visionneuse plein écran : les stories d'une personne puis de la suivante. Photo : 6 s ; vidéo : sa durée.
+ * Visionneuse plein écran : les stories d'une personne puis de la suivante. Photo et texte : 6 s ; vidéo : sa durée.
  * Toucher à droite = suivante, à gauche = précédente, glisser vers le bas ou ✕ = fermer.
+ * Les autres répondent aux questions, votent aux sondages et réagissent ; l'autrice voit qui a vu et les réponses.
  */
 export function VisionneuseStories({ groupes, depart, meId, moderation = false, bibliotheque, onFermer }: {
   groupes: GroupeStories[];
   depart: number;
   meId: string | null;
-  /** Administration : peut supprimer n'importe quelle story. */
+  /** Administration : peut supprimer n'importe quelle story et voir son activité. */
   moderation?: boolean;
   /** Bibliothèque Bunny (lecteur vidéo intégré). */
   bibliotheque: string;
@@ -26,20 +110,31 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
   const [g, setG] = useState(depart);
   const [i, setI] = useState(0);
   const [avance, setAvance] = useState(0);
-  const [pause, setPause] = useState(false);
+  const [pauseToucher, setPauseToucher] = useState(false);
+  const [pauseSaisie, setPauseSaisie] = useState(false);
+  const [activite, setActivite] = useState(false);
+  const [etat, setEtat] = useState<Record<string, EtatStoryVue>>({});
+  const [info, setInfo] = useState<string | null>(null);
+  const [envol, setEnvol] = useState<{ emoji: string; cle: number } | null>(null);
   const debut = useRef<{ x: number; y: number } | null>(null);
+  const vues = useRef(new Set<string>());
   const groupe = groupes[g];
   const story = groupe?.stories[i];
-  const duree = story ? (story.kind === "video" ? Math.max(3, story.duree ?? 15) * 1000 : DUREE_PHOTO_MS) : DUREE_PHOTO_MS;
+  const interactive = Boolean(story?.calques.some((c) => c.type === "question" || c.type === "sondage"));
+  const duree = story ? (story.kind === "video" ? Math.max(3, story.duree ?? 15) * 1000 : DUREE_PHOTO_MS + (interactive ? BONUS_INTERACTIF_MS : 0)) : DUREE_PHOTO_MS;
+  const pause = pauseToucher || pauseSaisie || activite;
+  const autrice = Boolean(story && meId === story.userId);
 
   const suivante = useCallback(() => {
     if (!groupe) return;
+    setPauseSaisie(false); setActivite(false);
     if (i < groupe.stories.length - 1) { setI(i + 1); setAvance(0); return; }
     if (g < groupes.length - 1) { setG(g + 1); setI(0); setAvance(0); return; }
     onFermer();
   }, [g, i, groupe, groupes.length, onFermer]);
 
   const precedente = useCallback(() => {
+    setPauseSaisie(false); setActivite(false);
     if (i > 0) { setI(i - 1); setAvance(0); return; }
     if (g > 0) { setG(g - 1); setI(Math.max(0, groupes[g - 1].stories.length - 1)); setAvance(0); }
   }, [g, i, groupes]);
@@ -53,8 +148,26 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
   }, [story, pause]);
   useEffect(() => { if (avance >= duree) suivante(); }, [avance, duree, suivante]);
 
+  // Story affichée = vue (sur cet appareil, et côté serveur pour la liste « Vue par… » de l'autrice).
+  useEffect(() => {
+    if (!story) return;
+    noterVues([story.id]);
+    if (meId && story.userId !== meId && !vues.current.has(story.id)) {
+      vues.current.add(story.id);
+      voirStory(story.id).catch(() => {});
+    }
+  }, [story, meId]);
+
+  // Mes votes et réactions déjà donnés + résultats des sondages.
+  useEffect(() => {
+    if (!meId) return;
+    const ids = groupes.flatMap((x) => x.stories.filter((s) => s.calques.length || s.userId !== meId).map((s) => s.id)).slice(0, 100);
+    if (ids.length) etatStories(ids).then(setEtat).catch(() => {});
+  }, [groupes, meId]);
+
   useEffect(() => {
     const touche = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && e.target.closest("input, textarea")) return;
       if (e.key === "Escape") onFermer();
       if (e.key === "ArrowRight") suivante();
       if (e.key === "ArrowLeft") precedente();
@@ -64,9 +177,12 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
     window.addEventListener("keydown", touche);
     return () => { window.removeEventListener("keydown", touche); document.body.style.overflow = ancien; };
   }, [onFermer, suivante, precedente]);
+  useEffect(() => { signalerPleinEcran(true); return () => signalerPleinEcran(false); }, []);
+  useEffect(() => { if (!info) return; const t = window.setTimeout(() => setInfo(null), 3000); return () => window.clearTimeout(t); }, [info]);
 
   if (!groupe || !story) return null;
   const peutSupprimer = meId === story.userId || moderation;
+  const etatStory = etat[story.id];
 
   async function supprimer() {
     if (!story || !confirm("Supprimer cette story ?")) return;
@@ -74,13 +190,46 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
     if (r.ok) { router.refresh(); onFermer(); } else alert(r.erreur);
   }
 
-  return (
+  async function rafraichirEtat(id: string) {
+    const e = await etatStories([id]).catch(() => null);
+    if (e) setEtat((avant) => ({ ...avant, [id]: e[id] ?? { mesVotes: {}, maReaction: null, sondages: {} } }));
+  }
+
+  const inter: Interactions | undefined = meId ? {
+    autrice,
+    mesVotes: etatStory?.mesVotes ?? {},
+    sondages: etatStory?.sondages ?? {},
+    onPause: setPauseSaisie,
+    onVoter: async (calqueId, choix) => {
+      const id = story.id;
+      setEtat((avant) => ({ ...avant, [id]: { mesVotes: { ...(avant[id]?.mesVotes ?? {}), [calqueId]: choix }, maReaction: avant[id]?.maReaction ?? null, sondages: avant[id]?.sondages ?? {} } }));
+      const r = await interagirStory({ storyId: id, calqueId, kind: "vote", valeur: choix });
+      if (!r.ok) setInfo(r.erreur);
+      await rafraichirEtat(id);
+    },
+    onRepondre: async (calqueId, texte) => {
+      const r = await interagirStory({ storyId: story.id, calqueId, kind: "reponse", valeur: texte });
+      setInfo(r.ok ? "Réponse envoyée ✓" : r.erreur);
+      return r.ok;
+    },
+  } : undefined;
+
+  async function reagir(emoji: string) {
+    if (!story) return;
+    const id = story.id;
+    setEnvol({ emoji, cle: Date.now() });
+    setEtat((avant) => ({ ...avant, [id]: { mesVotes: avant[id]?.mesVotes ?? {}, sondages: avant[id]?.sondages ?? {}, maReaction: emoji } }));
+    const r = await interagirStory({ storyId: id, kind: "reaction", valeur: emoji });
+    if (!r.ok) setInfo(r.erreur);
+  }
+
+  return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Story de ${groupe.nom}`} className="fixed inset-0 z-[85] bg-black flex flex-col"
-      onTouchStart={(e) => { debut.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; setPause(true); }}
+      onTouchStart={(e) => { debut.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; setPauseToucher(true); }}
       onTouchEnd={(e) => {
-        setPause(false);
+        setPauseToucher(false);
         const d = debut.current; debut.current = null;
-        if (!d) return;
+        if (!d || pauseSaisie || activite) return;
         const dy = e.changedTouches[0].clientY - d.y;
         if (dy > 120) onFermer();
       }}>
@@ -98,26 +247,53 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
           {groupe.avatar ? <img src={groupe.avatar} alt="" className="w-full h-full object-cover" /> : groupe.nom.charAt(0).toUpperCase()}
         </span>
         <span className="font-semibold text-sm truncate">{groupe.nom}</span>
-        <span className="text-xs text-white/60">{ilYa(story.createdAt, new Date())}</span>
+        {story.equipe ? <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold shrink-0">Équipe Arazzo</span> : null}
+        <span className="text-xs text-white/60 shrink-0">{ilYa(story.createdAt, new Date())}</span>
         {peutSupprimer ? (
           <button type="button" onClick={supprimer} aria-label="Supprimer cette story" className="ms-auto p-2 rounded-full hover:bg-white/10"><Trash2 size={18} /></button>
         ) : <span className="ms-auto" />}
         <button type="button" onClick={onFermer} aria-label="Fermer" className="p-2 rounded-full hover:bg-white/10"><X size={22} /></button>
       </div>
 
-      <div className="relative flex-1 min-h-0 flex items-center justify-center">
-        {story.kind === "image" && story.mediaUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={story.id} src={story.mediaUrl} alt={story.legende ?? `Story de ${groupe.nom}`} className="max-w-full max-h-full object-contain" />
-        ) : story.bunnyVideoId && bibliotheque ? (
-          <iframe key={story.id} src={`https://iframe.mediadelivery.net/embed/${bibliotheque}/${story.bunnyVideoId}?autoplay=true&loop=false&preload=true&responsive=true`}
-            title="Story vidéo" allow="autoplay; encrypted-media" className="w-full h-full" style={{ border: 0 }} />
-        ) : <p className="text-white/70 text-sm">Story indisponible.</p>}
-        {/* Zones de toucher : gauche = précédente, droite = suivante */}
-        <button type="button" aria-label="Story précédente" onClick={precedente} className="absolute inset-y-0 start-0 w-1/3" />
-        <button type="button" aria-label="Story suivante" onClick={suivante} className="absolute inset-y-0 end-0 w-1/3" />
+      <div className="relative flex-1 min-h-0 flex items-center justify-center" style={ZONE_CADRE}>
+        <div className="relative overflow-hidden rounded-xl bg-[#111]" style={STYLE_CADRE}>
+          {story.kind === "video" ? (
+            story.bunnyVideoId && bibliotheque ? (
+              <iframe key={story.id} src={`https://iframe.mediadelivery.net/embed/${bibliotheque}/${story.bunnyVideoId}?autoplay=true&loop=false&preload=true&responsive=true`}
+                title="Story vidéo" allow="autoplay; encrypted-media" className="absolute inset-0 w-full h-full" style={{ border: 0 }} />
+            ) : <p className="absolute inset-0 grid place-items-center text-white/70 text-sm">Story indisponible.</p>
+          ) : story.kind === "texte" || story.mediaUrl ? (
+            <FondStory key={story.id} kind={story.kind} url={story.mediaUrl} fond={story.fond} alt={story.legende ?? `Story de ${groupe.nom}`} />
+          ) : <p className="absolute inset-0 grid place-items-center text-white/70 text-sm">Story indisponible.</p>}
+          {/* Zones de toucher : gauche = précédente, droite = suivante (le milieu reste au lecteur vidéo) */}
+          <button type="button" aria-label="Story précédente" onClick={precedente} className="absolute inset-y-0 start-0 w-1/3 z-[5]" />
+          <button type="button" aria-label="Story suivante" onClick={suivante} className={`absolute inset-y-0 end-0 z-[5] ${story.kind === "video" ? "w-1/3" : "w-2/3"}`} />
+          <RenduCalques key={`c-${story.id}`} calques={story.calques} inter={inter} />
+          {envol ? <span key={envol.cle} className="absolute z-20 start-1/2 bottom-[10%] -translate-x-1/2 text-[18cqw] pointer-events-none animate-[story-envol_1.1s_ease-out_forwards]" onAnimationEnd={() => setEnvol(null)} aria-hidden>{envol.emoji}</span> : null}
+          {info ? <p role="status" className="absolute z-20 inset-x-[8%] bottom-[4%] rounded-full bg-black/75 text-white text-center text-sm px-3 py-2">{info}</p> : null}
+          {activite ? <PanneauActivite story={story} onFermer={() => setActivite(false)} /> : null}
+        </div>
       </div>
-      {story.legende ? <p className="px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-2 text-white text-sm text-center">{story.legende}</p> : <div className="h-[max(16px,env(safe-area-inset-bottom))]" />}
-    </div>
+
+      <div className="px-4 pt-2 pb-[max(14px,env(safe-area-inset-bottom))] text-white space-y-2" onTouchStart={(e) => e.stopPropagation()}>
+        {story.legende ? <p className="text-sm text-center">{story.legende}</p> : null}
+        {meId && (autrice || moderation) ? (
+          <div className="flex justify-center">
+            <button type="button" onClick={() => setActivite((a) => !a)} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2 text-sm font-semibold">
+              <Eye size={16} aria-hidden /> Vues et réponses
+            </button>
+          </div>
+        ) : meId ? (
+          <div className="flex justify-center gap-1.5" aria-label="Réagir à la story">
+            {REACTIONS.map((e) => (
+              <button key={e} type="button" onClick={() => reagir(e)} aria-label={`Réagir ${e}`} aria-pressed={etatStory?.maReaction === e}
+                className={`w-11 h-11 rounded-full text-2xl leading-none grid place-items-center transition ${etatStory?.maReaction === e ? "bg-white/30 scale-110" : "bg-white/10 hover:bg-white/20"}`}>{e}</button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <style>{"@keyframes story-envol{0%{transform:translate(-50%,0) scale(.6);opacity:0}25%{opacity:1}100%{transform:translate(-50%,-260%) scale(1.4);opacity:0}}"}</style>
+    </div>,
+    document.body,
   );
 }

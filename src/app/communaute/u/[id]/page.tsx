@@ -14,7 +14,7 @@ import { ChoixActivite, PresenceDe } from "@/components/presence/activite";
 import { niveauxDuMembre } from "@/lib/niveaux-membre";
 import { storiesActives } from "@/lib/stories/load";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAdmin } from "@/lib/roles";
+import { getRoles, isAdmin } from "@/lib/roles";
 import { estEquipePublique, nomPublic } from "@/lib/nom-public";
 
 export const metadata = { title: "Profil — Communauté Arazzo" };
@@ -79,7 +79,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           isFollowing={isFollowing}
           isGuest={!me}
           lang={lang}
-          stories={me ? { liste: stories, meId: me.id, moderation: isAdmin(monProfil.data), bibliotheque: FEED_LIBRARY_ID } : undefined}
+          stories={me ? { liste: stories, meId: me.id, moderation: isAdmin(monProfil.data), equipe: getRoles(monProfil.data).some((r) => r === "formateur" || r === "admin"), bibliotheque: FEED_LIBRARY_ID } : undefined}
         />
 
         {isMe && pseudoAutomatique ? (

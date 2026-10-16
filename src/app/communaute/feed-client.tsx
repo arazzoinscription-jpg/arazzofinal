@@ -16,12 +16,28 @@ import { CommunityTabs } from "./community-tabs";
 import { FeedWelcome } from "@/components/community/feed-welcome";
 import type { Promo } from "@/app/free/[slug]/promo-banner";
 
+/** Format (largeur / hauteur) jusqu'auquel un média remplit l'écran : 9:16 (0,56) oui ; 3:4 (0,75) ou carré non. */
+const RATIO_REMPLIR = 0.66;
+
+/** Écran plus haut que large (téléphone) : là seulement on remplit l'écran. */
+function useEcranVertical(): boolean {
+  const [vertical, setVertical] = useState(true);
+  useEffect(() => {
+    const m = window.matchMedia("(max-aspect-ratio: 4/5)");
+    const maj = () => setVertical(m.matches);
+    maj();
+    m.addEventListener("change", maj);
+    return () => m.removeEventListener("change", maj);
+  }, []);
+  return vertical;
+}
+
 interface Comment {
   id: string; content: string; created_at: string; author_id: string;
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null; page: Record<string, any> | null } | null }) {
+export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null, stories = null }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null; page: Record<string, any> | null } | null; stories?: ReactNode }) {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
@@ -77,6 +93,30 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
   }, []);
   const basculerSon = useCallback(() => { setMuted((m) => !m); setAstuceSon(false); }, []);
 
+  // Une story (lecture ou création) occupe l'écran : les vidéos du feed se taisent le temps qu'elle reste ouverte.
+  const [storyPleinEcran, setStoryPleinEcran] = useState(false);
+  useEffect(() => {
+    const f = (e: Event) => setStoryPleinEcran(Boolean((e as CustomEvent<boolean>).detail));
+    window.addEventListener("arazzo:story-plein-ecran", f);
+    return () => window.removeEventListener("arazzo:story-plein-ecran", f);
+  }, []);
+
+  // Barre de stories : dépliée en haut du feed, repliée dès qu'on fait défiler (bouton « Stories » pour la rouvrir).
+  const enHaut = activeIndex <= 0;
+  const [storiesRouvertes, setStoriesRouvertes] = useState(false);
+  useEffect(() => { setStoriesRouvertes(false); }, [activeId]);
+  const storiesVisibles = Boolean(stories) && (enHaut || storiesRouvertes);
+
+  // Hauteur réelle de la barre du haut : l'alerte « Bravo ! » se place juste en dessous.
+  const barreHaut = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barreHaut.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty("--feed-haut", `${Math.round(el.getBoundingClientRect().height)}px`));
+    ro.observe(el);
+    return () => { ro.disconnect(); document.documentElement.style.removeProperty("--feed-haut"); };
+  }, []);
+
   // ── Préconnexion aux hôtes média (accélère le 1ᵉʳ chargement) ─────────────
   // Ouvre à l'avance la connexion (DNS + TLS) vers Bunny (vidéos) et le CDN des
   // images, pour supprimer la latence d'établissement au moment de lire.
@@ -103,12 +143,19 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
 
   // Barre du haut : Retour · logo→site · dashboard · Facebook + onglets bascule (le bouton son est sur la vidéo).
   const topBar = (
-    <div className="fixed top-0 inset-x-0 z-30 pt-[max(10px,env(safe-area-inset-top))] pb-2 bg-[#0b0818]/90 backdrop-blur-md border-b border-white/10">
+    <div ref={barreHaut} className="fixed top-0 inset-x-0 z-30 pt-[max(10px,env(safe-area-inset-top))] pb-3 bg-gradient-to-b from-black/55 via-black/20 to-transparent [text-shadow:0_1px_3px_rgba(0,0,0,.55)]">
       <div className="flex items-center gap-2 px-3">
         <button onClick={() => router.back()} aria-label="Retour"
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><ArrowLeft size={18} /></button>
         <Link href="/" className="font-playfair text-white font-bold text-base drop-shadow shrink-0">Arazzo</Link>
         <div className="flex-1" />
+        {stories && !storiesVisibles ? (
+          <button type="button" onClick={() => setStoriesRouvertes(true)} aria-label="Afficher les stories"
+            className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 text-white text-xs font-semibold shrink-0">
+            <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-[#FE7223] via-[#e1306c] to-[#5B16F9] p-[2px]" aria-hidden><span className="block w-full h-full rounded-full bg-[#0b0818]" /></span>
+            Stories
+          </button>
+        ) : null}
         <Link href={isGuest ? "/register" : "/dashboard"} aria-label={isGuest ? "S'inscrire" : "Tableau de bord"}
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
         <button onClick={() => (isGuest ? setGate("soft") : setFbOpen(true))} aria-label="Partager une vidéo Facebook"
@@ -116,6 +163,11 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
       </div>
       {/* Menu UNIQUE de la communauté (Pour toi · Actualité · Groups · Offre) */}
       <div className="mt-1.5"><CommunityTabs /></div>
+      {stories ? (
+        <div className={`grid transition-[grid-template-rows] duration-300 ${storiesVisibles ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} aria-hidden={!storiesVisibles}>
+          <div className={`min-h-0 overflow-hidden ${storiesVisibles ? "" : "invisible"}`}><div className="pt-2">{stories}</div></div>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -152,7 +204,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
           // Seules la slide active et ses voisines montent un lecteur vidéo : les autres n'affichent que leur image
           // (sinon le navigateur charge TOUTES les vidéos du feed en même temps — très lourd).
           near={activeIndex < 0 ? idx < 2 : Math.abs(idx - activeIndex) <= 1}
-          muted={muted}
+          muted={muted || storyPleinEcran}
           onToggleMute={basculerSon}
           astuceSon={astuceSon && activeId === it.id}
           bunnyLibraryId={bunnyLibraryId}
@@ -343,6 +395,20 @@ function Slide({
     return () => obs.disconnect();
   }, [onActive]);
 
+  // Plein écran « comme Instagram » : sur un écran de téléphone (vertical), une vidéo ou photo VERTICALE remplit
+  // l'écran (bords légèrement rognés) au lieu de laisser deux bandes noires en haut et en bas.
+  // Une vidéo horizontale ou une photo carrée reste entière ; sur ordinateur, rien n'est rogné.
+  const ecranVertical = useEcranVertical();
+  const [ratio, setRatio] = useState<number | null>(null);
+  const remplir = ecranVertical && (ratio === null || ratio <= RATIO_REMPLIR);
+  useEffect(() => {
+    // Vidéo Bunny : son format vient de sa miniature (même image).
+    if (item.mediaUrl || !item.videoHls || !item.thumbnail) return;
+    const im = new Image();
+    im.onload = () => { if (im.naturalWidth && im.naturalHeight) setRatio(im.naturalWidth / im.naturalHeight); };
+    im.src = item.thumbnail;
+  }, [item.mediaUrl, item.videoHls, item.thumbnail]);
+
   // Lecture/pause de la vidéo native selon l'état actif. Le « muet » est posé sur l'élément AVANT play() (React ne le
   // reflète pas toujours à temps) ; si la lecture avec son est refusée, on relance en muet plutôt que rester noir.
   useEffect(() => {
@@ -382,6 +448,12 @@ function Slide({
 
   const isFacebook = isFacebookVideoUrl(item.mediaUrl);
   const isBunny = !item.mediaUrl && !!item.videoHls;
+  const ajustement = remplir ? "object-cover" : "object-contain";
+  // Lecteur Bunny (iframe) : on ne peut pas régler son cadrage ; on l'agrandit au format de la vidéo pour couvrir l'écran.
+  const styleBunny: React.CSSProperties = remplir && ratio
+    ? { border: 0, position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", width: `max(100%, calc(100dvh * ${ratio}))`, height: `max(100%, calc(100vw / ${ratio}))` }
+    : { border: 0 };
+  const lireRatio = (l: number, h: number) => { if (l > 0 && h > 0) setRatio(l / h); };
 
   return (
     <section ref={ref} className="relative h-[100dvh] w-full snap-start snap-always flex items-center justify-center overflow-hidden bg-black">
@@ -394,7 +466,8 @@ function Slide({
           // La slide active + la suivante se chargent en priorité ; le reste en différé.
           loading={active || preload ? "eager" : "lazy"}
           decoding="async"
-          className="absolute inset-0 w-full h-full object-contain"
+          onLoad={(e) => lireRatio(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)}
+          className={`absolute inset-0 w-full h-full ${ajustement}`}
         />
       ) : isFacebook ? (
         active ? (
@@ -418,17 +491,17 @@ function Slide({
           <iframe
             src={`https://iframe.mediadelivery.net/embed/${bunnyLibraryId}/${getBunnyId(item.videoHls)}?autoplay=${active ? "true" : "false"}&loop=true&muted=${active ? (muted || hasMusic) : true}&preload=true&responsive=true`}
             allow="autoplay; encrypted-media; picture-in-picture"
-            className="absolute inset-0 w-full h-full" style={{ border: 0 }} loading="eager"
+            className={remplir && ratio ? "" : "absolute inset-0 w-full h-full"} style={styleBunny} loading="eager"
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          item.thumbnail && <img src={item.thumbnail} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
+          item.thumbnail && <img src={item.thumbnail} alt="" loading="lazy" decoding="async" className={`absolute inset-0 w-full h-full ${ajustement}`} />
         )
       ) : !near ? (
         // Loin de l'écran : juste l'image (aucune vidéo chargée).
         item.thumbnail
           // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={cdnImage(item.thumbnail)} alt="" loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-contain" />
+          ? <img src={cdnImage(item.thumbnail)} alt="" loading="lazy" decoding="async" className={`absolute inset-0 w-full h-full ${ajustement}`} />
           : <div className="absolute inset-0 bg-[#0b0818]" />
       ) : (
         <>
@@ -439,10 +512,11 @@ function Slide({
             poster={item.thumbnail ? cdnImage(item.thumbnail) : undefined}
             muted={muted || hasMusic} loop playsInline
             preload={active ? "auto" : "metadata"}
+            onLoadedMetadata={(e) => lireRatio(e.currentTarget.videoWidth, e.currentTarget.videoHeight)}
             onPlaying={() => { setJoue(true); setIllisible(false); }}
             onWaiting={() => setJoue(false)}
             onError={() => { setIllisible(true); setJoue(false); }}
-            className="absolute inset-0 w-full h-full object-contain"
+            className={`absolute inset-0 w-full h-full ${ajustement}`}
           />
           {active && !joue && !illisible ? (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

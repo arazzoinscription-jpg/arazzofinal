@@ -25,7 +25,7 @@ interface Props {
   isGuest?: boolean;
   lang?: "fr" | "ar" | "en";
   /** Stories actives (24 h) de ce membre — membres connectés seulement. */
-  stories?: { liste: StoryVue[]; meId: string | null; moderation: boolean; bibliotheque: string };
+  stories?: { liste: StoryVue[]; meId: string | null; moderation: boolean; equipe?: boolean; bibliotheque: string };
 }
 
 const FOLLOW_T = {
@@ -121,7 +121,7 @@ export function CommunityProfileCard({
                 </div>
               );
               return stories ? (
-                <PhotoAvecStory stories={stories.liste} meId={stories.meId} moderation={stories.moderation} bibliotheque={stories.bibliotheque} ajouter={isMe} taille="lg">{photo}</PhotoAvecStory>
+                <PhotoAvecStory stories={stories.liste} meId={stories.meId} moderation={stories.moderation} bibliotheque={stories.bibliotheque} ajouter={isMe} equipe={stories.equipe} taille="lg">{photo}</PhotoAvecStory>
               ) : photo;
             })()}
             {!isMe && (

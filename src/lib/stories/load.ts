@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { avatarSur } from "../classe/vue";
-import { nomPublic } from "../nom-public";
+import { estEquipePublique, nomPublic } from "../nom-public";
+import type { Calque } from "./calques";
 import { paquets } from "../student-care/paginate";
 import type { StoryVue } from "./regles";
 
@@ -16,8 +17,18 @@ export async function etatMigrationStories(admin: SupabaseClient): Promise<strin
 }
 
 interface LigneStory {
-  id: string; user_id: string; media_kind: "image" | "video"; media_url: string | null; bunny_video_id: string | null;
+  id: string; user_id: string; media_kind: "image" | "video" | "texte"; media_url: string | null; bunny_video_id: string | null;
   thumbnail_url: string | null; duration_seconds: number | null; legende: string | null; created_at: string; expires_at: string;
+  calques?: Calque[] | null; fond?: string | null;
+}
+
+/** Les enseignantes d'une élève (formatrices de ses cours) : leurs stories passent en premier. */
+export async function enseignantesDe(admin: SupabaseClient, userId: string): Promise<string[]> {
+  const ins = await admin.from("enrollments").select("course_id").eq("user_id", userId);
+  const ids = [...new Set(((ins.data ?? []) as { course_id: string }[]).map((x) => x.course_id))];
+  if (!ids.length) return [];
+  const c = await admin.from("courses").select("formateur_id").in("id", ids.slice(0, 200));
+  return [...new Set(((c.data ?? []) as { formateur_id: string | null }[]).map((x) => x.formateur_id).filter((x): x is string => Boolean(x)))];
 }
 
 /**
@@ -53,6 +64,7 @@ export async function storiesActives(admin: SupabaseClient, userIds: string[] | 
       id: l.id, userId: l.user_id, nom: nomPublic(a), avatar: avatarSur(a.avatar_url),
       kind: l.media_kind, mediaUrl: l.media_url, bunnyVideoId: l.bunny_video_id, thumbnail: l.thumbnail_url,
       duree: l.duration_seconds, legende: l.legende, createdAt: l.created_at,
+      calques: Array.isArray(l.calques) ? l.calques : [], fond: l.fond ?? null, equipe: estEquipePublique(a),
     };
   });
 }

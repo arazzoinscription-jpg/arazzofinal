@@ -50,9 +50,13 @@ export function NavBar({ items, className, lampId = "lamp", compact = false }: N
     >
       <div
         className={cn(
-          "flex items-center bg-white dark:bg-[#15102b] border border-cream-200 dark:border-white/10 backdrop-blur-lg shadow-xl",
+          "flex items-center",
           compact
-            ? "justify-center gap-0.5 py-1 px-1.5 rounded-full"
+            // Feed : pilule translucide (la vidéo se voit derrière, comme Instagram).
+            ? "justify-center gap-0.5 py-1 px-1.5 rounded-full bg-black/25 border border-white/15 backdrop-blur-sm"
+            : "bg-white dark:bg-[#15102b] border border-cream-200 dark:border-white/10 backdrop-blur-lg shadow-xl",
+          compact
+            ? ""
             : "justify-around sm:justify-start gap-1 sm:gap-3 py-1.5 px-2 sm:py-1 sm:px-1 rounded-2xl sm:rounded-full",
         )}
       >
@@ -81,8 +85,10 @@ export function NavBar({ items, className, lampId = "lamp", compact = false }: N
                   : "flex-1 min-w-0 sm:flex-none flex-col sm:flex-row gap-0.5 sm:gap-2 text-[10.5px] min-[400px]:text-[11px] sm:text-sm font-semibold px-0.5 min-[400px]:px-1.5 sm:px-6 py-2 rounded-xl sm:rounded-full",
                 item.color
                   ? item.color
-                  : "text-violet-950/70 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
-                isActive && "bg-violet-50 dark:bg-white/10 text-[#6B21C8] dark:text-violet-200",
+                  : compact
+                    ? "text-white/85 hover:text-white drop-shadow"
+                    : "text-violet-950/70 dark:text-white/70 hover:text-[#6B21C8] dark:hover:text-violet-300",
+                isActive && (compact ? "bg-white/20 text-white" : "bg-violet-50 dark:bg-white/10 text-[#6B21C8] dark:text-violet-200"),
               )}
             >
               <Icon size={compact ? 19 : 22} strokeWidth={2.5} className={compact ? "" : "md:hidden"} />

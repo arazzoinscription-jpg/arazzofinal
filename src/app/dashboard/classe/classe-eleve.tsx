@@ -76,7 +76,9 @@ export function ClasseEleveVue({ enseignantes, camarades, niveaux, groupes, stor
         <BarreStories
           stories={stories.liste}
           meId={stories.meId}
+          monAvatar={stories.monAvatar}
           bibliotheque={stories.bibliotheque}
+          enseignantes={enseignantes.map((e) => e.id)}
           personnes={[
             { id: stories.meId, nom: "Moi", avatar: stories.monAvatar },
             ...enseignantes.map((e) => ({ id: e.id, nom: e.nom, avatar: e.avatar })),
