@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { nomPublic } from "@/lib/nom-public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl, type CommunityItem } from "@/lib/community-types";
@@ -32,7 +33,8 @@ function mapRow(r: any, meId: string): CommunityItem {
     createdAt: r.created_at,
     author: {
       id: post.author?.id ?? "",
-      nom: post.author?.nom ?? "Utilisateur",
+      // Vie privée : jamais le nom complet d'une élève (pseudo, ou initiales + numéro).
+      nom: post.author ? nomPublic(post.author) : "Membre",
       avatar_url: cdnImage(post.author?.avatar_url ?? null),
       role: post.author?.role ?? "eleve",
     },
@@ -47,7 +49,7 @@ function mapRow(r: any, meId: string): CommunityItem {
 const SELECT_BASE = `
   id, post_id, source_type, media_kind, bunny_video_id, media_url, thumbnail_url, created_at,
   course_id, patron_id,
-  post:posts!inner(id, content, author_id, published, author:users(id, nom, avatar_url, role), likes(user_id), comments(id)),
+  post:posts!inner(id, content, author_id, published, author:users(id, nom, username, avatar_url, role, roles), likes(user_id), comments(id)),
   course:courses(slug, titre_fr),
   patron:patrons(id, titre)
 `;
@@ -58,7 +60,7 @@ const SELECT_BASE = `
 const SELECT = `
   id, post_id, source_type, media_kind, bunny_video_id, media_url, thumbnail_url, created_at,
   course_id, patron_id, music_url, music_title,
-  post:posts!inner(id, content, author_id, published, author:users(id, nom, avatar_url, role), likes(user_id), comments(id)),
+  post:posts!inner(id, content, author_id, published, author:users(id, nom, username, avatar_url, role, roles), likes(user_id), comments(id)),
   course:courses(slug, titre_fr),
   patron:patrons(id, titre)
 `;
@@ -197,7 +199,7 @@ export async function loadFollowInfo(targetId: string, meId: string | null) {
 export async function loadProfile(userId: string) {
   const admin = createAdminClient();
   const { data } = await admin
-    .from("users").select("id, nom, username, avatar_url, role, bio").eq("id", userId).maybeSingle();
+    .from("users").select("id, nom, username, avatar_url, role, roles, bio").eq("id", userId).maybeSingle();
   if (data) data.avatar_url = cdnImage(data.avatar_url ?? null);
   return data;
 }

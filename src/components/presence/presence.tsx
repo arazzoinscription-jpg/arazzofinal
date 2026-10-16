@@ -1,53 +1,103 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 /**
  * Présence « en ligne » des enseignantes — Supabase Realtime Presence (temps réel, AUCUNE écriture en base).
  *  - L'enseignante (espace formatrice ou administration ouvert) SIGNALE sa présence ;
- *  - l'élève (page « Ma classe ») ÉCOUTE seulement : sa propre présence n'est jamais diffusée.
+ *  - l'élève (« Ma classe », lecteur de cours) ÉCOUTE seulement : sa présence n'est pas diffusée sur ce canal.
  * « En ligne » = l'enseignante a son espace Arazzo ouvert en ce moment. Rien n'est inventé :
  * tant que l'état n'est pas connu, on affiche « … », et « indisponible » si le temps réel échoue.
+ *
+ * UN SEUL canal par onglet, partagé par tous les composants : le client temps réel réutilise le canal
+ * d'un même sujet, et ajouter une écoute après son abonnement fait planter la page (deux cartes
+ * « enseignante » sur la même page, par exemple).
  */
 export const CANAL_PRESENCE = "arazzo-enseignantes-en-ligne";
+
+export type EtatPresence = "connexion" | "en_ligne" | "hors_ligne" | "indisponible";
+
+interface Etat { pret: boolean; erreur: boolean; enLigne: Set<string> }
+let etat: Etat = { pret: false, erreur: false, enLigne: new Set() };
+const ecouteurs = new Set<() => void>();
+let client: ReturnType<typeof createClient> | null = null;
+let canal: RealtimeChannel | null = null;
+let cleCanal: string | null = null;
+/** L'enseignante connectée sur cet onglet (si elle signale sa présence). */
+let moi: string | null = null;
+let utilisateurs = 0;
+let fermeture: number | null = null;
+
+function publier(n: Partial<Etat>) {
+  etat = { ...etat, ...n };
+  ecouteurs.forEach((f) => f());
+}
+
+function fermer() {
+  if (!canal) return;
+  const c = canal;
+  canal = null; cleCanal = null;
+  void c.untrack().catch(() => undefined);
+  void client?.removeChannel(c);
+  publier({ pret: false, enLigne: new Set() });
+}
+
+function ouvrir() {
+  const cle = moi ?? `ecoute-${Math.random().toString(36).slice(2)}`;
+  if (canal && (cleCanal === cle || (!moi && cleCanal?.startsWith("ecoute-")))) return;
+  fermer();
+  client = client ?? createClient();
+  const c = client.channel(CANAL_PRESENCE, { config: { presence: { key: cle, enabled: true } } });
+  canal = c; cleCanal = cle;
+  c.on("presence", { event: "sync" }, () => {
+    if (canal !== c) return;
+    // Seules les enseignantes « signalent » : les clés présentes sont leurs identifiants.
+    publier({ enLigne: new Set(Object.keys(c.presenceState())) });
+  }).subscribe(async (statut) => {
+    if (canal !== c) return;
+    if (statut === "SUBSCRIBED") {
+      publier({ pret: true, erreur: false });
+      if (moi) { try { await c.track({ en_ligne_depuis: new Date().toISOString() }); } catch { /* reprendra */ } }
+    }
+    if (statut === "CHANNEL_ERROR" || statut === "TIMED_OUT") publier({ erreur: true });
+  });
+}
+
+function retenir() {
+  utilisateurs += 1;
+  if (fermeture !== null) { window.clearTimeout(fermeture); fermeture = null; }
+  ouvrir();
+}
+
+function relacher() {
+  utilisateurs = Math.max(0, utilisateurs - 1);
+  if (utilisateurs === 0 && fermeture === null) fermeture = window.setTimeout(() => { fermeture = null; if (utilisateurs === 0) fermer(); }, 4000);
+}
+
+const abonner = (f: () => void) => { ecouteurs.add(f); return () => { ecouteurs.delete(f); }; };
+const lire = () => etat;
+const VIDE: Etat = { pret: false, erreur: false, enLigne: new Set() };
 
 /** Côté enseignante : à monter dans les espaces formatrice et administration. */
 export function SignalPresence({ userId }: { userId: string }) {
   useEffect(() => {
-    const supabase = createClient();
-    // `enabled: true` : sans écoute « presence » sur ce canal, la présence n'est activée qu'explicitement.
-    const canal = supabase.channel(CANAL_PRESENCE, { config: { presence: { key: userId, enabled: true } } });
-    canal.subscribe(async (statut) => {
-      if (statut === "SUBSCRIBED") await canal.track({ en_ligne_depuis: new Date().toISOString() });
-    });
-    return () => {
-      void canal.untrack();
-      void supabase.removeChannel(canal);
-    };
+    moi = userId;
+    retenir();
+    return () => { moi = null; relacher(); };
   }, [userId]);
   return null;
 }
 
-export type EtatPresence = "connexion" | "en_ligne" | "hors_ligne" | "indisponible";
-
 /** Côté élève : renvoie l'état de présence d'une enseignante (par identifiant). */
 export function useEnseignantesEnLigne(): (id: string) => EtatPresence {
-  const [pret, setPret] = useState(false);
-  const [erreur, setErreur] = useState(false);
-  const [enLigne, setEnLigne] = useState<Set<string>>(new Set());
   useEffect(() => {
-    const supabase = createClient();
-    const canal = supabase.channel(CANAL_PRESENCE);
-    canal
-      .on("presence", { event: "sync" }, () => setEnLigne(new Set(Object.keys(canal.presenceState()))))
-      .subscribe((statut) => {
-        if (statut === "SUBSCRIBED") { setPret(true); setErreur(false); }
-        if (statut === "CHANNEL_ERROR" || statut === "TIMED_OUT") setErreur(true);
-      });
-    return () => { void supabase.removeChannel(canal); };
+    retenir();
+    return () => relacher();
   }, []);
-  return (id: string) => (erreur ? "indisponible" : !pret ? "connexion" : enLigne.has(id) ? "en_ligne" : "hors_ligne");
+  const e = useSyncExternalStore(abonner, lire, () => VIDE);
+  return (id: string) => (e.erreur ? "indisponible" : !e.pret ? "connexion" : e.enLigne.has(id) ? "en_ligne" : "hors_ligne");
 }
 
 const STYLE: Record<EtatPresence, { texte: string; classe: string; point: string }> = {

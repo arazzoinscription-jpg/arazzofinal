@@ -1,5 +1,6 @@
 "use server";
 
+import { nomPublic } from "@/lib/nom-public";
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -125,8 +126,8 @@ export async function toggleLike(postId: string) {
       const admin = createAdminClient();
       const { data: post } = await admin.from("posts").select("author_id").eq("id", postId).maybeSingle();
       if (post?.author_id && post.author_id !== user.id) {
-        const { data: me } = await admin.from("users").select("nom, username").eq("id", user.id).maybeSingle();
-        const label = me?.username ? `@${me.username}` : (me?.nom ?? "Un membre");
+        const { data: me } = await admin.from("users").select("nom, username, role, roles").eq("id", user.id).maybeSingle();
+        const label = me?.username ? `@${me.username}` : me ? nomPublic({ id: user.id, ...me }) : "Un membre";
         // Le push système est envoyé par le webhook /api/webhooks/push.
         await admin.from("notifications").insert({
           user_id: post.author_id,
@@ -155,10 +156,12 @@ export async function addComment(postId: string, content: string) {
   const { data, error } = await supabase
     .from("comments")
     .insert({ post_id: postId, author_id: user.id, content: text })
-    .select("id, content, created_at, author_id, author:users(nom, role, avatar_url)")
+    .select("id, content, created_at, author_id, author:users(nom, username, role, roles, avatar_url)")
     .single();
   if (error) return { ok: false, error: error.message };
-  return { ok: true, comment: data };
+  // Le commentaire s'affiche avec le nom PUBLIC (le même que verront les autres).
+  const a = (data as unknown as { author?: { nom: string | null; username: string | null; role: string | null; roles: string[] | null; avatar_url: string | null } | null }).author;
+  return { ok: true, comment: { ...data, author: a ? { nom: nomPublic({ id: user.id, ...a }), role: a.role, avatar_url: a.avatar_url } : null } };
 }
 
 /**

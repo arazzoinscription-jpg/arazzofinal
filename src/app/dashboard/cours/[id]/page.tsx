@@ -13,6 +13,9 @@ import { LessonPractical, type Practical } from "./lesson-practical";
 import { PayNextInstallmentButton } from "./pay-next-installment";
 import { Section } from "./section";
 import { TravauxAutres } from "./travaux-autres";
+import { CarteEnseignante } from "@/components/presence/carte-enseignante";
+import { avatarSur } from "@/lib/classe/vue";
+import { nomPublic } from "@/lib/nom-public";
 
 export default async function LessonPage({ params }: { params: { id: string } }) {
   const supabase = await createClient();
@@ -29,7 +32,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
       chapter:chapters(
         *,
         course:courses(
-          id, titre_fr, slug, min_watch_pct,
+          id, titre_fr, slug, min_watch_pct, formateur_id,
           chapters(
             id, titre, ordre,
             lessons(id, titre, ordre, duree_minutes, is_preview)
@@ -170,14 +173,19 @@ export default async function LessonPage({ params }: { params: { id: string } })
     );
   }
 
+  // Nom d'une autre personne tel que la personne connectée doit le voir (équipe : vrai nom ; élève : nom public).
+  const nomVu = (id: string, a: { nom?: string | null; username?: string | null; role?: string | null; roles?: string[] | null } | null | undefined, defaut: string) =>
+    !a ? defaut : id === user.id || isStaff ? ((a.nom ?? "").trim() || defaut) : nomPublic({ id, ...a });
+
   const { data: qRows } = await extrasAdmin
     .from("lesson_questions")
-    .select("id, content, created_at, user_id, parent_id, author:users(nom, role)")
+    .select("id, content, created_at, user_id, parent_id, author:users(nom, username, role, roles)")
     .eq("lesson_id", lesson.id)
     .order("created_at", { ascending: true });
   const qa: QA[] = (qRows ?? []).map((q: any) => ({
     id: q.id, content: q.content, created_at: q.created_at, user_id: q.user_id, parent_id: q.parent_id,
-    authorName: q.author?.nom ?? "Utilisateur", authorRole: q.author?.role ?? "eleve",
+    // Vie privée : les élèves voient le nom PUBLIC des autres élèves ; l'équipe voit les vrais noms.
+    authorName: nomVu(q.user_id, q.author, "Utilisateur"), authorRole: q.author?.role ?? "eleve",
   }));
 
   let pQuery = extrasAdmin
@@ -191,14 +199,14 @@ export default async function LessonPage({ params }: { params: { id: string } })
   // corrections de la formatrice (qui restent privés entre elle et l'élève).
   const { data: autresRows } = await extrasAdmin
     .from("lesson_practicals")
-    .select("id, user_id, photo_url, video_url, note, status, created_at, author:users(nom)")
+    .select("id, user_id, photo_url, video_url, note, status, created_at, author:users(nom, username, role, roles)")
     .eq("lesson_id", lesson.id)
     .neq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(120);
   const autres: Practical[] = (autresRows ?? []).filter((p: any) => p.photo_url || p.video_url).map((p: any) => ({
     id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, annotation_url: null, note: p.note,
-    feedback: null, status: p.status, created_at: p.created_at, authorName: p.author?.nom ?? "Élève",
+    feedback: null, status: p.status, created_at: p.created_at, authorName: nomVu(p.user_id, p.author, "Élève"),
   }));
 
   // Leçon précédente / suivante dans l'ordre du programme (jamais une leçon d'un chapitre verrouillé).
@@ -213,6 +221,13 @@ export default async function LessonPage({ params }: { params: { id: string } })
     id: p.id, user_id: p.user_id, photo_url: p.photo_url, video_url: p.video_url, annotation_url: p.annotation_url ?? null, note: p.note,
     feedback: p.feedback, status: p.status, created_at: p.created_at, authorName: p.author?.nom ?? "Élève",
   }));
+
+  // L'enseignante du cours (photo, présence, profil, contact) — pas affichée à l'enseignante elle-même.
+  let enseignante: { id: string; nom: string; avatar: string | null } | null = null;
+  if (course?.formateur_id && course.formateur_id !== user.id) {
+    const { data: prof } = await createAdminClient().from("users").select("id, nom, avatar_url").eq("id", course.formateur_id).maybeSingle();
+    if (prof) enseignante = { id: prof.id as string, nom: ((prof.nom as string | null) ?? "").trim() || "Votre enseignante", avatar: avatarSur(prof.avatar_url as string | null) };
+  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
@@ -236,6 +251,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
             <PayNextInstallmentButton courseId={course?.id ?? ""} variant="soft" label="Payer le mois suivant" />
           </div>
         )}
+
+        {/* L'enseignante, tout en haut sur téléphone (devant le programme et la vidéo) */}
+        {enseignante ? <div className="lg:hidden"><CarteEnseignante enseignante={enseignante} compacte /></div> : null}
 
         {/* Programme du cours EN HAUT sur téléphone (juste devant la vidéo) */}
         <LessonSidebar
@@ -348,15 +366,18 @@ export default async function LessonPage({ params }: { params: { id: string } })
         </div>
       </div>
 
-      {/* Sidebar — chapters + lessons (ordinateur ; sur téléphone, le menu est en haut) */}
-      <LessonSidebar
-        variant="desktop"
-        chapters={(course?.chapters as any[]) ?? []}
-        currentLessonId={lesson.id}
-        completedLessons={completedLessons}
-        lockedChapterIds={lockedChapterIds}
-        unlockMonthByChapter={access.unlockMonthByChapter}
-      />
+      {/* Colonne de droite (ordinateur) : l'enseignante en haut, puis le programme. Sur téléphone, tout est en haut. */}
+      <div className="hidden lg:flex lg:flex-col lg:w-72 flex-shrink-0 gap-4">
+        {enseignante ? <CarteEnseignante enseignante={enseignante} /> : null}
+        <LessonSidebar
+          variant="desktop"
+          chapters={(course?.chapters as any[]) ?? []}
+          currentLessonId={lesson.id}
+          completedLessons={completedLessons}
+          lockedChapterIds={lockedChapterIds}
+          unlockMonthByChapter={access.unlockMonthByChapter}
+        />
+      </div>
     </div>
   );
 }

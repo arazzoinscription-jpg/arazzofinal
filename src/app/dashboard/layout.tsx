@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BoutonMaClasse } from "@/components/layout/bouton-ma-classe";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Scissors } from "lucide-react";
@@ -195,6 +196,8 @@ export default async function DashboardLayout({
         <PublicationConsentPopup userId={user.id} username={profile?.username ?? null} />
       )}
       <ChatWidget />
+      {/* Accès direct à « Ma classe », depuis toutes les pages de l'espace. */}
+      <BoutonMaClasse href="/dashboard/classe" />
       {/* « En ligne » + activité choisie, visibles des camarades — temps réel, rien en base (mode discrète possible). */}
       <SignalPresenceMembre userId={user.id} />
     </div>

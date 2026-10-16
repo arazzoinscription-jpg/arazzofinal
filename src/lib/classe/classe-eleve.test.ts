@@ -28,15 +28,16 @@ test("classe élève : enseignante en haut, camarades des MÊMES cours, jamais l
     ],
   });
   assert.deepEqual(r.enseignantes.map((e) => [e.nom, e.niveaux.join("+"), e.avatar]), [["Fatima Prof", "N1+Patron numérique", null]]);
-  assert.deepEqual(r.camarades.map((c) => [c.nom, c.niveaux.join("+")]), [["Amina B.", "N1+Patron numérique"], ["Basma", "Patron numérique"]]);
+  assert.deepEqual(r.camarades.map((c) => [c.id, c.niveaux.join("+")]), [["amina", "N1+Patron numérique"], ["basma", "Patron numérique"]]);
+  assert.match(r.camarades[0].nom, /^AB-\d{3}$/); // jamais « Amina Benali »
   assert.equal(r.camarades[0].avatar, "https://cdn.exemple.test/a.jpg");
 });
 
-test("camarades : pseudo s'il existe, sinon prénom + initiale — jamais le nom complet", () => {
-  assert.equal(nomCamarade({ nom: "Amina Benali", username: "amina_couture" }), "amina_couture");
-  assert.equal(nomCamarade({ nom: "Amina Benali Hadj", username: null }), "Amina H.");
-  assert.equal(nomCamarade({ nom: "Fella (fictive)", username: "" }), "Fella");
-  assert.equal(nomCamarade({ nom: null, username: null }), "Membre");
+test("camarades : pseudo s'il existe, sinon initiales + numéro (comme sur le feed) — jamais le nom complet", () => {
+  assert.equal(nomCamarade({ id: "a", nom: "Amina Benali", username: "amina_couture" }), "amina_couture");
+  assert.match(nomCamarade({ id: "a", nom: "Amina Benali Hadj", username: null }), /^AH-\d{3}$/);
+  assert.match(nomCamarade({ id: "a", nom: "Fella (fictive)", username: "" }), /^F-\d{3}$/);
+  assert.match(nomCamarade({ id: "a", nom: null, username: null }), /^M-\d{3}$/);
 });
 
 test("camarades : barre de progression par cours partagé (leçons terminées), jamais inventée", () => {
@@ -51,9 +52,9 @@ test("camarades : barre de progression par cours partagé (leçons terminées), 
       { user_id: "amina", course_id: AUTRE, faites: 0, total: 0 }, // cours sans leçon
     ],
   });
-  const amina = r.camarades.find((c) => c.nom === "Amina")!;
+  const amina = r.camarades.find((c) => c.id === "amina")!;
   assert.deepEqual(amina.progression, [{ cours: "N1", pct: 50, faites: 6, total: 12 }, { cours: "Patron numérique", pct: null, faites: 0, total: 0 }]);
-  assert.deepEqual(r.camarades.find((c) => c.nom === "Basma")!.progression, []); // donnée absente : pas de barre
+  assert.deepEqual(r.camarades.find((c) => c.id === "basma")!.progression, []); // donnée absente : pas de barre
 });
 
 test("classe élève : aucune donnée de suivi ne sort (seulement profil public + progression)", () => {
@@ -82,7 +83,7 @@ test("groupes : l'élève ne voit QUE les camarades de ses groupes (pas les autr
     ],
   });
   // Basma et Chahra suivent le même cours mais ne sont dans aucun de mes groupes : invisibles ici.
-  assert.deepEqual(r.camarades.map((c) => [c.nom, c.groupes.join("+"), c.niveaux.join("+")]), [["Amina", "g1+g2", "N1"], ["Dounia", "g1", ""]]);
+  assert.deepEqual(r.camarades.map((c) => [c.id, c.groupes.join("+"), c.niveaux.join("+")]).sort(), [["amina", "g1+g2", "N1"], ["dounia", "g1", ""]]);
   assert.deepEqual(r.groupes, [{ id: "g2", nom: "Atelier robes", nb: 1 }, { id: "g1", nom: "Groupe du soir", nb: 2 }]);
 });
 

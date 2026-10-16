@@ -1,5 +1,6 @@
 "use server";
 
+import { bornesDe, lirePeriode, periodeActive } from "@/lib/groupes-periode";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -158,25 +159,29 @@ async function resolveCourseIds(admin: ReturnType<typeof createAdminClient>, id:
   return [id];
 }
 
-/** Étudiants inscrits à un cours OU à un pack (union des cours du pack). */
-export async function courseEnrollees(id: string, kind: "course" | "pack" = "course") {
+/** Étudiants inscrits à un cours OU à un pack (union des cours du pack), éventuellement sur une période d'inscription. */
+export async function courseEnrollees(id: string, kind: "course" | "pack" = "course", periode?: unknown) {
   const { ok } = await requireStaff();
-  if (!ok) return { ok: false, results: [] as { id: string; nom: string; email: string; avatar_url: string | null }[] };
+  type Inscrit = { id: string; nom: string; email: string; avatar_url: string | null; inscrite_le: string | null };
+  if (!ok) return { ok: false, results: [] as Inscrit[] };
   const admin = createAdminClient();
   const courseIds = await resolveCourseIds(admin, id, kind);
-  if (courseIds.length === 0) return { ok: true, results: [] };
-  const { data } = await admin
-    .from("enrollments").select("user:users(id, nom, email, avatar_url)").in("course_id", courseIds);
-  const map = new Map<string, { id: string; nom: string; email: string; avatar_url: string | null }>();
+  if (courseIds.length === 0) return { ok: true, results: [] as Inscrit[] };
+  const { depuis, avant } = bornesDe(lirePeriode(periode));
+  let q = admin.from("enrollments").select("enrolled_at, user:users(id, nom, email, avatar_url)").in("course_id", courseIds);
+  if (depuis) q = q.gte("enrolled_at", depuis);
+  if (avant) q = q.lt("enrolled_at", avant);
+  const { data } = await q.order("enrolled_at", { ascending: false });
+  const map = new Map<string, Inscrit>();
   for (const e of (data ?? []) as any[]) {
     const u = e.user;
-    if (u?.id && !map.has(u.id)) map.set(u.id, { id: u.id, nom: u.nom ?? "Étudiant", email: u.email ?? "", avatar_url: u.avatar_url ?? null });
+    if (u?.id && !map.has(u.id)) map.set(u.id, { id: u.id, nom: u.nom ?? "Étudiant", email: u.email ?? "", avatar_url: u.avatar_url ?? null, inscrite_le: e.enrolled_at ?? null });
   }
   return { ok: true, results: [...map.values()] };
 }
 
-/** Ajoute en une fois tous les inscrits d'un cours OU d'un pack au groupe. */
-export async function addCourseMembers(groupId: string, id: string, kind: "course" | "pack" = "course") {
+/** Ajoute en une fois tous les inscrits d'un cours OU d'un pack au groupe (sur la période choisie, s'il y en a une). */
+export async function addCourseMembers(groupId: string, id: string, kind: "course" | "pack" = "course", periode?: unknown) {
   const { supabase, user, ok } = await requireStaff();
   if (!ok || !user) return { ok: false, error: "Accès refusé." };
   const { data: g } = await supabase.from("groups").select("creator_id").eq("id", groupId).single();
@@ -186,7 +191,11 @@ export async function addCourseMembers(groupId: string, id: string, kind: "cours
   const admin = createAdminClient();
   const courseIds = await resolveCourseIds(admin, id, kind);
   if (courseIds.length === 0) return { ok: true, added: 0 };
-  const { data: enr } = await admin.from("enrollments").select("user_id").in("course_id", courseIds);
+  const { depuis, avant } = bornesDe(lirePeriode(periode));
+  let qe = admin.from("enrollments").select("user_id").in("course_id", courseIds);
+  if (depuis) qe = qe.gte("enrolled_at", depuis);
+  if (avant) qe = qe.lt("enrolled_at", avant);
+  const { data: enr } = await qe;
   const ids = [...new Set((enr ?? []).map((e) => e.user_id))];
   if (ids.length === 0) return { ok: true, added: 0 };
 
@@ -201,22 +210,27 @@ export async function addCourseMembers(groupId: string, id: string, kind: "cours
   return { ok: true, added: toAdd.length };
 }
 
-/** Recherche d'étudiants (par nom ou email) pour les ajouter à un groupe. */
-export async function searchStudents(query: string) {
+/** Recherche d'étudiants (par nom ou email, et/ou par date de création du compte) pour les ajouter à un groupe. */
+export async function searchStudents(query: string, periode?: unknown) {
   const { ok } = await requireStaff();
   if (!ok) return { ok: false, error: "Accès refusé.", results: [] };
-  const q = query.trim();
-  if (q.length < 2) return { ok: true, results: [] };
+  const q = query.trim().replace(/[,()%*]/g, " ").trim();
+  const p = lirePeriode(periode);
+  // Un nom (2 lettres min.) OU une période : sans l'un ni l'autre, on ne liste pas tout le monde.
+  if (q.length < 2 && !periodeActive(p)) return { ok: true, results: [] };
+  const { depuis, avant } = bornesDe(p);
   const admin = createAdminClient();
   // Multi-rôles : on cherche sur le TABLEAU `roles` (qui contient toujours 'eleve')
   // au lieu de la colonne `role` (rôle principal) — sinon un élève inscrit dont le
   // rôle principal a changé (ex. patronniste) n'apparaissait pas. Repli sur `role`
   // pour les comptes non encore migrés.
-  const { data } = await admin
+  let requete = admin
     .from("users")
-    .select("id, nom, email, avatar_url")
-    .or("roles.cs.{eleve},role.eq.eleve")
-    .or(`nom.ilike.%${q}%,email.ilike.%${q}%`)
-    .limit(20);
+    .select("id, nom, email, avatar_url, created_at")
+    .or("roles.cs.{eleve},role.eq.eleve");
+  if (q.length >= 2) requete = requete.or(`nom.ilike.%${q}%,email.ilike.%${q}%`);
+  if (depuis) requete = requete.gte("created_at", depuis);
+  if (avant) requete = requete.lt("created_at", avant);
+  const { data } = await requete.order("created_at", { ascending: false }).limit(q.length >= 2 ? 20 : 50);
   return { ok: true, results: data ?? [] };
 }

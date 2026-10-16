@@ -1,7 +1,7 @@
 /**
  * « Ma classe » CÔTÉ ÉLÈVE — ce qu'une élève voit de sa classe. Données VOLONTAIREMENT limitées :
  *  - ses enseignantes (photo, nom, niveaux qu'elles encadrent) ;
- *  - ses camarades DE GROUPE seulement (photo, PSEUDO — ou prénom + initiale —, niveaux en commun) et leur PROGRESSION
+ *  - ses camarades DE GROUPE seulement (photo, nom PUBLIC — pseudo, ou initiales + numéro —, niveaux en commun) et leur PROGRESSION
  *    (leçons terminées, en %) dans les cours partagés — la même donnée que leur profil communauté.
  *    AUCUN statut de suivi, aucune relance : un clic ouvre leur profil communauté, comme depuis le feed.
  *    (La communauté promet un pseudo « pour protéger votre vie privée » : jamais le nom complet ici.)
@@ -16,6 +16,7 @@ import { VUE_INSCRIPTIONS } from "../student-care/read";
 import { NIVEAU_PAR_COURS } from "../student-care/levels";
 import { lireTout, paquets } from "../student-care/paginate";
 import { avatarSur, initiales, normaliser } from "./vue";
+import { initialesPubliques, nomPublic } from "../nom-public";
 
 export interface PersonneClasse {
   id: string;
@@ -44,13 +45,9 @@ export interface ClasseEleve {
 
 interface Personne { id: string; nom: string | null; username?: string | null; avatar_url: string | null; role: string | null; roles: string[] | null }
 
-/** Nom montré aux CAMARADES : le pseudo s'il existe, sinon « Prénom I. » (jamais le nom complet). */
-export function nomCamarade(p: Pick<Personne, "nom" | "username">): string {
-  const pseudo = (p.username ?? "").trim();
-  if (pseudo) return pseudo;
-  const mots = (p.nom ?? "").replace(/\(.*?\)/g, " ").trim().split(/\s+/).filter(Boolean);
-  if (!mots.length) return "Membre";
-  return mots.length === 1 ? mots[0] : `${mots[0]} ${mots[mots.length - 1].charAt(0).toLocaleUpperCase("fr")}.`;
+/** Nom montré aux CAMARADES : le même nom public que sur le feed (pseudo, sinon initiales + numéro). */
+export function nomCamarade(p: Pick<Personne, "id" | "nom" | "username">): string {
+  return nomPublic({ id: p.id, nom: p.nom, username: p.username, role: "eleve" });
 }
 
 const libelleCours = (c: { id: string; titre: string }) => NIVEAU_PAR_COURS.get(c.id) ?? c.titre;
@@ -107,7 +104,7 @@ export function construireClasseEleve({ moi, cours, inscriptions, personnes, pro
     .map(([id, ids]) => ({ id, p: parId.get(id), ids }))
     .filter((x): x is { id: string; p: Personne; ids: Set<string> } => Boolean(x.p) && !estEquipe(x.p as Personne) && !coursParEnseignante.has(x.id))
     .map(({ id, p, ids }) => ({
-      id, nom: nomCamarade(p), initiales: initiales(nomCamarade(p)), avatar: avatarSur(p.avatar_url),
+      id, nom: nomCamarade(p), initiales: initialesPubliques(nomCamarade(p)), avatar: avatarSur(p.avatar_url),
       niveaux: [...new Set([...ids].map((c) => libelleCours(coursParId.get(c)!)))].sort(),
       progression: [...ids]
         .map((c) => ({ c, pr: progresDe.get(`${id}|${c}`) }))

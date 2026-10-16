@@ -6,11 +6,13 @@ import { normLang } from "@/lib/store-i18n";
 import { CommunityProfileCard } from "./community-profile-card";
 import { CommunityJourney } from "./community-journey";
 import { CommunityPortfolio } from "./community-portfolio";
-import { MediaTile } from "./media-tile";
+import { GrillePublications } from "./grille-publications";
+import { FEED_LIBRARY_ID } from "@/lib/bunny/stream";
 import { BoutonRetour } from "@/components/community/bouton-retour";
 import { SignalPresenceMembre } from "@/components/presence/membres";
 import { ChoixActivite, PresenceDe } from "@/components/presence/activite";
 import { niveauxDuMembre } from "@/lib/niveaux-membre";
+import { estEquipePublique, nomPublic } from "@/lib/nom-public";
 
 export const metadata = { title: "Profil — Communauté Arazzo" };
 export const dynamic = "force-dynamic";
@@ -23,7 +25,9 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
   // Chargements LANCÉS ENSEMBLE (avant : 5 étapes l'une après l'autre, chacune attendant la base).
   const lang = normLang((await cookies()).get("lang")?.value) as "fr" | "ar" | "en";
   const [{ me, items }, profile] = await Promise.all([loadUserMedia(params.id), loadProfile(params.id)]);
-  const name = profile?.nom ?? "Membre";
+  // Vie privée : nom PUBLIC (pseudo, ou initiales + numéro) — jamais le nom complet d'une élève.
+  const name = profile ? nomPublic(profile) : "Membre";
+  const pseudoAutomatique = Boolean(profile && !estEquipePublique(profile) && !(profile.username ?? "").trim());
   const isMe = me?.id === params.id;
 
   const likes = items.reduce((s, i) => s + i.likeCount, 0);
@@ -70,6 +74,15 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           lang={lang}
         />
 
+        {isMe && pseudoAutomatique ? (
+          <div className="mt-4 rounded-2xl border border-orange-300/30 bg-orange-500/10 px-4 py-3 text-sm text-orange-100 flex flex-col sm:flex-row sm:items-center gap-2">
+            <span>Pour protéger votre vie privée, les autres membres vous voient sous le nom <b>« {name} »</b>, jamais votre nom complet.</span>
+            <Link href="/communaute/profil" className="sm:ms-auto shrink-0 inline-flex items-center gap-1.5 rounded-full bg-orange-500 text-white px-3 py-1.5 text-xs font-semibold hover:bg-orange-600">
+              <Pencil size={13} aria-hidden /> Choisir mon pseudo
+            </Link>
+          </div>
+        ) : null}
+
         {/* Membres connectés : en ligne ou non, ce qu'elle fait en ce moment, son niveau (temps réel, rien en base). */}
         {me ? (
           <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -104,9 +117,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           {items.length === 0 ? (
             <p className="text-white/50 font-dm text-center py-12">Aucune publication pour le moment.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-1.5">
-              {items.map((it) => <MediaTile key={it.id} item={it} />)}
-            </div>
+            <GrillePublications items={items} bibliotheque={FEED_LIBRARY_ID} />
           )}
         </div>
       </div>

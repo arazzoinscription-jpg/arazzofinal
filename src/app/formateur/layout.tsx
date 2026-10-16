@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BoutonMaClasse } from "@/components/layout/bouton-ma-classe";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { LogOut } from "lucide-react";
@@ -129,6 +130,8 @@ export default async function FormateurLayout({
       </main>
       <Toaster />
       <ChatWidget />
+      {/* Accès direct à « Ma classe », depuis toutes les pages de l'espace. */}
+      <BoutonMaClasse href="/formateur/classe" />
       {/* Présence « en ligne » visible des élèves (page « Ma classe ») — temps réel, rien en base. */}
       <SignalPresence userId={user.id} />
       <SignalPresenceMembre userId={user.id} />

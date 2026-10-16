@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { nomPublic } from "@/lib/nom-public";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { FeedPost, FeedComment, CurrentUser } from "@/components/feed/types";
 
@@ -39,10 +40,10 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
     .from("posts")
     .select(`
       id, content, created_at, author_id, published,
-      author:users(id, nom, role, avatar_url),
+      author:users(id, nom, username, role, roles, avatar_url),
       post_images(image_url, expired, uploaded_at),
       likes(user_id),
-      comments(id, content, created_at, author_id, author:users(id, nom, role, avatar_url))
+      comments(id, content, created_at, author_id, author:users(id, nom, username, role, roles, avatar_url))
     `)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -62,7 +63,7 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
         author_id: c.author_id,
         author: {
           id: c.author?.id,
-          nom: c.author?.nom ?? "Utilisateur",
+          nom: c.author ? (isStaff ? (c.author.nom ?? "Utilisateur") : nomPublic(c.author)) : "Membre",
           role: c.author?.role ?? "eleve",
           avatar_url: c.author?.avatar_url ?? null,
         },
@@ -78,7 +79,7 @@ export async function loadFeed(groupId: string | null): Promise<{ me: CurrentUse
       author_id: r.author_id,
       author: {
         id: r.author?.id,
-        nom: r.author?.nom ?? "Utilisateur",
+        nom: r.author ? (isStaff ? (r.author.nom ?? "Utilisateur") : nomPublic(r.author)) : "Membre",
         role: r.author?.role ?? "eleve",
         avatar_url: r.author?.avatar_url ?? null,
       },

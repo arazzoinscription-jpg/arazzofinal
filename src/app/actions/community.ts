@@ -1,5 +1,6 @@
 "use server";
 
+import { nomPublic } from "@/lib/nom-public";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -158,8 +159,8 @@ export async function toggleFollow(targetId: string) {
     if (error) return { ok: false as const, error: error.message };
     // Notifie la personne suivie qu'elle a un nouvel abonné (in-app + push système).
     try {
-      const { data: me } = await admin.from("users").select("nom, username").eq("id", user.id).maybeSingle();
-      const label = me?.username ? `@${me.username}` : (me?.nom ?? "Un membre");
+      const { data: me } = await admin.from("users").select("nom, username, role, roles").eq("id", user.id).maybeSingle();
+      const label = me?.username ? `@${me.username}` : me ? nomPublic({ id: user.id, ...me }) : "Un membre";
       // Le push système est envoyé par le webhook /api/webhooks/push (déclenché
       // par cette insertion) → un seul émetteur, aucune duplication.
       await admin.from("notifications").insert({
@@ -193,8 +194,9 @@ export interface CommunityPerson {
 async function fetchPeopleOrdered(admin: ReturnType<typeof createAdminClient>, ids: string[]): Promise<CommunityPerson[]> {
   if (ids.length === 0) return [];
   const { data } = await admin
-    .from("users").select("id, nom, username, avatar_url, role").in("id", ids);
-  const byId = new Map((data ?? []).map((u) => [u.id, u as CommunityPerson]));
+    .from("users").select("id, nom, username, avatar_url, role, roles").in("id", ids);
+  // Vie privée : le nom affiché est le nom PUBLIC (jamais le nom complet d'une élève).
+  const byId = new Map((data ?? []).map((u) => [u.id, { id: u.id, nom: nomPublic(u), username: u.username, avatar_url: u.avatar_url, role: u.role } as CommunityPerson]));
   return ids.map((id) => byId.get(id)).filter(Boolean) as CommunityPerson[];
 }
 
@@ -257,7 +259,7 @@ export async function getPostComments(postId: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("comments")
-    .select("id, content, created_at, author_id, author:users(id, nom, avatar_url, role)")
+    .select("id, content, created_at, author_id, author:users(id, nom, username, avatar_url, role, roles)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
     .limit(200);
@@ -269,7 +271,7 @@ export async function getPostComments(postId: string) {
     author_id: c.author_id,
     author: {
       id: c.author?.id,
-      nom: c.author?.nom ?? "Utilisateur",
+      nom: c.author ? nomPublic(c.author) : "Membre",
       avatar_url: c.author?.avatar_url ?? null,
       role: c.author?.role ?? "eleve",
     },
