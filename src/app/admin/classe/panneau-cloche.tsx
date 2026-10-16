@@ -34,6 +34,7 @@ export function PanneauCloche({ base, niveau, groupes, groupeCourant }: {
   const [quand, setQuand] = useState<"maintenant" | "programmer">("maintenant");
   const [date, setDate] = useState(maintenantAlger(30));
   const [eleves, setEleves] = useState<number | null>(null);
+  const [sonnerie, setSonnerie] = useState<number | null>(null);
   const [disponible, setDisponible] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [confirme, setConfirme] = useState(false);
@@ -59,7 +60,7 @@ export function PanneauCloche({ base, niveau, groupes, groupeCourant }: {
     let annule = false;
     void apercuClocheAction({ base, cible }).then((r) => {
       if (annule) return;
-      if (r.ok) { setEleves(r.eleves); setDisponible(r.disponible); } else setErreur(r.erreur);
+      if (r.ok) { setEleves(r.eleves); setSonnerie(r.sonnerie); setDisponible(r.disponible); } else setErreur(r.erreur);
     });
     return () => { annule = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,7 +133,9 @@ export function PanneauCloche({ base, niveau, groupes, groupeCourant }: {
           <div className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 space-y-2">
             <label className="flex items-start gap-2">
               <input type="checkbox" checked={confirme} disabled={!eleves || !disponible} onChange={(e) => setConfirme(e.target.checked)} className="mt-1" />
-              <span>Je confirme : la cloche sonnera chez <b>{eleves}</b> élève(s){quand === "programmer" ? ` le ${heureAlger(new Date(`${date}:00+01:00`).toISOString())}` : " maintenant"}.</span>
+              <span>Je confirme : la cloche sonnera chez <b>{eleves}</b> élève(s){quand === "programmer" ? ` le ${heureAlger(new Date(`${date}:00+01:00`).toISOString())}` : " maintenant"}.
+                {sonnerie !== null && eleves ? <span className="block text-[11px] text-gray-500 mt-0.5">📱 {sonnerie} sur {eleves} ont activé la sonnerie sur leur téléphone (Ma classe → « Sonnerie de la cloche ») ; les autres la verront en ouvrant le site.</span> : null}
+              </span>
             </label>
             <button type="button" onClick={sonner} disabled={!confirme || etape === "declenche"}
               className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#5B16F9] to-[#FE7223] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40 disabled:cursor-not-allowed">

@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Bell, X, Loader2 } from "lucide-react";
-import { savePushSubscription, deletePushSubscription } from "@/app/actions/push";
+import { abonnerAuxNotifications } from "./abonnement-push";
 
 const DISMISS_KEY = "arazzo-push-dismissed";
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
 
 /**
  * Bannière discrète « Activer les notifications ». Ne s'affiche que si le
@@ -40,42 +31,12 @@ export function PushOptIn() {
   async function enable() {
     setError(null);
     setBusy(true);
-    try {
-      const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setShow(false);
-        return;
-      }
-      const reg = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      const sub =
-        existing ??
-        (await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(key) as BufferSource,
-        }));
-
-      const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-      if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
-        throw new Error("Abonnement incomplet.");
-      }
-      const res = await savePushSubscription(
-        { endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth } },
-        navigator.userAgent,
-      );
-      if (!res.ok) {
-        // Nettoie l'abonnement navigateur si le serveur l'a refusé.
-        if (!existing) await sub.unsubscribe().catch(() => {});
-        setError(res.error ?? "Erreur");
-        return;
-      }
-      setShow(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Impossible d'activer les notifications.");
-    } finally {
-      setBusy(false);
-    }
+    const r = await abonnerAuxNotifications();
+    setBusy(false);
+    if (r.ok) { setShow(false); return; }
+    // Autorisation refusée : la bannière disparaît (le navigateur ne redemandera pas).
+    if (Notification.permission !== "granted") { setShow(false); return; }
+    setError(r.erreur);
   }
 
   function dismiss() {

@@ -35,12 +35,17 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+  // Cloche de classe : jamais silencieuse ; la toucher ouvre « Ma classe » ET y fait sonner la cloche
+  // (?cloche=<heure> : la page ne sonne que si la cloche date de moins de 5 minutes).
+  const cloche = row.type === "cloche";
+  const lien = (row.link as string) || "/dashboard";
+  const quand = Date.parse((row.created_at as string) ?? "") || Date.now();
   await pushToUserWithBadge(admin, row.user_id as string, {
     title: row.title as string,
     body: (row.body as string) ?? "",
-    url: (row.link as string) ?? "/dashboard",
+    url: cloche ? `${lien}${lien.includes("?") ? "&" : "?"}cloche=${quand}` : lien,
     tag: (row.type as string) ?? undefined,
-  });
+  }, { forcerSon: cloche });
 
   return NextResponse.json({ ok: true });
 }

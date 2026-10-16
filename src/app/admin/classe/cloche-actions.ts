@@ -5,7 +5,7 @@ import { baseDepuis, espacePour } from "@/lib/espace/load";
 import { lireCible } from "@/lib/classe/commande";
 import { elevesVisees } from "@/lib/classe/destinataires";
 import { HORIZON_JOURS, etatCloche, lireQuand, validerMessageCloche, type EtatCloche } from "@/lib/cloches/regles";
-import { annulerCloche, creerCloche, etatMigrationCloches, listerCloches, sonnerCloche } from "@/lib/cloches/load";
+import { annulerCloche, creerCloche, etatMigrationCloches, listerCloches, sonnerCloche, elevesAvecSonnerie } from "@/lib/cloches/load";
 
 /**
  * Cloche de classe. Garde-fous, tous côté serveur :
@@ -17,7 +17,7 @@ import { annulerCloche, creerCloche, etatMigrationCloches, listerCloches, sonner
 
 const INDISPONIBLE = "La cloche de classe n'est pas encore activée sur ce site (migration 098 à appliquer).";
 
-export async function apercuClocheAction(entree: { base: string; cible: unknown }): Promise<{ ok: true; eleves: number; disponible: boolean } | { ok: false; erreur: string }> {
+export async function apercuClocheAction(entree: { base: string; cible: unknown }): Promise<{ ok: true; eleves: number; sonnerie: number; disponible: boolean } | { ok: false; erreur: string }> {
   const espace = await espacePour(baseDepuis(entree.base));
   if (!espace) return { ok: false, erreur: "Accès refusé." };
   const cible = lireCible(entree.cible);
@@ -25,7 +25,9 @@ export async function apercuClocheAction(entree: { base: string; cible: unknown 
   const admin = createAdminClient();
   try {
     const eleves = await elevesVisees(admin, espace, cible);
-    return { ok: true, eleves: eleves.length, disponible: !(await etatMigrationCloches(admin)) };
+    // Celles qui ont activé la sonnerie sur leur téléphone (les autres verront la cloche en ouvrant le site).
+    const sonnerie = await elevesAvecSonnerie(admin, eleves);
+    return { ok: true, eleves: eleves.length, sonnerie, disponible: !(await etatMigrationCloches(admin)) };
   } catch (e) {
     return { ok: false, erreur: e instanceof Error ? e.message : "Lecture impossible." };
   }

@@ -96,6 +96,8 @@ export async function pushToUserWithBadge(
   admin: SupabaseClient,
   userId: string,
   payload: Omit<PushPayload, "badgeCount">,
+  /** La cloche de classe sonne TOUJOURS (même si la personne a choisi des notifications silencieuses). */
+  opts: { forcerSon?: boolean } = {},
 ): Promise<void> {
   try {
     const [{ count }, { data: u }] = await Promise.all([
@@ -105,7 +107,7 @@ export async function pushToUserWithBadge(
     await sendPushToUsers(admin, [userId], {
       ...payload,
       badgeCount: count ?? undefined,
-      silent: !!(u as { push_silent?: boolean } | null)?.push_silent,
+      silent: opts.forcerSon ? false : !!(u as { push_silent?: boolean } | null)?.push_silent,
     });
   } catch { /* ignore */ }
 }

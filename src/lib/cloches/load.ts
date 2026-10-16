@@ -100,3 +100,15 @@ export async function annulerCloche(admin: SupabaseClient, espace: Espace, id: s
   if (!r.data) return { ok: false, erreur: "Cloche déjà envoyée, annulée, ou qui n'est pas la vôtre." };
   return { ok: true };
 }
+
+/** Parmi ces élèves, combien ont activé la sonnerie (au moins un téléphone abonné aux notifications). */
+export async function elevesAvecSonnerie(admin: SupabaseClient, ids: string[]): Promise<number> {
+  const avec = new Set<string>();
+  for (const lot of paquets([...new Set(ids)], 200)) {
+    // eslint-disable-next-line no-await-in-loop
+    const r = await admin.from("push_subscriptions").select("user_id").in("user_id", lot);
+    if (r.error) return 0;
+    for (const x of (r.data ?? []) as { user_id: string }[]) avec.add(x.user_id);
+  }
+  return avec.size;
+}

@@ -4,9 +4,22 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { jouerCloche } from "./son-cloche";
+import { jouerCloche, preparerSon } from "./son-cloche";
 
 export const EVENEMENT_CLOCHE = "arazzo:cloche";
+/** Une cloche ne sonne à l'ouverture de l'app que si elle a moins de 5 minutes. */
+const FENETRE_MS = 5 * 60_000;
+const CLE_SONNEES = "arazzo:cloches-sonnees";
+
+function dejaSonnee(id: string): boolean {
+  try { return (JSON.parse(sessionStorage.getItem(CLE_SONNEES) ?? "[]") as string[]).includes(id); } catch { return false; }
+}
+function noterSonnee(id: string) {
+  try {
+    const l = JSON.parse(sessionStorage.getItem(CLE_SONNEES) ?? "[]") as string[];
+    sessionStorage.setItem(CLE_SONNEES, JSON.stringify([...l, id].slice(-30)));
+  } catch { /* stockage indisponible */ }
+}
 
 /**
  * Côté élève : quand l'enseignante fait sonner la cloche, une bannière apparaît et une cloche sonne.
@@ -14,14 +27,17 @@ export const EVENEMENT_CLOCHE = "arazzo:cloche";
  *  - le push du téléphone (le service worker prévient la page ouverte) ;
  *  - la notification enregistrée (temps réel), si le push n'est pas activé ;
  *  - l'événement « arazzo:cloche » (aperçu dans l'Espace de commande).
- * App fermée : c'est la notification du téléphone (vibration de cloche) qui prend le relais.
+ * App fermée ou en arrière-plan : la notification du téléphone sonne (son de notification + vibration de cloche) ;
+ * en la touchant (ou en revenant dans l'app dans les 5 minutes), la cloche sonne ici.
+ * Le son est « déverrouillé » dès le premier toucher de l'élève (exigence des téléphones).
  */
 export function EcouteCloche({ userId }: { userId: string | null }) {
   const [cloche, setCloche] = useState<{ titre: string } | null>(null);
   const [sonBloque, setSonBloque] = useState(false);
   const dernier = useRef(0);
 
-  const sonner = useCallback(async (titre: string) => {
+  const sonner = useCallback(async (titre: string, id?: string) => {
+    if (id) { if (dejaSonnee(id)) return; noterSonnee(id); }
     const t = Date.now();
     if (t - dernier.current < 15_000) return;
     dernier.current = t;
@@ -29,6 +45,50 @@ export function EcouteCloche({ userId }: { userId: string | null }) {
     try { navigator.vibrate?.([500, 200, 500, 200, 900]); } catch { /* pas de vibreur */ }
     setSonBloque(!(await jouerCloche(3)));
   }, []);
+
+  useEffect(() => { preparerSon(); }, []);
+
+  // Son bloqué par le téléphone (aucun geste encore) : le PREMIER toucher, n'importe où, fait sonner la cloche.
+  useEffect(() => {
+    if (!sonBloque) return;
+    const auToucher = () => { void jouerCloche(3).then((ok) => setSonBloque(!ok)); };
+    window.addEventListener("pointerdown", auToucher, { once: true, capture: true });
+    return () => window.removeEventListener("pointerdown", auToucher, true);
+  }, [sonBloque]);
+
+  // Ouverte depuis la notification de la cloche (?cloche=<heure>) : la cloche sonne ici.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const quand = Number(url.searchParams.get("cloche"));
+    if (!quand) return;
+    url.searchParams.delete("cloche");
+    // L'état de l'historique est conservé (sinon le routeur de Next perd la page en cours).
+    window.history.replaceState({ ...window.history.state }, "", url.toString());
+    // Retenue : la même cloche ne ressonnera pas au prochain retour dans l'app.
+    try { sessionStorage.setItem("arazzo:cloche-quand", String(quand)); } catch { /* stockage indisponible */ }
+    if (Date.now() - quand < FENETRE_MS) void sonner("🔔 La cloche sonne !", `push-${quand}`);
+  }, [sonner]);
+
+  // Retour dans l'app (elle était en arrière-plan) : une cloche de moins de 5 minutes sonne encore.
+  useEffect(() => {
+    if (!userId) return;
+    const verifier = async () => {
+      if (document.visibilityState !== "visible") return;
+      const supabase = createClient();
+      const { data } = await supabase.from("notifications").select("id, title, created_at").eq("user_id", userId).eq("type", "cloche")
+        .gte("created_at", new Date(Date.now() - FENETRE_MS).toISOString()).order("created_at", { ascending: false }).limit(1);
+      const n = (data ?? [])[0] as { id: string; title: string | null; created_at: string } | undefined;
+      if (!n) return;
+      // Déjà sonnée à l'ouverture depuis la notification (même cloche) : on la note seulement.
+      let ouverte = 0;
+      try { ouverte = Number(sessionStorage.getItem("arazzo:cloche-quand")) || 0; } catch { /* stockage indisponible */ }
+      if (ouverte && Math.abs(Date.parse(n.created_at) - ouverte) < 60_000) { noterSonnee(n.id); return; }
+      void sonner(n.title ?? "🔔 La cloche sonne !", n.id);
+    };
+    void verifier();
+    document.addEventListener("visibilitychange", verifier);
+    return () => document.removeEventListener("visibilitychange", verifier);
+  }, [userId, sonner]);
 
   useEffect(() => {
     const surEvenement = (e: Event) => { void sonner((e as CustomEvent<{ titre?: string }>).detail?.titre ?? "🔔 La cloche sonne !"); };
@@ -50,8 +110,8 @@ export function EcouteCloche({ userId }: { userId: string | null }) {
     const supabase = createClient();
     const canal = supabase.channel(`cloche:${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` }, (p) => {
-        const n = p.new as { type?: string; title?: string };
-        if (n?.type === "cloche") void sonner(n.title ?? "🔔 La cloche sonne !");
+        const n = p.new as { id?: string; type?: string; title?: string };
+        if (n?.type === "cloche") void sonner(n.title ?? "🔔 La cloche sonne !", n.id);
       })
       .subscribe();
     return () => { void supabase.removeChannel(canal); };
@@ -69,7 +129,7 @@ export function EcouteCloche({ userId }: { userId: string | null }) {
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href="/dashboard/classe" onClick={() => setCloche(null)} className="rounded-xl bg-white text-[#2A0880] px-3 py-1.5 text-xs font-semibold">Aller à Ma classe</Link>
             {sonBloque ? (
-              <button type="button" onClick={() => { void jouerCloche(3).then((ok) => setSonBloque(!ok)); }} className="rounded-xl border border-white/50 px-3 py-1.5 text-xs font-semibold">🔔 Écouter la cloche</button>
+              <button type="button" onClick={() => { void jouerCloche(3).then((ok) => setSonBloque(!ok)); }} className="rounded-xl bg-white/20 border border-white/60 px-3 py-1.5 text-xs font-bold animate-pulse">🔔 Touchez pour entendre la cloche</button>
             ) : null}
           </div>
         </div>

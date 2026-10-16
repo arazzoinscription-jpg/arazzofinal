@@ -7,11 +7,14 @@ import { ClasseEleveVue } from "./classe-eleve";
 import { storiesActives } from "@/lib/stories/load";
 import { FEED_LIBRARY_ID } from "@/lib/bunny/stream";
 import { avatarSur } from "@/lib/classe/vue";
+import { ReglageCloche } from "@/components/cloche/reglage-cloche";
 
 export const metadata = { title: "Ma classe — Arazzo Formation" };
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
+// « Tester écran verrouillé » attend 8 s avant d'envoyer la notification d'essai.
+export const maxDuration = 30;
 
 export default async function MaClasseElevePage() {
   const supabase = await createClient();
@@ -36,8 +39,11 @@ export default async function MaClasseElevePage() {
           Vous n&apos;êtes inscrite à aucun cours pour le moment : votre classe apparaîtra dès votre inscription.
         </div>
       ) : (
+        <>
+        <ReglageCloche />
         <ClasseEleveVue enseignantes={classe.enseignantes} camarades={classe.camarades} niveaux={niveaux} groupes={classe.groupes}
           stories={{ liste: stories, meId: user.id, monAvatar: avatarSur((moi?.avatar_url as string | null) ?? null), bibliotheque: FEED_LIBRARY_ID }} />
+        </>
       )}
     </div>
   );
