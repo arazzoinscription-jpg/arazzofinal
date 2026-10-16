@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { BUCKET_MESSAGES, LIEN_TTL_S, apercuPiece, type GenrePiece } from "@/lib/messagerie-pieces";
 
 type Admin = ReturnType<typeof createAdminClient>;
 export type Role = "eleve" | "formateur" | "patronniste" | "admin";
@@ -27,6 +28,13 @@ export interface ChatMessage {
   body: string;
   created_at: string;
   mine: boolean;
+  /** Photo ou message vocal (migration 104) : lien de lecture temporaire. */
+  piece?: { kind: GenrePiece; url: string | null; duree: number | null } | null;
+}
+
+/** Les colonnes « pièce » existent-elles (migration 104) ? Repli silencieux sinon. */
+function colonnesPieceAbsentes(error: { message?: string; code?: string } | null): boolean {
+  return Boolean(error && (error.code === "42703" || /piece_/.test(error.message ?? "")));
 }
 
 const clean = (s: string) => s.replace(/\s+/g, " ").trim().slice(0, 4000);
@@ -171,18 +179,20 @@ function dedupe(list: Contact[]): Contact[] {
 
 // ─── Conversations & messages ────────────────────────────────────────────────
 export async function listConversations(admin: Admin, meId: string): Promise<ConversationSummary[]> {
-  const { data: msgs } = await admin
+  const lire = (cols: string) => admin
     .from("messages")
-    .select("from_user, to_user, body, created_at, read_at")
+    .select(cols)
     .or(`from_user.eq.${meId},to_user.eq.${meId}`)
     .order("created_at", { ascending: false })
     .limit(1000);
+  let { data: msgs, error } = await lire("from_user, to_user, body, created_at, read_at, piece_kind, piece_duree");
+  if (colonnesPieceAbsentes(error)) ({ data: msgs } = await lire("from_user, to_user, body, created_at, read_at"));
 
   const byOther = new Map<string, { lastBody: string; lastAt: string; unread: number }>();
-  for (const m of (msgs ?? []) as { from_user: string; to_user: string; body: string; created_at: string; read_at: string | null }[]) {
+  for (const m of (msgs ?? []) as unknown as { from_user: string; to_user: string; body: string; created_at: string; read_at: string | null; piece_kind?: GenrePiece | null; piece_duree?: number | null }[]) {
     const other = m.from_user === meId ? m.to_user : m.from_user;
     const cur = byOther.get(other) ?? { lastBody: "", lastAt: "", unread: 0 };
-    if (!cur.lastAt) { cur.lastBody = m.body; cur.lastAt = m.created_at; } // messages triés desc → 1er = dernier
+    if (!cur.lastAt) { cur.lastBody = m.body || apercuPiece(m.piece_kind, m.piece_duree); cur.lastAt = m.created_at; } // messages triés desc → 1er = dernier
     if (m.to_user === meId && !m.read_at) cur.unread += 1;
     byOther.set(other, cur);
   }
@@ -194,14 +204,27 @@ export async function listConversations(admin: Admin, meId: string): Promise<Con
 }
 
 export async function getConversation(admin: Admin, meId: string, otherId: string): Promise<ChatMessage[]> {
-  const { data } = await admin
+  const lire = (cols: string) => admin
     .from("messages")
-    .select("id, from_user, to_user, body, created_at")
+    .select(cols)
     .or(`and(from_user.eq.${meId},to_user.eq.${otherId}),and(from_user.eq.${otherId},to_user.eq.${meId})`)
     .order("created_at", { ascending: true })
     .limit(300);
-  return (data ?? []).map((m: { id: string; from_user: string; to_user: string; body: string; created_at: string }) => ({
-    ...m, mine: m.from_user === meId,
+  let { data, error } = await lire("id, from_user, to_user, body, created_at, piece_kind, piece_path, piece_duree");
+  if (colonnesPieceAbsentes(error)) ({ data } = await lire("id, from_user, to_user, body, created_at"));
+  type Ligne = { id: string; from_user: string; to_user: string; body: string; created_at: string; piece_kind?: GenrePiece | null; piece_path?: string | null; piece_duree?: number | null };
+  const lignes = (data ?? []) as unknown as Ligne[];
+  // Photos et vocaux : stockage PRIVÉ → liens de lecture temporaires, pour les deux membres de la conversation seulement.
+  const chemins = [...new Set(lignes.map((m) => m.piece_path).filter((p): p is string => Boolean(p)))];
+  const liens = new Map<string, string>();
+  if (chemins.length) {
+    const { data: signes } = await admin.storage.from(BUCKET_MESSAGES).createSignedUrls(chemins, LIEN_TTL_S);
+    for (const s of (signes ?? []) as { path: string | null; signedUrl: string | null }[]) if (s.path && s.signedUrl) liens.set(s.path, s.signedUrl);
+  }
+  return lignes.map(({ piece_kind, piece_path, piece_duree, ...m }) => ({
+    ...m,
+    mine: m.from_user === meId,
+    piece: piece_kind ? { kind: piece_kind, url: piece_path ? liens.get(piece_path) ?? null : null, duree: piece_duree ?? null } : null,
   }));
 }
 
@@ -215,24 +238,36 @@ export async function unreadCount(admin: Admin, meId: string): Promise<number> {
   return count ?? 0;
 }
 
-export async function sendMessageCore(
-  admin: Admin,
-  me: { id: string; role: Role },
-  toId: string,
-  rawBody: string,
-): Promise<{ ok: boolean; error?: string }> {
-  const body = clean(rawBody);
-  if (!body) return { ok: false, error: "Message vide." };
+/** La personne connectée peut-elle écrire à `toId` ? (même règle pour un texte, une photo ou un vocal) */
+export async function autoriseA(admin: Admin, me: { id: string; role: Role }, toId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!toId || toId === me.id) return { ok: false, error: "Destinataire invalide." };
-
   const targetRole = await roleOf(admin, toId);
   if (!targetRole) return { ok: false, error: "Destinataire introuvable." };
   if (!(await canMessage(admin, me, { id: toId, role: targetRole }))) {
     return { ok: false, error: "Vous n'êtes pas autorisé à contacter cette personne." };
   }
+  return { ok: true };
+}
 
-  const { error } = await admin.from("messages").insert({ from_user: me.id, to_user: toId, body });
-  if (error) return { ok: false, error: error.message };
+export async function sendMessageCore(
+  admin: Admin,
+  me: { id: string; role: Role },
+  toId: string,
+  rawBody: string,
+  /** Photo ou message vocal déjà déposé dans le stockage privé (migration 104). */
+  piece: { kind: GenrePiece; path: string; duree: number | null } | null = null,
+): Promise<{ ok: boolean; error?: string }> {
+  const body = clean(rawBody);
+  if (!body && !piece) return { ok: false, error: "Message vide." };
+
+  const droit = await autoriseA(admin, me, toId);
+  if (!droit.ok) return droit;
+
+  const { error } = await admin.from("messages").insert({
+    from_user: me.id, to_user: toId, body,
+    ...(piece ? { piece_kind: piece.kind, piece_path: piece.path, piece_duree: piece.duree } : {}),
+  });
+  if (error) return { ok: false, error: colonnesPieceAbsentes(error) ? "Photos et messages vocaux pas encore activés (migration 104 à appliquer)." : error.message };
 
   // Notification destinataire (cloche existante + push), best-effort.
   try {
@@ -240,7 +275,7 @@ export async function sendMessageCore(
     const title = `Nouveau message de ${sender?.nom ?? "un membre"}`;
     // Le push système est envoyé par le webhook /api/webhooks/push.
     await admin.from("notifications").insert({
-      user_id: toId, type: "message", title, body: body.slice(0, 120), link: "/dashboard",
+      user_id: toId, type: "message", title, body: (body || apercuPiece(piece?.kind, piece?.duree)).slice(0, 120), link: "/dashboard",
     });
   } catch { /* ignore */ }
 
