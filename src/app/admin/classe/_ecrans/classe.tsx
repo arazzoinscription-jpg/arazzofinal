@@ -5,6 +5,7 @@ import { niveauxAutorises, voitEleve, type Espace } from "@/lib/espace/portee";
 import { coursNiveaux } from "@/lib/live-care/load";
 import { emailConfigure } from "@/lib/classe/commande";
 import { lireReglages } from "@/lib/student-care/load";
+import { DEBUT_TOUTES } from "@/lib/student-care/read";
 import { dateCourte, dateHeure, estJourValide } from "@/lib/student-care/time";
 import { chargerClasse, chargerClasseMembres } from "@/lib/classe/load";
 import { groupesDeLespace } from "@/lib/classe/groupes";
@@ -83,25 +84,19 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
   }
 
   const commande = await etatCommande(admin, espace);
+  // TOUTES les élèves inscrites, quelle que soit la date de leur inscription (comme les annonces et la cloche).
+  // « ?depuis=AAAA-MM-JJ » : seulement celles inscrites depuis ce jour (ex. la date de début du suivi).
   const depuisParam = un(searchParams.depuis);
-  const jourDebut = estJourValide(depuisParam) ? depuisParam : etat.reglages.start_date;
-  if (!jourDebut) {
-    return (
-      <Cadre>
-        <Tableau titre="Ma classe" sousTitre="Choisissez d'abord la date de début de suivi." />
-        <ClasseInteractive
-          base={b} cartes={[]} initiaux={lireFiltresClasse(searchParams)} niveaux={commande.niveaux} groupes={[]} groupeCourant={null}
-          direct={commande.direct} serviceEmail={commande.serviceEmail}
-          vide={(
-            <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-12 text-gray-600">
-              La classe regroupe les élèves inscrites depuis la date de suivi.{" "}
-              <Link href={`${b}/suivi`} className="text-[#5B16F9] font-semibold hover:underline">Choisir la date dans le suivi pédagogique →</Link>
-            </div>
-          )}
-        />
-      </Cadre>
-    );
-  }
+  const filtreDate = estJourValide(depuisParam) ? depuisParam : null;
+  const jourDebut = filtreDate ?? DEBUT_TOUTES;
+  const lienDepuis = (jour: string | null) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams)) if (k !== "depuis" && typeof v === "string") p.set(k, v);
+    if (jour) p.set("depuis", jour);
+    const q = p.toString();
+    return `${b}/classe${q ? `?${q}` : ""}`;
+  };
+  const dateSuivi = etat.reglages.start_date;
 
   const maintenant = new Date();
   // La photo de l'enseignante connectée, en haut (les élèves la voient aussi sur leur « Ma classe »).
@@ -126,7 +121,11 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
         sousTitre={<>
           {groupe
             ? <>Classe du groupe · {classe.cartes.length} élève{classe.cartes.length > 1 ? "s" : ""} suivie{classe.cartes.length > 1 ? "s" : ""}</>
-            : <>{classe.cartes.length} élève{classe.cartes.length > 1 ? "s" : ""} inscrite{classe.cartes.length > 1 ? "s" : ""}{espace.cours !== null ? " à vos cours" : ""} depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}</>}
+            : <>
+                {classe.cartes.length} élève{classe.cartes.length > 1 ? "s" : ""} inscrite{classe.cartes.length > 1 ? "s" : ""}{espace.cours !== null ? " à vos cours" : ""}
+                {filtreDate ? <> depuis le {dateCourte(`${filtreDate}T12:00:00Z`)} · <Link href={lienDepuis(null)} className="underline underline-offset-2 hover:text-white">voir toutes mes élèves</Link></>
+                  : <> (toutes les inscriptions){dateSuivi ? <> · <Link href={lienDepuis(dateSuivi)} className="underline underline-offset-2 hover:text-white">seulement depuis le {dateCourte(`${dateSuivi}T12:00:00Z`)}</Link></> : null}</>}
+              </>}
           <span className="text-white/60"> · données du {dateHeure(classe.suivi.calcule_le)} (Alger)</span>
         </>}
       >
@@ -196,7 +195,7 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
         vide={(
           <div className="bg-white rounded-2xl border border-dashed border-gray-200 text-center py-14 text-gray-500">
             <div className="text-4xl mb-2" aria-hidden>🪑</div>
-            {groupe ? "Aucune élève suivie dans ce groupe." : <>Aucune élève inscrite depuis le {dateCourte(`${jourDebut}T12:00:00Z`)}.</>}
+            {groupe ? "Aucune élève suivie dans ce groupe." : filtreDate ? <>Aucune élève inscrite depuis le {dateCourte(`${filtreDate}T12:00:00Z`)}.</> : "Aucune élève inscrite à vos cours pour le moment."}
           </div>
         )}
       />

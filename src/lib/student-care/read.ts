@@ -23,6 +23,11 @@ import { dateCourte, minuitAlgerIso } from "./time";
  */
 
 export const VUE_INSCRIPTIONS = "student_care_enrollments";
+/**
+ * « Toutes les inscriptions », quelle que soit leur date : « Ma classe » montre TOUTES les élèves inscrites
+ * (le suivi pédagogique, lui, garde sa date de début pour ses relances).
+ */
+export const DEBUT_TOUTES = "1970-01-01";
 export const VUE_SIGNAUX = "student_care_signals";
 export const TABLE_REGLAGES = "student_care_settings";
 
@@ -203,8 +208,11 @@ export async function chargerSuivi(
   { jourDebut, seuils, maintenant }: { jourDebut: string; seuils: Seuils; maintenant: Date },
 ): Promise<ResultatSuivi> {
   const debutIso = minuitAlgerIso(jourDebut);
-  const suivies = await lireTout<{ enrollment_id: string; user_id: string }>((de, a) => admin
-    .from(VUE_INSCRIPTIONS).select("enrollment_id, user_id").gte("paid_at", debutIso).order("enrollment_id").range(de, a));
+  const toutes = jourDebut <= DEBUT_TOUTES;
+  const suivies = await lireTout<{ enrollment_id: string; user_id: string }>((de, a) => {
+    const q = admin.from(VUE_INSCRIPTIONS).select("enrollment_id, user_id");
+    return (toutes ? q : q.gte("paid_at", debutIso)).order("enrollment_id").range(de, a);
+  });
   const ids = [...new Set(suivies.lignes.map((l) => l.user_id))];
   const { entrees, complet, ecartees } = await lireEntrees(admin, ids, maintenant);
 

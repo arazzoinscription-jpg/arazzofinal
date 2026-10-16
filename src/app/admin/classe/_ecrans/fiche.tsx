@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, CalendarPlus, ClipboardList, Send, UserRound } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { voitEleve, type Espace } from "@/lib/espace/portee";
+import { DEBUT_TOUTES } from "@/lib/student-care/read";
 import { lireReglages } from "@/lib/student-care/load";
 import { LIBELLE_STATUT } from "@/lib/student-care/rules";
 import { dateCourte, dateHeure, estJourValide, ilYA, joursDepuis } from "@/lib/student-care/time";
@@ -69,8 +70,8 @@ export async function EcranFicheClasse({ espace, params, searchParams }: { espac
   const etat = await lireReglages(admin);
   if (!etat.ok) redirect(`${b}/classe`);
   const d = Array.isArray(searchParams.depuis) ? searchParams.depuis[0] : searchParams.depuis;
-  const jourDebut = estJourValide(d) ? d : etat.reglages.start_date;
-  if (!jourDebut) redirect(`${b}/classe`);
+  // Comme la classe : toutes les inscriptions, sauf « ?depuis= » explicite.
+  const jourDebut = estJourValide(d) ? d : DEBUT_TOUTES;
 
   const maintenant = new Date();
   const fiche = await chargerFiche(admin, params.id, { jourDebut, seuils: etat.reglages.seuils, maintenant });
