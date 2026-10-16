@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { bunnyPlaybackUrls, bunnyTusAuth, createBunnyVideo, isBunnyConfigured } from "@/lib/bunny/stream";
 import { verifierPhotoStory } from "@/lib/stories/regles";
 import { DUREE_VIDEO_RESULTAT_MAX_S, legendeResultat } from "@/lib/resultats";
+import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
 
 /**
  * « Mon modèle est terminé » : l'élève publie son résultat — une publication de la communauté
@@ -22,23 +23,28 @@ async function connectee() {
   return user;
 }
 
-/** Crée la publication + son média ; tout est annulé si le média est refusé. */
-async function creerPublication(userId: string, legende: string, media: Record<string, unknown>): Promise<{ ok: true } | { ok: false; erreur: string }> {
+type Reponse = { ok: true; enAttente?: boolean } | { ok: false; erreur: string };
+
+/** Crée la publication + son média ; tout est annulé si le média est refusé. Visiteuse : en attente de validation (B). */
+async function creerPublication(userId: string, legende: string, media: Record<string, unknown>): Promise<Reponse> {
   const admin = createAdminClient();
+  const st = await statutPourAuteur(admin, userId);
+  if (!st.ok) return st;
   const { data: post, error } = await admin.from("posts")
-    .insert({ author_id: userId, group_id: null, content: legende, published: true }).select("id").single();
+    .insert({ author_id: userId, group_id: null, content: legende, published: st.published, ...(st.a_valider ? { a_valider: true } : {}) }).select("id").single();
   if (error || !post) return { ok: false, erreur: "Publication impossible." };
   const cm = await admin.from("community_media").insert({ post_id: post.id, source_type: "student_result", status: "ready", ...media });
   if (cm.error) {
     await admin.from("posts").delete().eq("id", post.id);
     return { ok: false, erreur: /check constraint|source_type/i.test(cm.error.message) ? INDISPONIBLE : cm.error.message };
   }
+  if (st.a_valider) await signalerAValider(admin, "Le résultat d'un modèle");
   revalidatePath("/communaute");
   revalidatePath(`/communaute/u/${userId}`);
-  return { ok: true };
+  return { ok: true, enAttente: st.a_valider };
 }
 
-export async function publierResultatPhoto(fd: FormData): Promise<{ ok: true } | { ok: false; erreur: string }> {
+export async function publierResultatPhoto(fd: FormData): Promise<Reponse> {
   const user = await connectee();
   if (!user) return { ok: false, erreur: "Connectez-vous pour publier votre résultat." };
   const f = fd.get("photo");
@@ -60,12 +66,14 @@ export async function demarrerResultatVideo(): Promise<{ ok: true; videoId: stri
   const user = await connectee();
   if (!user) return { ok: false, erreur: "Connectez-vous pour publier votre résultat." };
   if (!isBunnyConfigured()) return { ok: false, erreur: "Les vidéos ne sont pas disponibles sur ce serveur : publiez une photo." };
+  const st = await statutPourAuteur(createAdminClient(), user.id);
+  if (!st.ok) return st;
   const v = await createBunnyVideo(`Résultat ${user.id.slice(0, 8)}`);
   if (!v.ok) return { ok: false, erreur: v.error };
   return { ok: true, videoId: v.videoId, tus: bunnyTusAuth(v.videoId) };
 }
 
-export async function finaliserResultatVideo(entree: { videoId: unknown; duree: unknown; legende: unknown }): Promise<{ ok: true } | { ok: false; erreur: string }> {
+export async function finaliserResultatVideo(entree: { videoId: unknown; duree: unknown; legende: unknown }): Promise<Reponse> {
   const user = await connectee();
   if (!user) return { ok: false, erreur: "Connectez-vous pour publier votre résultat." };
   if (typeof entree.videoId !== "string" || !/^[0-9a-f-]{8,64}$/i.test(entree.videoId)) return { ok: false, erreur: "Vidéo invalide." };

@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type 
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore, Music } from "lucide-react";
+import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore, Music, Sparkles, Trophy } from "lucide-react";
 import { toggleLike, addComment, deletePost } from "@/app/actions/feed";
 import { getPostComments } from "@/app/actions/community";
+import { basculerEnvie } from "@/app/actions/visiteuses";
 import { addFacebookVideo } from "@/app/actions/community-upload";
 import { toast } from "@/components/ui/toast";
 import { sourceLabel, isFacebookVideoUrl, facebookEmbedSrc, type CommunityItem } from "@/lib/community-types";
@@ -281,6 +282,7 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
   const [caption, setCaption] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [enAttente, setEnAttente] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const valid = isFacebookVideoUrl(url.trim());
@@ -290,7 +292,7 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
     if (!valid) { setError("Collez le lien d'une vidéo Facebook (facebook.com ou fb.watch)."); return; }
     startTransition(async () => {
       const res = await addFacebookVideo({ url: url.trim(), caption: caption.trim() || undefined });
-      if (res.ok) { setDone(true); router.refresh(); setTimeout(onClose, 900); }
+      if (res.ok) { setDone(true); setEnAttente("enAttente" in res && Boolean(res.enAttente)); router.refresh(); setTimeout(onClose, "enAttente" in res && res.enAttente ? 3500 : 900); }
       else setError(res.error ?? "Erreur");
     });
   }
@@ -309,7 +311,7 @@ function FacebookAddSheet({ onClose }: { onClose: () => void }) {
         <p className="text-xs text-gray-500 mb-4">Collez le lien d'une vidéo Facebook <strong>publique</strong> (la vôtre ou d'un autre compte). La vidéo reste hébergée chez Facebook — aucun téléchargement.</p>
 
         {error && <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm mb-3">{error}</div>}
-        {done && <div className="rounded-xl bg-green-50 border border-green-200 text-green-700 px-3 py-2 text-sm mb-3 flex items-center gap-2"><Check size={15} /> Vidéo ajoutée au feed !</div>}
+        {done && <div className="rounded-xl bg-green-50 border border-green-200 text-green-700 px-3 py-2 text-sm mb-3 flex items-center gap-2"><Check size={15} /> {enAttente ? "Merci ! Elle sera visible dès que l'équipe l'aura validée." : "Vidéo ajoutée au feed !"}</div>}
 
         <label className="block text-sm font-medium text-gray-700 mb-1">Lien de la vidéo Facebook</label>
         <input value={url} onChange={(e) => setUrl(e.target.value)} inputMode="url" placeholder="https://www.facebook.com/.../videos/..."
@@ -353,6 +355,7 @@ function Slide({
   const [illisible, setIllisible] = useState(false);
   const [liked, setLiked] = useState(item.liked);
   const [likeCount, setLikeCount] = useState(item.likeCount);
+  const [envie, setEnvie] = useState(Boolean(item.envie));
   const [shareOpen, setShareOpen] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -435,6 +438,20 @@ function Slide({
     const a = audioRef.current;
     if (a) a.muted = muted;
   }, [muted]);
+
+  // « J'aimerais apprendre ce modèle » : gardé dans ses missions, et vu par l'équipe (CRM de l'OS).
+  function onEnvie() {
+    if (isGuest) { onGuest(); return; }
+    const avant = envie;
+    setEnvie(!avant);
+    startTransition(async () => {
+      const res = await basculerEnvie(item.id);
+      if (res.ok) {
+        setEnvie(res.envie);
+        if (res.envie) toast("Modèle gardé dans vos envies ✨", "success");
+      } else { setEnvie(avant); toast(res.erreur, "error"); }
+    });
+  }
 
   function onLike() {
     if (isGuest) { onGuest(); return; }
@@ -565,6 +582,12 @@ function Slide({
           </span>
           <span className="text-xs font-semibold">{likeCount}</span>
         </button>
+        <button onClick={onEnvie} aria-pressed={envie} aria-label={envie ? "Retirer de mes envies" : "J'aimerais apprendre ce modèle"} className="flex flex-col items-center gap-1">
+          <span className={`w-12 h-12 grid place-items-center rounded-full bg-black/30 backdrop-blur ${envie ? "text-amber-300" : "text-white"}`}>
+            <Sparkles size={24} fill={envie ? "currentColor" : "none"} />
+          </span>
+          <span className="text-xs font-semibold">{envie ? "Gardé" : "J'apprends"}</span>
+        </button>
         <button onClick={onOpenComments} className="flex flex-col items-center gap-1">
           <span className="w-12 h-12 grid place-items-center rounded-full bg-black/30 backdrop-blur">
             <MessageCircle size={26} />
@@ -598,9 +621,16 @@ function Slide({
 
       {/* Infos auteur + légende + CTA */}
       <div className="absolute left-4 right-20 bottom-24 z-20 text-white">
-        <span className="inline-block text-[11px] font-bold uppercase tracking-wide bg-white/15 backdrop-blur px-2 py-0.5 rounded-full mb-2">
-          {sourceLabel(item.sourceType)}
-        </span>
+        {item.defi ? null : (
+          <span className="inline-block text-[11px] font-bold uppercase tracking-wide bg-white/15 backdrop-blur px-2 py-0.5 rounded-full mb-2">
+            {sourceLabel(item.sourceType)}
+          </span>
+        )}
+        {item.defi ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-400/90 text-[#2A0880] px-2 py-0.5 rounded-full mb-2 max-w-[70%] align-top">
+            <Trophy size={12} className="shrink-0" aria-hidden /><span className="truncate">Défi : {item.defi}</span>
+          </span>
+        ) : null}
         <Link href={`/communaute/u/${item.author.id}`} className="flex items-center gap-2 mb-2">
           <span className="w-9 h-9 rounded-full bg-orange-DEFAULT grid place-items-center overflow-hidden font-bold text-sm">
             {item.author.avatar_url
@@ -608,6 +638,7 @@ function Slide({
               : (item.author.nom[0] ?? "?").toUpperCase()}
           </span>
           <span className="font-semibold drop-shadow">{item.author.nom}</span>
+          {item.author.visiteuse ? <span className="rounded-full bg-white/20 backdrop-blur px-2 py-0.5 text-[10px] font-semibold">Visiteuse</span> : null}
         </Link>
         {item.caption && <p className="text-sm text-white/90 font-dm line-clamp-2 drop-shadow mb-2">{item.caption}</p>}
         {hasMusic && (

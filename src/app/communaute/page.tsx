@@ -16,6 +16,11 @@ import { enseignantesDe, storiesActives } from "@/lib/stories/load";
 import { getRoles } from "@/lib/roles";
 import { avatarSur } from "@/lib/classe/vue";
 import type { ReactNode } from "react";
+import { createClient } from "@/lib/supabase/server";
+import { estInscriteSelon } from "@/lib/visiteuses/regles";
+import { chargerMissions } from "@/lib/visiteuses/load";
+import { BulleMissions } from "@/components/visiteuses/missions";
+import { InvitationClasse } from "@/components/visiteuses/invitation-classe";
 
 export const metadata = { title: "Communauté — Arazzo" };
 export const dynamic = "force-dynamic";
@@ -33,23 +38,34 @@ export default async function CommunautePage() {
   let role = "guest";
   let live = null;
   let barreStories: ReactNode = null;
+  let invitation: ReactNode = null;
   if (me) {
     const admin = createAdminClient();
     // Rôle, direct en cours et stories : lus EN MÊME TEMPS (avant : l'un après l'autre).
-    const [{ data: prof }, enDirect, stories, enseignantes] = await Promise.all([
-      admin.from("users").select("role, roles, avatar_url").eq("id", me.id).maybeSingle(),
+    const [{ data: prof }, enDirect, stories, enseignantes, inscriptions, { data: { user: compte } }] = await Promise.all([
+      admin.from("users").select("nom, role, roles, avatar_url").eq("id", me.id).maybeSingle(),
       getActiveLiveForViewer(admin, me.id),
       storiesActives(admin, null),
       enseignantesDe(admin, me.id),
+      admin.from("enrollments").select("id", { count: "exact", head: true }).eq("user_id", me.id),
+      (await createClient()).auth.getUser(),
     ]);
     role = prof?.role ?? "eleve";
     live = enDirect;
+    // Compte SANS formation (« visiteuse ») : bulle « Missions » en tête des stories + invitation à rejoindre une classe.
+    let missions: ReactNode = null;
+    if (!estInscriteSelon({ roles: getRoles(prof), inscriptions: inscriptions.count ?? 0 })) {
+      const m = await chargerMissions(admin, { id: me.id, email: compte?.email ?? null });
+      const prenom = ((prof?.nom as string | null) ?? "").trim().split(/\s+/)[0] ?? "";
+      missions = <BulleMissions initial={m} email={compte?.email ?? null} prenom={prenom} />;
+      invitation = <InvitationClasse gestes={m.gestes} rejoindre={m.rejoindre} />;
+    }
     // Barre de stories en haut du feed (membres connectés) : l'enseignante d'abord, puis l'équipe, « Ma story », les autres.
     const roles = getRoles(prof);
     barreStories = (
       <BarreStories variante="feed" titre="Stories" stories={stories} meId={me.id}
         moiEquipe={roles.some((r) => r === "formateur" || r === "admin")} moderation={roles.includes("admin")}
-        monAvatar={avatarSur((prof?.avatar_url as string | null) ?? null)} enseignantes={enseignantes} bibliotheque={FEED_LIBRARY_ID} />
+        monAvatar={avatarSur((prof?.avatar_url as string | null) ?? null)} enseignantes={enseignantes} bibliotheque={FEED_LIBRARY_ID} avant={missions} />
     );
   }
 
@@ -71,6 +87,7 @@ export default async function CommunautePage() {
       {/* Bouton « + » flottant : staff → vidéo/actualité ; élève → reel (≤ 2 min).
           Visible pour tout membre CONNECTÉ ; les visiteurs sont invités à se connecter. */}
       {me && <CommunityFab role={role} />}
+      {invitation}
       {/* Menu du bas en version COMPACTE (pilule centrée, icônes seules) : il reste
           accessible sur le feed sans masquer le « + », les actions ni les popups. */}
       <MobileQuickNav compact />

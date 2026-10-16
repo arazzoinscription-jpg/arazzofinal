@@ -16,6 +16,7 @@ import { storiesActives } from "@/lib/stories/load";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoles, isAdmin } from "@/lib/roles";
 import { estEquipePublique, nomPublic } from "@/lib/nom-public";
+import { inscritesParmi } from "@/lib/visiteuses/load";
 
 export const metadata = { title: "Profil — Communauté Arazzo" };
 export const dynamic = "force-dynamic";
@@ -46,6 +47,8 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
     // Niveau inscrit : montré aux membres connectés seulement (pas aux visiteurs).
     me && !isCreator ? niveauxDuMembre(params.id) : Promise.resolve([] as string[]),
   ]);
+  // Compte sans formation : pastille « Visiteuse » (et, sur son propre profil, l'invitation à rejoindre une classe).
+  const visiteuse = !isCreator && !(await inscritesParmi(createAdminClient(), [params.id])).has(params.id);
   // Stories (24 h) : visibles des membres connectés ; l'administration peut les modérer.
   const [stories, monProfil] = me
     ? await Promise.all([storiesActives(createAdminClient(), [params.id]), createAdminClient().from("users").select("role, roles").eq("id", me.id).maybeSingle()])
@@ -68,6 +71,7 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           userId={params.id}
           name={name}
           roleLabel={ROLE_LABEL[profile?.role ?? "eleve"] ?? "Membre"}
+          visiteuse={visiteuse}
           bio={profile?.bio ?? null}
           username={profile?.username ?? null}
           avatarUrl={profile?.avatar_url ?? null}

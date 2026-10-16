@@ -11,6 +11,7 @@ import { AUTOCOLLANTS, COULEURS, FONDS, MAX_CALQUES, MAX_POINTS, lienAutorise, t
 import { DUREE_STORY_MAX_S, verifierDureeStory, verifierPhotoStory } from "@/lib/stories/regles";
 import { demarrerStoryVideo, finaliserStoryVideo, publierStoryPhoto, publierStoryTexte } from "@/app/actions/stories";
 import { ContenuCalque, Dessins, FondStory, RATIO, STYLE_CADRE, ZONE_CADRE, styleTexte } from "./rendu-calques";
+import { MESSAGE_EN_ATTENTE } from "@/lib/visiteuses/regles";
 
 type Source = { kind: "image"; fichier: File; url: string } | { kind: "video"; fichier: File; url: string; duree: number } | { kind: "texte" };
 type Positionne = Exclude<Calque, { type: "dessin" }>;
@@ -290,6 +291,12 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
   }
 
   // ── Publication ──────────────────────────────────────────────────────────
+  /** Compte sans formation : la story attend la validation de l'équipe (on le dit avant de fermer). */
+  function termine(enAttente?: boolean) {
+    if (enAttente) alert(MESSAGE_EN_ATTENTE);
+    router.refresh(); onFermer();
+  }
+
   async function publier() {
     if (!source || envoi !== null) return;
     setErreur(null); setChoisi(null);
@@ -299,7 +306,7 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
       const r = await publierStoryTexte({ fond, calques });
       setEnvoi(null);
       if (!r.ok) { setErreur(r.erreur); return; }
-      router.refresh(); onFermer();
+      termine(r.enAttente);
       return;
     }
     setEnvoi(0);
@@ -311,7 +318,7 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
       const r = await publierStoryPhoto(fd);
       setEnvoi(null);
       if (!r.ok) { setErreur(r.erreur); return; }
-      router.refresh(); onFermer();
+      termine(r.enAttente);
       return;
     }
     const d = await demarrerStoryVideo();
@@ -328,7 +335,7 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
         const f = await finaliserStoryVideo({ videoId: d.videoId, duree: video.duree, legende, calques });
         setEnvoi(null);
         if (!f.ok) { setErreur(f.erreur); return; }
-        router.refresh(); onFermer();
+        termine(f.enAttente);
       },
     });
     up.start();

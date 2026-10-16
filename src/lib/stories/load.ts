@@ -20,14 +20,20 @@ interface LigneStory {
   id: string; user_id: string; media_kind: "image" | "video" | "texte"; media_url: string | null; bunny_video_id: string | null;
   thumbnail_url: string | null; duration_seconds: number | null; legende: string | null; created_at: string; expires_at: string;
   calques?: Calque[] | null; fond?: string | null;
+  /** Story d'une visiteuse pas encore validée (migration 103) : jamais montrée. */
+  a_valider?: boolean | null;
 }
 
-/** Les enseignantes d'une élève (formatrices de ses cours) : leurs stories passent en premier. */
+/**
+ * Les enseignantes d'une élève (formatrices de ses cours) : leurs stories passent en premier.
+ * Sans formation (visiteuse) : les formatrices des formations publiées, dans l'ordre du parcours.
+ */
 export async function enseignantesDe(admin: SupabaseClient, userId: string): Promise<string[]> {
   const ins = await admin.from("enrollments").select("course_id").eq("user_id", userId);
   const ids = [...new Set(((ins.data ?? []) as { course_id: string }[]).map((x) => x.course_id))];
-  if (!ids.length) return [];
-  const c = await admin.from("courses").select("formateur_id").in("id", ids.slice(0, 200));
+  const c = ids.length
+    ? await admin.from("courses").select("formateur_id").in("id", ids.slice(0, 200))
+    : await admin.from("courses").select("formateur_id, ordre").eq("published", true).order("ordre", { ascending: true }).limit(50);
   return [...new Set(((c.data ?? []) as { formateur_id: string | null }[]).map((x) => x.formateur_id).filter((x): x is string => Boolean(x)))];
 }
 
@@ -50,6 +56,10 @@ export async function storiesActives(admin: SupabaseClient, userIds: string[] | 
       lignes.push(...((r.data ?? []) as LigneStory[]));
     }
   }
+  // Les stories en attente de validation (visiteuses) ne sont montrées à personne.
+  const visibles = lignes.filter((l) => l.a_valider !== true);
+  lignes.length = 0;
+  lignes.push(...visibles);
   if (!lignes.length) return [];
 
   const auteurs = new Map<string, { id: string; nom: string | null; username: string | null; role: string | null; roles: string[] | null; avatar_url: string | null }>();

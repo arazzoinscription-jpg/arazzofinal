@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createBunnyVideo, bunnyTusAuth, bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl } from "@/lib/community-types";
 import { isAllowedMusicUrl, findTrackByUrl } from "@/lib/feed-music";
+import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
 
 type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
 
@@ -62,6 +63,10 @@ export async function startCommunityVideo(input: unknown) {
 
   const auth = await authorize(sourceType, courseId ?? null, patronId ?? null);
   if (!auth.ok) return auth;
+  if (sourceType === "student_reel") {
+    const st = await statutPourAuteur(createAdminClient(), auth.userId);
+    if (!st.ok) return { ok: false as const, error: st.erreur };
+  }
 
   const created = await createBunnyVideo(title || "Vidéo communauté");
   if (!created.ok) return { ok: false as const, error: created.error };
@@ -101,9 +106,16 @@ export async function finalizeCommunityVideo(input: unknown) {
   const admin = createAdminClient();
   const { thumbnail } = bunnyPlaybackUrls(videoId);
 
+  // B. Le reel d'une visiteuse (compte sans formation) attend la validation de l'équipe.
+  let enAttente = false;
+  if (sourceType === "student_reel") {
+    const st = await statutPourAuteur(admin, auth.userId);
+    if (!st.ok) return { ok: false as const, error: st.erreur };
+    enAttente = st.a_valider;
+  }
   const { data: post, error: postErr } = await admin
     .from("posts")
-    .insert({ author_id: auth.userId, group_id: null, content: caption?.trim() || null, published: true })
+    .insert({ author_id: auth.userId, group_id: null, content: caption?.trim() || null, published: !enAttente, ...(enAttente ? { a_valider: true } : {}) })
     .select("id")
     .single();
   if (postErr || !post) return { ok: false as const, error: "Publication impossible." };
@@ -125,9 +137,10 @@ export async function finalizeCommunityVideo(input: unknown) {
     await admin.from("posts").delete().eq("id", post.id);
     return { ok: false as const, error: cmErr.message };
   }
+  if (enAttente) await signalerAValider(admin, `Un reel${caption?.trim() ? ` : « ${caption.trim().slice(0, 80)} »` : ""}`);
 
   revalidatePath("/communaute");
-  return { ok: true as const };
+  return { ok: true as const, enAttente };
 }
 
 const FacebookSchema = z.object({
@@ -154,9 +167,12 @@ export async function addFacebookVideo(input: unknown) {
   if (!user) return { ok: false as const, error: "Connectez-vous pour partager une vidéo." };
 
   const admin = createAdminClient();
+  // B. La vidéo partagée par une visiteuse attend la validation de l'équipe.
+  const st = await statutPourAuteur(admin, user.id);
+  if (!st.ok) return { ok: false as const, error: st.erreur };
   const { data: post, error: postErr } = await admin
     .from("posts")
-    .insert({ author_id: user.id, group_id: null, content: parsed.data.caption?.trim() || null, published: true })
+    .insert({ author_id: user.id, group_id: null, content: parsed.data.caption?.trim() || null, published: st.published, ...(st.a_valider ? { a_valider: true } : {}) })
     .select("id")
     .single();
   if (postErr || !post) return { ok: false as const, error: "Publication impossible." };
@@ -175,7 +191,8 @@ export async function addFacebookVideo(input: unknown) {
     await admin.from("posts").delete().eq("id", post.id);
     return { ok: false as const, error: cmErr.message };
   }
+  if (st.a_valider) await signalerAValider(admin, "Une vidéo Facebook partagée");
 
   revalidatePath("/communaute");
-  return { ok: true as const };
+  return { ok: true as const, enAttente: st.a_valider };
 }

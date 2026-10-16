@@ -95,7 +95,7 @@ const T: Record<"ar" | "fr", any> = {
 const ACCENT = "var(--thread, #5B16F9)";
 
 export default function LevelTestPopup({
-  slug, langue, utm, onClose, onSubscribe, promo, onResult,
+  slug, langue, utm, onClose, onSubscribe, promo, onResult, contactInitial,
 }: {
   slug: string;
   langue: "ar" | "fr";
@@ -106,6 +106,8 @@ export default function LevelTestPopup({
   promo?: Promo | null;
   /** Appelé UNE fois quand le résultat est obtenu (test réellement terminé). */
   onResult?: (resultat: any) => void;
+  /** Coordonnées déjà connues (compte connecté) : pré-remplies, modifiables. */
+  contactInitial?: { first_name?: string; email?: string };
 }) {
   // Textes personnalisables dans l'OS (par-dessus les défauts). Chargés côté
   // client car le popup est un composant partagé (pas de page serveur à lui).
@@ -115,7 +117,8 @@ export default function LevelTestPopup({
   const [erreur, setErreur] = useState<string | null>(null);
   const [etape, setEtape] = useState(0); // index de question, puis « contact »
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [contact, setContact] = useState({ first_name: "", email: "", phone: "" });
+  const contactVide = { first_name: contactInitial?.first_name ?? "", email: contactInitial?.email ?? "", phone: "" };
+  const [contact, setContact] = useState(contactVide);
   const [accepte, setAccepte] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [resultat, setResultat] = useState<any>(null);
@@ -192,7 +195,7 @@ export default function LevelTestPopup({
 
   function recommencer() {
     setResultat(null); setAnswers({}); setAccepte(false); setModeLocal(null);
-    setContact({ first_name: "", email: "", phone: "" }); setEtape(0); setErreur(null);
+    setContact(contactVide); setEtape(0); setErreur(null);
     comboFired.current = false; // un nouveau passage pourra ré-émettre l'événement combiné.
   }
 

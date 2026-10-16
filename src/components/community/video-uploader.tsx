@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import * as tus from "tus-js-client";
 import { UploadCloud, Loader2, Film, Music } from "lucide-react";
 import { startCommunityVideo, finalizeCommunityVideo } from "@/app/actions/community-upload";
+import { MESSAGE_EN_ATTENTE } from "@/lib/visiteuses/regles";
 import { toast } from "@/components/ui/toast";
 import { FEED_MUSIC } from "@/lib/feed-music";
 
@@ -82,7 +83,7 @@ export function CommunityVideoUploader({
           musicUrl: musicUrl || null,
         });
         if (fin.ok) {
-          toast("Vidéo publiée sur la communauté 🎉", "success");
+          toast("enAttente" in fin && fin.enAttente ? MESSAGE_EN_ATTENTE : "Vidéo publiée sur la communauté 🎉", "enAttente" in fin && fin.enAttente ? "info" : "success");
           if (previewRef.current) { previewRef.current.pause(); previewRef.current = null; }
           setFile(null); setDuration(null); setCaption(""); setMusicUrl(""); setProgress(null);
           if (fileRef.current) fileRef.current.value = "";

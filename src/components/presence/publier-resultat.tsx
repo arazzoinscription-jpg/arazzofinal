@@ -21,6 +21,7 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState<number | null>(null);
   const [fait, setFait] = useState(false);
+  const [enAttente, setEnAttente] = useState(false);
 
   function fermer() {
     if (envoi !== null) return;
@@ -54,7 +55,7 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
     setFichier(f); setApercu(url);
   }
 
-  function reussi() { setEnvoi(null); setFait(true); }
+  function reussi(attente = false) { setEnvoi(null); setFait(true); setEnAttente(attente); }
 
   async function publier() {
     if (!fichier || envoi !== null) return;
@@ -65,7 +66,7 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
       fd.append("legende", legende);
       const r = await publierResultatPhoto(fd);
       if (!r.ok) { setErreur(r.erreur); setEnvoi(null); return; }
-      reussi();
+      reussi(Boolean(r.enAttente));
       return;
     }
     const d = await demarrerResultatVideo();
@@ -80,7 +81,7 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
       onSuccess: async () => {
         const f = await finaliserResultatVideo({ videoId: d.videoId, duree, legende });
         if (!f.ok) { setErreur(f.erreur); setEnvoi(null); return; }
-        reussi();
+        reussi(Boolean(f.enAttente));
       },
     }).start();
   }
@@ -102,8 +103,8 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
             {fait ? (
               <div className="text-center space-y-3 py-2">
                 <p className="text-4xl" aria-hidden>🎉</p>
-                <p className="font-semibold">Bravo ! Votre résultat est publié.</p>
-                <p className="text-xs text-gray-500">Pendant 24 h, une alerte « Bravo ! » le présente sur le feed ; il reste ensuite sur votre profil.</p>
+                <p className="font-semibold">{enAttente ? "Bravo ! Votre résultat est envoyé." : "Bravo ! Votre résultat est publié."}</p>
+                <p className="text-xs text-gray-500">{enAttente ? "Il sera visible dès que l'équipe l'aura validé ; vous recevrez une notification." : "Pendant 24 h, une alerte « Bravo ! » le présente sur le feed ; il reste ensuite sur votre profil."}</p>
                 <Link href="/communaute" className="inline-block rounded-xl bg-[#5B16F9] text-white px-4 py-2 text-sm font-semibold">Voir le feed</Link>
               </div>
             ) : (

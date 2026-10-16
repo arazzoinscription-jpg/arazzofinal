@@ -30,13 +30,17 @@ export interface CommunityItem {
   thumbnail: string | null;
   caption: string | null;
   createdAt: string;
-  author: { id: string; nom: string; avatar_url: string | null; role: string };
+  author: { id: string; nom: string; avatar_url: string | null; role: string; /** Compte sans formation : pastille « Visiteuse ». */ visiteuse?: boolean };
   likeCount: number;
   liked: boolean;
   commentCount: number;
   cta: { label: string; href: string } | null;
   // Musique de fond optionnelle (bibliothèque interne, servie depuis /feed-music/…).
   music: { url: string; title: string | null } | null;
+  /** Participation au défi de la semaine : son titre (migration 103). */
+  defi?: string | null;
+  /** « J'aimerais apprendre ce modèle » déjà touché par la personne connectée (migration 103). */
+  envie?: boolean;
 }
 
 const SOURCE_LABEL: Record<SourceType, string> = {

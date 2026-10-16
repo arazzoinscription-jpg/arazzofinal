@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl, type CommunityItem } from "@/lib/community-types";
 import { cdnImage } from "@/lib/storage-cdn";
+import { inscritesParmi } from "@/lib/visiteuses/load";
 
 export type { CommunityItem, SourceType } from "@/lib/community-types";
 export { sourceLabel } from "@/lib/community-types";
@@ -154,7 +155,32 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
     .filter((r: any) => r && r.post && (r.post.published ?? true))
     .map((r: any) => mapRow(r, user?.id ?? ""));
 
+  await enrichirVisiteuses(admin, items, user?.id ?? null);
   return { me: user ? { id: user.id } : null, items };
+}
+
+/**
+ * Comptes sans formation (migration 103) : pastille « Visiteuse » des autrices, titre du défi d'une participation,
+ * « J'aimerais apprendre ce modèle » déjà touché. Best-effort : sans la migration, rien ne change.
+ */
+async function enrichirVisiteuses(admin: ReturnType<typeof createAdminClient>, items: CommunityItem[], meId: string | null): Promise<void> {
+  if (!items.length) return;
+  try {
+    const eleves = items.filter((it) => it.author.id && it.author.role === "eleve").map((it) => it.author.id);
+    const ids = items.map((it) => it.id);
+    const [inscrites, defis, envies] = await Promise.all([
+      eleves.length ? inscritesParmi(admin, eleves) : Promise.resolve(new Set<string>()),
+      admin.from("community_media").select("id, defi:defis(titre)").in("id", ids).not("defi_id", "is", null),
+      meId ? admin.from("feed_envies").select("media_id").eq("user_id", meId).in("media_id", ids) : Promise.resolve({ data: [], error: null }),
+    ]);
+    const titres = new Map(((defis.error ? [] : defis.data ?? []) as any[]).map((r) => [r.id as string, (Array.isArray(r.defi) ? r.defi[0]?.titre : r.defi?.titre) as string | undefined]));
+    const mesEnvies = new Set(((envies.error ? [] : envies.data ?? []) as { media_id: string }[]).map((x) => x.media_id));
+    for (const it of items) {
+      if (it.author.role === "eleve" && it.author.id) it.author.visiteuse = !inscrites.has(it.author.id);
+      if (titres.get(it.id)) it.defi = titres.get(it.id);
+      it.envie = mesEnvies.has(it.id);
+    }
+  } catch { /* le feed s'affiche sans ces détails */ }
 }
 
 /** Médias publiés par un utilisateur (page profil). */

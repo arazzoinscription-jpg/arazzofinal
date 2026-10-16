@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ordreBarre, regrouper, type StoryVue } from "@/lib/stories/regles";
 import { AjouterStory } from "./ajouter-story";
 import { VisionneuseStories, type GroupeStories } from "./visionneuse-stories";
@@ -62,7 +62,7 @@ export function PhotoAvecStory({ stories, meId, moderation = false, bibliotheque
  * `personnes` (facultatif) donne les photos et noms à afficher ; sinon ceux des stories.
  * Variante « feed » : compacte, sur fond sombre, sans titre (barre du haut du feed).
  */
-export function BarreStories({ stories, personnes = [], meId, moiEquipe = false, monAvatar = null, enseignantes = [], moderation = false, bibliotheque, titre = "Stories de la classe", variante = "classe" }: {
+export function BarreStories({ stories, personnes = [], meId, moiEquipe = false, monAvatar = null, enseignantes = [], moderation = false, bibliotheque, titre = "Stories de la classe", variante = "classe", avant = null }: {
   stories: StoryVue[];
   personnes?: { id: string; nom: string; avatar: string | null }[];
   meId: string;
@@ -74,6 +74,8 @@ export function BarreStories({ stories, personnes = [], meId, moiEquipe = false,
   bibliotheque: string;
   titre?: string;
   variante?: "classe" | "feed";
+  /** Une bulle avant les stories (ex. « Missions » des comptes sans formation). */
+  avant?: ReactNode;
 }) {
   const [ouvert, setOuvert] = useState<number | null>(null);
   const vues = useVues();
@@ -91,6 +93,12 @@ export function BarreStories({ stories, personnes = [], meId, moiEquipe = false,
     return { userId: id, nom: p?.nom ?? s[0].nom, avatar: p?.avatar ?? s[0].avatar, stories: s };
   }), [ordre, parPersonne, personnes]);
   const avatarMoi = monAvatar ?? personnes.find((p) => p.id === meId)?.avatar ?? null;
+  // « Ouvrir la story de l'enseignante » demandé ailleurs (missions) : la 1ʳᵉ bulle est l'équipe.
+  useEffect(() => {
+    const ouvrir = () => { if (groupes.length) setOuvert(0); };
+    window.addEventListener("arazzo:ouvrir-stories", ouvrir);
+    return () => window.removeEventListener("arazzo:ouvrir-stories", ouvrir);
+  }, [groupes.length]);
   const aMoi = parPersonne.has(meId);
 
   const taille = feed ? "w-[52px] h-[52px]" : "w-14 h-14";
@@ -133,6 +141,7 @@ export function BarreStories({ stories, personnes = [], meId, moiEquipe = false,
 
   const liste = (
     <ul className={`flex overflow-x-auto ${feed ? "gap-2 px-3 pb-1 pt-0.5" : "gap-3 pb-1"}`} style={{ scrollbarWidth: "none" }}>
+      {avant}
       {ordre.map((id) => {
         if (id === meId && !aMoi) return maBulleVide;
         const k = groupes.findIndex((x) => x.userId === id);

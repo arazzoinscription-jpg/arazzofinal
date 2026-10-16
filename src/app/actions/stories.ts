@@ -10,6 +10,7 @@ import { VIE_STORY_MS, lireLegende, verifierDureeStory, verifierPhotoStory } fro
 import { lienRefuse, lireCalques, lireFond, lireInteraction, resultatSondage, type Calque } from "@/lib/stories/calques";
 import { etatMigrationStories } from "@/lib/stories/load";
 import { nomPublic } from "@/lib/nom-public";
+import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
 
 /**
  * Stories : élèves ET enseignantes, connectées. Photo (stockage « posts », dossier stories/), vidéo de
@@ -21,7 +22,7 @@ import { nomPublic } from "@/lib/nom-public";
 const INDISPONIBLE = "Les stories ne sont pas encore activées sur ce site (migration 099 à appliquer).";
 const CREATIVES_INDISPONIBLES = "Texte, dessin et autocollants ne sont pas encore activés sur ce site (migration 102 à appliquer).";
 
-type Reponse = { ok: true } | { ok: false; erreur: string };
+type Reponse = { ok: true; enAttente?: boolean } | { ok: false; erreur: string };
 
 async function connectee() {
   const supabase = await createClient();
@@ -43,17 +44,27 @@ function calquesDepuis(brut: unknown, equipe: boolean): { ok: true; calques: Cal
   return { ok: true, calques: lireCalques(v, { equipe, maintenant: new Date() }) };
 }
 
-/** Enregistre la story ; si la migration 102 manque, la story part quand même SANS calques (s'il n'y en a pas). */
+/**
+ * Enregistre la story ; si la migration 102 manque, la story part quand même SANS calques (s'il n'y en a pas).
+ * B. La story d'une visiteuse (compte sans formation) attend la validation de l'équipe ; ses 24 h partent de la validation.
+ */
 async function inserer(ligne: Record<string, unknown>, calques: Calque[], fond: string | null): Promise<Reponse> {
   const admin = createAdminClient();
-  const complete = { ...ligne, calques, fond, expires_at: new Date(Date.now() + VIE_STORY_MS).toISOString() };
+  const st = await statutPourAuteur(admin, ligne.user_id as string);
+  if (!st.ok) return st;
+  const complete = { ...ligne, calques, fond, expires_at: new Date(Date.now() + VIE_STORY_MS).toISOString(), ...(st.a_valider ? { a_valider: true } : {}) };
   const r = await admin.from("stories").insert(complete);
-  if (!r.error) return { ok: true };
+  if (!r.error) {
+    if (st.a_valider) await signalerAValider(admin, "Une story");
+    return { ok: true, enAttente: st.a_valider };
+  }
   if (/calques|fond|column|schema cache|media_kind|stories_media/i.test(r.error.message)) {
     if (calques.length || fond || ligne.media_kind === "texte") return { ok: false, erreur: CREATIVES_INDISPONIBLES };
     const { calques: _c, fond: _f, ...simple } = complete;
     const r2 = await admin.from("stories").insert(simple);
-    return r2.error ? { ok: false, erreur: r2.error.message } : { ok: true };
+    if (r2.error) return { ok: false, erreur: r2.error.message };
+    if (st.a_valider) await signalerAValider(admin, "Une story");
+    return { ok: true, enAttente: st.a_valider };
   }
   return { ok: false, erreur: r.error.message };
 }
@@ -107,6 +118,8 @@ export async function demarrerStoryVideo(): Promise<
   if (!user) return { ok: false, erreur: "Connectez-vous pour publier une story." };
   if (!isBunnyConfigured()) return { ok: false, erreur: "Les vidéos ne sont pas disponibles sur ce serveur : publiez une photo." };
   if (await etatMigrationStories(createAdminClient())) return { ok: false, erreur: INDISPONIBLE };
+  const st = await statutPourAuteur(createAdminClient(), user.id);
+  if (!st.ok) return st;
   const v = await createBunnyVideo(`Story ${user.id.slice(0, 8)}`);
   if (!v.ok) return { ok: false, erreur: v.error };
   return { ok: true, videoId: v.videoId, tus: bunnyTusAuth(v.videoId) };

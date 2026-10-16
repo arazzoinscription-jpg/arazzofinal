@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test:suivi": "tsx --test src/lib/student-care/*.test.ts",
     "test:lives": "tsx --test src/lib/live-care/*.test.ts",
-    "test:classe": "tsx --test src/lib/classe/*.test.ts src/lib/espace/*.test.ts src/lib/cloches/*.test.ts src/lib/stories/*.test.ts src/lib/*.test.ts src/components/community/*.test.ts",
+    "test:classe": "tsx --test src/lib/classe/*.test.ts src/lib/espace/*.test.ts src/lib/cloches/*.test.ts src/lib/stories/*.test.ts src/lib/visiteuses/*.test.ts src/lib/*.test.ts src/components/community/*.test.ts",
     "migrate:csv": "tsx scripts/import-csv-students.ts",
     "migrate:courses": "tsx scripts/import-tutor-courses.ts",
     "cap:sync": "cap sync",

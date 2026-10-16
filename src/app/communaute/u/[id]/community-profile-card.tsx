@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { UserPlus, Check } from "lucide-react";
 import { toggleFollow, listFollowers, listFollowing, listProfileLikers, type CommunityPerson } from "@/app/actions/community";
 import { toast } from "@/components/ui/toast";
@@ -12,6 +13,8 @@ interface Props {
   userId: string;
   name: string;
   roleLabel: string;
+  /** Compte sans formation : pastille « Visiteuse ». */
+  visiteuse?: boolean;
   bio?: string | null;
   username?: string | null;
   avatarUrl?: string | null;
@@ -44,7 +47,7 @@ type ModalKind = "followers" | "following" | "likes" | null;
 
 /** Carte de profil communauté — stats animées + bouton d'abonnement + listes cliquables. */
 export function CommunityProfileCard({
-  userId, name, roleLabel, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, isGuest = false, lang = "fr", stories,
+  userId, name, roleLabel, visiteuse = false, bio, username, avatarUrl, likes, posts, followers, following: followingCountInit, isMe, isFollowing, isGuest = false, lang = "fr", stories,
 }: Props) {
   const ft = FOLLOW_T[lang];
   const [aLikes, setALikes] = useState(0);
@@ -138,7 +141,14 @@ export function CommunityProfileCard({
           {/* Nom + rôle + bio */}
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight font-playfair">{name}</h2>
           {username && <p className="text-sm text-gray-400 dark:text-white/40 font-dm">@{username}</p>}
-          <p className="text-orange-600 dark:text-orange-300 text-sm font-semibold mt-1 font-dm">{roleLabel}</p>
+          <p className="text-orange-600 dark:text-orange-300 text-sm font-semibold mt-1 font-dm">
+            {visiteuse ? <span className="inline-block rounded-full bg-violet-100 text-violet-700 dark:bg-white/15 dark:text-white px-2.5 py-0.5 text-xs font-semibold">Visiteuse</span> : roleLabel}
+          </p>
+          {visiteuse && isMe ? (
+            <Link href="/formation/niveau-1" className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br from-[#5B16F9] to-[#FE7223] px-3 py-1.5 text-xs font-bold text-white">
+              🎓 Rejoindre une classe : publier sans attendre, avec votre enseignante
+            </Link>
+          ) : null}
           {bio && <p className="text-gray-500 dark:text-white/60 text-sm leading-relaxed mt-3 font-dm">{bio}</p>}
 
           {/* Stats — Abonnés / Abonnements / J'aime sont cliquables (voir qui). */}

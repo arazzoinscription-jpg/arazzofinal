@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { isFormateur, isPatronniste } from "@/lib/roles";
+import { isAdmin, isFormateur, isPatronniste } from "@/lib/roles";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { leconEssai } from "@/lib/visiteuses/load";
+import { CarteDecouverte } from "./carte-decouverte";
 import { cookies } from "next/headers";
 import { DICT, normLang } from "./dash-i18n";
 import { RoleRequestCTA } from "./role-request/cta";
@@ -111,6 +114,11 @@ export default async function DashboardPage() {
   const lang = normLang((await cookies()).get("lang")?.value);
   const t = DICT[lang];
 
+  // Compte SANS formation (ni rôle d'équipe) : la leçon d'essai gratuite et les missions du feed, dès la création du compte.
+  const decouverte = courses.length === 0 && !hasFormateur && !hasPatronniste && !isAdmin(profile)
+    ? await leconEssai(createAdminClient(), user!.id).catch(() => null)
+    : undefined;
+
   // Étudiante importée (inscription 0 DA) sans preuve Telegram → popup obligatoire.
   const tgProof = await getTelegramProofState(user!.id);
 
@@ -154,6 +162,8 @@ export default async function DashboardPage() {
       <div className="relative">
         <CommunityGlobe prenom={prenom} />
       </div>
+
+      {decouverte !== undefined && <CarteDecouverte essai={decouverte} />}
 
       {(!hasFormateur || !hasPatronniste) && (
         <div className="mb-6">
