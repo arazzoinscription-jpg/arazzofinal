@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/communaute";
+  // Sans destination précise : le bon espace selon le compte (formatrice → espace formateur).
+  const next = searchParams.get("next") ?? "/mon-espace?depuis=connexion";
 
   if (code) {
     const supabase = await createClient();

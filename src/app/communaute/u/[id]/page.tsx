@@ -18,7 +18,7 @@ import { getRoles, isAdmin } from "@/lib/roles";
 import { estEquipePublique, nomPublic } from "@/lib/nom-public";
 import { inscritesParmi } from "@/lib/visiteuses/load";
 
-export const metadata = { title: "Profil — Communauté Arazzo" };
+export const metadata = { title: "Profil — La Cour Arazzo" };
 export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = { admin: "Arazzo", formateur: "Formatrice", patronniste: "Patronniste", eleve: "Membre" };

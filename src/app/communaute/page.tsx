@@ -22,7 +22,7 @@ import { chargerMissions } from "@/lib/visiteuses/load";
 import { BulleMissions } from "@/components/visiteuses/missions";
 import { InvitationClasse } from "@/components/visiteuses/invitation-classe";
 
-export const metadata = { title: "Communauté — Arazzo" };
+export const metadata = { title: "La Cour — Arazzo" };
 export const dynamic = "force-dynamic";
 // Le code promo de l'accueil est relu à CHAQUE visite (jamais un code expiré servi depuis le cache de données).
 export const fetchCache = "force-no-store";

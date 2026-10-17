@@ -64,9 +64,9 @@ export const SECTIONS: NavSection[] = [
   },
   {
     key: "community", icon: Users, home: "/dashboard/actualites",
-    label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
+    label: { fr: "La Cour", ar: "الساحة", en: "The Courtyard" },
     items: [
-      { href: "/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
+      { href: "/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات الساحة", en: "Video feed" } },
       { href: "/dashboard/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
       { href: "/dashboard/support", icon: LifeBuoy, label: { fr: "Support", ar: "الدعم", en: "Support" } },
     ],

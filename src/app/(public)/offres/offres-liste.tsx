@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { LandingStyles } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 
 export type Item = { slug: string; name: string; sous?: string | null; prix?: string | null };
 
@@ -56,6 +57,7 @@ export default function OffreListe({ kind, items, packs = [] }: { kind: "present
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}
       </button>

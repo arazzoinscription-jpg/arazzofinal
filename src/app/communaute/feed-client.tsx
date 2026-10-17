@@ -157,7 +157,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
             Stories
           </button>
         ) : null}
-        <Link href={isGuest ? "/register" : "/dashboard"} aria-label={isGuest ? "S'inscrire" : "Tableau de bord"}
+        <Link href={isGuest ? "/register" : "/mon-espace"} aria-label={isGuest ? "S'inscrire" : "Mon espace"}
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
         <button onClick={() => (isGuest ? setGate("soft") : setFbOpen(true))} aria-label="Partager une vidéo Facebook"
           className="w-9 h-9 grid place-items-center rounded-full bg-[#1877F2] text-white shrink-0"><Facebook size={17} /></button>
@@ -176,9 +176,9 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
     return (
       <div className="fixed inset-0 bg-[#0b0818] text-white flex flex-col items-center justify-center gap-4 px-8 text-center">
         <Scissors className="text-orange-400" size={44} />
-        <h1 className="font-playfair text-2xl font-bold">La communauté est encore vide</h1>
+        <h1 className="font-playfair text-2xl font-bold">La Cour est encore vide</h1>
         <p className="text-white/60 font-dm max-w-sm">Sois la première à publier : partage un de tes travaux pratiques depuis tes cours, ou reviens bientôt découvrir les créations des autres.</p>
-        <Link href="/dashboard" className="mt-2 bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold">Retour au tableau de bord</Link>
+        <Link href="/mon-espace" className="mt-2 bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold">Retour à mon espace</Link>
       </div>
     );
   }
@@ -256,7 +256,7 @@ function GuestGate({ onClose }: { onClose: () => void }) {
         className="relative w-full sm:max-w-sm bg-white rounded-t-3xl sm:rounded-3xl p-6 pb-[max(24px,env(safe-area-inset-bottom))] text-center">
         <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-orange-DEFAULT text-white mb-4"><Scissors size={26} /></span>
         <h3 className="font-playfair text-2xl font-bold text-violet-950 mb-2">
-          Rejoins la communauté Arazzo
+          Rejoins La Cour Arazzo
         </h3>
         <p className="text-gray-600 font-dm text-sm mb-5">
           Inscris-toi gratuitement pour aimer, commenter, publier tes travaux et profiter des cours de modélisme.

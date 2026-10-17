@@ -76,7 +76,9 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // Caméra et micro autorisés pour le site LUI-MÊME seulement (vidéos rondes et messages vocaux de la
+          // messagerie) ; toujours interdits aux contenus intégrés. Le téléphone demande l'accord à la personne.
+          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
           { key: "Content-Security-Policy", value: csp },
         ],
       },

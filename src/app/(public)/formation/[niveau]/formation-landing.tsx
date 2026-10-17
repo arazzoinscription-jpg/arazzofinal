@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from "react";
 import { LandingStyles, SeatsBanner, utmDeLURL } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitDeliveryOrder, submitDeliveryOrderPack } from "@/app/actions/rejoindre";
 import { uploadOnlineProof } from "@/lib/upload-online-proof";
@@ -368,6 +369,7 @@ export default function FormationLanding({ data, textes }: {
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
 
 
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>

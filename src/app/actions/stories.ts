@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoles, isAdmin } from "@/lib/roles";
 import { bunnyPlaybackUrls, bunnyTusAuth, createBunnyVideo, isBunnyConfigured } from "@/lib/bunny/stream";
-import { VIE_STORY_MS, lireLegende, verifierDureeStory, verifierPhotoStory } from "@/lib/stories/regles";
+import { VIE_STORY_MS, decouperVideo, lireLegende, verifierDureeStory, verifierPhotoStory } from "@/lib/stories/regles";
 import { lienRefuse, lireCalques, lireFond, lireInteraction, resultatSondage, type Calque } from "@/lib/stories/calques";
 import { etatMigrationStories } from "@/lib/stories/load";
 import { nomPublic } from "@/lib/nom-public";
@@ -14,13 +14,16 @@ import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation"
 
 /**
  * Stories : élèves ET enseignantes, connectées. Photo (stockage « posts », dossier stories/), vidéo de
- * 30 s au plus (Bunny Stream) ou « texte seul » sur un fond. Calques comme Instagram (texte, dessin,
+ * 30 s au plus (Bunny Stream ; une vidéo plus longue devient plusieurs stories à la suite) ou « texte seul » sur un fond. Calques comme Instagram (texte, dessin,
  * autocollants, question, sondage, compte à rebours, lien) revalidés ici. Visibles 24 h.
  * Chacune supprime les siennes ; l'administration peut supprimer n'importe quelle story (modération).
  */
 
 const INDISPONIBLE = "Les stories ne sont pas encore activées sur ce site (migration 099 à appliquer).";
 const CREATIVES_INDISPONIBLES = "Texte, dessin et autocollants ne sont pas encore activés sur ce site (migration 102 à appliquer).";
+const DECOUPAGE_INDISPONIBLE = "Les vidéos longues (découpées en plusieurs stories) ne sont pas encore activées sur ce site (migration 105 à appliquer). En attendant : une vidéo de 30 s au plus.";
+/** Question, sondage, compte à rebours : sur la 1re partie seulement (sinon les réponses seraient éparpillées). */
+const INTERACTIFS: ReadonlySet<string> = new Set(["question", "sondage", "compte"]);
 
 type Reponse = { ok: true; enAttente?: boolean } | { ok: false; erreur: string };
 
@@ -112,12 +115,17 @@ export async function publierStoryTexte(entree: { fond: unknown; calques: unknow
   return r;
 }
 
-export async function demarrerStoryVideo(): Promise<
+/** `parties` > 1 : vidéo longue (vérifie AVANT l'envoi que le découpage est activé). */
+export async function demarrerStoryVideo(opts?: { parties?: unknown }): Promise<
   { ok: true; videoId: string; tus: ReturnType<typeof bunnyTusAuth> } | { ok: false; erreur: string }> {
   const user = await connectee();
   if (!user) return { ok: false, erreur: "Connectez-vous pour publier une story." };
   if (!isBunnyConfigured()) return { ok: false, erreur: "Les vidéos ne sont pas disponibles sur ce serveur : publiez une photo." };
   if (await etatMigrationStories(createAdminClient())) return { ok: false, erreur: INDISPONIBLE };
+  if (typeof opts?.parties === "number" && opts.parties > 1) {
+    const t = await createAdminClient().from("stories").select("debut_s").limit(1);
+    if (t.error) return { ok: false, erreur: DECOUPAGE_INDISPONIBLE };
+  }
   const st = await statutPourAuteur(createAdminClient(), user.id);
   if (!st.ok) return st;
   const v = await createBunnyVideo(`Story ${user.id.slice(0, 8)}`);
@@ -139,6 +147,55 @@ export async function finaliserStoryVideo(entree: { videoId: unknown; duree: unk
   }, cq.calques, null);
   if (r.ok) { revalidatePath("/dashboard/classe"); revalidatePath("/communaute"); }
   return r;
+}
+
+/**
+ * Vidéo LONGUE : une seule vidéo Bunny, plusieurs stories (une par partie de 30 s au plus), publiées ensemble
+ * et à la suite. Les calques visuels (texte, dessin, autocollants, lien) sont sur chaque partie ; question,
+ * sondage et compte à rebours sur la première seulement.
+ */
+export async function finaliserStoryVideoLongue(entree: { videoId: unknown; duree: unknown; legende: unknown; calques?: unknown }): Promise<Reponse> {
+  const user = await connectee();
+  if (!user) return { ok: false, erreur: "Connectez-vous pour publier une story." };
+  if (typeof entree.videoId !== "string" || !/^[0-9a-f-]{8,64}$/i.test(entree.videoId)) return { ok: false, erreur: "Vidéo invalide." };
+  const dec = decouperVideo(entree.duree);
+  if (!dec.ok) return dec;
+  if (dec.parties.length === 1) return finaliserStoryVideo({ videoId: entree.videoId, duree: dec.duree, legende: entree.legende, calques: entree.calques });
+  const cq = calquesDepuis(entree.calques, await estEquipe(user.id));
+  if (!cq.ok) return cq;
+  const admin = createAdminClient();
+  const st = await statutPourAuteur(admin, user.id);
+  if (!st.ok) return st;
+
+  const videoId = entree.videoId;
+  const legende = lireLegende(entree.legende);
+  const thumbnail_url = bunnyPlaybackUrls(videoId).thumbnail;
+  const maintenant = Date.now();
+  // Insertion groupée : toutes les lignes ont les MÊMES colonnes. Sans aucun calque, la colonne n'est pas
+  // envoyée (la story part même si la migration 102 manque).
+  const avecCalques = cq.calques.length > 0;
+  const lignes = dec.parties.map((p, k) => {
+    const calques = k === 0 ? cq.calques : cq.calques.filter((c) => !INTERACTIFS.has(c.type));
+    return {
+      user_id: user.id, media_kind: "video", bunny_video_id: videoId, thumbnail_url,
+      duration_seconds: p.duree, debut_s: p.debut, legende,
+      ...(avecCalques ? { calques } : {}),
+      // Dans l'ordre de la vidéo : la visionneuse trie par date de création.
+      created_at: new Date(maintenant + k * 1000).toISOString(),
+      expires_at: new Date(maintenant + k * 1000 + VIE_STORY_MS).toISOString(),
+      ...(st.a_valider ? { a_valider: true } : {}),
+    };
+  });
+  const r = await admin.from("stories").insert(lignes);
+  if (r.error) {
+    if (/debut_s/i.test(r.error.message)) return { ok: false, erreur: DECOUPAGE_INDISPONIBLE };
+    if (/calques|column|schema cache/i.test(r.error.message)) return { ok: false, erreur: CREATIVES_INDISPONIBLES };
+    return { ok: false, erreur: r.error.message };
+  }
+  if (st.a_valider) await signalerAValider(admin, `Une vidéo en ${lignes.length} stories`);
+  revalidatePath("/dashboard/classe");
+  revalidatePath("/communaute");
+  return { ok: true, enAttente: st.a_valider };
 }
 
 export async function supprimerStory(id: unknown): Promise<Reponse> {

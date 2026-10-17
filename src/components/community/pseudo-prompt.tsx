@@ -47,7 +47,7 @@ export function PseudoPrompt({ hasUsername }: { hasUsername: boolean }) {
         <div className="w-12 h-12 rounded-2xl bg-violet-600 text-white grid place-items-center mb-3"><AtSign size={22} /></div>
         <h2 className="font-playfair text-xl font-bold text-gray-900 dark:text-white">Choisissez votre pseudo</h2>
         <p className="text-sm text-gray-500 dark:text-white/60 font-dm mt-1.5">
-          Dans la communauté, on utilise un <strong>pseudo</strong> (pas votre vrai nom) pour protéger votre vie privée. Vous pourrez le changer plus tard dans votre profil.
+          Dans La Cour, on utilise un <strong>pseudo</strong> (pas votre vrai nom) pour protéger votre vie privée. Vous pourrez le changer plus tard dans votre profil.
         </p>
         <div className="mt-4 flex items-center rounded-xl border border-gray-200 dark:border-white/15 bg-white dark:bg-white/5 px-3">
           <span className="text-gray-400">@</span>

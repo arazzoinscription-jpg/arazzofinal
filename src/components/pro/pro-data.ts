@@ -55,10 +55,10 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
   },
   {
     key: "community", icon: Users, home: "/formateur/etudiants",
-    label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
+    label: { fr: "La Cour", ar: "الساحة", en: "The Courtyard" },
     items: [
       { href: "/formateur/etudiants", icon: GraduationCap, label: { fr: "Étudiants inscrits", ar: "الطلاب المسجّلون", en: "Enrolled students" } },
-      { href: "/formateur/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات المجتمع", en: "Video feed" } },
+      { href: "/formateur/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات الساحة", en: "Video feed" } },
       { href: "/formateur/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
       { href: "/formateur/etudiantes-inactives", icon: UserMinus, label: { fr: "Étudiantes inactives", ar: "طالبات غير نشطات", en: "Inactive students" } },
       { href: "/formateur/tickets", icon: LifeBuoy, label: { fr: "Tickets support", ar: "تذاكر الدعم", en: "Support tickets" } },
@@ -150,7 +150,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
   },
   {
     key: "community", icon: Clapperboard, home: "/admin/communaute", items: [],
-    label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
+    label: { fr: "La Cour", ar: "الساحة", en: "The Courtyard" },
   },
   {
     key: "system", icon: Settings, home: "/admin/emails",
@@ -180,7 +180,7 @@ export const PATRONNISTE_SECTIONS: ProSection[] = [
   },
   {
     key: "community", icon: Clapperboard, home: "/patronniste/communaute", items: [],
-    label: { fr: "Communauté", ar: "المجتمع", en: "Community" },
+    label: { fr: "La Cour", ar: "الساحة", en: "The Courtyard" },
   },
   {
     key: "shop", icon: ShoppingBag, home: "/patronniste/boutique", items: [],

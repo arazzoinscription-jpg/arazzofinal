@@ -14,19 +14,19 @@ type Step = { icon: typeof LayoutGrid; color: string; title: string; body: strin
 const STEPS: Record<Lang, Step[]> = {
   fr: [
     { icon: LayoutGrid, color: "text-orange-500", title: "Voici votre espace", body: "Retrouvez ici vos formations, vos travaux pratiques et votre progression." },
-    { icon: Clapperboard, color: "text-violet-500", title: "Voici votre feed", body: "Découvrez en vidéo les travaux de la communauté et les nouveautés." },
+    { icon: Clapperboard, color: "text-violet-500", title: "Voici La Cour", body: "Découvrez en vidéo les travaux des élèves et les nouveautés." },
     { icon: GraduationCap, color: "text-orange-500", title: "Voici les formations", body: "Explorez l'offre de couture & modélisme et inscrivez-vous en quelques clics." },
     { icon: Scissors, color: "text-violet-500", title: "Voici le patronnage", body: "Des patrons numériques prêts à imprimer, à découvrir et à acheter." },
   ],
   ar: [
     { icon: LayoutGrid, color: "text-orange-500", title: "هذه مساحتك", body: "تجدين هنا دوراتك وأعمالك التطبيقية وتقدّمك." },
-    { icon: Clapperboard, color: "text-violet-500", title: "هذا الـ feed", body: "اكتشفي فيديوهات المجتمع والجديد." },
+    { icon: Clapperboard, color: "text-violet-500", title: "هذه الساحة", body: "اكتشفي فيديوهات الساحة والجديد." },
     { icon: GraduationCap, color: "text-orange-500", title: "هذه التكوينات", body: "استكشفي عروض الخياطة والمودلاج وسجّلي بسهولة." },
     { icon: Scissors, color: "text-violet-500", title: "هذا الباترون", body: "باترونات رقمية جاهزة للطباعة، للاكتشاف والشراء." },
   ],
   en: [
     { icon: LayoutGrid, color: "text-orange-500", title: "This is your space", body: "Find your courses, practical work and progress here." },
-    { icon: Clapperboard, color: "text-violet-500", title: "This is your feed", body: "Discover the community's work and what's new, in video." },
+    { icon: Clapperboard, color: "text-violet-500", title: "This is The Courtyard", body: "Discover students' work and what's new, in video." },
     { icon: GraduationCap, color: "text-orange-500", title: "These are the courses", body: "Explore sewing & patternmaking and enroll in a few clicks." },
     { icon: Scissors, color: "text-violet-500", title: "This is patternmaking", body: "Print-ready digital patterns to discover and buy." },
   ],

@@ -1,19 +1,23 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Plus, X, Clapperboard, Newspaper } from "lucide-react";
+import { Plus, X, Clapperboard, Newspaper, CircleDashed } from "lucide-react";
+import { EditeurStory } from "@/components/stories/editeur-story";
 
 type Role = "eleve" | "formateur" | "patronniste" | "admin" | string;
 
 /**
  * Bouton flottant « + » unifié pour publier dans la communauté.
- * Propose : Publier une vidéo (selon l'espace du rôle) + Publier une actualité.
+ * Propose : Ajouter une story (tout le monde : élèves, visiteuses — validées par l'équipe —, formatrices,
+ * administration) + Publier une vidéo (selon l'espace du rôle) + Publier une actualité.
  * Les vidéos sont réservées aux formateur/patronniste/admin (élève : actualité
  * seulement pour l'instant — la vidéo élève viendra plus tard).
  */
 export function CommunityFab({ role }: { role: Role }) {
   const [open, setOpen] = useState(false);
+  const [story, setStory] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,6 +44,12 @@ export function CommunityFab({ role }: { role: Role }) {
       {/* Options (au-dessus du bouton) */}
       {open && (
         <div className="flex flex-col items-end gap-2.5 mb-1">
+          {/* Story (24 h) : photo, vidéo 30 s ou texte, avec texte, dessin, autocollants, question, sondage… */}
+          <button type="button" onClick={() => { setOpen(false); setStory(true); }}
+            className="group inline-flex items-center gap-2.5 bg-white dark:bg-[#1a1330] text-violet-950 dark:text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg ring-1 ring-violet-950/10 dark:ring-white/10 hover:bg-cream-50 transition-colors">
+            <span className="text-sm font-semibold">Ajouter une story</span>
+            <span className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#FE7223] via-[#e1306c] to-[#5B16F9] text-white flex items-center justify-center"><CircleDashed size={17} /></span>
+          </button>
           {canVideo && (
             <Link href={videoHref} onClick={() => setOpen(false)}
               className="group inline-flex items-center gap-2.5 bg-white dark:bg-[#1a1330] text-violet-950 dark:text-white pl-4 pr-3 py-2.5 rounded-full shadow-lg ring-1 ring-violet-950/10 dark:ring-white/10 hover:bg-cream-50 transition-colors">
@@ -69,6 +79,7 @@ export function CommunityFab({ role }: { role: Role }) {
       >
         {open ? <X size={24} /> : <Plus size={26} />}
       </button>
+      {story ? createPortal(<EditeurStory equipe={isStaff} onFermer={() => setStory(false)} />, document.body) : null}
     </div>
   );
 }

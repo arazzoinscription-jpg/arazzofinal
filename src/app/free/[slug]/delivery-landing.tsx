@@ -14,6 +14,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 import { submitDeliveryLead } from "@/app/actions/delivery-lead";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { ViewContentPixel } from "@/components/analytics/view-content-pixel";
@@ -250,6 +251,7 @@ export default function DeliveryLanding({ data }: { data: PageView }) {
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
 
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}

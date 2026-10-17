@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { EditeurStory } from "./editeur-story";
 
 /**
- * « Ajouter une story » : ouvre l'éditeur plein écran (photo, vidéo de 30 s ou texte seul, puis texte,
+ * « Ajouter une story » : ouvre l'éditeur plein écran (photo, vidéo — découpée en stories de 30 s si elle est plus longue — ou texte seul, puis texte,
  * dessin, autocollants, question, sondage, compte à rebours, lien). Visible 24 h.
  * `equipe` : enseignantes et administration peuvent aussi mettre un lien vers un autre site.
  */

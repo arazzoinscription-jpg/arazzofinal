@@ -13,7 +13,7 @@ export function HomeFloatingNav() {
     { name: "Formations", url: "/formations", icon: GraduationCap },
     { name: "Boutique", url: "/boutique", icon: Store },
     { name: "Patrons", url: "/patrons", icon: FileText },
-    { name: "Communauté", url: "/communaute", icon: Clapperboard },
+    { name: "La Cour", url: "/communaute", icon: Clapperboard },
   ];
 
   return (

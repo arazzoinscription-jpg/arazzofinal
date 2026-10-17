@@ -23,7 +23,7 @@ export default async function StudentAnnoncesPage() {
 
   return (
     <div className="max-w-2xl">
-      <DashHeader index="08" eyebrow="Communauté" title="Annonces" subtitle="Les nouvelles de vos formatrices." />
+      <DashHeader index="08" eyebrow="La Cour" title="Annonces" subtitle="Les nouvelles de vos formatrices." />
 
       {visible.length === 0 ? (
         <div className="bg-white rounded-2xl p-10 border border-cream-200 text-center text-gray-400">

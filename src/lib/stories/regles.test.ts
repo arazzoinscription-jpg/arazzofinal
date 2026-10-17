@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ilYa, lireLegende, ordreBarre, regrouper, verifierDureeStory, verifierPhotoStory, type StoryVue } from "./regles";
+import { decouperVideo, dureeLisible, ilYa, lireLegende, ordreBarre, regrouper, verifierDureeStory, verifierPhotoStory, type StoryVue } from "./regles";
 
 const M = new Date("2026-10-16T12:00:00Z");
 const s = (id: string, userId: string, createdAt: string): StoryVue => ({ id, userId, nom: "x", avatar: null, kind: "image", mediaUrl: "u", bunnyVideoId: null, thumbnail: null, duree: null, legende: null, createdAt, calques: [], fond: null, equipe: false });
@@ -48,4 +48,40 @@ test("barre : l'enseignante toujours en premier, puis l'équipe, moi, puis les a
   assert.deepEqual(ordreBarre(ids, g, { meId: "moi", moiEquipe: false, enseignantes: ["prof"], vues: new Set() }).slice(3), ["autre1", "autre2"]);
   // Enseignante qui regarde : sa story d'abord.
   assert.deepEqual(ordreBarre(ids, g, { meId: "moi", moiEquipe: true, enseignantes: [], vues: new Set() }).slice(0, 3), ["moi", "admin", "prof"]);
+});
+
+test("vidéo longue : parties égales de 30 s au plus, à la suite, sans trou", () => {
+  assert.deepEqual(decouperVideo(25), { ok: true, duree: 25, parties: [{ debut: 0, duree: 25 }] });
+  assert.deepEqual(decouperVideo(30.4), { ok: true, duree: 30, parties: [{ debut: 0, duree: 30 }] });
+  assert.deepEqual(decouperVideo(65), { ok: true, duree: 65, parties: [{ debut: 0, duree: 22 }, { debut: 22, duree: 21 }, { debut: 43, duree: 22 }] });
+  assert.deepEqual(decouperVideo(31), { ok: true, duree: 31, parties: [{ debut: 0, duree: 16 }, { debut: 16, duree: 15 }] });
+  for (let d = 1; d <= 300; d++) {
+    const r = decouperVideo(d);
+    assert.ok(r.ok);
+    if (!r.ok) continue;
+    assert.equal(r.parties.length, Math.ceil(d / 30));
+    let fin = 0;
+    for (const p of r.parties) {
+      assert.equal(p.debut, fin);
+      assert.ok(p.duree >= 1 && p.duree <= 30, `${d} s → partie de ${p.duree} s`);
+      fin = p.debut + p.duree;
+    }
+    assert.equal(fin, d);
+  }
+});
+
+test("vidéo longue : 5 min au plus, vidéo illisible refusée", () => {
+  assert.equal(decouperVideo(300).ok, true);
+  const trop = decouperVideo(301);
+  assert.equal(trop.ok, false);
+  if (!trop.ok) assert.match(trop.erreur, /5 min au plus/);
+  assert.equal(decouperVideo(0).ok, false);
+  assert.equal(decouperVideo("12").ok, false);
+  assert.equal(decouperVideo(Number.NaN).ok, false);
+});
+
+test("durée lisible", () => {
+  assert.equal(dureeLisible(45), "45 s");
+  assert.equal(dureeLisible(65), "1 min 05");
+  assert.equal(dureeLisible(300), "5 min");
 });

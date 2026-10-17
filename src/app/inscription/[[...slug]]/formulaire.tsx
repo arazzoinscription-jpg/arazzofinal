@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 import { pixelEvent } from "@/lib/pixel-events";
 import { suggestionEmail } from "@/lib/inscription-gratuite";
 import { inscrireGratuitement, type ResultatInscription } from "@/app/actions/inscription-gratuite";
@@ -110,6 +111,7 @@ export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnect
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
       {CLE_TURNSTILE ? <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onLoad={rendreTurnstile} /> : null}
       <button type="button" className="pl-langue" onClick={() => setLangue((l) => (l === "fr" ? "ar" : "fr"))}>🌐 {t.toggle}</button>
 

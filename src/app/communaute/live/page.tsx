@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getActiveLiveForViewer } from "@/lib/live";
 import { LiveView } from "@/components/live/live-view";
 
-export const metadata = { title: "En direct — Communauté Arazzo" };
+export const metadata = { title: "En direct — La Cour Arazzo" };
 export const dynamic = "force-dynamic";
 
 export default async function CommunityLivePage() {

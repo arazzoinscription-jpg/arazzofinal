@@ -13,7 +13,7 @@ const ROOTS = new Set(["/", "/dashboard", "/admin", "/formateur", "/communaute",
  * (standalone) — là où il n'y a pas de barre de navigation du navigateur. En
  * onglet web classique, le bouton retour natif existe déjà → on n'affiche rien.
  */
-export function PwaBackButton() {
+export function PwaBackButton({ toujours = false }: { toujours?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const [standalone, setStandalone] = useState(false);
@@ -33,12 +33,23 @@ export function PwaBackButton() {
     setCanGoBack(window.history.length > 1 && !ROOTS.has(pathname));
   }, [pathname]);
 
-  if (!standalone || !canGoBack) return null;
+  // Landings (`toujours`) : visible aussi dans le navigateur ; arrivée directe (réseau social) → les offres.
+  if (toujours) {
+    if (pathname === "/") return null;
+  } else if (!standalone || !canGoBack) return null;
+
+  function retour() {
+    if (!toujours) { router.back(); return; }
+    let memeSite = false;
+    try { memeSite = Boolean(document.referrer) && new URL(document.referrer).origin === window.location.origin; } catch { /* référent illisible */ }
+    if (memeSite && window.history.length > 1) router.back();
+    else router.push(pathname === "/offres" ? "/" : "/offres");
+  }
 
   return (
     <button
       type="button"
-      onClick={() => router.back()}
+      onClick={retour}
       aria-label="Revenir en arrière"
       className="shrink-0 grid place-items-center w-10 h-10 rounded-xl text-violet-800 dark:text-white/90 hover:bg-violet-50 dark:hover:bg-white/10 active:scale-95 transition"
     >

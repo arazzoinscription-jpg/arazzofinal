@@ -29,7 +29,7 @@ export default async function SupportPage() {
           <div className="flex items-center gap-3 mb-2.5">
             <span className="font-mono text-[11px] tracking-[0.28em] uppercase text-orange-600 dark:text-orange-400">N° 13</span>
             <span className="h-px w-8 bg-violet-950/20 dark:bg-white/20" />
-            <span className="font-mono text-[11px] tracking-[0.22em] uppercase text-violet-950/45 dark:text-white/45">Communauté</span>
+            <span className="font-mono text-[11px] tracking-[0.22em] uppercase text-violet-950/45 dark:text-white/45">La Cour</span>
           </div>
           <h1 className="font-playfair text-3xl sm:text-4xl font-bold tracking-tight text-violet-950 dark:text-white leading-[1.05]">Support</h1>
           <p className="text-violet-950/55 dark:text-white/50 font-dm text-sm mt-2">Une question ? Un problème ? Notre équipe vous répond.</p>

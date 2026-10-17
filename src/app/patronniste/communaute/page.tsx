@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CommunityPublisher } from "@/components/community/community-publisher";
 
-export const metadata = { title: "Communauté — Patronniste" };
+export const metadata = { title: "La Cour — Patronniste" };
 export const dynamic = "force-dynamic";
 
 export default async function PatronnisteCommunautePage() {
@@ -23,7 +23,7 @@ export default async function PatronnisteCommunautePage() {
   return (
     <div className="max-w-2xl text-gray-900 dark:text-white">
       <div className="flex items-center justify-between gap-3 mb-2">
-        <h1 className="font-playfair text-2xl font-bold">Communauté</h1>
+        <h1 className="font-playfair text-2xl font-bold">La Cour</h1>
         <Link href="/communaute" className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:underline">
           Voir le feed <ArrowUpRight size={15} />
         </Link>

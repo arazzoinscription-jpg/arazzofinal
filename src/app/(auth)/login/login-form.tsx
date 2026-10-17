@@ -96,8 +96,8 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     await mergeCartOnLogin().catch(() => {});
 
     const redirect = new URLSearchParams(window.location.search).get("redirect");
-    // Le feed communauté est la première page vue après connexion.
-    const target = redirect && redirect.startsWith("/") ? redirect : "/communaute";
+    // Le premier espace selon le compte : formatrice → espace formateur ; élève → le feed communauté.
+    const target = redirect && redirect.startsWith("/") ? redirect : "/mon-espace?depuis=connexion";
     // Navigation « dure » (rechargement complet) plutôt que router.push() :
     // garantit que le middleware/serveur reçoivent immédiatement les cookies de
     // session fraîchement posés. Corrige le blocage en PWA où l'app restait figée

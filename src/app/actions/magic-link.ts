@@ -23,7 +23,8 @@ export async function requestMagicLink(email: string) {
     const { data: u } = await admin.from("users").select("id, nom").eq("email", clean).maybeSingle();
     if (!u) return { ok: true as const }; // ne pas révéler l'absence du compte
 
-    const al = await createAccessLink(u.id, "/communaute", 60 * 60 * 1000); // 1 heure
+    // Le bon espace selon le compte (formatrice → espace formateur ; élève → le feed).
+    const al = await createAccessLink(u.id, "/mon-espace?depuis=connexion", 60 * 60 * 1000); // 1 heure
     const link = al.ok ? al.url : null;
     if (!link) return { ok: true as const }; // best-effort (ex. migration 038 non appliquée)
 

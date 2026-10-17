@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from "react";
 import { LandingStyles, SeatsBanner, utmDeLURL, type Seats } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitPresentielLead } from "@/app/actions/presentiel-lead";
 import { trackLead } from "@/lib/track-conversion";
@@ -306,6 +307,7 @@ export default function PresentielLanding({ data, textes }: {
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
 
 
       {/* Bascule de langue — toujours accessible, en haut. */}

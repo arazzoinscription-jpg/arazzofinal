@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { LandingStyles } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 
 export type PackCourse = { id: string; title: string; prix: number | null; slug: string | null };
 export type PackData = {
@@ -71,6 +72,7 @@ export default function PackLanding({ data, textes }: {
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}
       </button>

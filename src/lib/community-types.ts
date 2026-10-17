@@ -54,5 +54,5 @@ const SOURCE_LABEL: Record<SourceType, string> = {
 };
 
 export function sourceLabel(s: SourceType): string {
-  return SOURCE_LABEL[s] ?? "Communauté";
+  return SOURCE_LABEL[s] ?? "La Cour";
 }

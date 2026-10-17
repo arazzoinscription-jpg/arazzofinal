@@ -4,7 +4,7 @@ import { ArrowLeft, Film } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { CommunityVideoUploader } from "@/components/community/video-uploader";
 
-export const metadata = { title: "Publier un reel — Communauté Arazzo" };
+export const metadata = { title: "Publier un reel — La Cour Arazzo" };
 export const dynamic = "force-dynamic";
 
 export default async function PublierReelPage() {
@@ -27,7 +27,7 @@ export default async function PublierReelPage() {
           <h1 className="font-playfair text-2xl font-bold">Publier un reel</h1>
         </div>
         <p className="text-white/60 font-dm text-sm mb-6">
-          Partagez une courte vidéo (montage, réalisation, coulisses…) avec la communauté.
+          Partagez une courte vidéo (montage, réalisation, coulisses…) dans La Cour.
           Durée maximale : <strong className="text-white/80">2 minutes</strong>.
         </p>
 

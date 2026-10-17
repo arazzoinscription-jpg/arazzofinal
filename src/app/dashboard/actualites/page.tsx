@@ -13,7 +13,7 @@ export default async function ActualitesPage() {
 
   return (
     <div className="max-w-2xl">
-      <DashHeader index="07" eyebrow="Communauté" title="Actualités" subtitle="Le fil partagé de la communauté Arazzo." />
+      <DashHeader index="07" eyebrow="La Cour" title="Actualités" subtitle="Le fil partagé de La Cour Arazzo." />
       <Feed posts={posts} me={me} />
       <CommunityFab role={me.role} />
     </div>

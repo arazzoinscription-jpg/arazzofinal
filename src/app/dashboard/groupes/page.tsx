@@ -30,7 +30,7 @@ export default async function StudentGroupesPage() {
 
   return (
     <div>
-      <DashHeader index="08" eyebrow="Communauté" title="Mes groupes" subtitle="Les espaces privés auxquels vous participez." />
+      <DashHeader index="08" eyebrow="La Cour" title="Mes groupes" subtitle="Les espaces privés auxquels vous participez." />
 
       {groups.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-cream-200">

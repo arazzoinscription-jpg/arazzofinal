@@ -83,7 +83,7 @@ export function CommunityVideoUploader({
           musicUrl: musicUrl || null,
         });
         if (fin.ok) {
-          toast("enAttente" in fin && fin.enAttente ? MESSAGE_EN_ATTENTE : "Vidéo publiée sur la communauté 🎉", "enAttente" in fin && fin.enAttente ? "info" : "success");
+          toast("enAttente" in fin && fin.enAttente ? MESSAGE_EN_ATTENTE : "Vidéo publiée dans La Cour 🎉", "enAttente" in fin && fin.enAttente ? "info" : "success");
           if (previewRef.current) { previewRef.current.pause(); previewRef.current = null; }
           setFile(null); setDuration(null); setCaption(""); setMusicUrl(""); setProgress(null);
           if (fileRef.current) fileRef.current.value = "";
@@ -100,7 +100,7 @@ export function CommunityVideoUploader({
     <div className="bg-white rounded-2xl border border-cream-200 p-5 space-y-4">
       <div className="flex items-center gap-2 text-gray-900">
         <Film size={18} className="text-orange-600" />
-        <h3 className="font-semibold">Publier une vidéo sur la communauté</h3>
+        <h3 className="font-semibold">Publier une vidéo dans La Cour</h3>
       </div>
 
       <div

@@ -18,7 +18,7 @@ const MotionLink = motion.create(Link);
 // `solid` par défaut = barre toujours opaque et lisible (évite la barre
 // transparente/invisible sur les pages à fond clair). Une page avec héro sombre
 // peut opter pour l'effet transparent-au-scroll via `solid={false}`.
-export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boolean }) {
+export function Navbar({ lang = "fr", solid = true, retourToujours = false }: { lang?: Lang; solid?: boolean; /** Landings : flèche retour visible aussi dans le navigateur. */ retourToujours?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<{ email: string } | null>(null);
@@ -91,7 +91,7 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
         <motion.div variants={row} initial="hidden" animate="show" className="flex items-center justify-between h-20">
           {/* ── Retour (PWA installée uniquement) + Logo ── */}
           <div className="flex items-center gap-1 min-w-0">
-            <PwaBackButton />
+            <PwaBackButton toujours={retourToujours} />
             <motion.div variants={itemV}>
             <MotionLink href="/" whileHover="hover" initial="rest" animate="rest" className="group flex items-center gap-3">
               <motion.span
@@ -155,7 +155,7 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
                     <ShieldCheck size={16} /> {t.admin}
                   </MotionLink>
                 )}
-                <MotionLink href="/dashboard" whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.96 }} transition={{ type: "spring", stiffness: 300 }}
+                <MotionLink href="/mon-espace" whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.96 }} transition={{ type: "spring", stiffness: 300 }}
                   className="bg-orange-DEFAULT hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-md transition-colors">
                   {t.space}
                 </MotionLink>
@@ -227,7 +227,7 @@ export function Navbar({ lang = "fr", solid = true }: { lang?: Lang; solid?: boo
                 )}
                 {user ? (
                   <motion.div variants={mLink}>
-                    <Link href="/dashboard" onClick={() => setMenuOpen(false)}
+                    <Link href="/mon-espace" onClick={() => setMenuOpen(false)}
                       className="block text-center bg-orange-DEFAULT hover:bg-orange-600 text-white py-3 rounded-xl font-semibold text-sm mt-1 transition-colors">
                       {t.space}
                     </Link>

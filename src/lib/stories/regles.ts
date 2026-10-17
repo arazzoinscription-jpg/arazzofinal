@@ -1,5 +1,6 @@
 /**
- * Stories — règles PURES (testables). Une story = une photo ou une vidéo de 30 s au plus,
+ * Stories — règles PURES (testables). Une story = une photo ou une vidéo de 30 s au plus
+ * (une vidéo plus longue devient plusieurs stories à la suite),
  * visible 24 h par les membres connectés, autour de la photo de profil (anneau coloré).
  */
 
@@ -21,6 +22,8 @@ export interface StoryVue {
   /** Photo : son URL ; vidéo : l'identifiant Bunny (lecteur intégré). */
   mediaUrl: string | null;
   bunnyVideoId: string | null;
+  /** Vidéo longue découpée : départ de CETTE story dans la vidéo, en secondes (migration 105). */
+  debut?: number;
   thumbnail: string | null;
   duree: number | null;
   legende: string | null;
@@ -45,6 +48,37 @@ export function verifierDureeStory(secondes: unknown): { ok: true; duree: number
   if (!Number.isFinite(d) || d < 1) return { ok: false, erreur: "Vidéo illisible." };
   if (d > DUREE_STORY_MAX_S) return { ok: false, erreur: `Vidéo trop longue (${d} s) : une story dure ${DUREE_STORY_MAX_S} s au plus.` };
   return { ok: true, duree: d };
+}
+
+/** Vidéo longue : découpée en plusieurs stories de 30 s au plus, publiées ensemble (5 min au plus = 10 stories). */
+export const VIDEO_LONGUE_MAX_S = 300;
+export interface PartieVideo { debut: number; duree: number }
+
+/** « 45 s », « 1 min 05 », « 5 min ». */
+export function dureeLisible(secondes: number): string {
+  const s = Math.max(0, Math.round(secondes));
+  if (s < 60) return `${s} s`;
+  return s % 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}` : `${s / 60} min`;
+}
+
+/**
+ * Les parties d'une vidéo : une seule si elle dure 30 s au plus ; sinon des parties ÉGALES de 30 s au plus
+ * (65 s → 22 s + 21 s + 22 s, jamais un petit bout à la fin). Chaque partie devient une story qui démarre
+ * au bon moment de la MÊME vidéo (envoyée une seule fois, rien n'est recoupé sur le téléphone).
+ */
+export function decouperVideo(secondes: unknown): { ok: true; duree: number; parties: PartieVideo[] } | { ok: false; erreur: string } {
+  const d = typeof secondes === "number" ? Math.round(secondes) : NaN;
+  if (!Number.isFinite(d) || d < 1) return { ok: false, erreur: "Vidéo illisible." };
+  if (d > VIDEO_LONGUE_MAX_S) {
+    return { ok: false, erreur: `Vidéo trop longue (${dureeLisible(d)}) : ${dureeLisible(VIDEO_LONGUE_MAX_S)} au plus (${Math.ceil(VIDEO_LONGUE_MAX_S / DUREE_STORY_MAX_S)} stories de ${DUREE_STORY_MAX_S} s).` };
+  }
+  const n = Math.ceil(d / DUREE_STORY_MAX_S);
+  const parties: PartieVideo[] = [];
+  for (let k = 0; k < n; k++) {
+    const debut = Math.round((k * d) / n);
+    parties.push({ debut, duree: Math.round(((k + 1) * d) / n) - debut });
+  }
+  return { ok: true, duree: d, parties };
 }
 
 export function lireLegende(brut: unknown): string | null {

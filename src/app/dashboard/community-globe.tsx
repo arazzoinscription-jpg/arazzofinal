@@ -16,7 +16,7 @@ const STATS = [
 export function CommunityGlobe({
   prenom,
   href = "/dashboard/actualites",
-  cta = "Rejoindre la communauté",
+  cta = "Entrer dans La Cour",
   eyebrow = "N° 00",
 }: {
   prenom: string;
@@ -41,7 +41,7 @@ export function CommunityGlobe({
           <div className="flex items-center gap-3 mb-4">
             <span className="font-mono text-[11px] tracking-[0.3em] uppercase text-orange-300">{eyebrow}</span>
             <span className="h-px w-9 bg-white/25" />
-            <span className="font-mono text-[11px] tracking-[0.22em] uppercase text-white/55">Communauté</span>
+            <span className="font-mono text-[11px] tracking-[0.22em] uppercase text-white/55">La Cour</span>
           </div>
 
           <h2 className="font-playfair text-3xl sm:text-[2.6rem] font-bold text-white leading-[1.06] tracking-tight">

@@ -12,7 +12,7 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.s
  * `admin.generateLink({ type: 'magiclink' })` qui produit le lien sans l'envoyer.
  * Le compte doit déjà exister (créé en amont par l'enrôlement).
  */
-export async function createMagicLink(email: string, redirectTo: string = `${SITE}/auth/callback?next=/dashboard`) {
+export async function createMagicLink(email: string, redirectTo: string = `${SITE}/auth/callback?next=/mon-espace`) {
   const admin = createAdminClient();
   try {
     const { data, error } = await admin.auth.admin.generateLink({

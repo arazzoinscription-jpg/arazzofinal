@@ -8,12 +8,16 @@ import {
   Pencil, Plus, Smile, Timer, Trash2, Type, Undo2, Video, X,
 } from "lucide-react";
 import { AUTOCOLLANTS, COULEURS, FONDS, MAX_CALQUES, MAX_POINTS, lienAutorise, type Calque } from "@/lib/stories/calques";
-import { DUREE_STORY_MAX_S, verifierDureeStory, verifierPhotoStory } from "@/lib/stories/regles";
-import { demarrerStoryVideo, finaliserStoryVideo, publierStoryPhoto, publierStoryTexte } from "@/app/actions/stories";
+import { DUREE_STORY_MAX_S, decouperVideo, dureeLisible, verifierPhotoStory, type PartieVideo } from "@/lib/stories/regles";
+import { demarrerStoryVideo, finaliserStoryVideo, finaliserStoryVideoLongue, publierStoryPhoto, publierStoryTexte } from "@/app/actions/stories";
 import { ContenuCalque, Dessins, FondStory, RATIO, STYLE_CADRE, ZONE_CADRE, styleTexte } from "./rendu-calques";
 import { MESSAGE_EN_ATTENTE } from "@/lib/visiteuses/regles";
 
-type Source = { kind: "image"; fichier: File; url: string } | { kind: "video"; fichier: File; url: string; duree: number } | { kind: "texte" };
+type Source =
+  | { kind: "image"; fichier: File; url: string }
+  /** `parties` : plus d'une si la vidéo dépasse 30 s (elle devient plusieurs stories à la suite). */
+  | { kind: "video"; fichier: File; url: string; duree: number; parties: PartieVideo[] }
+  | { kind: "texte" };
 type Positionne = Exclude<Calque, { type: "dessin" }>;
 type Brouillon = { id: string | null; texte: string; couleur: string; fond: "aucun" | "plein" | "doux"; align: "gauche" | "centre" | "droite"; taille: number };
 type Formulaire =
@@ -43,7 +47,8 @@ export function signalerPleinEcran(ouvert: boolean) {
 }
 
 /**
- * Créer une story « comme Instagram » : photo, vidéo de 30 s ou texte seul sur un fond, puis
+ * Créer une story « comme Instagram » : photo, vidéo (plus de 30 s → découpée en plusieurs stories publiées
+ * ensemble) ou texte seul sur un fond, puis
  * texte, dessin au doigt, autocollants, question, sondage, compte à rebours et lien.
  * Chaque élément se déplace au doigt, s'agrandit (pincer, molette ou −/+) et se jette dans la corbeille.
  */
@@ -97,9 +102,9 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
       const v = document.createElement("video");
       v.preload = "metadata";
       v.onloadedmetadata = () => {
-        const d = verifierDureeStory(v.duration);
+        const d = decouperVideo(v.duration);
         if (!d.ok) { setErreur(d.erreur); URL.revokeObjectURL(url); return; }
-        setSource({ kind: "video", fichier: f, url, duree: d.duree });
+        setSource({ kind: "video", fichier: f, url, duree: d.duree, parties: d.parties });
       };
       v.onerror = () => { setErreur("Impossible de lire cette vidéo."); URL.revokeObjectURL(url); };
       v.src = url;
@@ -321,7 +326,7 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
       termine(r.enAttente);
       return;
     }
-    const d = await demarrerStoryVideo();
+    const d = await demarrerStoryVideo({ parties: source.parties.length });
     if (!d.ok) { setErreur(d.erreur); setEnvoi(null); return; }
     const video = source;
     const up = new tus.Upload(video.fichier, {
@@ -332,7 +337,9 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
       onError: () => { setErreur("Échec de l'envoi de la vidéo, réessayez."); setEnvoi(null); },
       onProgress: (envoye, total) => setEnvoi(Math.round((envoye / total) * 100)),
       onSuccess: async () => {
-        const f = await finaliserStoryVideo({ videoId: d.videoId, duree: video.duree, legende, calques });
+        const f = video.parties.length > 1
+          ? await finaliserStoryVideoLongue({ videoId: d.videoId, duree: video.duree, legende, calques })
+          : await finaliserStoryVideo({ videoId: d.videoId, duree: video.duree, legende, calques });
         setEnvoi(null);
         if (!f.ok) { setErreur(f.erreur); return; }
         termine(f.enAttente);
@@ -359,7 +366,8 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
               <Camera size={30} className="text-[#c4b0ff]" aria-hidden /><span className="text-sm font-semibold">Photo</span>
             </button>
             <button type="button" onClick={() => ouvrirFichier("video/*")} className="rounded-3xl bg-white/10 hover:bg-white/15 aspect-[3/4] flex flex-col items-center justify-center gap-2">
-              <Video size={30} className="text-[#FE7223]" aria-hidden /><span className="text-sm font-semibold">Vidéo {DUREE_STORY_MAX_S} s</span>
+              <Video size={30} className="text-[#FE7223]" aria-hidden /><span className="text-sm font-semibold">Vidéo</span>
+              <span className="-mt-1.5 px-2 text-center text-[10px] leading-tight text-white/55">longue ? découpée en stories de {DUREE_STORY_MAX_S} s</span>
             </button>
             <button type="button" onClick={() => { setSource({ kind: "texte" }); nouveauTexte(true); }} className="rounded-3xl aspect-[3/4] flex flex-col items-center justify-center gap-2" style={{ background: FONDS[0] }}>
               <Type size={30} aria-hidden /><span className="text-sm font-semibold">Texte</span>
@@ -488,6 +496,12 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
             ) : (
               <p className="text-center text-[11px] text-white/50">{calques.length ? "Glissez pour déplacer · pincez ou −/+ pour la taille · jetez sur la corbeille pour supprimer" : "Touchez Aa, ✏️ ou 🙂 pour décorer votre story"}</p>
             )}
+            {source.kind === "video" && source.parties.length > 1 ? (
+              <p className="rounded-xl bg-white/10 border border-white/15 px-3 py-2 text-[13px] text-white/85 text-center">
+                ✂️ Vidéo de {dureeLisible(source.duree)} → <strong>{source.parties.length} stories</strong> de {DUREE_STORY_MAX_S} s au plus, publiées ensemble, à la suite.
+                {calques.some((c) => c.type === "question" || c.type === "sondage" || c.type === "compte") ? " Question, sondage et compte à rebours : sur la 1re." : ""}
+              </p>
+            ) : null}
             {erreur ? <p className="rounded-xl bg-red-500/20 border border-red-400/30 px-3 py-2 text-sm text-red-100 text-center">{erreur}</p> : null}
             <div className="flex gap-2 max-w-md mx-auto">
               {source.kind !== "texte" ? (
@@ -496,7 +510,7 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
               ) : <div className="flex-1" />}
               <button type="button" onClick={publier} disabled={envoi !== null}
                 className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-[#5B16F9] to-[#FE7223] px-5 py-2.5 text-sm font-bold disabled:opacity-50">
-                {envoi !== null ? <><Loader2 size={16} className="animate-spin" aria-hidden /> {envoi ? `${envoi} %` : "Envoi…"}</> : <><Check size={16} aria-hidden /> Publier</>}
+                {envoi !== null ? <><Loader2 size={16} className="animate-spin" aria-hidden /> {envoi ? `${envoi} %` : "Envoi…"}</> : <><Check size={16} aria-hidden /> {source.kind === "video" && source.parties.length > 1 ? `Publier les ${source.parties.length}` : "Publier"}</>}
               </button>
             </div>
           </>

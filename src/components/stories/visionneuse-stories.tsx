@@ -259,7 +259,7 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
         <div className="relative overflow-hidden rounded-xl bg-[#111]" style={STYLE_CADRE}>
           {story.kind === "video" ? (
             story.bunnyVideoId && bibliotheque ? (
-              <iframe key={story.id} src={`https://iframe.mediadelivery.net/embed/${bibliotheque}/${story.bunnyVideoId}?autoplay=true&loop=false&preload=true&responsive=true`}
+              <iframe key={story.id} src={`https://iframe.mediadelivery.net/embed/${bibliotheque}/${story.bunnyVideoId}?autoplay=true&loop=false&preload=true&responsive=true${story.debut ? `&t=${story.debut}` : ""}`}
                 title="Story vidéo" allow="autoplay; encrypted-media" className="absolute inset-0 w-full h-full" style={{ border: 0 }} />
             ) : <p className="absolute inset-0 grid place-items-center text-white/70 text-sm">Story indisponible.</p>
           ) : story.kind === "texte" || story.mediaUrl ? (

@@ -7,7 +7,7 @@ import { chargerAValider, chargerDefisAdmin } from "@/lib/visiteuses/a-valider";
 import { FileAValider } from "./file-a-valider";
 import { DefisAdmin } from "./defis-admin";
 
-export const metadata = { title: "Communauté — Admin Arazzo" };
+export const metadata = { title: "La Cour — Admin Arazzo" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminCommunautePage() {
@@ -19,7 +19,7 @@ export default async function AdminCommunautePage() {
     <div className="max-w-2xl space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="font-playfair text-2xl font-bold text-gray-900">Communauté</h1>
+          <h1 className="font-playfair text-2xl font-bold text-gray-900">La Cour</h1>
           <p className="text-sm text-gray-500 font-dm">Validez les publications, lancez le défi de la semaine, publiez une vidéo dans le feed.</p>
         </div>
         <Link href="/communaute" className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-600 hover:underline">

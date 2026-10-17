@@ -11,6 +11,7 @@
 
 import { useEffect, useState } from "react";
 import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
+import { NavLanding } from "@/components/landing/nav-landing";
 import LevelTestPopup from "@/lib/level-test-popup";
 
 export type Offre = { slug: string; name: string; sous?: string | null; prix?: string | null };
@@ -87,6 +88,7 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
+      <NavLanding />
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}
       </button>

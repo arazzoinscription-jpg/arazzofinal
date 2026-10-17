@@ -3,24 +3,24 @@ import { Users, Heart, Play, ArrowRight, Sparkles } from "lucide-react";
 
 const T = {
   fr: {
-    eyebrow: "La communauté Arazzo",
+    eyebrow: "La Cour Arazzo",
     title: "Rejoignez une communauté de créatrices",
     desc: "Partagez vos réalisations, suivez l'aventure des autres élèves, échangez dans les groupes et restez inspirée au quotidien.",
-    cta: "Découvrir la communauté",
+    cta: "Entrer dans La Cour",
     chips: ["Feed vidéo", "Actualités", "Groupes", "Travaux d'élèves"],
   },
   ar: {
-    eyebrow: "مجتمع أرازو",
+    eyebrow: "ساحة أرازو",
     title: "انضمّي إلى مجتمع من المبدعات",
     desc: "شاركي أعمالك، تابعي رحلة بقية الطالبات، تبادلي في المجموعات، وابقي مُلهَمة كل يوم.",
-    cta: "اكتشفي المجتمع",
+    cta: "ادخلي الساحة",
     chips: ["فيديو", "الأخبار", "المجموعات", "أعمال الطالبات"],
   },
   en: {
-    eyebrow: "The Arazzo community",
+    eyebrow: "The Arazzo Courtyard",
     title: "Join a community of makers",
     desc: "Share your work, follow other students' journeys, chat in groups and stay inspired every day.",
-    cta: "Explore the community",
+    cta: "Enter The Courtyard",
     chips: ["Video feed", "News", "Groups", "Student work"],
   },
 } as const;

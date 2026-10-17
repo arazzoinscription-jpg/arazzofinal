@@ -6,7 +6,7 @@ import { CommunityFab } from "@/components/community/community-fab";
 import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
 import { CommunityHeader } from "../community-header";
 
-export const metadata = { title: "Groupes — Communauté Arazzo" };
+export const metadata = { title: "Groupes — La Cour Arazzo" };
 export const dynamic = "force-dynamic";
 
 /** Groupes DANS l'environnement communauté (même en-tête + menu que le feed). */

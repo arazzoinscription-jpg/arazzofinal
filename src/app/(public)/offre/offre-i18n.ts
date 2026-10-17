@@ -148,7 +148,7 @@ const FR: OffreDict = {
         points: ["Vidéos HD à ton rythme, accès illimité", "Dépose tes travaux pratiques pour correction", "Pose tes questions sous chaque leçon"],
       },
       {
-        tag: "La communauté",
+        tag: "La Cour",
         name: "Un feed qui inspire",
         desc: "Un fil vertical de créations, de teasers et de travaux d'élèves — comme tes réseaux préférés, version couture.",
         points: ["Découvre les créations de toute la communauté", "Partage tes propres pièces", "Likes, commentaires et encouragements"],
@@ -324,7 +324,7 @@ const AR: OffreDict = {
         points: ["فيديوهات HD على راحتك، دخول غير محدود", "حمّلي أعمالك التطبيقية للتصحيح", "اطرحي أسئلتك تحت كل درس"],
       },
       {
-        tag: "المجتمع",
+        tag: "الساحة",
         name: "فيد يلهمك",
         desc: "خيط عمودي من الإبداعات والأعمال — كيف الشبكات لي تحبّيها، نسخة خياطة.",
         points: ["شوفي إبداعات المجتمع كامل", "شاركي قطعك الخاصة", "إعجابات، تعليقات وتشجيع"],
@@ -500,7 +500,7 @@ const EN: OffreDict = {
         points: ["HD videos at your pace, unlimited access", "Upload your practical work for review", "Ask your questions under each lesson"],
       },
       {
-        tag: "The community",
+        tag: "The Courtyard",
         name: "A feed that inspires",
         desc: "A vertical feed of creations, teasers and student work — like your favourite apps, sewing edition.",
         points: ["Discover the whole community's creations", "Share your own pieces", "Likes, comments and encouragement"],

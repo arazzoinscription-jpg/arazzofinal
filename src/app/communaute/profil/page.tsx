@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ProfileEditForm } from "./profile-edit-form";
 
-export const metadata = { title: "Éditer mon profil — Communauté" };
+export const metadata = { title: "Éditer mon profil — La Cour" };
 export const dynamic = "force-dynamic";
 
 export default async function CommunityProfileEditPage() {

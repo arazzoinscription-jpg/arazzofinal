@@ -20,6 +20,8 @@ interface LigneStory {
   id: string; user_id: string; media_kind: "image" | "video" | "texte"; media_url: string | null; bunny_video_id: string | null;
   thumbnail_url: string | null; duration_seconds: number | null; legende: string | null; created_at: string; expires_at: string;
   calques?: Calque[] | null; fond?: string | null;
+  /** Vidéo longue découpée : départ de cette story dans la vidéo (migration 105). */
+  debut_s?: number | null;
   /** Story d'une visiteuse pas encore validée (migration 103) : jamais montrée. */
   a_valider?: boolean | null;
 }
@@ -72,7 +74,7 @@ export async function storiesActives(admin: SupabaseClient, userIds: string[] | 
     const a = auteurs.get(l.user_id)!;
     return {
       id: l.id, userId: l.user_id, nom: nomPublic(a), avatar: avatarSur(a.avatar_url),
-      kind: l.media_kind, mediaUrl: l.media_url, bunnyVideoId: l.bunny_video_id, thumbnail: l.thumbnail_url,
+      kind: l.media_kind, mediaUrl: l.media_url, bunnyVideoId: l.bunny_video_id, debut: l.debut_s ?? 0, thumbnail: l.thumbnail_url,
       duree: l.duration_seconds, legende: l.legende, createdAt: l.created_at,
       calques: Array.isArray(l.calques) ? l.calques : [], fond: l.fond ?? null, equipe: estEquipePublique(a),
     };
