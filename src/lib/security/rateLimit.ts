@@ -21,6 +21,9 @@ export const limiters = {
   api: build(30, "1 m"),       // API génériques : 30 / 1 min / IP
   payment: build(3, "1 h"),    // paiement / preuve : 3 / 1 h / IP
   upload: build(10, "1 h"),    // upload de fichiers : 10 / 1 h / IP
+  // Lien d'inscription gratuite : large (en Algérie, beaucoup de téléphones partagent la même adresse IP
+  // de l'opérateur) — l'anti-robots Turnstile fait le vrai tri.
+  inscription: build(20, "1 h"),
 };
 
 export type LimiterKey = keyof typeof limiters;
