@@ -76,9 +76,11 @@ const nextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          // Caméra et micro autorisés pour le site LUI-MÊME seulement (vidéos rondes et messages vocaux de la
-          // messagerie) ; toujours interdits aux contenus intégrés. Le téléphone demande l'accord à la personne.
-          { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=()" },
+          // Caméra et micro : le site (messagerie, stories) ET les extensions d'enregistrement d'écran (Screenity,
+          // Loom…), qui montrent la caméra dans une bulle insérée dans la page (« (self) » seul la bloquait).
+          // Un cadre intégré n'y accède que s'il le demande lui-même (attribut allow) — nos lecteurs vidéo ne le
+          // font pas — et le navigateur demande TOUJOURS l'accord de la personne.
+          { key: "Permissions-Policy", value: "camera=*, microphone=*, geolocation=()" },
           { key: "Content-Security-Policy", value: csp },
         ],
       },
