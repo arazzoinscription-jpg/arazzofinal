@@ -18,7 +18,6 @@ import { toast } from "@/components/ui/toast";
 import { sourceLabel, isFacebookVideoUrl, facebookEmbedSrc, type CommunityItem } from "@/lib/community-types";
 import { cdnImage } from "@/lib/storage-cdn";
 import { pickTrackForKey } from "@/lib/feed-music";
-import { CommunityTabs } from "./community-tabs";
 import { FeedWelcome } from "@/components/community/feed-welcome";
 import type { Promo } from "@/app/free/[slug]/promo-banner";
 
@@ -118,12 +117,6 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
     return () => window.removeEventListener("arazzo:story-plein-ecran", f);
   }, []);
 
-  // Barre de stories : dépliée en haut du feed, repliée dès qu'on fait défiler (bouton « Stories » pour la rouvrir).
-  const enHaut = activeIndex <= 0;
-  const [storiesRouvertes, setStoriesRouvertes] = useState(false);
-  useEffect(() => { setStoriesRouvertes(false); }, [activeId]);
-  const storiesVisibles = Boolean(stories) && (enHaut || storiesRouvertes);
-
   // Hauteur réelle de la barre du haut : l'alerte « Bravo ! » se place juste en dessous.
   const barreHaut = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -158,7 +151,8 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
     }
   }
 
-  // Barre du haut : Retour · logo→site · dashboard · Facebook + onglets bascule (le bouton son est sur la vidéo).
+  // Barre du haut : Retour · logo→site · dashboard · Facebook, puis les bulles des STORIES, toujours visibles
+  // (à la place de l'ancien menu Pour toi · Actualité · Groups · Offre). Le bouton son est sur la vidéo.
   const topBar = (
     <div ref={barreHaut} className="fixed top-0 inset-x-0 z-30 pt-[max(10px,env(safe-area-inset-top))] pb-3 bg-gradient-to-b from-black/55 via-black/20 to-transparent [text-shadow:0_1px_3px_rgba(0,0,0,.55)]">
       <div className="flex items-center gap-2 px-3">
@@ -166,25 +160,12 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><ArrowLeft size={18} /></button>
         <Link href="/" className="font-playfair text-white font-bold text-base drop-shadow shrink-0">Arazzo</Link>
         <div className="flex-1" />
-        {stories && !storiesVisibles ? (
-          <button type="button" onClick={() => setStoriesRouvertes(true)} aria-label="Afficher les stories"
-            className="h-9 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 text-white text-xs font-semibold shrink-0">
-            <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-[#FE7223] via-[#e1306c] to-[#5B16F9] p-[2px]" aria-hidden><span className="block w-full h-full rounded-full bg-[#0b0818]" /></span>
-            Stories
-          </button>
-        ) : null}
         <Link href={isGuest ? "/register" : monEspace} aria-label={isGuest ? "S'inscrire" : "Mon espace"}
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
         <button onClick={() => (isGuest ? setGate("soft") : setFbOpen(true))} aria-label="Partager une vidéo Facebook"
           className="w-9 h-9 grid place-items-center rounded-full bg-[#1877F2] text-white shrink-0"><Facebook size={17} /></button>
       </div>
-      {/* Menu UNIQUE de la communauté (Pour toi · Actualité · Groups · Offre) */}
-      <div className="mt-1.5"><CommunityTabs /></div>
-      {stories ? (
-        <div className={`grid transition-[grid-template-rows] duration-300 ${storiesVisibles ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} aria-hidden={!storiesVisibles}>
-          <div className={`min-h-0 overflow-hidden ${storiesVisibles ? "" : "invisible"}`}><div className="pt-2">{stories}</div></div>
-        </div>
-      ) : null}
+      {stories ? <div className="pt-2">{stories}</div> : null}
     </div>
   );
 
