@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lireTout } from "@/lib/student-care/paginate";
 import { GestionClient } from "./gestion-client";
 
 export const metadata = { title: "Gestion Formateurs & Étudiants — Admin" };
@@ -12,13 +13,16 @@ export default async function AdminGestionPage({
   const admin = createAdminClient();
 
   // ── 1) Utilisateurs ───────────────────────────────────────────────────────
-  const { data: users } = await admin
+  // La base ne renvoie que 1 000 lignes par demande (même sans `.limit`) → tout est lu page par page.
+  const { lignes: users } = await lireTout((de, a) => admin
     .from("users")
     .select("id, nom, email, role, avatar_url, bio, ville, created_at")
-    .in("role", ["formateur", "eleve"]);
+    .in("role", ["formateur", "eleve"])
+    .order("id")
+    .range(de, a));
 
-  const formateurs = (users ?? []).filter((u) => u.role === "formateur");
-  const eleves = (users ?? []).filter((u) => u.role === "eleve");
+  const formateurs = users.filter((u) => u.role === "formateur");
+  const eleves = users.filter((u) => u.role === "eleve");
 
   // ── 2) Cours et inscriptions ──────────────────────────────────────────────
   const { data: courses } = await admin
@@ -26,11 +30,12 @@ export default async function AdminGestionPage({
     .select("id, titre_fr, formateur_id")
     .order("titre_fr", { ascending: true });
 
-  const { data: enrollments } = await admin
+  const { lignes: enrollments } = await lireTout((de, a) => admin
     .from("enrollments")
     .select("id, user_id, course_id, paid_at, formateur_id, course:courses!enrollments_course_id_fkey(titre_fr, formateur_id), student:users!enrollments_user_id_fkey(nom, email)")
     .order("paid_at", { ascending: false })
-    .limit(5000);
+    .order("id", { ascending: true })
+    .range(de, a));
 
   // ── 3) Statuts et dernière connexion (auth) ───────────────────────────────
   const lastSignin = new Map<string, string | null>();
@@ -64,7 +69,7 @@ export default async function AdminGestionPage({
       coursesByFormateur.set(c.formateur_id, (coursesByFormateur.get(c.formateur_id) ?? 0) + 1);
     }
   }
-  for (const e of enrollments ?? []) {
+  for (const e of enrollments) {
     const cid = e.course_id;
     const fid = e.formateur_id ?? courseFormateur.get(cid) ?? null;
     if (fid) {
@@ -118,7 +123,7 @@ export default async function AdminGestionPage({
         lastSignInAt: lastSignin.get(e.id) ?? null,
       }))}
       courses={courses ?? []}
-      enrollments={(enrollments ?? []).map((e) => ({
+      enrollments={enrollments.map((e) => ({
         id: e.id as string,
         user_id: e.user_id as string,
         course_id: e.course_id as string,

@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { lireParIds, lireTout } from "@/lib/student-care/paginate";
 import {
   renderProspectEmail,
   tplAccountInactivity,
@@ -79,26 +80,28 @@ function overridesFor(s: ProspectSettings, kind: ProspectEmailKind): { subject: 
 
 const firstName = (nom: string | null | undefined) => (nom || "").trim().split(/\s+/)[0] || "à vous";
 
-// ─── Détection d'achat (batch, borné aux ids fournis → évite le cap 1000) ─────
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
+// ─── Détection d'achat (par paquets d'ids, chaque paquet lu en entier) ─────────
 
-/** Ensemble des utilisateurs (parmi `ids`) ayant passé commande. */
+/**
+ * Ensemble des utilisateurs (parmi `ids`) ayant passé commande.
+ * 500 élèves pouvaient avoir plus de 1 000 inscriptions : la base coupait la réponse à 1 000 lignes et des
+ * acheteuses passaient pour des prospects (→ e-mails de relance, avertissement d'inactivité). Désormais tout est lu ;
+ * une lecture en échec LÈVE une erreur — le passage s'arrête au lieu d'écrire à des clientes.
+ */
 export async function loadPurchaserSet(admin: Admin, ids: string[]): Promise<Set<string>> {
   const purchased = new Set<string>();
   if (ids.length === 0) return purchased;
-  for (const part of chunk(ids, 500)) {
-    const { data: enr } = await admin.from("enrollments").select("user_id").in("user_id", part);
-    (enr ?? []).forEach((e: { user_id: string | null }) => e.user_id && purchased.add(e.user_id));
-    const { data: ord } = await admin
+  const [enr, ord] = await Promise.all([
+    lireParIds<{ user_id: string | null }>(ids, (lot, de, a) => admin
+      .from("enrollments").select("user_id").in("user_id", lot).order("id").range(de, a)),
+    lireParIds<{ customer_id: string | null }>(ids, (lot, de, a) => admin
       .from("orders").select("customer_id")
-      .in("customer_id", part)
-      .in("status", PURCHASED_ORDER_STATUSES as unknown as string[]);
-    (ord ?? []).forEach((o: { customer_id: string | null }) => o.customer_id && purchased.add(o.customer_id));
-  }
+      .in("customer_id", lot)
+      .in("status", PURCHASED_ORDER_STATUSES as unknown as string[])
+      .order("id").range(de, a)),
+  ]);
+  enr.forEach((e) => e.user_id && purchased.add(e.user_id));
+  ord.forEach((o) => o.customer_id && purchased.add(o.customer_id));
   return purchased;
 }
 
@@ -223,37 +226,46 @@ export async function runProspectSequence(admin: Admin) {
 
   const result = { welcome: 0, reminder_2: 0, reminder_7: 0, reminder_14: 0, converted: 0, scanned: 0 };
 
-  const { data: users } = await admin
+  // Les 5 000 inscrites les plus récentes, lues page par page (la base n'en rend que 1 000 par demande).
+  const lus = await lireTout<{ id: string; nom: string | null; email: string | null; created_at: string }>((de, a) => admin
     .from("users")
     .select("id, nom, email, created_at")
     .eq("role", "eleve")
     .gte("created_at", settings.sequence_start_at)
     .order("created_at", { ascending: false })
-    .limit(5000);
-  if (!users || users.length === 0) return { ok: true, ...result };
+    .order("id", { ascending: true })
+    .range(de, a), { pagesMax: 5 });
+  const users = [...new Map(lus.lignes.map((u) => [u.id, u])).values()]; // une inscription pendant la lecture décale d'une ligne
+  if (users.length === 0) return { ok: true, ...result };
   result.scanned = users.length;
 
-  const ids = users.map((u: { id: string }) => u.id);
+  const ids = users.map((u) => u.id);
   const purchased = await loadPurchaserSet(admin, ids);
 
-  const { data: seqRows } = await admin
+  // Par paquets (un seul `.in()` de 5 000 ids échouait : adresse trop longue), chaque paquet lu en entier.
+  const seqRows = await lireParIds<SeqRow>(ids, (lot, de, a) => admin
     .from("prospect_sequence")
     .select("user_id, registration_source, welcome_sent_at, reminder_2_sent_at, reminder_7_sent_at, reminder_14_sent_at, has_purchased, sequence_stopped")
-    .in("user_id", ids);
+    .in("user_id", lot)
+    .order("user_id")
+    .range(de, a));
   const seqMap = new Map<string, SeqRow>();
-  (seqRows ?? []).forEach((r: SeqRow) => seqMap.set(r.user_id, r));
+  seqRows.forEach((r) => seqMap.set(r.user_id, r));
 
   const branding = brandingFrom(settings);
   const now = Date.now();
 
-  for (const u of users as { id: string; nom: string | null; email: string | null; created_at: string }[]) {
+  for (const u of users) {
     const row = seqMap.get(u.id);
     if (row?.sequence_stopped) continue;
 
     // ── Conversion : arrêt immédiat, aucun email marketing ──
+    // Sans ligne de séquence (seqMap est complet), il n'y a rien à arrêter : pas de demande inutile par acheteuse.
     if (purchased.has(u.id)) {
-      await stopProspectSequenceOnPurchase(admin, u.id);
-      if (!row?.has_purchased) result.converted++;
+      if (row) {
+        await stopProspectSequenceOnPurchase(admin, u.id);
+        if (!row.has_purchased) result.converted++;
+      }
       continue;
     }
     if (!u.email) continue;

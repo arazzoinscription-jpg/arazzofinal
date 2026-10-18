@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lireParIds, lireTout } from "@/lib/student-care/paginate";
 import { StudentsBulkTable } from "./students-bulk-table";
 import { AdminEnrollForm } from "./admin-enroll-form";
 import { TELEGRAM_IMPORT_CUTOFF } from "@/app/dashboard/telegram-proof-config";
@@ -86,16 +87,18 @@ export default async function AdminStudentsPage({
     .map((c) => c.id);
 
   // ── 2) Inscriptions + étudiant + cours ────────────────────────────────────
-  const { data: enrolls } = await admin
+  // TOUTES : la base n'en renvoie que 1 000 par demande (un `.limit(5000)` en rendait 1 000) → page par page.
+  const { lignes: enrolls } = await lireTout((de, a) => admin
     .from("enrollments")
     .select("paid_at, amount, order_id, course_id, course:courses(titre_fr, slug, formateur:users!courses_formateur_id_fkey(nom, email)), student:users!enrollments_user_id_fkey(id, nom, email, role, created_at)")
     .order("paid_at", { ascending: false })
-    .limit(5000);
+    .order("id", { ascending: true })
+    .range(de, a));
 
   // Étudiants concernés par le filtre cours (si défini)
   const studentsInFilteredCourse = new Set<string>();
   if (courseFilter) {
-    (enrolls ?? []).forEach((e) => {
+    enrolls.forEach((e) => {
       if (e.course_id === courseFilter) {
         const s = e.student as { id?: string } | null;
         if (s?.id) studentsInFilteredCourse.add(s.id);
@@ -105,7 +108,7 @@ export default async function AdminStudentsPage({
 
   // ── 3) Regrouper par étudiant et déduire NIVEAU 1 / NIVEAU 2 ──────────────
   const byStudent = new Map<string, StudentRow>();
-  (enrolls ?? []).forEach((e) => {
+  enrolls.forEach((e) => {
     const s = e.student as { id?: string; nom?: string; email?: string; role?: string; created_at?: string } | null;
     if (!s?.id || s.role !== "eleve") return;
     if (courseFilter && !studentsInFilteredCourse.has(s.id)) return;
@@ -202,13 +205,16 @@ export default async function AdminStudentsPage({
   const accessByUser = new Map<string, AccessStatus>();
   const studentIds = rows.map((r) => r.id);
   if (studentIds.length) {
-    const { data: links } = await admin
+    // Par paquets d'élèves (adresse trop longue sinon), chaque paquet lu en entier.
+    const links = await lireParIds<{ user_id: string; expires_at: string; used_at: string | null }>(studentIds, (lot, de, a) => admin
       .from("access_links")
       .select("user_id, expires_at, used_at, created_at")
-      .in("user_id", studentIds)
-      .order("created_at", { ascending: false });
-    // On ne garde que le lien le plus récent par utilisateur (déjà trié desc).
-    for (const l of links ?? []) {
+      .in("user_id", lot)
+      .order("created_at", { ascending: false })
+      .order("token", { ascending: true })
+      .range(de, a));
+    // On ne garde que le lien le plus récent par utilisateur (déjà trié desc ; tous ses liens sont dans le même paquet).
+    for (const l of links) {
       if (accessByUser.has(l.user_id)) continue;
       const expired = new Date(l.expires_at).getTime() < now;
       accessByUser.set(l.user_id, expired ? "expired" : l.used_at ? "used" : "valid");
@@ -221,16 +227,15 @@ export default async function AdminStudentsPage({
   const proofNotifiedAt = new Map<string, string>();
   if (studentIds.length) {
     try {
-      const { data: proofs } = await admin
-        .from("telegram_payment_proofs").select("user_id").in("user_id", studentIds);
-      (proofs ?? []).forEach((p) => hasProof.add(p.user_id as string));
+      const proofs = await lireParIds<{ user_id: string }>(studentIds, (lot, de, a) => admin
+        .from("telegram_payment_proofs").select("user_id").in("user_id", lot).order("id").range(de, a));
+      proofs.forEach((p) => hasProof.add(p.user_id));
     } catch { /* migration 070 non appliquée → aucune preuve connue */ }
     try {
-      const { data: notif } = await admin
-        .from("users").select("id, telegram_notified_at").in("id", studentIds);
-      (notif ?? []).forEach((u) => {
-        const t = (u as { telegram_notified_at?: string | null }).telegram_notified_at;
-        if (t) proofNotifiedAt.set(u.id as string, t);
+      const notif = await lireParIds<{ id: string; telegram_notified_at?: string | null }>(studentIds, (lot, de, a) => admin
+        .from("users").select("id, telegram_notified_at").in("id", lot).order("id").range(de, a));
+      notif.forEach((u) => {
+        if (u.telegram_notified_at) proofNotifiedAt.set(u.id, u.telegram_notified_at);
       });
     } catch { /* migration 072 non appliquée → pas de délai */ }
   }

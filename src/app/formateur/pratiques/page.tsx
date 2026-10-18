@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isFormateur, isAdmin as hasAdminRole } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lireTout } from "@/lib/student-care/paginate";
 import { type PracticalRow } from "./review-card";
 import { PracticalsBoard } from "./practicals-board";
 
@@ -41,30 +42,29 @@ export default async function PratiquesPage({ searchParams }: { searchParams: { 
 
   // 1) Travaux à corriger (submitted/reviewed) + travaux déjà validés (approved, récents).
   //    Les validés RESTENT visibles afin de pouvoir les partager sur le feed à tout moment.
-  let pendingQuery = admin
-    .from("lesson_practicals")
-    .select("id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)")
-    .in("status", ["submitted", "reviewed"]);
-  if (eleve) pendingQuery = pendingQuery.eq("user_id", eleve);
-  const { data: pendingSubs } = await pendingQuery.order("created_at", { ascending: true });
-  // Validés : triés par VALIDATION récente (reviewed_at) pour que le travail
-  // qu'on vient de valider apparaisse tout en haut de « À partager ». Fallback
-  // sur created_at si la colonne reviewed_at n'existe pas encore (migration 076).
-  const APPROVED_SELECT = "id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)";
-  const approvedBase = () => {
-    const q = admin.from("lesson_practicals").select(APPROVED_SELECT).eq("status", "approved");
+  //    La base ne renvoie que 1 000 lignes par demande (même avec `.limit(2000)`) → lecture page par page.
+  const TRAVAUX_SELECT = "id, photo_url, video_url, annotation_url, note, feedback, status, created_at, lesson_id, student:users(nom)";
+  const travauxBase = () => {
+    const q = admin.from("lesson_practicals").select(TRAVAUX_SELECT);
     return eleve ? q.eq("user_id", eleve) : q;
   };
-  let { data: approvedSubs, error: approvedErr } = await approvedBase()
-    .order("reviewed_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  if (approvedErr) {
-    ({ data: approvedSubs } = await approvedBase()
+  const { lignes: pendingSubs } = await lireTout((de, a) => travauxBase()
+    .in("status", ["submitted", "reviewed"])
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .range(de, a));
+  // Validés (les 2 000 plus récents) : triés par VALIDATION récente (reviewed_at) pour que le travail
+  // qu'on vient de valider apparaisse tout en haut de « À partager ». Fallback
+  // sur created_at si la colonne reviewed_at n'existe pas encore (migration 076).
+  const lireValides = (parValidation: boolean) => lireTout((de, a) => {
+    const q = travauxBase().eq("status", "approved");
+    return (parValidation ? q.order("reviewed_at", { ascending: false, nullsFirst: false }) : q)
       .order("created_at", { ascending: false })
-      .limit(2000));
-  }
-  const subs = [...(pendingSubs ?? []), ...(approvedSubs ?? [])];
+      .order("id", { ascending: true })
+      .range(de, a);
+  }, { pagesMax: 2 });
+  const { lignes: approvedSubs } = await lireValides(true).catch(() => lireValides(false));
+  const subs = [...pendingSubs, ...approvedSubs];
 
   // 2) Leçon → cours → formateur, uniquement pour les leçons concernées.
   const lessonTitle = new Map<string, string>();
@@ -96,16 +96,18 @@ export default async function PratiquesPage({ searchParams }: { searchParams: { 
   const owns = (s: any) => isAdmin || courseFormateur.get(lessonCourse.get(s.lesson_id) ?? "") === user.id;
 
   // 3) Travaux déjà publiés sur le feed (pour l'état « Publié » du bouton de partage).
-  //    On lit directement les community_media de source « practical » (petit ensemble)
+  //    On lit directement les community_media de source « practical » (identifiants seulement)
   //    au lieu d'un `.in()` sur des centaines d'ids : un `.in()` trop long fait échouer
   //    la requête (URL trop longue) → sharedSet vidé → les travaux DÉJÀ publiés
   //    affichaient « Partager », et l'action renvoyait ensuite « Déjà publié » (échec).
+  //    TOUS, page par page : au-delà de 1 000 travaux publiés, les suivants repassaient à « Partager ».
   const sharedSet = new Set<string>();
   {
-    const { data: cm } = await admin
+    const { lignes: cm } = await lireTout<{ practical_id: string | null }>((de, a) => admin
       .from("community_media").select("practical_id")
-      .eq("source_type", "practical").not("practical_id", "is", null).limit(5000);
-    (cm ?? []).forEach((m: { practical_id: string | null }) => m.practical_id && sharedSet.add(m.practical_id));
+      .eq("source_type", "practical").not("practical_id", "is", null)
+      .order("id").range(de, a));
+    cm.forEach((m) => m.practical_id && sharedSet.add(m.practical_id));
   }
 
   const toRow = (s: any): PracticalRow => ({
@@ -126,8 +128,8 @@ export default async function PratiquesPage({ searchParams }: { searchParams: { 
     ? ((await admin.from("users").select("nom").eq("id", eleve).maybeSingle()).data?.nom as string | undefined) ?? null
     : null;
 
-  const pendingRows = (pendingSubs ?? []).filter(owns).map(toRow);
-  const approvedRows = (approvedSubs ?? []).filter(owns).map(toRow);
+  const pendingRows = pendingSubs.filter(owns).map(toRow);
+  const approvedRows = approvedSubs.filter(owns).map(toRow);
 
   return (
     <div className="max-w-3xl">

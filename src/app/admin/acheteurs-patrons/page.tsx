@@ -1,6 +1,7 @@
 import { ShoppingBag } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lireTout } from "@/lib/student-care/paginate";
 
 export const metadata = { title: "Acheteurs de patrons — Admin" };
 export const dynamic = "force-dynamic";
@@ -9,17 +10,19 @@ export default async function AdminPatronBuyersPage({ searchParams }: { searchPa
   const admin = createAdminClient();
   const q = (searchParams.q ?? "").trim().toLowerCase();
 
-  const { data: purchases } = await admin
+  // TOUS les achats : la base n'en renvoie que 1 000 par demande → lecture page par page.
+  const { lignes: purchases } = await lireTout<{ user_id: string | null; paid_at: string; user: unknown }>((de, a) => admin
     .from("patron_purchases")
     .select("user_id, paid_at, user:users(nom, email, ville)")
     .order("paid_at", { ascending: false })
-    .limit(2000);
+    .order("id", { ascending: true })
+    .range(de, a));
 
   // Agrégation par acheteur : nb d'achats + dernier achat.
   type Buyer = { id: string; nom: string; email: string; ville: string | null; count: number; last: string };
   const map = new Map<string, Buyer>();
-  for (const p of purchases ?? []) {
-    const u = (p as any).user as { nom?: string; email?: string; ville?: string | null } | null;
+  for (const p of purchases) {
+    const u = p.user as { nom?: string; email?: string; ville?: string | null } | null;
     if (!p.user_id || !u) continue;
     if (!map.has(p.user_id)) {
       map.set(p.user_id, { id: p.user_id, nom: u.nom ?? "—", email: u.email ?? "", ville: u.ville ?? null, count: 0, last: p.paid_at });
@@ -36,7 +39,7 @@ export default async function AdminPatronBuyersPage({ searchParams }: { searchPa
       <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-1 flex items-center gap-2">
         <ShoppingBag size={28} className="text-orange-600" /> Acheteurs de patrons
       </h1>
-      <p className="text-gray-500 mb-6 font-dm">{buyers.length} acheteur(s) · {purchases?.length ?? 0} achat(s) au total.</p>
+      <p className="text-gray-500 mb-6 font-dm">{buyers.length} acheteur(s) · {purchases.length} achat(s) au total.</p>
 
       <form className="flex gap-3 mb-6">
         <input name="q" defaultValue={searchParams.q ?? ""} placeholder="Rechercher un acheteur…"

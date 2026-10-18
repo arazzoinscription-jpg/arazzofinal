@@ -5,6 +5,7 @@ import { bunnyPlaybackUrls } from "@/lib/bunny/stream";
 import { isFacebookVideoUrl, type CommunityItem } from "@/lib/community-types";
 import { cdnImage } from "@/lib/storage-cdn";
 import { inscritesParmi } from "@/lib/visiteuses/load";
+import { lireParIds } from "@/lib/student-care/paginate";
 
 export type { CommunityItem, SourceType } from "@/lib/community-types";
 export { sourceLabel } from "@/lib/community-types";
@@ -94,8 +95,6 @@ function melanger<T>(liste: T[]): T[] {
 export async function partagerTravauxPratiques(admin: ReturnType<typeof createAdminClient>): Promise<{ partages: number }> {
   let crees = 0;
   try {
-    const { data: deja } = await admin.from("community_media").select("practical_id").not("practical_id", "is", null).limit(5000);
-    const partages = new Set((deja ?? []).map((r: any) => r.practical_id));
     const { data: travaux } = await admin
       .from("lesson_practicals")
       .select("id, user_id, video_url, note, created_at, lesson:lessons(chapter:chapters(course_id))")
@@ -103,6 +102,11 @@ export async function partagerTravauxPratiques(admin: ReturnType<typeof createAd
       .neq("video_url", "")
       .order("created_at", { ascending: false })
       .limit(500);
+    // Déjà partagés, parmi CES 500 travaux seulement (par paquets). Avant : « tous les partagés » coupés à 1 000
+    // par la base → au-delà, des travaux déjà publiés repassaient pour nouveaux et prenaient les 60 places du passage.
+    const deja = await lireParIds<{ practical_id: string }>((travaux ?? []).map((t: any) => t.id), (lot, de, a) => admin
+      .from("community_media").select("practical_id").in("practical_id", lot).order("id").range(de, a));
+    const partages = new Set(deja.map((r) => r.practical_id));
     const nouveaux = (travaux ?? []).filter((t: any) => !partages.has(t.id)).slice(0, 60);
     for (const t of nouveaux as any[]) {
       // eslint-disable-next-line no-await-in-loop

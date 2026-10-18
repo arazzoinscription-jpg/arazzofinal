@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { BUCKET_MESSAGES, LIEN_TTL_S, apercuPiece, type GenrePiece } from "@/lib/messagerie-pieces";
+import { lireParIds } from "@/lib/student-care/paginate";
 
 type Admin = ReturnType<typeof createAdminClient>;
 export type Role = "eleve" | "formateur" | "patronniste" | "admin";
@@ -92,10 +93,10 @@ async function roleOf(admin: Admin, userId: string): Promise<Role | null> {
 // ─── Contacts autorisés ──────────────────────────────────────────────────────
 async function usersByIds(admin: Admin, ids: string[]): Promise<Map<string, { nom: string; role: Role; avatar_url: string | null }>> {
   const map = new Map<string, { nom: string; role: Role; avatar_url: string | null }>();
-  const uniq = [...new Set(ids)].filter(Boolean);
-  if (!uniq.length) return map;
-  const { data } = await admin.from("users").select("id, nom, role, avatar_url").in("id", uniq);
-  (data ?? []).forEach((u: { id: string; nom: string | null; role: Role; avatar_url: string | null }) =>
+  // Par paquets de 150 : un seul `.in()` avec des centaines d'élèves dépassait la longueur d'adresse (échec → aucun contact).
+  const data = await lireParIds<{ id: string; nom: string | null; role: Role; avatar_url: string | null }>(ids, (lot, de, a) => admin
+    .from("users").select("id, nom, role, avatar_url").in("id", lot).order("id").range(de, a)).catch(() => []);
+  data.forEach((u) =>
     map.set(u.id, { nom: u.nom ?? "Utilisateur", role: (u.role ?? "eleve") as Role, avatar_url: u.avatar_url ?? null }));
   return map;
 }
@@ -139,8 +140,10 @@ export async function getContacts(admin: Admin, me: { id: string; role: Role }, 
     const courseIds = (courses ?? []).map((c) => c.id as string);
     let studentIds: string[] = [];
     if (courseIds.length) {
-      const { data: enr } = await admin.from("enrollments").select("user_id").in("course_id", courseIds).limit(2000);
-      studentIds = [...new Set((enr ?? []).map((e: { user_id: string }) => e.user_id).filter(Boolean))];
+      // TOUTES ses élèves : la base ne rend que 1 000 inscriptions par demande (une élève à 12 modules = 12 lignes).
+      const enr = await lireParIds<{ user_id: string }>(courseIds, (lot, de, a) => admin
+        .from("enrollments").select("user_id").in("course_id", lot).order("id").range(de, a)).catch(() => []);
+      studentIds = [...new Set(enr.map((e) => e.user_id).filter(Boolean))];
     }
     const map = await usersByIds(admin, studentIds);
     studentIds.forEach((id) => push(id, map.get(id), "Mes élèves"));
@@ -157,8 +160,10 @@ export async function getContacts(admin: Admin, me: { id: string; role: Role }, 
     const patronIds = (patrons ?? []).map((p) => p.id as string);
     let buyerIds: string[] = [];
     if (patronIds.length) {
-      const { data: pur } = await admin.from("patron_purchases").select("user_id").in("patron_id", patronIds).limit(2000);
-      buyerIds = [...new Set((pur ?? []).map((p: { user_id: string }) => p.user_id).filter(Boolean))];
+      // TOUS ses acheteurs (la base ne rend que 1 000 achats par demande).
+      const pur = await lireParIds<{ user_id: string }>(patronIds, (lot, de, a) => admin
+        .from("patron_purchases").select("user_id").in("patron_id", lot).order("id").range(de, a)).catch(() => []);
+      buyerIds = [...new Set(pur.map((p) => p.user_id).filter(Boolean))];
     }
     const map = await usersByIds(admin, buyerIds);
     buyerIds.forEach((id) => push(id, map.get(id), "Mes acheteurs"));

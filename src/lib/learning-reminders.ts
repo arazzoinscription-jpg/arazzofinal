@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { lireParIds, paquets } from "@/lib/student-care/paginate";
 
 type Admin = ReturnType<typeof createAdminClient>;
 const DAY = 1000 * 60 * 60 * 24;
@@ -34,14 +35,22 @@ async function studentsInfo(admin: Admin, userIds: string[]) {
   }
   return map;
 }
+/**
+ * Couples (élève, leçon) présents dans `table`. Deux listes dans l'adresse → 100 élèves × 100 leçons par demande
+ * (avant : 300 élèves × TOUTES les leçons, adresse trop longue) ; chaque demande lue en entier (la base coupe à
+ * 1 000 lignes : des leçons terminées / travaux envoyés passaient inaperçus → relances à tort). Erreur → levée.
+ */
 async function pairSet(admin: Admin, table: string, userIds: string[], lessonIds: string[], extra?: (q: any) => any): Promise<Set<string>> {
   const set = new Set<string>();
   if (!userIds.length || !lessonIds.length) return set;
-  for (const uPart of chunk(userIds, 300)) {
-    let q = admin.from(table).select("user_id, lesson_id").in("user_id", uPart).in("lesson_id", lessonIds);
-    if (extra) q = extra(q);
-    const { data } = await q;
-    for (const r of (data ?? []) as { user_id: string; lesson_id: string }[]) set.add(key(r.user_id, r.lesson_id));
+  for (const lPart of paquets(lessonIds, 100)) {
+    // eslint-disable-next-line no-await-in-loop
+    const lignes = await lireParIds<{ user_id: string; lesson_id: string }>(userIds, (uPart, de, a) => {
+      let q = admin.from(table).select("user_id, lesson_id").in("user_id", uPart).in("lesson_id", lPart);
+      if (extra) q = extra(q);
+      return q.order("id").range(de, a);
+    }, { taillePaquet: 100 });
+    for (const r of lignes) set.add(key(r.user_id, r.lesson_id));
   }
   return set;
 }
@@ -102,16 +111,19 @@ export async function runLearningReminders(admin: Admin) {
 
   // ══ 2) « Envoyez votre travail pratique » : leçon terminée (avec devoir) sans travail ══
   {
-    const { data: devoirLessons } = await admin.from("lessons").select("id").not("devoir", "is", null).limit(3000);
-    const devoirSet = new Set((devoirLessons ?? []).map((l: { id: string }) => l.id));
+    const cutoff = new Date(now - PRACTICAL_AFTER_DAYS * DAY).toISOString();
+    const { data: prog } = await admin
+      .from("progress")
+      .select("user_id, lesson_id, completed_at")
+      .lte("completed_at", cutoff)
+      .order("completed_at", { ascending: false })
+      .limit(600);
+    // Leçons AVEC devoir parmi ces leçons terminées seulement (par paquets). Avant : toutes les leçons à devoir
+    // d'un coup, que la base coupe à 1 000 lignes → au-delà, des leçons à devoir n'avaient jamais de relance.
+    const devoirLessons = await lireParIds<{ id: string }>((prog ?? []).map((p: { lesson_id: string }) => p.lesson_id), (lot, de, a) => admin
+      .from("lessons").select("id").in("id", lot).not("devoir", "is", null).order("id").range(de, a));
+    const devoirSet = new Set(devoirLessons.map((l) => l.id));
     if (devoirSet.size) {
-      const cutoff = new Date(now - PRACTICAL_AFTER_DAYS * DAY).toISOString();
-      const { data: prog } = await admin
-        .from("progress")
-        .select("user_id, lesson_id, completed_at")
-        .lte("completed_at", cutoff)
-        .order("completed_at", { ascending: false })
-        .limit(600);
       const cands = (prog ?? [])
         .map((p: { user_id: string; lesson_id: string }) => ({ u: p.user_id, l: p.lesson_id }))
         .filter((c) => c.u && c.l && devoirSet.has(c.l));

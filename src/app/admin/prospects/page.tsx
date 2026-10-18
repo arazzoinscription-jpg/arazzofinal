@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadPurchaserSet, PURCHASED_ORDER_STATUSES } from "@/lib/prospects";
+import { lireParIds, lireTout } from "@/lib/student-care/paginate";
 import { ProspectsClient, type ProspectRow, type ProspectStatus, type AcctStatus } from "./prospects-client";
 import Link from "next/link";
 import { Settings } from "lucide-react";
@@ -9,12 +10,6 @@ export const dynamic = "force-dynamic";
 
 const DAY = 1000 * 60 * 60 * 24;
 const daysSince = (d: string | null) => (d ? Math.floor((Date.now() - new Date(d).getTime()) / DAY) : Infinity);
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
 
 interface SeqRow {
   user_id: string;
@@ -30,72 +25,70 @@ interface SeqRow {
 export default async function AdminProspectsPage() {
   const admin = createAdminClient();
 
+  // La base ne renvoie que 1 000 lignes par demande (un `.limit(3000)` en rendait 1 000) : tout est lu page par page,
+  // et les listes d'élèves par paquets de 150 (adresse trop longue au-delà) — chaque paquet lu en entier.
+
   // ── Inscrits (élèves) ──
-  const { data: users } = await admin
+  const { lignes: list } = await lireTout<{ id: string; nom: string | null; email: string | null; created_at: string }>((de, a) => admin
     .from("users")
     .select("id, nom, email, created_at")
     .eq("role", "eleve")
     .order("created_at", { ascending: false })
-    .limit(3000);
-  const list = users ?? [];
-  const ids = list.map((u: { id: string }) => u.id);
+    .order("id", { ascending: true })
+    .range(de, a));
+  const ids = list.map((u) => u.id);
 
-  // ── Achats (inscription formation OU commande confirmée) ──
-  const purchased = await loadPurchaserSet(admin, ids);
+  const [purchased, ord, enr, subs, reqs, seq] = await Promise.all([
+    // Achats (inscription formation OU commande confirmée)
+    loadPurchaserSet(admin, ids),
+    lireParIds<{ customer_id: string | null; phone: string | null; created_at: string }>(ids, (lot, de, a) => admin
+      .from("orders").select("customer_id, phone, created_at").in("customer_id", lot).order("id").range(de, a)),
+    lireParIds<{ user_id: string | null }>(ids, (lot, de, a) => admin
+      .from("enrollments").select("user_id").in("user_id", lot).order("id").range(de, a)),
+    lireParIds<{ user_id: string | null }>(ids, (lot, de, a) => admin
+      .from("course_subscriptions").select("user_id").in("user_id", lot).order("id").range(de, a)),
+    lireTout<{ email: string | null; course: { titre_fr: string | null }[] | { titre_fr: string | null } | null }>((de, a) => admin
+      .from("enrollment_requests").select("email, course:courses(titre_fr)")
+      .order("created_at", { ascending: false }).order("id", { ascending: true }).range(de, a)),
+    lireParIds<SeqRow>(ids, (lot, de, a) => admin
+      .from("prospect_sequence")
+      .select("user_id, registration_source, welcome_sent_at, reminder_14_sent_at, has_purchased, reminders_before_purchase, sequence_stopped, marked_for_deletion_at")
+      .in("user_id", lot).order("user_id").range(de, a)),
+  ]);
 
   // ── Commandes : nombre + téléphone le plus récent ──
   const ordersCount = new Map<string, number>();
   const phoneById = new Map<string, { phone: string; at: number }>();
-  for (const part of chunk(ids, 500)) {
-    const { data: ord } = await admin
-      .from("orders").select("customer_id, phone, created_at").in("customer_id", part);
-    (ord ?? []).forEach((o: { customer_id: string | null; phone: string | null; created_at: string }) => {
-      if (!o.customer_id) return;
-      ordersCount.set(o.customer_id, (ordersCount.get(o.customer_id) ?? 0) + 1);
-      if (o.phone) {
-        const at = new Date(o.created_at).getTime();
-        const prev = phoneById.get(o.customer_id);
-        if (!prev || at > prev.at) phoneById.set(o.customer_id, { phone: o.phone, at });
-      }
-    });
-  }
+  ord.forEach((o) => {
+    if (!o.customer_id) return;
+    ordersCount.set(o.customer_id, (ordersCount.get(o.customer_id) ?? 0) + 1);
+    if (o.phone) {
+      const at = new Date(o.created_at).getTime();
+      const prev = phoneById.get(o.customer_id);
+      if (!prev || at > prev.at) phoneById.set(o.customer_id, { phone: o.phone, at });
+    }
+  });
 
   // ── Inscriptions (enrollments) : nombre ──
   const enrollCount = new Map<string, number>();
-  for (const part of chunk(ids, 500)) {
-    const { data: enr } = await admin.from("enrollments").select("user_id").in("user_id", part);
-    (enr ?? []).forEach((e: { user_id: string | null }) => {
-      if (e.user_id) enrollCount.set(e.user_id, (enrollCount.get(e.user_id) ?? 0) + 1);
-    });
-  }
+  enr.forEach((e) => {
+    if (e.user_id) enrollCount.set(e.user_id, (enrollCount.get(e.user_id) ?? 0) + 1);
+  });
 
   // ── Clients abonnement ──
   const subscriberIds: string[] = [];
-  for (const part of chunk(ids, 500)) {
-    const { data: subs } = await admin.from("course_subscriptions").select("user_id").in("user_id", part);
-    (subs ?? []).forEach((s: { user_id: string | null }) => s.user_id && subscriberIds.push(s.user_id));
-  }
+  subs.forEach((s) => s.user_id && subscriberIds.push(s.user_id));
 
-  // ── Formation visée (demandes d'enrôlement) ──
+  // ── Formation visée (demandes d'enrôlement) : la plus récente par email ──
   const interestByEmail = new Map<string, string>();
-  {
-    const { data: reqs } = await admin
-      .from("enrollment_requests").select("email, course:courses(titre_fr)").limit(5000);
-    (reqs ?? []).forEach((r: { email: string | null; course: { titre_fr: string | null }[] | { titre_fr: string | null } | null }) => {
-      const titre = Array.isArray(r.course) ? r.course[0]?.titre_fr : r.course?.titre_fr;
-      if (r.email && titre && !interestByEmail.has(r.email)) interestByEmail.set(r.email, titre);
-    });
-  }
+  reqs.lignes.forEach((r) => {
+    const titre = Array.isArray(r.course) ? r.course[0]?.titre_fr : r.course?.titre_fr;
+    if (r.email && titre && !interestByEmail.has(r.email)) interestByEmail.set(r.email, titre);
+  });
 
   // ── État de séquence prospect ──
   const seqMap = new Map<string, SeqRow>();
-  for (const part of chunk(ids, 500)) {
-    const { data: seq } = await admin
-      .from("prospect_sequence")
-      .select("user_id, registration_source, welcome_sent_at, reminder_14_sent_at, has_purchased, reminders_before_purchase, sequence_stopped, marked_for_deletion_at")
-      .in("user_id", part);
-    (seq ?? []).forEach((s: SeqRow) => seqMap.set(s.user_id, s));
-  }
+  seq.forEach((s) => seqMap.set(s.user_id, s));
 
   // ── Comptes auth : email vérifié, dernière connexion, statut ──
   const authInfo = new Map<string, { verified: boolean; lastLogin: string | null; status: AcctStatus }>();

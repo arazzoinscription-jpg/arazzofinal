@@ -58,3 +58,30 @@ export function paquets<T>(liste: readonly T[], taille: number): T[][] {
   for (let i = 0; i < liste.length; i += taille) out.push(liste.slice(i, i + taille));
   return out;
 }
+
+/** Identifiants par filtre `in.(…)` : 150 UUID ≈ 5,5 Ko d'adresse (au-delà de quelques centaines → erreur 414). */
+export const IDS_PAR_PAQUET = 150;
+
+/**
+ * `lireTout` pour un filtre `in.(…)` : les identifiants (dédoublonnés) par paquets, et CHAQUE paquet lu en entier —
+ * 150 élèves peuvent avoir bien plus de 1 000 lignes (inscriptions, leçons terminées…). `lire(lot, de, a)` construit
+ * la requête du paquet, triée sur une clé unique, finie par `.range(de, a)`. Quelques paquets à la fois.
+ * Erreur ou lecture incomplète → `ErreurLecture` (jamais une liste tronquée qui a l'air entière).
+ */
+export async function lireParIds<T>(
+  ids: readonly string[],
+  lire: (lot: string[], de: number, a: number) => ReturnType<LecturePage<T>>,
+  { taillePaquet = IDS_PAR_PAQUET, enParallele = 4 }: { taillePaquet?: number; enParallele?: number } = {},
+): Promise<T[]> {
+  const lots = paquets([...new Set(ids)].filter(Boolean), taillePaquet);
+  const lignes: T[] = [];
+  for (let i = 0; i < lots.length; i += enParallele) {
+    // eslint-disable-next-line no-await-in-loop
+    const lus = await Promise.all(lots.slice(i, i + enParallele).map((lot) => lireTout<T>((de, a) => lire(lot, de, a))));
+    for (const r of lus) {
+      if (!r.complet) throw new ErreurLecture("Lecture incomplète (trop de lignes pour un paquet)");
+      lignes.push(...r.lignes);
+    }
+  }
+  return lignes;
+}

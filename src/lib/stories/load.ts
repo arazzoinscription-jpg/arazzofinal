@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { avatarSur } from "../classe/vue";
 import { estEquipePublique, nomPublic } from "../nom-public";
 import type { Calque } from "./calques";
-import { paquets } from "../student-care/paginate";
+import { lireParIds, paquets } from "../student-care/paginate";
 import type { StoryVue } from "./regles";
 
 /** Stories — lecture (clé de service, côté serveur). Les noms affichés sont les noms PUBLICS. */
@@ -75,12 +75,12 @@ export async function historiqueStories(admin: SupabaseClient, userId: string, {
 /** Nombre de commentaires par story (migration 106 ; rien si elle manque). */
 async function compterCommentaires(admin: SupabaseClient, ids: string[]): Promise<Map<string, number>> {
   const n = new Map<string, number>();
-  for (const lot of paquets([...new Set(ids)], 100)) {
-    // eslint-disable-next-line no-await-in-loop
-    const r = await admin.from("story_commentaires").select("story_id").in("story_id", lot).limit(5000);
-    if (r.error) return n;
-    for (const x of (r.data ?? []) as { story_id: string }[]) n.set(x.story_id, (n.get(x.story_id) ?? 0) + 1);
-  }
+  // Chaque paquet de 100 stories lu en entier : la base coupe à 1 000 lignes (≥ 10 commentaires en moyenne → compteurs faux).
+  const lignes = await lireParIds<{ story_id: string }>(ids, (lot, de, a) => admin
+    .from("story_commentaires").select("story_id").in("story_id", lot).order("id").range(de, a), { taillePaquet: 100 })
+    .catch(() => null);
+  if (!lignes) return n;
+  for (const x of lignes) n.set(x.story_id, (n.get(x.story_id) ?? 0) + 1);
   return n;
 }
 
