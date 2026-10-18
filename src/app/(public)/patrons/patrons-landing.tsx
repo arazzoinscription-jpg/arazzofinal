@@ -528,7 +528,7 @@ function SurMesureForm({ onClose }: { onClose: () => void }) {
 
 function PatronsStyles() {
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{ __html: `
 .pa {
   position: fixed; inset: 0; z-index: 200; overflow-y: auto;
   --pa-violet: #2A0880; --pa-violet2: #5B16F9; --pa-orange: #FE7223;
@@ -666,6 +666,6 @@ function PatronsStyles() {
   .pa-taille { min-width: 48px; padding: 11px 12px; }
   .pa-form > .pa-cta { width: 100%; padding: 15px 22px; font-size: 1rem; }
 }
-`}</style>
+` }} />
   );
 }

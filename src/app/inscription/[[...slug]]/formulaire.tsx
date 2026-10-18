@@ -23,6 +23,7 @@ const T = {
     existant: "Vous avez déjà un compte Arazzo", existantTxt: (e: string) => `Vos accès viennent d'être renvoyés à ${e}.`,
     voirCours: "▶ Regarder mon cours gratuit", installer: "📲 Installer l'application", plateforme: "Découvrir la plateforme", connexion: "Me connecter",
     dejaConnectee: "Vous êtes déjà connectée", dejaTxt: "Votre cours gratuit et votre espace vous attendent.",
+    caseAbsente: "La case de vérification « Je ne suis pas un robot » ne s'affiche pas ?", recharger: "Recharger la page",
   },
   ar: {
     dir: "rtl", toggle: "Français", eyebrow: "تسجيل مجاني", titre: "حسابك في", titreAccent: " أرازو مجاناً",
@@ -38,11 +39,12 @@ const T = {
     existant: "لديك حساب في أرازو مسبقاً", existantTxt: (e: string) => `أعدنا إرسال معلومات الدخول إلى ${e}.`,
     voirCours: "▶ شاهدي درسي المجاني", installer: "📲 تثبيت التطبيق", plateforme: "اكتشفي المنصة", connexion: "تسجيل الدخول",
     dejaConnectee: "أنتِ متصلة مسبقاً", dejaTxt: "درسك المجاني ومساحتك في انتظارك.",
+    caseAbsente: "خانة التحقق « لستُ روبوتاً » لا تظهر؟", recharger: "إعادة تحميل الصفحة",
   },
 } as const;
 
 declare global {
-  interface Window { turnstile?: { render: (el: HTMLElement, o: { sitekey: string; callback: (t: string) => void; "expired-callback"?: () => void; language?: string }) => string; reset: (id?: string) => void } }
+  interface Window { turnstile?: { render: (el: HTMLElement, o: { sitekey: string; callback: (t: string) => void; "expired-callback"?: () => void; "error-callback"?: () => void; language?: string }) => string; reset: (id?: string) => void; remove?: (id: string) => void } }
 }
 
 const CLE_TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -61,14 +63,47 @@ export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnect
   const ouvertLe = useRef(0);
   const zoneTurnstile = useRef<HTMLDivElement>(null);
   const idTurnstile = useRef<string | null>(null);
+  const caseDans = useRef<HTMLElement | null>(null);
+  const [caseAbsente, setCaseAbsente] = useState(false);
 
   useEffect(() => { ouvertLe.current = Date.now(); }, []);
 
+  /**
+   * Dessine la case Cloudflare dans la zone ACTUELLE du formulaire. Si la page a été reconstruite entre-temps
+   * (la zone a changé), on la redessine : sinon la case restait dans l'ancienne zone, invisible, et le bouton
+   * « Créer mon compte » restait grisé pour toujours.
+   */
   function rendreTurnstile() {
-    if (!CLE_TURNSTILE || !window.turnstile || !zoneTurnstile.current || idTurnstile.current) return;
-    idTurnstile.current = window.turnstile.render(zoneTurnstile.current, { sitekey: CLE_TURNSTILE, callback: setJeton, "expired-callback": () => setJeton(""), language: langue });
+    const zone = zoneTurnstile.current;
+    if (!CLE_TURNSTILE || !window.turnstile || !zone) return;
+    if (idTurnstile.current && caseDans.current === zone && zone.isConnected) return;
+    if (idTurnstile.current) { try { window.turnstile.remove?.(idTurnstile.current); } catch { /* déjà partie */ } }
+    setJeton("");
+    caseDans.current = zone;
+    idTurnstile.current = window.turnstile.render(zone, {
+      sitekey: CLE_TURNSTILE, callback: (t) => { setJeton(t); setCaseAbsente(false); },
+      "expired-callback": () => setJeton(""), "error-callback": () => setCaseAbsente(true), language: langue,
+    });
   }
   useEffect(() => { rendreTurnstile(); });
+  // Filet de sécurité : le script peut arriver après le premier affichage → on réessaie un moment ;
+  // au bout de 10 s sans case visible, on propose de recharger la page (au lieu d'un bouton grisé muet).
+  useEffect(() => {
+    if (!CLE_TURNSTILE) return;
+    const debut = Date.now();
+    const minuteur = window.setInterval(() => {
+      rendreTurnstile();
+      // La case vit dans une zone fermée (iframe invisible pour la page) : on reconnaît son champ caché et sa hauteur.
+      const zone = zoneTurnstile.current;
+      const visible = Boolean(zone?.querySelector('input[name="cf-turnstile-response"]') && zone.offsetHeight > 20);
+      if (visible || Date.now() - debut > 10_000) {
+        window.clearInterval(minuteur);
+        if (!visible && zoneTurnstile.current) setCaseAbsente(true);
+      }
+    }, 500);
+    return () => window.clearInterval(minuteur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const set = (k: keyof typeof v, val: string) => setV((s) => ({ ...s, [k]: val }));
 
@@ -112,7 +147,7 @@ export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnect
     <div className="pl" dir={t.dir}>
       <LandingStyles />
       <NavLanding />
-      {CLE_TURNSTILE ? <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onLoad={rendreTurnstile} /> : null}
+      {CLE_TURNSTILE ? <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" strategy="afterInteractive" onReady={rendreTurnstile} /> : null}
       <button type="button" className="pl-langue" onClick={() => setLangue((l) => (l === "fr" ? "ar" : "fr"))}>🌐 {t.toggle}</button>
 
       <header className="pl-hero">
@@ -187,6 +222,12 @@ export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnect
                 <span>{t.consent}</span>
               </label>
               {CLE_TURNSTILE ? <div ref={zoneTurnstile} style={{ margin: "10px 0" }} /> : null}
+              {CLE_TURNSTILE && caseAbsente && !jeton ? (
+                <p className="pl-note" role="alert">
+                  {t.caseAbsente}{" "}
+                  <button type="button" onClick={() => window.location.reload()} style={{ color: "#5B16F9", fontWeight: 700, textDecoration: "underline", background: "none", border: 0, cursor: "pointer" }}>{t.recharger}</button>
+                </p>
+              ) : null}
               {erreur ? <div className="pl-erreur">{erreur}</div> : null}
               <button type="submit" className="pl-cta" disabled={envoi || (Boolean(CLE_TURNSTILE) && !jeton)}>{envoi ? t.envoi : t.envoyer}</button>
               <p className="pl-note">{t.note}</p>

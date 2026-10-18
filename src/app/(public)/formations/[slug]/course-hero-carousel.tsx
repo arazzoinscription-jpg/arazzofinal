@@ -70,7 +70,7 @@ export function CourseHeroCarousel({ images, title }: { images: string[]; title?
         </div>
       )}
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .chc-wrap { position: relative; }
         .chc-stage { position: relative; width: 100%; height: min(340px, 74vw); margin: 0 auto; perspective: 1100px; contain: layout paint; }
         .chc-card { position: absolute; top: 50%; left: 50%; width: min(280px, 72vw); height: min(320px, 82vw); border: none; padding: 0; cursor: pointer; border-radius: 18px; overflow: hidden; background: #ffffff22; box-shadow: 0 10px 24px rgba(0,0,0,.35); transition: transform .5s cubic-bezier(.22,1,.36,1), opacity .45s ease; will-change: transform, opacity; backface-visibility: hidden; }
@@ -79,7 +79,7 @@ export function CourseHeroCarousel({ images, title }: { images: string[]; title?
         .chc-dots { display: flex; justify-content: center; gap: 7px; margin-top: 14px; }
         .chc-dot { width: 8px; height: 8px; border-radius: 999px; border: none; background: #ffffff55; cursor: pointer; padding: 0; transition: width .25s ease, background .25s ease; }
         .chc-dot[data-on="true"] { background: #FE7223; width: 22px; }
-      `}</style>
+      ` }} />
     </div>
   );
 }

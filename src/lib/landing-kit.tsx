@@ -119,7 +119,7 @@ export function SeatsBanner({
 /** Les styles « pl- » partagés + les tokens de marque (identiques à l'OS). */
 export function LandingStyles() {
   return (
-    <style>{`
+    <style dangerouslySetInnerHTML={{ __html: `
 /* ── Tokens de marque (valeurs identiques à l'OS globals.css), injectés dans le
       scope de la landing pour la rendre auto-suffisante côté LMS. ── */
 .pl {
@@ -706,6 +706,6 @@ export function LandingStyles() {
 @media (prefers-reduced-motion: reduce) {
   .pl-card > *, .pl-hero-in > * { animation: none; }
 }
-`}</style>
+` }} />
   );
 }
