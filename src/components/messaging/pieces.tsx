@@ -1,5 +1,6 @@
 "use client";
 
+import { codeErreur } from "@/lib/autorisations-media";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Pause, Play, X } from "lucide-react";
@@ -73,6 +74,18 @@ export async function compresserImage(f: File, max = 1600, qualite = 0.85): Prom
 }
 
 /** Le meilleur format d'enregistrement du téléphone : WebM/Opus (Android, ordinateur), MP4 (iPhone). */
+/**
+ * Crée l'enregistreur : d'abord avec le format choisi, et si le téléphone le refuse, avec SON format par défaut
+ * (certains iPhone / Android annoncent un format qu'ils n'arrivent pas à ouvrir).
+ */
+export function creerEnregistreur(flux: MediaStream, options: MediaRecorderOptions): MediaRecorder {
+  try {
+    return new MediaRecorder(flux, options);
+  } catch {
+    return new MediaRecorder(flux);
+  }
+}
+
 export function formatEnregistrement(): string {
   const M = typeof window !== "undefined" ? (window as unknown as { MediaRecorder?: { isTypeSupported?: (t: string) => boolean } }).MediaRecorder : undefined;
   if (!M?.isTypeSupported) return "";
@@ -180,7 +193,7 @@ export function EnregistreurVideo({ maxS, onFermer, onEnvoyer, onRefus }: {
     if (!f || rec.current) return;
     const format = formatVideo();
     try {
-      const r = new MediaRecorder(f, { ...(format ? { mimeType: format } : {}), videoBitsPerSecond: 700_000, audioBitsPerSecond: 64_000 });
+      const r = creerEnregistreur(f, { ...(format ? { mimeType: format } : {}), videoBitsPerSecond: 700_000, audioBitsPerSecond: 64_000 });
       const etat = { r, morceaux: [] as Blob[], debut: Date.now(), annule: false };
       r.ondataavailable = (e) => { if (e.data.size) etat.morceaux.push(e.data); };
       r.onstop = () => {
@@ -195,10 +208,11 @@ export function EnregistreurVideo({ maxS, onFermer, onEnvoyer, onRefus }: {
         onFermer();
       };
       rec.current = etat;
-      r.start(500);
+      try { r.start(500); } catch { rec.current = null; r.start(); rec.current = etat; }
       setSecondes(0);
-    } catch {
-      setErreur("Ce téléphone ne permet pas d'enregistrer une vidéo ici.");
+    } catch (e) {
+      rec.current = null;
+      setErreur(`Ce téléphone n'arrive pas à enregistrer la vidéo ici (code : ${codeErreur(e)}). Ouvrez le site dans Chrome (Android) ou Safari (iPhone).`);
     }
   }
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adresseReglages, detecterContexte, etapesAutorisation, lienOuvrirChrome, messageEchec, navigateurIntegre, raisonEchec } from "./autorisations-media";
+import { adresseReglages, codeErreur, detecterContexte, etapesAutorisation, lienOuvrirChrome, messageEchec, navigateurIntegre, raisonEchec } from "./autorisations-media";
 
 const UA = {
   androidChrome: "Mozilla/5.0 (Linux; Android 13; SM-A135F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
@@ -68,4 +68,11 @@ test("lien ouvert dans Instagram / Facebook / TikTok : on le reconnaît et on fa
   assert.equal(lienOuvrirChrome(c, "https://www.formation-arazzo.store/dashboard?x=1"), "intent://www.formation-arazzo.store/dashboard?x=1#Intent;scheme=https;package=com.android.chrome;end");
   assert.equal(lienOuvrirChrome(detecterContexte(UA.androidChrome), "https://x.dz/"), null);
   assert.equal(lienOuvrirChrome(detecterContexte(fb), "https://x.dz/"), null, "iPhone : pas de lien, les étapes");
+});
+
+test("code d'erreur lisible pour le diagnostic (nom + message court)", () => {
+  assert.equal(codeErreur({ name: "NotAllowedError", message: "Permission denied" }), "NotAllowedError — Permission denied");
+  assert.equal(codeErreur({ name: "InvalidStateError", message: "InvalidStateError" }), "InvalidStateError");
+  assert.equal(codeErreur(null), "inconnu");
+  assert.equal(codeErreur("échec"), "échec");
 });

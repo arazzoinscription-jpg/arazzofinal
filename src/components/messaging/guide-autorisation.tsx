@@ -3,12 +3,15 @@
 import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, CheckCircle2, ClipboardCopy, ExternalLink, Mic, Video, X } from "lucide-react";
-import { adresseReglages, detecterContexte, etapesAutorisation, lienOuvrirChrome, messageEchec, raisonEchec, type Besoin, type Contexte } from "@/lib/autorisations-media";
+import { adresseReglages, codeErreur, detecterContexte, etapesAutorisation, lienOuvrirChrome, messageEchec, raisonEchec, type Besoin, type Contexte } from "@/lib/autorisations-media";
 
 type Fenetre =
   | { type: "avant"; besoin: Besoin; resoudre: (ok: boolean) => void }
-  | { type: "refus"; besoin: Besoin; reessayer: () => void; code?: string }
+  | { type: "refus"; besoin: Besoin; reessayer: () => void; code?: string; secours?: Secours }
   | null;
+
+/** Un autre moyen qui marche même quand le navigateur bloque (ex. l'appareil photo du téléphone). */
+export interface Secours { libelle: string; action: () => void }
 
 function contexteActuel(): Contexte {
   const installee = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -100,6 +103,12 @@ function FenetreGuide({ fenetre, fermer }: { fenetre: NonNullable<Fenetre>; ferm
                 </li>
               ))}
             </ol>
+            {fenetre.secours ? (
+              <button type="button" onClick={() => { const s = fenetre.secours!; fermer(false); s.action(); }}
+                className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-green-600 text-green-700 hover:bg-green-50 font-bold py-3">
+                {fenetre.secours.libelle}
+              </button>
+            ) : null}
             {chrome ? (
               <a href={chrome} className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold py-3.5">
                 <ExternalLink size={18} aria-hidden /> Ouvrir dans Chrome
@@ -142,19 +151,20 @@ export function useAutorisationMedia() {
   const [fenetre, setFenetre] = useState<Fenetre>(null);
 
   /** Avant d'ouvrir le micro / la caméra. true = on peut demander (déjà autorisé, ou explication lue). */
-  const preparer = useCallback(async (besoin: Besoin, reessayer: () => void): Promise<boolean> => {
+  const preparer = useCallback(async (besoin: Besoin, reessayer: () => void, secours?: Secours): Promise<boolean> => {
     const etat = await etatPermission(besoin);
     if (etat === "granted") return true;
-    if (etat === "denied") { setFenetre({ type: "refus", besoin, reessayer, code: "déjà refusé" }); return false; }
+    if (etat === "denied") { setFenetre({ type: "refus", besoin, reessayer, code: "déjà refusé", secours }); return false; }
     return new Promise<boolean>((resoudre) => setFenetre({ type: "avant", besoin, resoudre }));
   }, []);
 
   /** L'ouverture a échoué : le guide si c'est un refus (renvoie null), sinon le message à afficher. */
-  const echec = useCallback((besoin: Besoin, erreur: unknown, reessayer: () => void): string | null => {
+  const echec = useCallback((besoin: Besoin, erreur: unknown, reessayer: () => void, secours?: Secours): string | null => {
     const r = raisonEchec((erreur as { name?: string } | null)?.name);
-    const code = (erreur as { name?: string } | null)?.name;
-    if (r === "refuse") { setFenetre({ type: "refus", besoin, reessayer, code }); return null; }
-    return messageEchec(r, besoin);
+    const code = codeErreur(erreur);
+    // Refus, ou erreur inconnue à l'ouverture (souvent un blocage du navigateur ou de l'application) : le guide, avec le code.
+    if (r === "refuse" || r === "autre") { setFenetre({ type: "refus", besoin, reessayer, code, secours }); return null; }
+    return `${messageEchec(r, besoin)} (code : ${code})`;
   }, []);
 
   const fermer = useCallback((ok: boolean) => {

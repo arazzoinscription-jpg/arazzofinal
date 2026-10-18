@@ -9,8 +9,9 @@ import {
   preparerVideoMessage, finaliserVideoMessage,
 } from "@/app/actions/messaging";
 import { createClient } from "@/lib/supabase/client";
-import { AUDIO_MAX_S, BUCKET_MESSAGES, VIDEO_MAX_S, dureeLisible } from "@/lib/messagerie-pieces";
-import { BulleVideo, EnregistreurVideo, LecteurVocal, PhotoEnGrand, compresserImage, formatEnregistrement } from "./pieces";
+import { AUDIO_MAX_S, BUCKET_MESSAGES, VIDEO_MAX_OCTETS, VIDEO_MAX_S, dureeLisible } from "@/lib/messagerie-pieces";
+import { BulleVideo, EnregistreurVideo, LecteurVocal, PhotoEnGrand, compresserImage, creerEnregistreur, formatEnregistrement } from "./pieces";
+import { codeErreur, detecterContexte } from "@/lib/autorisations-media";
 import { useAutorisationMedia } from "./guide-autorisation";
 
 type Role = "eleve" | "formateur" | "patronniste" | "admin";
@@ -56,6 +57,8 @@ export function ChatWidget() {
   const [enreg, setEnreg] = useState<{ secondes: number } | null>(null);
   const [camera, setCamera] = useState(false);
   const champPhoto = useRef<HTMLInputElement>(null);
+  // Secours vidéo : l'appareil photo du téléphone (marche même quand le navigateur bloque la caméra).
+  const champVideoTel = useRef<HTMLInputElement>(null);
   const enregistreur = useRef<{ rec: MediaRecorder; flux: MediaStream; morceaux: Blob[]; debut: number; minuteur: number; annule: boolean } | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState("");
@@ -192,10 +195,19 @@ export function ChatWidget() {
     if (enregistreur.current) return;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { toast("Votre navigateur ne permet pas d'enregistrer un message vocal.", "error"); return; }
     if (!(await autorisation.preparer("micro", () => void demarrerVocal()))) return;
+    // 1) Ouvrir le micro (un refus → le guide pas à pas).
+    let flux: MediaStream;
     try {
-      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      const message = autorisation.echec("micro", e, () => void demarrerVocal());
+      if (message) toast(message, "error");
+      return;
+    }
+    // 2) Enregistrer (format de secours si le téléphone refuse le premier ; micro libéré en cas d'échec).
+    try {
       const format = formatEnregistrement();
-      const rec = new MediaRecorder(flux, format ? { mimeType: format } : undefined);
+      const rec = creerEnregistreur(flux, format ? { mimeType: format } : {});
       const etat = { rec, flux, morceaux: [] as Blob[], debut: Date.now(), minuteur: 0, annule: false };
       rec.ondataavailable = (e) => { if (e.data.size) etat.morceaux.push(e.data); };
       rec.onstop = () => {
@@ -216,18 +228,43 @@ export function ChatWidget() {
         if (s >= AUDIO_MAX_S && rec.state === "recording") rec.stop();
       }, 250);
       enregistreur.current = etat;
-      rec.start(250);
+      try { rec.start(250); } catch { rec.start(); }
       setEnreg({ secondes: 0 });
     } catch (e) {
-      const message = autorisation.echec("micro", e, () => void demarrerVocal());
-      if (message) toast(message, "error");
+      enregistreur.current = null;
+      flux.getTracks().forEach((t) => t.stop());
+      toast(`Ce téléphone n'arrive pas à enregistrer le son ici (code : ${codeErreur(e)}). Ouvrez le site dans Chrome (Android) ou Safari (iPhone).`, "error");
     }
+  }
+
+  /** Secours (téléphone) : filmer avec l'appareil photo du téléphone, puis envoyer la vidéo (1 min, 45 Mo au plus). */
+  const secoursVideo = detecterContexte(typeof navigator === "undefined" ? "" : navigator.userAgent).appareil === "pc"
+    ? undefined
+    : { libelle: "🎥 Filmer avec l'appareil photo du téléphone", action: () => { if (champVideoTel.current) { champVideoTel.current.value = ""; champVideoTel.current.click(); } } };
+
+  function videoDuTelephone(f: File | null) {
+    if (!f) return;
+    if (f.size > VIDEO_MAX_OCTETS) { toast(`Vidéo trop lourde (${Math.round(f.size / 1048576)} Mo) : filmez plus court (30 secondes environ).`, "error"); return; }
+    const url = URL.createObjectURL(f);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      const d = Number.isFinite(v.duration) ? Math.round(v.duration) : 0;
+      if (d > VIDEO_MAX_S + 1) { toast(`Vidéo trop longue (${d} s) : 1 minute au plus.`, "error"); return; }
+      envoyerVideo(f, Math.max(1, Math.min(VIDEO_MAX_S, d || 1)));
+    };
+    v.onerror = () => { URL.revokeObjectURL(url); envoyerVideo(f, 1); };
+    v.src = url;
   }
 
   /** 🎥 Vidéo ronde : explication / guide d'autorisation d'abord, puis l'enregistreur. */
   async function ouvrirCamera() {
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { toast("Votre navigateur ne permet pas d'enregistrer une vidéo ici.", "error"); return; }
-    if (await autorisation.preparer("camera", () => void ouvrirCamera())) setCamera(true);
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      if (secoursVideo) { secoursVideo.action(); return; }
+      toast("Votre navigateur ne permet pas d'enregistrer une vidéo ici.", "error"); return;
+    }
+    if (await autorisation.preparer("camera", () => void ouvrirCamera(), secoursVideo)) setCamera(true);
   }
 
   function arreterVocal(annuler: boolean) {
@@ -390,6 +427,7 @@ export function ChatWidget() {
                 ) : (
                   <div className="p-2.5 border-t border-cream-200 dark:border-white/10 flex items-end gap-1.5 shrink-0">
                     <input ref={champPhoto} type="file" accept="image/*" className="hidden" onChange={(e) => { void choisirPhoto(e.target.files?.[0] ?? null); e.target.value = ""; }} />
+                    <input ref={champVideoTel} type="file" accept="video/*" capture="user" className="hidden" onChange={(e) => videoDuTelephone(e.target.files?.[0] ?? null)} />
                     <button type="button" onClick={() => champPhoto.current?.click()} disabled={pending} aria-label="Envoyer une photo"
                       className="w-10 h-10 rounded-full grid place-items-center text-[#6B21C8] dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-white/10 disabled:opacity-50 shrink-0"><ImageIcon size={19} /></button>
                     <button type="button" onClick={() => void ouvrirCamera()} disabled={pending} aria-label="Enregistrer une vidéo (1 minute)"
@@ -420,7 +458,7 @@ export function ChatWidget() {
       {photo ? <PhotoEnGrand url={photo} onFermer={() => setPhoto(null)} /> : null}
       {camera ? (
         <EnregistreurVideo maxS={VIDEO_MAX_S} onFermer={() => setCamera(false)} onEnvoyer={envoyerVideo}
-          onRefus={(e) => { setCamera(false); const message = autorisation.echec("camera", e, () => void ouvrirCamera()); if (message) toast(message, "error"); }} />
+          onRefus={(e) => { setCamera(false); const message = autorisation.echec("camera", e, () => void ouvrirCamera(), secoursVideo); if (message) toast(message, "error"); }} />
       ) : null}
       {autorisation.rendu}
     </>

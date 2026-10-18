@@ -13,7 +13,8 @@ export const AUDIO_MAX_S = 120;
 /** Une vidéo ronde « face caméra » dure 1 minute au plus. */
 export const VIDEO_MAX_S = 60;
 /** Envoyée directement du téléphone au stockage (le serveur du site refuse plus de 4,5 Mo par requête). */
-export const VIDEO_MAX_OCTETS = 25 * 1024 * 1024;
+// 45 Mo : une minute filmée par l'appareil photo du téléphone (secours quand le navigateur bloque la caméra).
+export const VIDEO_MAX_OCTETS = 45 * 1024 * 1024;
 /** Durée de vie d'un lien de lecture (le widget recharge la conversation bien avant). */
 export const LIEN_TTL_S = 3600;
 

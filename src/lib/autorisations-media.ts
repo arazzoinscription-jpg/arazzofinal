@@ -154,6 +154,14 @@ export function lienOuvrirChrome(c: Contexte, adresse: string): string | null {
   }
 }
 
+/** Le code d'une erreur du navigateur, à montrer pour le diagnostic (« NotAllowedError — Permission denied »). */
+export function codeErreur(erreur: unknown): string {
+  const e = erreur as { name?: unknown; message?: unknown } | null;
+  const nom = typeof e?.name === "string" && e.name ? e.name : typeof erreur === "string" ? erreur : "inconnu";
+  const message = typeof e?.message === "string" ? e.message.replace(/\s+/g, " ").trim().slice(0, 80) : "";
+  return message && message !== nom ? `${nom} — ${message}` : nom;
+}
+
 export type Echec = "refuse" | "absent" | "occupe" | "non_pris_en_charge" | "autre";
 
 /** Pourquoi l'accès a échoué (nom de l'erreur du navigateur). */
