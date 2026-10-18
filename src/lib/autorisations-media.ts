@@ -10,7 +10,23 @@ export type Appareil = "android" | "iphone" | "pc";
 export type Navigateur = "chrome" | "samsung" | "safari" | "firefox" | "edge" | "autre";
 export type Besoin = "micro" | "camera";
 
-export interface Contexte { appareil: Appareil; navigateur: Navigateur; installee: boolean }
+export interface Contexte {
+  appareil: Appareil;
+  navigateur: Navigateur;
+  installee: boolean;
+  /** Ouvert DANS une application (lien partagé sur Instagram, Facebook, TikTok…) : caméra et micro souvent bloqués. */
+  integre?: string | null;
+}
+
+/** Le navigateur intégré d'une application (Instagram, Facebook, TikTok, Snapchat, Messenger), sinon null. */
+export function navigateurIntegre(userAgent: string): string | null {
+  const ua = userAgent || "";
+  if (/Instagram/i.test(ua)) return "Instagram";
+  if (/FBAN|FBAV|FB_IAB|FBIOS/i.test(ua)) return /Messenger|MESSENGER/i.test(ua) ? "Messenger" : "Facebook";
+  if (/musical_ly|BytedanceWebview|TikTok/i.test(ua)) return "TikTok";
+  if (/Snapchat/i.test(ua)) return "Snapchat";
+  return null;
+}
 
 /** L'appareil et le navigateur, d'après le « user-agent » ; `installee` = application ouverte depuis l'écran d'accueil. */
 export function detecterContexte(userAgent: string, installee = false): Contexte {
@@ -24,7 +40,7 @@ export function detecterContexte(userAgent: string, installee = false): Contexte
   else if (/Firefox|FxiOS/i.test(ua)) navigateur = "firefox";
   else if (/CriOS|Chrome|Chromium/i.test(ua)) navigateur = "chrome";
   else if (/Safari/i.test(ua)) navigateur = "safari";
-  return { appareil, navigateur, installee };
+  return { appareil, navigateur, installee, integre: navigateurIntegre(ua) };
 }
 
 const NOMS: Record<Besoin, { court: string; deux: string }> = {
@@ -35,6 +51,23 @@ const NOMS: Record<Besoin, { court: string; deux: string }> = {
 /** Les étapes à suivre quand l'accès a été REFUSÉ (le navigateur ne redemande plus de lui-même). */
 export function etapesAutorisation(c: Contexte, besoin: Besoin): string[] {
   const { deux } = NOMS[besoin];
+  // Lien ouvert DANS Instagram / Facebook / TikTok : leur navigateur bloque caméra et micro → ouvrir le vrai navigateur.
+  if (c.integre) {
+    if (c.appareil === "iphone") {
+      return [
+        `Le site est ouvert dans l’application ${c.integre}, qui bloque ${NOMS[besoin].court}.`,
+        "Touchez « ⋯ » (en haut ou en bas à droite), puis « Ouvrir dans le navigateur » (Safari).",
+        `Dans Safari, touchez de nouveau ${besoin === "micro" ? "🎤" : "🎥"} puis « Autoriser ».`,
+        "Pour la suite, installez l’application Arazzo depuis Safari (Partager › « Sur l’écran d’accueil ») : plus de blocage.",
+      ];
+    }
+    return [
+      `Le site est ouvert dans l’application ${c.integre}, qui bloque ${NOMS[besoin].court}.`,
+      "Touchez le bouton vert « Ouvrir dans Chrome » ci-dessous (ou ⋮ en haut à droite › « Ouvrir dans Chrome »).",
+      `Dans Chrome, touchez de nouveau ${besoin === "micro" ? "🎤" : "🎥"} puis « Autoriser ».`,
+      "Pour la suite, installez l’application Arazzo depuis Chrome : plus de blocage.",
+    ];
+  }
   if (c.appareil === "iphone") {
     if (c.installee) {
       return [
@@ -108,6 +141,17 @@ export function adresseReglages(c: Contexte, site: string): string | null {
   if (c.navigateur === "chrome") return `chrome://settings/content/siteDetails?site=${s}`;
   if (c.navigateur === "edge") return `edge://settings/content/siteDetails?site=${s}`;
   return null;
+}
+
+/** Android, lien ouvert dans une application : la même page dans Chrome (lien « intent »). */
+export function lienOuvrirChrome(c: Contexte, adresse: string): string | null {
+  if (!c.integre || c.appareil !== "android") return null;
+  try {
+    const u = new URL(adresse);
+    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=https;package=com.android.chrome;end`;
+  } catch {
+    return null;
+  }
 }
 
 export type Echec = "refuse" | "absent" | "occupe" | "non_pris_en_charge" | "autre";

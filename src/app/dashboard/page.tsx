@@ -9,7 +9,8 @@ import { RoleRequestCTA } from "./role-request/cta";
 import { BuyerHome } from "./buyer-home";
 import { CommunityGlobe } from "./community-globe";
 import { TelegramProofPopup } from "./telegram-proof-popup";
-import { getTelegramProofState } from "./telegram-proof-actions";
+import { etatPreuveTelegram } from "./donnees-partagees";
+import { utilisatriceCourante } from "@/lib/supabase/utilisatrice";
 import { migrationAbsente } from "@/lib/live-care/repli";
 import { livesVisibles } from "@/lib/live-care/visibles";
 import {
@@ -25,21 +26,52 @@ export const dynamic = "force-dynamic";
 const LOCALE: Record<string, string> = { fr: "fr-FR", ar: "ar", en: "en-US" };
 
 /** Les deux boutons de l'en-tête « La Cour » : entrer en classe, voir son cours. */
-const BOUTONS: Record<string, { classe: string; cours: string }> = {
-  fr: { classe: "Entrer en classe", cours: "Voir ton cours" },
-  ar: { classe: "ادخلي للقسم", cours: "شوفي الدرس تاعك" },
-  en: { classe: "Enter the class", cours: "See your course" },
+const BOUTONS: Record<string, { classe: string; cours: string; aucun: string }> = {
+  fr: { classe: "Entrer en classe", cours: "Voir ton cours", aucun: "Aucun cours pour l'instant." },
+  ar: { classe: "ادخلي إلى القسم", cours: "اطّلعي على الدرس", aucun: "لا توجد دروس حاليًا." },
+  en: { classe: "Enter the class", cours: "See your course", aucun: "No course yet." },
 };
 
 const FALLBACKS = ["/images/mannequin-couture.jpg", "/images/mannequin-dessin.jpg", "/images/mannequin-mode.jpg"];
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+type Client = Awaited<ReturnType<typeof createClient>>;
 
-  const { data: profile } = await supabase
-    .from("users").select("nom, role, roles, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
-    .eq("id", user!.id).single();
+/**
+ * Les prochains lives (colonnes et table de la migration 096 ; sans elles, la requête d'origine).
+ */
+async function prochainsLives(supabase: Client, depuis: string) {
+  const r = await supabase
+    .from("live_sessions").select("id, titre, starts_at, course_id, audience, cancelled_at").gte("starts_at", depuis)
+    .order("starts_at", { ascending: true }).limit(200);
+  if (r.error && migrationAbsente(r.error)) {
+    const repli = await supabase.from("live_sessions").select("id, titre, starts_at, course_id, audience").gte("starts_at", depuis)
+      .order("starts_at", { ascending: true }).limit(200);
+    return repli.data as typeof r.data;
+  }
+  return r.data;
+}
+
+export default async function DashboardPage() {
+  // Connexion vérifiée une seule fois (partagée avec le gabarit), puis TOUTES les lectures en même temps
+  // (avant : 7 lectures l'une après l'autre → plusieurs secondes sur téléphone).
+  const user = await utilisatriceCourante();
+  const supabase = await createClient();
+  const depuis = new Date().toISOString();
+  const [{ data: profile }, { data: roleReqs }, { data: enrollments }, { data: progressRecords }, prochains, tgProof, jar] = await Promise.all([
+    supabase.from("users").select("nom, role, roles, xp_total, xp_this_month, level_label, current_streak, weekly_goal")
+      .eq("id", user!.id).single(),
+    // Demandes de rôle (élève → formatrice / patronniste)
+    supabase.from("role_requests").select("requested_role, statut, created_at").eq("user_id", user!.id).order("created_at", { ascending: false }),
+    supabase.from("enrollments")
+      .select(`id, course_id, course:courses(id, titre_fr, thumbnail, ordre, chapters(lessons(id)))`)
+      .eq("user_id", user!.id).order("paid_at", { ascending: false }),
+    supabase.from("progress").select("lesson_id, completed_at").eq("user_id", user!.id),
+    // Prochain live QUE L'ÉLÈVE VOIT dans /dashboard/sessions : global ou d'un de ses niveaux, non annulé.
+    prochainsLives(supabase, depuis),
+    // Étudiante importée (inscription 0 DA) sans preuve Telegram → popup obligatoire (lu une fois, avec le gabarit).
+    etatPreuveTelegram(user!.id),
+    cookies(),
+  ]);
 
   const hasFormateur = isFormateur(profile);
   const hasPatronniste = isPatronniste(profile);
@@ -50,35 +82,11 @@ export default async function DashboardPage() {
     return <BuyerHome prenom={profile?.nom?.split(" ")[0] ?? ""} />;
   }
 
-  // Demandes de rôle (élève → formatrice / patronniste)
-  const { data: roleReqs } = await supabase
-    .from("role_requests")
-    .select("requested_role, statut, created_at")
-    .eq("user_id", user!.id)
-    .order("created_at", { ascending: false });
   const latestStatus = (r: "formateur" | "patronniste"): "none" | "en_attente" | "approuve" | "refuse" =>
     (roleReqs?.find((x) => x.requested_role === r)?.statut as "en_attente" | "approuve" | "refuse" | undefined) ?? "none";
 
-  const { data: enrollments } = await supabase
-    .from("enrollments")
-    .select(`id, course_id, course:courses(id, titre_fr, thumbnail, ordre, chapters(lessons(id)))`)
-    .eq("user_id", user!.id).order("paid_at", { ascending: false });
-
-  const { data: progressRecords } = await supabase
-    .from("progress").select("lesson_id, completed_at").eq("user_id", user!.id);
   const completed = new Set((progressRecords ?? []).map((p) => p.lesson_id));
 
-  // Prochain live QUE L'ÉLÈVE VOIT dans /dashboard/sessions : global ou d'un de ses niveaux,
-  // non annulé (colonnes et table de la migration 096 ; sans elles, requête d'origine).
-  const depuis = new Date().toISOString();
-  let { data: prochains, error: errNext } = await supabase
-    .from("live_sessions").select("id, titre, starts_at, course_id, audience, cancelled_at").gte("starts_at", depuis)
-    .order("starts_at", { ascending: true }).limit(200);
-  if (errNext && migrationAbsente(errNext)) {
-    const repli = await supabase.from("live_sessions").select("id, titre, starts_at, course_id, audience").gte("starts_at", depuis)
-      .order("starts_at", { ascending: true }).limit(200);
-    prochains = repli.data as typeof prochains;
-  }
   const coursParLive = new Map<string, string[]>();
   const idsProchains = (prochains ?? []).map((s) => s.id as string);
   if (idsProchains.length) {
@@ -118,7 +126,7 @@ export default async function DashboardPage() {
   const lessonsToday = (progressRecords ?? []).filter((p) => p.completed_at?.slice(0, 10) === todayKey).length;
   const xpToday = lessonsToday * 20;
 
-  const lang = normLang((await cookies()).get("lang")?.value);
+  const lang = normLang(jar.get("lang")?.value);
   const t = DICT[lang];
 
   // Compte SANS formation (ni rôle d'équipe) : la leçon d'essai gratuite et les missions du feed, dès la création du compte.
@@ -126,8 +134,6 @@ export default async function DashboardPage() {
     ? await leconEssai(createAdminClient(), user!.id).catch(() => null)
     : undefined;
 
-  // Étudiante importée (inscription 0 DA) sans preuve Telegram → popup obligatoire.
-  const tgProof = await getTelegramProofState(user!.id);
 
   // Styles réutilisés — surface « atelier » (clair / sombre)
   const card = "bg-white dark:bg-white/[0.04] ring-1 ring-violet-950/[0.07] dark:ring-white/10 shadow-[0_14px_34px_-22px_rgba(43,18,69,0.32)] dark:shadow-none";
@@ -231,7 +237,7 @@ export default async function DashboardPage() {
 
       {/* 2. La Cour (globe) — avec « Entrer en classe » et « Voir ton cours » */}
       <div className="relative">
-        <CommunityGlobe prenom={prenom}
+        <CommunityGlobe prenom={prenom} lang={lang}
           classe={{ href: "/dashboard/classe", label: BOUTONS[lang].classe }}
           cours={hero ? { href: "/dashboard/mon-cours", label: BOUTONS[lang].cours } : undefined} />
       </div>
@@ -302,7 +308,7 @@ export default async function DashboardPage() {
                   <span className={`text-xs ${muted} font-dm`}>{c.pct}%</span>
                 </a>
               ))}
-              {courses.length === 0 && <p className={`text-sm ${muted} font-dm`}>Aucun cours pour l'instant.</p>}
+              {courses.length === 0 && <p className={`text-sm ${muted} font-dm`}>{BOUTONS[lang].aucun}</p>}
             </div>
           </StaggerItem>
         </StaggerGroup>

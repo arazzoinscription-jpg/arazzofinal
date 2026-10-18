@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
 import {
   AlignCenter, AlignLeft, AlignRight, ArrowLeft, BarChart3, Camera, Check, HelpCircle, Link2, Loader2, Minus, Palette,
-  Pencil, Plus, Smile, Timer, Trash2, Type, Undo2, Video, X,
+  Pencil, Plus, Smile, Timer, Trash2, Type, Undo2, Video, X, Aperture, Clapperboard,
 } from "lucide-react";
 import { AUTOCOLLANTS, COULEURS, FONDS, MAX_CALQUES, MAX_POINTS, lienAutorise, type Calque } from "@/lib/stories/calques";
-import { DUREE_STORY_MAX_S, decouperVideo, dureeLisible, verifierPhotoStory, type PartieVideo } from "@/lib/stories/regles";
+import { DUREE_STORY_MAX_S, PHOTO_STORY_MAX_OCTETS, VIDEO_LONGUE_MAX_S, decouperVideo, dureeLisible, verifierPhotoStory, type PartieVideo } from "@/lib/stories/regles";
+import { detecterContexte } from "@/lib/autorisations-media";
+import { compresserImage } from "@/components/messaging/pieces";
+import { CameraStory } from "./camera-story";
 import { demarrerStoryVideo, finaliserStoryVideo, finaliserStoryVideoLongue, publierStoryPhoto, publierStoryTexte } from "@/app/actions/stories";
 import { ContenuCalque, Dessins, FondStory, RATIO, STYLE_CADRE, ZONE_CADRE, styleTexte } from "./rendu-calques";
 import { MESSAGE_EN_ATTENTE } from "@/lib/visiteuses/regles";
@@ -72,6 +75,9 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
   const cadre = useRef<HTMLDivElement>(null);
   const corbeille = useRef<HTMLDivElement>(null);
   const champ = useRef<HTMLInputElement>(null);
+  const champPhotoCam = useRef<HTMLInputElement>(null);
+  const champVideoCam = useRef<HTMLInputElement>(null);
+  const [cameraPc, setCameraPc] = useState(false);
   const pointeurs = useRef(new Map<number, { x: number; y: number }>());
   const geste = useRef<Geste | null>(null);
   const urlMedia = source && source.kind !== "texte" ? source.url : null;
@@ -94,9 +100,11 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
     onFermer();
   }
 
-  function choisirFichier(f: File | null) {
+  async function choisirFichier(brut: File | null) {
     setErreur(null);
-    if (!f) return;
+    if (!brut) return;
+    // Photo de l'appareil photo du téléphone (souvent plus de 8 Mo) : allégée avant l'envoi.
+    const f = brut.type.startsWith("image/") && brut.size > PHOTO_STORY_MAX_OCTETS ? await compresserImage(brut, 2160, 0.88) : brut;
     const url = URL.createObjectURL(f);
     if (f.type.startsWith("video/")) {
       const v = document.createElement("video");
@@ -113,6 +121,24 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
     const pb = verifierPhotoStory({ type: f.type, size: f.size });
     if (pb) { setErreur(pb); URL.revokeObjectURL(url); return; }
     setSource({ kind: "image", fichier: f, url });
+  }
+
+  /** 🎥 Filmer / 📸 Prendre une photo : l'appareil photo du téléphone ; sur ordinateur, la caméra dans la page. */
+  function cameraDirecte(type: "photo" | "video") {
+    setErreur(null);
+    if (detecterContexte(navigator.userAgent).appareil === "pc") { setCameraPc(true); return; }
+    const c = type === "photo" ? champPhotoCam.current : champVideoCam.current;
+    if (!c) return;
+    c.value = "";
+    c.click();
+  }
+
+  /** Vidéo filmée dans la page (ordinateur) : sa durée est connue, elle part directement dans l'éditeur. */
+  function videoFilmee(f: File, duree: number) {
+    setCameraPc(false);
+    const d = decouperVideo(duree);
+    if (!d.ok) { setErreur(d.erreur); return; }
+    setSource({ kind: "video", fichier: f, url: URL.createObjectURL(f), duree: d.duree, parties: d.parties });
   }
 
   function ouvrirFichier(accept: string) {
@@ -359,7 +385,11 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
           <h2 className="font-semibold text-lg">Nouvelle story</h2>
           <button type="button" onClick={onFermer} aria-label="Fermer" className={`ms-auto ${bouton}`}><X size={20} /></button>
         </div>
-        <input ref={champ} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => choisirFichier(e.target.files?.[0] ?? null)} />
+        <input ref={champ} type="file" accept="image/*,video/*" className="hidden" onChange={(e) => void choisirFichier(e.target.files?.[0] ?? null)} />
+        {/* L'appareil photo du téléphone, directement (caméra arrière ; on peut basculer dans l'appareil photo). */}
+        <input ref={champPhotoCam} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void choisirFichier(e.target.files?.[0] ?? null)} />
+        <input ref={champVideoCam} type="file" accept="video/*" capture="environment" className="hidden" onChange={(e) => void choisirFichier(e.target.files?.[0] ?? null)} />
+        {cameraPc ? <CameraStory maxS={VIDEO_LONGUE_MAX_S} onFermer={() => setCameraPc(false)} onPhoto={(f) => { setCameraPc(false); void choisirFichier(f); }} onVideo={videoFilmee} /> : null}
         <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
           <div className="grid grid-cols-3 gap-3 w-full max-w-md">
             <button type="button" onClick={() => ouvrirFichier("image/*")} className="rounded-3xl bg-white/10 hover:bg-white/15 aspect-[3/4] flex flex-col items-center justify-center gap-2">
@@ -371,6 +401,15 @@ export function EditeurStory({ equipe = false, onFermer }: { equipe?: boolean; o
             </button>
             <button type="button" onClick={() => { setSource({ kind: "texte" }); nouveauTexte(true); }} className="rounded-3xl aspect-[3/4] flex flex-col items-center justify-center gap-2" style={{ background: FONDS[0] }}>
               <Type size={30} aria-hidden /><span className="text-sm font-semibold">Texte</span>
+            </button>
+          </div>
+          {/* La caméra en direct */}
+          <div className="grid grid-cols-2 gap-3 w-full max-w-md">
+            <button type="button" onClick={() => cameraDirecte("video")} className="rounded-2xl bg-gradient-to-br from-[#FE7223] to-[#e1306c] hover:opacity-95 py-4 flex items-center justify-center gap-2 font-semibold">
+              <Clapperboard size={22} aria-hidden /> Filmer
+            </button>
+            <button type="button" onClick={() => cameraDirecte("photo")} className="rounded-2xl bg-white/10 hover:bg-white/15 py-4 flex items-center justify-center gap-2 font-semibold">
+              <Aperture size={22} aria-hidden /> Prendre une photo
             </button>
           </div>
           <p className="text-sm text-white/60 text-center max-w-sm">Ensuite : écrivez dessus, dessinez au doigt, ajoutez des autocollants, une question, un sondage, un compte à rebours ou un lien. Visible 24 h dans La Cour, puis dans l’« Historique Stories » de votre profil (vous pouvez la supprimer à tout moment).</p>

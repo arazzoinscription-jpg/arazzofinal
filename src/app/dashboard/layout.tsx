@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { EcouteCloche } from "@/components/cloche/ecoute-cloche";
+import { Suspense } from "react";
 import { PileFlottante } from "@/components/layout/pile-flottante";
+import { utilisatriceCourante } from "@/lib/supabase/utilisatrice";
+import { etatPreuveTelegram } from "./donnees-partagees";
 import { coursEnCours } from "@/lib/cours-en-cours";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
@@ -23,7 +26,6 @@ import { PageTransition } from "./page-transition";
 import { LangSwitcher } from "./lang-switcher";
 import { normLang, isRtl } from "./dash-i18n";
 import { TelegramProofPopup } from "./telegram-proof-popup";
-import { getTelegramProofState } from "./telegram-proof-actions";
 import { PushOptIn } from "@/components/pwa/push-opt-in";
 import { PwaBackButton } from "@/components/pwa/pwa-back-button";
 import { CelebrationListener } from "@/components/celebration/celebration-listener";
@@ -31,7 +33,11 @@ import { PseudoPrompt } from "@/components/community/pseudo-prompt";
 import { PublicationConsentPopup } from "@/components/community/publication-consent-popup";
 import { SignalPresenceMembre } from "@/components/presence/membres";
 
-const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice" };
+const ROLE_LABEL: Record<string, Record<string, string>> = {
+  fr: { eleve: "Élève", formateur: "Formatrice", patronniste: "Patronniste", admin: "Administratrice", acheteur: "Acheteur de patrons" },
+  ar: { eleve: "طالبة", formateur: "مدرّبة", patronniste: "مصمّمة باترونات", admin: "مديرة", acheteur: "مشترية باترونات" },
+  en: { eleve: "Student", formateur: "Trainer", patronniste: "Pattern maker", admin: "Administrator", acheteur: "Pattern buyer" },
+};
 
 /**
  * La fenêtre d'autorisation de publication est-elle posée aux élèves ?
@@ -47,6 +53,11 @@ const ROLE_LABEL: Record<string, string> = { eleve: "Élève", formateur: "Forma
  * n'ont pas encore décidé.
  */
 const DEMANDE_CONSENTEMENT_ACTIVE = false;
+
+/** Les boutons flottants avec « Mon cours » (lu à part : il n'empêche jamais la page de s'afficher). */
+async function PileAvecCours({ userId, lang }: { userId: string; lang: "fr" | "ar" | "en" }) {
+  return <PileFlottante cours={await coursEnCours(createAdminClient(), userId)} lang={lang} />;
+}
 
 /** Écran affiché lorsqu'un compte est bloqué ou mis en veille. */
 function SuspendedScreen({ status }: { status: "bloque" | "veille" }) {
@@ -78,12 +89,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  // Connexion vérifiée UNE fois par requête (partagée avec la page).
+  const user = await utilisatriceCourante();
   if (!user) redirect("/login");
+  const supabase = await createClient();
 
   // Compte bloqué / en veille : accès suspendu (le ban Auth empêche aussi la reconnexion).
   const acctStatus = (user.app_metadata?.status as string) ?? "actif";
@@ -93,7 +102,15 @@ export default async function DashboardLayout({
 
   // Étudiante importée (0 DA) sans preuve Telegram, au-delà de 7 jours → compte
   // fermé jusqu'à l'envoi de la preuve finale (gate plein écran, non refermable).
-  const tgProof = await getTelegramProofState(user.id);
+  // Tout ce dont le gabarit a besoin est lu EN MÊME TEMPS (avant : 4 lectures l'une après l'autre).
+  const [tgProof, { data: profile }, { data: accordPublication }, jar] = await Promise.all([
+    etatPreuveTelegram(user.id),
+    supabase.from("users").select("nom, role, roles, avatar_url, username").eq("id", user.id).single(),
+    // Autorisation de publication : a-t-elle deja REPONDU ? L'etat vient de la base et non du navigateur — un
+    // consentement doit survivre a un changement d'appareil et a un vidage de cache.
+    supabase.from("publication_consent_status").select("granted").eq("user_id", user.id).maybeSingle(),
+    cookies(),
+  ]);
   if (tgProof.blocked) {
     return (
       <div className="min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c]">
@@ -102,29 +119,13 @@ export default async function DashboardLayout({
     );
   }
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("nom, role, roles, avatar_url, username")
-    .eq("id", user.id)
-    .single();
-
-  // Autorisation de publication : a-t-elle deja REPONDU ? L'etat vient de la
-  // base et non du navigateur — un consentement doit survivre a un changement
-  // d'appareil et a un vidage de cache.
-  const { data: accordPublication } = await supabase
-    .from("publication_consent_status")
-    .select("granted")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   const role = profile?.role ?? "eleve";
   const roles = profile?.roles ?? [];
   // Acheteur de patrons : navigation réduite (uniquement si encore simple élève).
   const accountType = (user.user_metadata?.account_type as string) ?? "formations";
   const buyer = accountType === "patrons" && role === "eleve";
-  const roleLabel = buyer ? "Acheteur de patrons" : (ROLE_LABEL[role] ?? role);
-
-  const lang = normLang((await cookies()).get("lang")?.value);
+  const lang = normLang(jar.get("lang")?.value);
+  const roleLabel = buyer ? ROLE_LABEL[lang].acheteur : (ROLE_LABEL[lang][role] ?? role);
 
   return (
     <div dir={isRtl(lang) ? "rtl" : "ltr"} className="relative min-h-screen bg-cream-DEFAULT dark:bg-[#0d0a1c] flex">
@@ -184,7 +185,7 @@ export default async function DashboardLayout({
       </main>
 
       {/* Menu flottant unique (mêmes 5 entrées que le reste du site) + visite guidée 1er accès */}
-      <MobileQuickNav />
+      <MobileQuickNav lang={lang} />
       {role === "eleve" && <OnboardingTour lang={lang} />}
       {/* Popup « Bravo » temps réel (diplôme obtenu) + invitation pseudo (1 fois) */}
       <CelebrationListener />
@@ -200,7 +201,7 @@ export default async function DashboardLayout({
       )}
       <ChatWidget />
       {/* Accès directs, empilés à gauche : le cours en cours (dernière leçon ouverte), « Ma classe », « La Cour ». */}
-      <PileFlottante cours={await coursEnCours(createAdminClient(), user.id)} />
+      <Suspense fallback={<PileFlottante cours={null} lang={lang} />}><PileAvecCours userId={user.id} lang={lang} /></Suspense>
       {/* Cloche de la classe : bannière + son quand l'enseignante la fait sonner. */}
       <EcouteCloche userId={user.id} />
       {/* « En ligne » + activité choisie, visibles des camarades — temps réel, rien en base (mode discrète possible). */}

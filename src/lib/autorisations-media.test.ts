@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { adresseReglages, detecterContexte, etapesAutorisation, messageEchec, raisonEchec } from "./autorisations-media";
+import { adresseReglages, detecterContexte, etapesAutorisation, lienOuvrirChrome, messageEchec, navigateurIntegre, raisonEchec } from "./autorisations-media";
 
 const UA = {
   androidChrome: "Mozilla/5.0 (Linux; Android 13; SM-A135F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
@@ -14,13 +14,13 @@ const UA = {
 };
 
 test("appareil et navigateur reconnus (Samsung et Edge avant Chrome, Chrome iPhone = CriOS)", () => {
-  assert.deepEqual(detecterContexte(UA.androidChrome), { appareil: "android", navigateur: "chrome", installee: false });
+  assert.deepEqual(detecterContexte(UA.androidChrome), { appareil: "android", navigateur: "chrome", installee: false, integre: null });
   assert.equal(detecterContexte(UA.samsung).navigateur, "samsung");
-  assert.deepEqual(detecterContexte(UA.iphoneSafari, true), { appareil: "iphone", navigateur: "safari", installee: true });
+  assert.deepEqual(detecterContexte(UA.iphoneSafari, true), { appareil: "iphone", navigateur: "safari", installee: true, integre: null });
   assert.equal(detecterContexte(UA.iphoneChrome).navigateur, "chrome");
   assert.equal(detecterContexte(UA.pcEdge).navigateur, "edge");
   assert.equal(detecterContexte(UA.pcFirefox).navigateur, "firefox");
-  assert.deepEqual(detecterContexte(UA.macSafari), { appareil: "pc", navigateur: "safari", installee: false });
+  assert.deepEqual(detecterContexte(UA.macSafari), { appareil: "pc", navigateur: "safari", installee: false, integre: null });
   assert.equal(detecterContexte("").appareil, "pc");
 });
 
@@ -54,4 +54,18 @@ test("raison de l'échec : refus, pas d'appareil, occupé, navigateur", () => {
   assert.equal(raisonEchec(undefined), "autre");
   assert.match(messageEchec("occupe", "micro"), /Le micro est utilisé par une autre application/);
   assert.match(messageEchec("absent", "camera"), /Aucune caméra/);
+});
+
+test("lien ouvert dans Instagram / Facebook / TikTok : on le reconnaît et on fait ouvrir le vrai navigateur", () => {
+  const insta = "Mozilla/5.0 (Linux; Android 13; SM-A135F; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36 Instagram 312.0.0.32.112 Android";
+  const fb = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/FBIOS;FBAV/440.0]";
+  assert.equal(navigateurIntegre(insta), "Instagram");
+  assert.equal(navigateurIntegre(fb), "Facebook");
+  assert.equal(navigateurIntegre(UA.androidChrome), null);
+  const c = detecterContexte(insta);
+  assert.match(etapesAutorisation(c, "micro").join(" "), /application Instagram[\s\S]*Ouvrir dans Chrome/);
+  assert.match(etapesAutorisation(detecterContexte(fb), "camera").join(" "), /Ouvrir dans le navigateur[\s\S]*Safari/);
+  assert.equal(lienOuvrirChrome(c, "https://www.formation-arazzo.store/dashboard?x=1"), "intent://www.formation-arazzo.store/dashboard?x=1#Intent;scheme=https;package=com.android.chrome;end");
+  assert.equal(lienOuvrirChrome(detecterContexte(UA.androidChrome), "https://x.dz/"), null);
+  assert.equal(lienOuvrirChrome(detecterContexte(fb), "https://x.dz/"), null, "iPhone : pas de lien, les étapes");
 });

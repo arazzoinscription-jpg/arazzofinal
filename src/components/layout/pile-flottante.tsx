@@ -6,30 +6,38 @@ import { Clapperboard, PlayCircle, School, type LucideIcon } from "lucide-react"
 import type { CoursEnCours } from "@/lib/cours-en-cours";
 
 type Bouton = { href: string; titre: string; sous?: string; Icone: LucideIcon; pastille: string; fond: string };
+type Langue = "fr" | "ar" | "en";
+
+const TITRES: Record<Langue, { cours: string; classe: string; cour: string }> = {
+  fr: { cours: "Mon cours", classe: "Ma classe", cour: "La Cour" },
+  ar: { cours: "الدرس", classe: "القسم", cour: "الساحة" },
+  en: { cours: "My course", classe: "My class", cour: "The Courtyard" },
+};
 
 /**
  * Les boutons flottants de l'espace élève, EMPILÉS en bas à gauche (la bulle de messagerie est à droite) :
  * « Mon cours » (la dernière leçon ouverte), « Ma classe » et « La Cour ». Chacun disparaît quand on y est déjà.
  * Toute la pile se cache quand la messagerie est ouverte (sur téléphone, elle prend toute la largeur).
  */
-export function PileFlottante({ cours }: { cours: CoursEnCours | null }) {
+export function PileFlottante({ cours, lang = "fr" }: { cours: CoursEnCours | null; lang?: Langue }) {
   const chemin = usePathname() ?? "";
+  const t = TITRES[lang] ?? TITRES.fr;
   const boutons: Bouton[] = [];
   if (cours && !chemin.startsWith("/dashboard/cours/")) {
     boutons.push({
-      href: `/dashboard/cours/${cours.lessonId}`, titre: "Mon cours", sous: cours.lecon, Icone: PlayCircle,
+      href: `/dashboard/cours/${cours.lessonId}`, titre: t.cours, sous: cours.lecon, Icone: PlayCircle,
       pastille: "bg-gradient-to-br from-[#FE7223] to-[#5B16F9] text-white",
       fond: "bg-white dark:bg-[#1c1535] text-[#2A0880] dark:text-white border border-violet-200 dark:border-white/15",
     });
   }
   if (!chemin.startsWith("/dashboard/classe")) {
     boutons.push({
-      href: "/dashboard/classe", titre: "Ma classe", Icone: School,
+      href: "/dashboard/classe", titre: t.classe, Icone: School,
       pastille: "bg-white/20 text-white", fond: "bg-gradient-to-br from-[#5B16F9] to-[#FE7223] text-white",
     });
   }
   boutons.push({
-    href: "/communaute", titre: "La Cour", Icone: Clapperboard,
+    href: "/communaute", titre: t.cour, Icone: Clapperboard,
     pastille: "bg-white/20 text-white", fond: "bg-gradient-to-br from-teal-500 to-teal-700 text-white",
   });
 

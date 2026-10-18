@@ -1,3 +1,6 @@
+import { cookies } from "next/headers";
+import { normLang } from "@/app/dashboard/dash-i18n";
+import { espaceAccueil } from "@/lib/espace-accueil";
 import Link from "next/link";
 import { Radio } from "lucide-react";
 import { loadCommunityFeed, loadResultatsRecents } from "@/lib/community";
@@ -36,6 +39,8 @@ export default async function CommunautePage() {
   const welcome = me ? null : await loadFeedWelcome();
 
   let role = "guest";
+  // Le bon espace (élève → tableau de bord, formatrice → espace formateur) : lien DIRECT, sans détour par /mon-espace.
+  let monEspace = "/mon-espace";
   let live = null;
   let barreStories: ReactNode = null;
   let invitation: ReactNode = null;
@@ -51,6 +56,7 @@ export default async function CommunautePage() {
       (await createClient()).auth.getUser(),
     ]);
     role = prof?.role ?? "eleve";
+    monEspace = espaceAccueil(getRoles(prof), "lien");
     live = enDirect;
     // Compte SANS formation (« visiteuse ») : bulle « Missions » en tête des stories + invitation à rejoindre une classe.
     let missions: ReactNode = null;
@@ -83,14 +89,14 @@ export default async function CommunautePage() {
       {/* « Bravo ! … a terminé son modèle » : 24 h après la publication du résultat. */}
       <AlerteResultats resultats={resultats} bibliotheque={FEED_LIBRARY_ID} decalage={live ? 52 : 0} />
       {me && <SignalPresenceMembre userId={me.id} />}
-      <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} welcome={welcome} stories={barreStories} />
+      <FeedClient items={items} meId={me?.id ?? ""} bunnyLibraryId={FEED_LIBRARY_ID} canModerate={role === "admin"} isGuest={!me} welcome={welcome} stories={barreStories} monEspace={monEspace} />
       {/* Bouton « + » flottant : staff → vidéo/actualité ; élève → reel (≤ 2 min).
           Visible pour tout membre CONNECTÉ ; les visiteurs sont invités à se connecter. */}
       {me && <CommunityFab role={role} />}
       {invitation}
       {/* Menu du bas en version COMPACTE (pilule centrée, icônes seules) : il reste
           accessible sur le feed sans masquer le « + », les actions ni les popups. */}
-      <MobileQuickNav compact />
+      <MobileQuickNav compact monEspace={monEspace} lang={normLang((await cookies()).get("lang")?.value)} />
     </>
   );
 }

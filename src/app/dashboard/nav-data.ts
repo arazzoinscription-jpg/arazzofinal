@@ -32,9 +32,9 @@ export const SECTIONS: NavSection[] = [
   },
   {
     key: "classe", icon: School, home: "/dashboard/classe",
-    label: { fr: "Ma classe", ar: "قسمي", en: "My class" },
+    label: { fr: "Ma classe", ar: "القسم", en: "My class" },
     items: [
-      { href: "/dashboard/classe", icon: School, label: { fr: "Ma classe", ar: "قسمي", en: "My class" } },
+      { href: "/dashboard/classe", icon: School, label: { fr: "Ma classe", ar: "القسم", en: "My class" } },
       { href: "/dashboard/sessions", icon: Video, label: { fr: "Sessions live", ar: "حصص مباشرة", en: "Live sessions" } },
       { href: "/dashboard/pratiques", icon: Scissors, label: { fr: "Travaux pratiques", ar: "الأعمال التطبيقية", en: "Practical work" } },
       { href: "/dashboard/questions", icon: MessageCircle, label: { fr: "Questions / Réponses", ar: "الأسئلة والأجوبة", en: "Q&A" } },
@@ -45,7 +45,7 @@ export const SECTIONS: NavSection[] = [
   {
     // Le cours en cours (programme + vidéo), sur la dernière leçon ouverte.
     key: "cours", icon: PlayCircle, home: "/dashboard/mon-cours", items: [], match: ["/dashboard/cours"],
-    label: { fr: "Mon cours", ar: "الدرس تاعي", en: "My course" },
+    label: { fr: "Mon cours", ar: "الدرس", en: "My course" },
   },
   {
     key: "learn", icon: GraduationCap, home: "/dashboard/progression",

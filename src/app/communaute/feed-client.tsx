@@ -38,8 +38,17 @@ interface Comment {
   author: { id: string; nom: string; avatar_url: string | null; role: string };
 }
 
-export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null, stories = null }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null; page: Record<string, any> | null } | null; stories?: ReactNode }) {
+export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null, stories = null, monEspace = "/mon-espace" }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null; page: Record<string, any> | null } | null; stories?: ReactNode; monEspace?: string }) {
   const router = useRouter();
+  // « Mon espace » préparé EN ARRIÈRE-PLAN pendant qu'on regarde La Cour : le passage au tableau de bord est immédiat.
+  useEffect(() => {
+    if (isGuest) return;
+    const prechargement = () => { try { router.prefetch(monEspace); } catch { /* sans gravité */ } };
+    const w = window as Window & { requestIdleCallback?: (f: () => void) => number; cancelIdleCallback?: (n: number) => void };
+    if (w.requestIdleCallback) { const n = w.requestIdleCallback(prechargement); return () => w.cancelIdleCallback?.(n); }
+    const t = window.setTimeout(prechargement, 2000);
+    return () => window.clearTimeout(t);
+  }, [isGuest, monEspace, router]);
   const [activeId, setActiveId] = useState<string | null>(items[0]?.id ?? null);
   const [muted, setMuted] = useState(true);
   const [commentPost, setCommentPost] = useState<string | null>(null);
@@ -157,7 +166,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
             Stories
           </button>
         ) : null}
-        <Link href={isGuest ? "/register" : "/mon-espace"} aria-label={isGuest ? "S'inscrire" : "Mon espace"}
+        <Link href={isGuest ? "/register" : monEspace} aria-label={isGuest ? "S'inscrire" : "Mon espace"}
           className="w-9 h-9 grid place-items-center rounded-full bg-black/40 text-white backdrop-blur shrink-0"><LayoutGrid size={17} /></Link>
         <button onClick={() => (isGuest ? setGate("soft") : setFbOpen(true))} aria-label="Partager une vidéo Facebook"
           className="w-9 h-9 grid place-items-center rounded-full bg-[#1877F2] text-white shrink-0"><Facebook size={17} /></button>
@@ -178,7 +187,7 @@ export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, i
         <Scissors className="text-orange-400" size={44} />
         <h1 className="font-playfair text-2xl font-bold">La Cour est encore vide</h1>
         <p className="text-white/60 font-dm max-w-sm">Sois la première à publier : partage un de tes travaux pratiques depuis tes cours, ou reviens bientôt découvrir les créations des autres.</p>
-        <Link href="/mon-espace" className="mt-2 bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold">Retour à mon espace</Link>
+        <Link href={monEspace} className="mt-2 bg-orange-DEFAULT text-white px-6 py-3 rounded-xl font-semibold">Retour à mon espace</Link>
       </div>
     );
   }

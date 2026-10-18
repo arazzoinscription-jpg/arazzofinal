@@ -2,12 +2,12 @@
 
 import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, CheckCircle2, ClipboardCopy, Mic, Video, X } from "lucide-react";
-import { adresseReglages, detecterContexte, etapesAutorisation, messageEchec, raisonEchec, type Besoin, type Contexte } from "@/lib/autorisations-media";
+import { AlertTriangle, CheckCircle2, ClipboardCopy, ExternalLink, Mic, Video, X } from "lucide-react";
+import { adresseReglages, detecterContexte, etapesAutorisation, lienOuvrirChrome, messageEchec, raisonEchec, type Besoin, type Contexte } from "@/lib/autorisations-media";
 
 type Fenetre =
   | { type: "avant"; besoin: Besoin; resoudre: (ok: boolean) => void }
-  | { type: "refus"; besoin: Besoin; reessayer: () => void }
+  | { type: "refus"; besoin: Besoin; reessayer: () => void; code?: string }
   | null;
 
 function contexteActuel(): Contexte {
@@ -49,6 +49,7 @@ function FenetreGuide({ fenetre, fermer }: { fenetre: NonNullable<Fenetre>; ferm
   const Icone = fenetre.besoin === "micro" ? Mic : Video;
   const c = contexteActuel();
   const adresse = fenetre.type === "refus" ? adresseReglages(c, window.location.origin) : null;
+  const chrome = fenetre.type === "refus" ? lienOuvrirChrome(c, window.location.href) : null;
 
   async function copier() {
     if (!adresse) return;
@@ -65,7 +66,7 @@ function FenetreGuide({ fenetre, fermer }: { fenetre: NonNullable<Fenetre>; ferm
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-bold text-lg leading-tight">{fenetre.type === "avant" ? t.titre : t.bloque}</h2>
-            <p className="text-sm text-gray-600 mt-1">{fenetre.type === "avant" ? t.pourquoi : "L’accès a été refusé. Suivez ces étapes pour l’autoriser :"}</p>
+            <p className="text-sm text-gray-600 mt-1">{fenetre.type === "avant" ? t.pourquoi : c.integre ? "Ce navigateur bloque l’accès. Suivez ces étapes :" : "L’accès a été refusé. Suivez ces étapes pour l’autoriser :"}</p>
           </div>
           <button type="button" onClick={() => fermer(false)} aria-label="Fermer" className="p-1.5 -m-1 rounded-full text-gray-400 hover:bg-gray-100"><X size={20} /></button>
         </div>
@@ -83,7 +84,7 @@ function FenetreGuide({ fenetre, fermer }: { fenetre: NonNullable<Fenetre>; ferm
               </div>
             </div>
             <p className="mt-7 text-sm text-gray-700">Votre {c.appareil === "pc" ? "navigateur" : "téléphone"} va afficher cette demande : appuyez sur <b className="text-green-700">« Autoriser »</b>.</p>
-            <p dir="rtl" className="mt-1 text-sm text-gray-500">التيليفون غادي يسقسيك : ضغطي على « Autoriser / سماح »</p>
+            <p dir="rtl" lang="ar" className="mt-1 text-sm text-gray-500">{c.appareil === "pc" ? "سيطلب منكِ المتصفح الإذن" : "سيطلب منكِ الهاتف الإذن"}، اضغطي على « Autoriser » (سماح).</p>
             <div className="mt-5 flex flex-col gap-2">
               <button type="button" onClick={() => fermer(true)} className="w-full rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold py-3.5">Continuer</button>
               <button type="button" onClick={() => fermer(false)} className="w-full rounded-2xl text-gray-500 py-2 text-sm">Pas maintenant</button>
@@ -99,6 +100,11 @@ function FenetreGuide({ fenetre, fermer }: { fenetre: NonNullable<Fenetre>; ferm
                 </li>
               ))}
             </ol>
+            {chrome ? (
+              <a href={chrome} className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold py-3.5">
+                <ExternalLink size={18} aria-hidden /> Ouvrir dans Chrome
+              </a>
+            ) : null}
             {adresse ? (
               <div className="mt-4 rounded-2xl border-2 border-green-600/30 bg-green-50 p-3">
                 <p className="text-xs text-green-900 mb-2">Les réglages de ce site, à coller dans la barre d’adresse (Ctrl+V, puis Entrée) :</p>
@@ -114,6 +120,10 @@ function FenetreGuide({ fenetre, fermer }: { fenetre: NonNullable<Fenetre>; ferm
               </button>
               <button type="button" onClick={() => fermer(false)} className="w-full rounded-2xl text-gray-500 py-2 text-sm">Fermer</button>
             </div>
+            {/* Pour l'équipe, si ça ne marche toujours pas : l'appareil, le navigateur et le code d'erreur. */}
+            <p className="mt-2 text-center text-[11px] text-gray-400">
+              {c.appareil === "android" ? "Android" : c.appareil === "iphone" ? "iPhone" : "Ordinateur"} · {c.integre ?? c.navigateur}{c.installee ? " · application" : ""}{fenetre.code ? ` · ${fenetre.code}` : ""}
+            </p>
           </>
         )}
       </div>
@@ -135,14 +145,15 @@ export function useAutorisationMedia() {
   const preparer = useCallback(async (besoin: Besoin, reessayer: () => void): Promise<boolean> => {
     const etat = await etatPermission(besoin);
     if (etat === "granted") return true;
-    if (etat === "denied") { setFenetre({ type: "refus", besoin, reessayer }); return false; }
+    if (etat === "denied") { setFenetre({ type: "refus", besoin, reessayer, code: "déjà refusé" }); return false; }
     return new Promise<boolean>((resoudre) => setFenetre({ type: "avant", besoin, resoudre }));
   }, []);
 
   /** L'ouverture a échoué : le guide si c'est un refus (renvoie null), sinon le message à afficher. */
   const echec = useCallback((besoin: Besoin, erreur: unknown, reessayer: () => void): string | null => {
     const r = raisonEchec((erreur as { name?: string } | null)?.name);
-    if (r === "refuse") { setFenetre({ type: "refus", besoin, reessayer }); return null; }
+    const code = (erreur as { name?: string } | null)?.name;
+    if (r === "refuse") { setFenetre({ type: "refus", besoin, reessayer, code }); return null; }
     return messageEchec(r, besoin);
   }, []);
 

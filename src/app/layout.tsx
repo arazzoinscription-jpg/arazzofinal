@@ -9,6 +9,7 @@ import { RecoveryRedirect } from "@/components/auth/recovery-redirect";
 import { CookieConsent } from "@/components/layout/cookie-consent";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import { InstallApp } from "@/components/pwa/install-app";
+import { IndicateurNavigation } from "@/components/layout/indicateur-navigation";
 
 // Polices auto-hébergées via next/font (non bloquant, sans requête externe à Google).
 // `display: swap` + `variable` exposé en CSS (voir globals.css / tailwind.config.ts).
@@ -75,6 +76,8 @@ export default function RootLayout({
         />
       </head>
       <body>
+        {/* Barre de chargement dès qu'on touche un lien (le téléphone ne semble plus « bloqué »). */}
+        <IndicateurNavigation />
         {children}
         <PwaRegister />
         <InstallApp />
