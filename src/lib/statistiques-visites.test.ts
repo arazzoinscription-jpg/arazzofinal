@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compterVisites, enCeMoment, ilYa, libellePage, lirePeriode, quiEstVenu, type Visite } from "./statistiques-visites";
+import { codeVisiteur, compterVisites, enCeMoment, ilYa, jourAlger, libellePage, lirePeriode, paquetsDeLecture, quiEstVenu, type Visite } from "./statistiques-visites";
 
 const T0 = Date.UTC(2026, 9, 18, 10, 0, 0);
 const a = (min: number) => new Date(T0 + min * 60_000).toISOString();
@@ -77,6 +77,8 @@ test("qui est venu : la personne connectée, ses visites d'avant la connexion, L
   assert.equal(anonymes.visiteursCour, 1);
   assert.equal(anonymes.vuesCour, 1);
   assert.deepEqual(anonymes.sources, [{ source: "google", n: 1 }, { source: "direct", n: 1 }]);
+  // Chaque visiteur sans compte, le plus récent d'abord, avec son repère.
+  assert.deepEqual(anonymes.liste.map((x) => [x.code, x.vues, x.vuesCour, x.source]), [[codeVisiteur("nav-partage"), 1, 0, "direct"], [codeVisiteur("nav-x"), 2, 1, "google"]]);
 });
 
 test("période : les pages vues avant sont ignorées, mais servent à reconnaître le navigateur", () => {
@@ -103,4 +105,22 @@ test("en ce moment : 10 dernières minutes, et qui est dans La Cour", () => {
   assert.deepEqual(r.personnesCour, ["lina"]);
   assert.equal(r.anonymes, 1);
   assert.equal(r.anonymesCour, 1);
+});
+
+test("lecture par paquets de 1 000 : tout, ou seulement les plus récentes au-delà du maximum", () => {
+  assert.deepEqual(paquetsDeLecture(0, 50_000), []);
+  assert.deepEqual(paquetsDeLecture(999, 50_000), [0]);
+  assert.deepEqual(paquetsDeLecture(2500, 50_000), [0, 1000, 2000]);
+  assert.deepEqual(paquetsDeLecture(5000, 3000), [2000, 3000, 4000]);
+});
+
+test("jour à l'heure d'Alger (UTC+1) et repère d'un visiteur", () => {
+  assert.equal(jourAlger("2026-10-18T23:30:00Z"), "2026-10-19");
+  assert.equal(jourAlger("2026-10-18T22:59:00Z"), "2026-10-18");
+  assert.match(codeVisiteur("a3f2c9e1-0000"), /^#[0-9A-Z]{5}$/);
+  assert.equal(codeVisiteur("a3f2c9e1-0000"), codeVisiteur("a3f2c9e1-0000"));
+  // Des identifiants qui commencent pareil (horodatage) ont des repères différents ; 2 000 navigateurs → aucun doublon.
+  assert.notEqual(codeVisiteur("1792355-aaa"), codeVisiteur("1792355-aab"));
+  const codes = new Set(Array.from({ length: 2000 }, (_, i) => codeVisiteur(`navigateur-${i}`)));
+  assert.equal(codes.size, 2000);
 });

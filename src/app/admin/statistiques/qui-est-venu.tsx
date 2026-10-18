@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Smartphone, Monitor } from "lucide-react";
-import { ilYa, libellePage, PERIODES, type Anonymes, type Periode, type Personne } from "@/lib/statistiques-visites";
+import { ilYa, libellePage, PERIODES, type Anonymes, type Periode, type Personne, type VisiteurAnonyme } from "@/lib/statistiques-visites";
 
 /** Fiche d'une personne pour l'affichage (nom, photo, pastille). */
 export type Profil = { nom: string; avatar: string | null; badge: "Élève" | "Visiteuse" | "Formatrice" };
@@ -150,11 +150,43 @@ export function ListePersonnes({ titre, sousTitre, personnes, profils, maintenan
   );
 }
 
-/** Ligne « + N visiteurs sans compte » (et d'où ils viennent). */
-export function PiedAnonymes({ anonymes, cour }: { anonymes: Anonymes; cour: boolean }) {
+const MAX_ANONYMES = 100;
+
+/** Un visiteur sans compte : pas de nom possible, mais ce qu'il a fait (repère #K7Q2M = toujours le même téléphone). */
+function LigneAnonyme({ v, maintenant, cour }: { v: VisiteurAnonyme; maintenant: number; cour: boolean }) {
+  const quand = cour && v.derniereCour ? v.derniereCour : v.derniere;
+  const details = cour
+    ? [`${v.visitesCour} visite${v.visitesCour > 1 ? "s" : ""} de La Cour`, `${v.vuesCour} page${v.vuesCour > 1 ? "s" : ""}`, fmtDuree(v.tempsCourSec)]
+    : [`${v.visites} visite${v.visites > 1 ? "s" : ""}`, `${v.vues} page${v.vues > 1 ? "s" : ""}`, fmtDuree(v.tempsSec)];
+  return (
+    <li className="py-2 border-b border-gray-50 last:border-0 text-xs font-dm text-gray-600">
+      <div className="flex items-center gap-2">
+        <span className="font-mono font-semibold text-gray-800">{v.code}</span>
+        {v.appareil === "mobile" ? <Smartphone size={12} aria-label="téléphone" /> : <Monitor size={12} aria-label="ordinateur" />}
+        <span>arrivé par {SOURCE_COURTE[v.source] ?? v.source}</span>
+        <span className="ms-auto text-gray-400 whitespace-nowrap">{ilYa(quand, maintenant)}</span>
+      </div>
+      <div className="text-gray-500">{details.join(" · ")}{cour ? "" : ` · dernière page : ${libellePage(v.dernierePage)}`}</div>
+    </li>
+  );
+}
+
+/** « + N visiteurs sans compte » (et d'où ils viennent), puis le détail de chacun, à déplier. */
+export function PiedAnonymes({ anonymes, cour, maintenant }: { anonymes: Anonymes; cour: boolean; maintenant: number }) {
+  const liste = cour ? anonymes.liste.filter((v) => v.vuesCour > 0).sort((a, b) => (b.derniereCour ?? "").localeCompare(a.derniereCour ?? "")) : anonymes.liste;
+  const detail = liste.length ? (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-sm font-semibold text-orange-600">Voir {liste.length > 1 ? `ces ${liste.length} visiteurs` : "ce visiteur"} un par un</summary>
+      <p className="text-xs text-gray-400 mt-1">Sans compte, pas de nom : le repère (#K7Q2M) désigne toujours le même téléphone. Dès que la personne se connecte ou crée son compte, toutes ces visites passent sous son nom, en haut.</p>
+      <ul className="mt-1">
+        {liste.slice(0, MAX_ANONYMES).map((v) => <LigneAnonyme key={v.code + v.derniere} v={v} maintenant={maintenant} cour={cour} />)}
+      </ul>
+      {liste.length > MAX_ANONYMES ? <p className="text-xs text-gray-400 mt-1">… et {liste.length - MAX_ANONYMES} autres, plus anciens.</p> : null}
+    </details>
+  ) : null;
   if (cour) {
     return anonymes.visiteursCour
-      ? <>👤 + <strong>{anonymes.visiteursCour}</strong> visiteur{anonymes.visiteursCour > 1 ? "s" : ""} sans compte ont regardé La Cour ({anonymes.vuesCour} page{anonymes.vuesCour > 1 ? "s" : ""}).</>
+      ? <>👤 + <strong>{anonymes.visiteursCour}</strong> visiteur{anonymes.visiteursCour > 1 ? "s" : ""} sans compte ont regardé La Cour ({anonymes.vuesCour} page{anonymes.vuesCour > 1 ? "s" : ""}).{detail}</>
       : <>👤 Aucun visiteur sans compte dans La Cour sur cette période.</>;
   }
   if (!anonymes.visiteurs) return <>👤 Aucun visiteur sans compte sur cette période.</>;
@@ -165,6 +197,7 @@ export function PiedAnonymes({ anonymes, cour }: { anonymes: Anonymes; cour: boo
         <span key={s.source}>{i ? ", " : ""}{SOURCE_COURTE[s.source] ?? s.source} <strong className="tabular-nums">{s.n}</strong></span>
       ))}
       .
+      {detail}
     </>
   );
 }

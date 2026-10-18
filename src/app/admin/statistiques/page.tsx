@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin, isFormateur } from "@/lib/roles";
 import { avatarSur } from "@/lib/classe/vue";
 import { inscritesParmi } from "@/lib/visiteuses/load";
-import { comptesParNavigateur, enCeMoment, libellePage, lirePeriode, personneDe, quiEstVenu, type Visite } from "@/lib/statistiques-visites";
+import { comptesParNavigateur, enCeMoment, jourAlger, libellePage, lirePeriode, paquetsDeLecture, personneDe, quiEstVenu, type Visite } from "@/lib/statistiques-visites";
 import { VisitsChart } from "./visits-chart";
 import { ChoixPeriode, EnCeMoment, ListePersonnes, PiedAnonymes, type Profil } from "./qui-est-venu";
 
@@ -13,6 +13,35 @@ export const dynamic = "force-dynamic";
 const DAY = 86_400_000;
 
 type Row = Visite;
+
+const COLONNES = "path, source, session_id, user_id, duration_sec, device, created_at";
+/** Garde-fou mémoire : au-delà, seules les pages vues les plus récentes sont lues. */
+const MAX_LIGNES = 150_000;
+
+/**
+ * TOUTES les pages vues depuis `depuis`. La base ne renvoie que 1 000 lignes par demande : on compte d'abord,
+ * puis on lit par paquets de 1 000 (8 à la fois). Avant, une seule demande → seulement les 1 000 dernières
+ * pages vues (environ une journée) : totaux faux et graphique limité à aujourd'hui.
+ */
+async function chargerVisites(admin: ReturnType<typeof createAdminClient>, depuis: string): Promise<{ rows: Row[]; erreur: boolean; tronque: boolean }> {
+  const { count, error } = await admin.from("page_visits").select("id", { count: "exact", head: true }).gte("created_at", depuis);
+  if (error) return { rows: [], erreur: true, tronque: false };
+  const total = count ?? 0;
+  const debuts = paquetsDeLecture(total, MAX_LIGNES);
+  const rows: Row[] = [];
+  for (let i = 0; i < debuts.length; i += 8) {
+    // eslint-disable-next-line no-await-in-loop
+    const lots = await Promise.all(debuts.slice(i, i + 8).map((de) => admin
+      .from("page_visits")
+      .select(COLONNES)
+      .gte("created_at", depuis)
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(de, de + 999)));
+    for (const lot of lots) if (!lot.error) rows.push(...((lot.data ?? []) as Row[]));
+  }
+  return { rows, erreur: false, tronque: total > MAX_LIGNES };
+}
 
 /** Nom, photo et pastille des personnes vues ; l'équipe d'administration est mise à part (non comptée). */
 async function chargerProfils(admin: ReturnType<typeof createAdminClient>, ids: string[]): Promise<{ profils: Map<string, Profil>; equipe: Set<string> }> {
@@ -55,15 +84,10 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
   const since = new Date(Date.now() - 30 * DAY).toISOString();
   const periode = lirePeriode(searchParams?.periode);
 
-  const { data, error } = await admin
-    .from("page_visits")
-    .select("path, source, session_id, user_id, duration_sec, device, created_at")
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(100_000);
+  const { rows, erreur, tronque } = await chargerVisites(admin, since);
 
   // Migration 028 non appliquée (table absente) → message d'activation.
-  if (error) {
+  if (erreur) {
     return (
       <div className="px-4 lg:px-8 py-6">
         <h1 className="font-playfair text-3xl font-bold text-gray-900 mb-2">Statistiques du site</h1>
@@ -78,8 +102,8 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
     );
   }
 
-  const rows = (data ?? []) as Row[];
   const now = Date.now();
+  const aujourdhui = jourAlger(now);
 
   // ── Qui est venu (personnes connectées, reconnues aussi par leur navigateur) ──
   const navigateurs = comptesParNavigateur(rows);
@@ -96,7 +120,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
   const totalViews = rows.length;
   const sessions = new Set(rows.map((r) => r.session_id ?? r.path));
   const visitors = sessions.size;
-  const viewsToday = rows.filter((r) => now - new Date(r.created_at).getTime() < DAY).length;
+  const viewsToday = rows.filter((r) => jourAlger(r.created_at) === aujourdhui).length; // depuis minuit (heure d'Alger)
   const views7d = rows.filter((r) => now - new Date(r.created_at).getTime() < 7 * DAY).length;
 
   // ── Pages : vues + durée moyenne ──
@@ -138,14 +162,19 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
   const desktop = totalViews - mobile;
   const mobilePct = totalViews ? Math.round((mobile / totalViews) * 100) : 0;
 
-  // ── Série 14 jours (pour le graphique) ──
+  // ── Série 14 jours (pour le graphique), jour par jour à l'heure d'Alger ──
+  const parJour = new Map<string, Row[]>();
+  for (const r of rows) {
+    const j = jourAlger(r.created_at);
+    const l = parJour.get(j);
+    if (l) l.push(r); else parJour.set(j, [r]);
+  }
   const series: { day: string; visites: number; visiteurs: number }[] = [];
   for (let i = 13; i >= 0; i--) {
     const d = new Date(now - i * DAY);
-    const key = d.toISOString().slice(0, 10);
-    const dayRows = rows.filter((r) => r.created_at.slice(0, 10) === key);
+    const dayRows = parJour.get(jourAlger(d)) ?? [];
     series.push({
-      day: d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+      day: d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Africa/Algiers" }),
       visites: dayRows.length,
       visiteurs: new Set(dayRows.map((r) => r.session_id ?? r.path)).size,
     });
@@ -179,14 +208,14 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
           sousTitre={`Les personnes connectées qui ont ouvert le feed, ${nomPeriode} — la plus récente en haut.`}
           personnes={personnesCour} profils={profils} maintenant={now} cour
           vide="Personne de connecté n'a encore ouvert La Cour sur cette période."
-          pied={<PiedAnonymes anonymes={anonymes} cour />}
+          pied={<PiedAnonymes anonymes={anonymes} cour maintenant={now} />}
         />
         <ListePersonnes
           titre="🚪 Qui entre sur le site"
           sousTitre={`Toutes les personnes connectées venues sur le site, ${nomPeriode}.`}
           personnes={personnes} profils={profils} maintenant={now} cour={false}
           vide="Personne de connecté sur cette période."
-          pied={<PiedAnonymes anonymes={anonymes} cour={false} />}
+          pied={<PiedAnonymes anonymes={anonymes} cour={false} maintenant={now} />}
         />
       </div>
       <p className="text-xs text-gray-400 font-dm mb-8">
@@ -195,6 +224,7 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
       </p>
 
       <h2 className="font-playfair text-xl font-bold text-gray-900 mb-4">Vue d'ensemble — 30 derniers jours</h2>
+      {tronque ? <p className="text-xs text-amber-700 font-dm -mt-2 mb-4">Plus de 150 000 pages vues en 30 jours : seules les plus récentes sont comptées ici.</p> : null}
       {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map((k) => (

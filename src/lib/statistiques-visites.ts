@@ -103,8 +103,8 @@ export function compterVisites(instants: number[]): number {
   return n;
 }
 
-export interface Personne {
-  userId: string;
+/** Ce qu'une personne (ou un visiteur sans compte) a fait sur la période. */
+export interface Resume {
   derniere: string;
   dernierePage: string;
   vues: number;
@@ -119,15 +119,49 @@ export interface Personne {
   derniereCour: string | null;
 }
 
+export interface Personne extends Resume {
+  userId: string;
+}
+
+/** Un visiteur sans compte : pas de nom, seulement un repère (#A3F2) tiré de son navigateur. */
+export interface VisiteurAnonyme extends Resume {
+  code: string;
+}
+
 export interface Anonymes {
   visiteurs: number;
   vues: number;
   visiteursCour: number;
   vuesCour: number;
   sources: { source: string; n: number }[];
+  /** Chacun, le plus récent d'abord. */
+  liste: VisiteurAnonyme[];
 }
 
 const cleVisiteur = (r: Visite, i: number) => (r.session_id && r.session_id !== "anon" ? r.session_id : `#${i}`);
+/** Repère court et stable d'un visiteur sans compte (le même navigateur garde le même repère ; 60 millions de repères possibles). */
+export function codeVisiteur(cle: string): string {
+  let h = 0x811c9dc5; // FNV-1a sur tout l'identifiant du navigateur
+  for (let i = 0; i < cle.length; i++) h = Math.imul(h ^ cle.charCodeAt(i), 0x01000193) >>> 0;
+  return `#${(h % 36 ** 5).toString(36).toUpperCase().padStart(5, "0")}`;
+}
+
+/** Jour (AAAA-MM-JJ) à l'heure d'Alger — les graphiques et « aujourd'hui » suivent l'heure algérienne. */
+const FORMAT_JOUR = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Algiers", year: "numeric", month: "2-digit", day: "2-digit" });
+export function jourAlger(d: string | number | Date): string {
+  return FORMAT_JOUR.format(new Date(d));
+}
+
+/**
+ * Le serveur de la base ne renvoie que 1 000 lignes par demande : on lit par paquets.
+ * Renvoie le début de chaque paquet ; au-delà de `max` lignes, on garde les PLUS RÉCENTES (lecture du plus ancien au plus récent).
+ */
+export function paquetsDeLecture(total: number, max: number, taille = 1000): number[] {
+  const debut = Math.max(0, total - max);
+  const out: number[] = [];
+  for (let de = debut; de < total; de += taille) out.push(de);
+  return out;
+}
 
 /**
  * Qui est venu depuis `depuis` : les personnes connectées (plus récente d'abord) et le total des visiteurs sans compte.
@@ -153,12 +187,10 @@ export function quiEstVenu(rows: Visite[], opts: { depuis: number; exclure?: Set
   }
 
   const premiereSource = (liste: typeof dansPeriode) => liste.find((x) => x.r.source && x.r.source !== "internal")?.r.source ?? "direct";
-
-  const personnes: Personne[] = [...parPersonne.entries()].map(([userId, liste]) => {
+  const resumer = (liste: typeof dansPeriode): Resume => {
     const cour = liste.filter((x) => estDansLaCour(x.r.path));
     const derniere = liste[liste.length - 1];
     return {
-      userId,
       derniere: derniere.r.created_at,
       dernierePage: derniere.r.path,
       vues: liste.length,
@@ -171,8 +203,12 @@ export function quiEstVenu(rows: Visite[], opts: { depuis: number; exclure?: Set
       tempsCourSec: cour.reduce((s, x) => s + (x.r.duration_sec ?? 0), 0),
       derniereCour: cour.length ? cour[cour.length - 1].r.created_at : null,
     };
-  });
+  };
+
+  const personnes: Personne[] = [...parPersonne.entries()].map(([userId, liste]) => ({ userId, ...resumer(liste) }));
   personnes.sort((a, b) => b.derniere.localeCompare(a.derniere));
+  const liste: VisiteurAnonyme[] = [...anonymes.entries()].map(([cle, l]) => ({ code: codeVisiteur(cle), ...resumer(l) }));
+  liste.sort((a, b) => b.derniere.localeCompare(a.derniere));
 
   const sources = new Map<string, number>();
   let vues = 0, visiteursCour = 0, vuesCour = 0;
@@ -193,6 +229,7 @@ export function quiEstVenu(rows: Visite[], opts: { depuis: number; exclure?: Set
       visiteursCour,
       vuesCour,
       sources: [...sources.entries()].map(([source, n]) => ({ source, n })).sort((a, b) => b.n - a.n),
+      liste,
     },
   };
 }
