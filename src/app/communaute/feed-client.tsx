@@ -340,11 +340,10 @@ function Slide({
   const ref = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
-  // Musique : celle choisie à la publication ; sinon une piste « aléatoire mais stable » de la bibliothèque — mais
-  // SEULEMENT pour une photo ou une vidéo SANS son propre (muette, bruit de fond). Une vidéo qui parle ou qui a sa
-  // musique (ou pas encore mesurée) garde son son.
-  const musiqueAuto = item.mediaKind === "image" || item.sonPropre === false;
-  const track = item.music ?? (musiqueAuto ? pickTrackForKey(item.id) : null);
+  // Musique : celle choisie à la publication ; sinon une piste « aléatoire mais stable » de la bibliothèque, sur TOUTES
+  // les publications, photos et vidéos (choix de l'école, 18/10 : « musique automatique sur toutes les vidéos »).
+  // `item.sonPropre` (mesuré à la publication) reste enregistré, sans effet ici pour l'instant.
+  const track = item.music ?? pickTrackForKey(item.id);
   const musicUrl = track?.url ?? null;
   const musicTitle = track?.title ?? null;
   const hasMusic = !!musicUrl;
