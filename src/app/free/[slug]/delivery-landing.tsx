@@ -100,10 +100,11 @@ function titreAvecAccent(titre: string) {
 
 const cssVar = (k: string, v: string) => ({ [k]: v }) as React.CSSProperties;
 
-export default function DeliveryLanding({ data }: { data: PageView }) {
+export default function DeliveryLanding({ data, connectee = false }: { data: PageView; connectee?: boolean }) {
   const slug = String(data.slug);
   const form = (data.capture_form ?? {}) as Record<string, any>;
-  const capture = form.enabled !== false;
+  // Page « avec compte » et personne connectée : son compte vaut inscription, le cours s'ouvre directement.
+  const capture = form.enabled !== false && !connectee;
 
   const [langue, setLangue] = useState<"fr" | "ar">("fr");
   const [debloque, setDebloque] = useState(!capture);

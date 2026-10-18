@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createPublicClient } from "@/lib/supabase/public";
+import { createClient } from "@/lib/supabase/server";
 import DeliveryLanding from "./delivery-landing";
 
 // DELIVERY PAGE — la page de livraison d'un cours GRATUIT, 24/7 sur Vercel.
@@ -118,5 +119,21 @@ export default async function Page(
     );
   }
 
-  return <DeliveryLanding data={{ ...page, slug: decoder(slug) }} />;
+  // Page « 🔑 avec compte automatique » (choix fait dans Arazzo OS) : la personne crée d'abord son compte
+  // (/inscription/<page> : compte + connexion + e-mail d'accès), puis revient ici, connectée, sur le cours.
+  // Le lien de l'e-mail d'accès (`?acces=1`) ouvre le cours même sur un autre téléphone, sans repasser par là.
+  let connectee = false;
+  if (page.compte_auto === true) {
+    const { data: { user } } = await (await createClient()).auth.getUser();
+    connectee = Boolean(user);
+    const params = (await searchParams) ?? {};
+    if (!connectee && params.acces === undefined) {
+      const q = new URLSearchParams();
+      for (const [k, v] of Object.entries(params)) if (typeof v === "string") q.set(k, v);
+      const qs = q.toString();
+      redirect(`/inscription/${encodeURIComponent(decoder(slug))}${qs ? `?${qs}` : ""}`);
+    }
+  }
+
+  return <DeliveryLanding data={{ ...page, slug: decoder(slug) }} connectee={connectee} />;
 }
