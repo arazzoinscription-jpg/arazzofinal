@@ -34,6 +34,12 @@ export interface StoryVue {
   fond: string | null;
   /** L'autrice fait partie de l'équipe (enseignante, administration) : affichée en premier. */
   equipe: boolean;
+  /** Nombre de commentaires (migration 106). */
+  nbCommentaires?: number;
+  /** Story de l'historique (plus de 24 h) : on la revoit et on la commente, sans voter ni réagir. */
+  expiree?: boolean;
+  /** Story d'une visiteuse pas encore validée (vue seulement par elle et l'administration). */
+  enAttente?: boolean;
 }
 
 export function verifierPhotoStory(f: { type: string; size: number }): string | null {
@@ -79,6 +85,14 @@ export function decouperVideo(secondes: unknown): { ok: true; duree: number; par
     parties.push({ debut, duree: Math.round(((k + 1) * d) / n) - debut });
   }
   return { ok: true, duree: d, parties };
+}
+
+/** Un commentaire de story : 500 caractères au plus, espaces normalisés (sauts de ligne gardés, 2 au plus). */
+export const COMMENTAIRE_STORY_MAX = 500;
+export function lireCommentaire(brut: unknown): string | null {
+  if (typeof brut !== "string") return null;
+  const t = brut.replace(/[^\S\n]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim().slice(0, COMMENTAIRE_STORY_MAX).trim();
+  return t || null;
 }
 
 export function lireLegende(brut: unknown): string | null {

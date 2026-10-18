@@ -24,6 +24,8 @@ export const limiters = {
   // Lien d'inscription gratuite : large (en Algérie, beaucoup de téléphones partagent la même adresse IP
   // de l'opérateur) — l'anti-robots Turnstile fait le vrai tri.
   inscription: build(20, "1 h"),
+  // Commentaires de stories : 30 / 10 min par personne connectée.
+  commentaire: build(30, "10 m"),
 };
 
 export type LimiterKey = keyof typeof limiters;

@@ -6,10 +6,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoles, isAdmin } from "@/lib/roles";
 import { bunnyPlaybackUrls, bunnyTusAuth, createBunnyVideo, isBunnyConfigured } from "@/lib/bunny/stream";
-import { VIE_STORY_MS, decouperVideo, lireLegende, verifierDureeStory, verifierPhotoStory } from "@/lib/stories/regles";
+import { VIE_STORY_MS, decouperVideo, lireCommentaire, lireLegende, verifierDureeStory, verifierPhotoStory } from "@/lib/stories/regles";
 import { lienRefuse, lireCalques, lireFond, lireInteraction, resultatSondage, type Calque } from "@/lib/stories/calques";
 import { etatMigrationStories } from "@/lib/stories/load";
 import { nomPublic } from "@/lib/nom-public";
+import { avatarSur } from "@/lib/classe/vue";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
 
 /**
@@ -336,4 +338,110 @@ export async function statsStory(id: unknown): Promise<{ ok: true; stats: StatsS
       sondages: Object.fromEntries([...votes].map(([cid, vs]) => [cid, resultatSondage(vs)])),
     },
   };
+}
+
+// ─── Commentaires (migration 106) ──────────────────────────────────────────
+// Toute personne connectée commente une story qu'elle peut voir — pendant ses 24 h ET dans l'historique du profil.
+// L'autrice est prévenue ; chacune supprime ses commentaires, l'autrice ceux de ses stories, l'administration tous.
+
+const COMMENTAIRES_INDISPONIBLES = "Les commentaires des stories ne sont pas encore activés sur ce site (migration 106 à appliquer).";
+
+export interface CommentaireStory {
+  id: string;
+  userId: string;
+  nom: string;
+  avatar: string | null;
+  texte: string;
+  createdAt: string;
+  peutSupprimer: boolean;
+}
+
+type Personne = { id: string; nom: string | null; username: string | null; role: string | null; roles: string[] | null; avatar_url: string | null };
+
+/** La story, si la personne peut la voir (une story en attente de validation : l'autrice et l'administration). */
+async function storyVisible(id: unknown, userId: string): Promise<{ id: string; user_id: string; admin: boolean } | null> {
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const db = createAdminClient();
+  const [{ data: s }, { data: prof }] = await Promise.all([
+    db.from("stories").select("*").eq("id", id).maybeSingle(),
+    db.from("users").select("role, roles").eq("id", userId).maybeSingle(),
+  ]);
+  if (!s) return null;
+  const admin = isAdmin(prof);
+  if ((s as { a_valider?: boolean | null }).a_valider === true && s.user_id !== userId && !admin) return null;
+  return { id: s.id as string, user_id: s.user_id as string, admin };
+}
+
+export async function commentairesStory(id: unknown): Promise<{ ok: true; commentaires: CommentaireStory[] } | { ok: false; erreur: string }> {
+  const user = await connectee();
+  if (!user) return { ok: false, erreur: "Connectez-vous pour voir les commentaires." };
+  const s = await storyVisible(id, user.id);
+  if (!s) return { ok: false, erreur: "Story introuvable." };
+  const db = createAdminClient();
+  const r = await db.from("story_commentaires").select("id, user_id, texte, created_at").eq("story_id", s.id).order("created_at", { ascending: true }).limit(300);
+  if (r.error) return { ok: false, erreur: COMMENTAIRES_INDISPONIBLES };
+  const lignes = (r.data ?? []) as { id: string; user_id: string; texte: string; created_at: string }[];
+  const ids = [...new Set(lignes.map((l) => l.user_id))];
+  const u = ids.length ? await db.from("users").select("id, nom, username, role, roles, avatar_url").in("id", ids.slice(0, 300)) : { data: [] };
+  const gens = new Map(((u.data ?? []) as Personne[]).map((p) => [p.id, p]));
+  return {
+    ok: true,
+    commentaires: lignes.map((l) => {
+      const p = gens.get(l.user_id);
+      return {
+        id: l.id, userId: l.user_id, nom: p ? nomPublic(p) : "Membre", avatar: p ? avatarSur(p.avatar_url) : null,
+        texte: l.texte, createdAt: l.created_at, peutSupprimer: l.user_id === user.id || s.user_id === user.id || s.admin,
+      };
+    }),
+  };
+}
+
+export async function commenterStory(entree: { storyId: unknown; texte: unknown }): Promise<{ ok: true; commentaire: CommentaireStory } | { ok: false; erreur: string }> {
+  const user = await connectee();
+  if (!user) return { ok: false, erreur: "Connectez-vous pour commenter." };
+  const texte = lireCommentaire(entree.texte);
+  if (!texte) return { ok: false, erreur: "Écrivez votre commentaire." };
+  if (!(await checkRateLimit("commentaire", user.id)).ok) return { ok: false, erreur: "Beaucoup de commentaires d'un coup : réessayez dans quelques minutes." };
+  const s = await storyVisible(entree.storyId, user.id);
+  if (!s) return { ok: false, erreur: "Cette story n'est plus disponible." };
+  const db = createAdminClient();
+  const r = await db.from("story_commentaires").insert({ story_id: s.id, user_id: user.id, texte }).select("id, created_at").single();
+  if (r.error || !r.data) {
+    return { ok: false, erreur: /story_commentaires|schema cache|relation|does not exist/i.test(r.error?.message ?? "") ? COMMENTAIRES_INDISPONIBLES : "Commentaire non envoyé, réessayez." };
+  }
+  const { data: moi } = await db.from("users").select("id, nom, username, role, roles, avatar_url").eq("id", user.id).maybeSingle();
+  const nom = moi ? nomPublic(moi as Personne) : "Membre";
+  // L'autrice est prévenue (cloche du site ; la notification du téléphone part du webhook des notifications).
+  if (s.user_id !== user.id) {
+    try {
+      await db.from("notifications").insert({
+        user_id: s.user_id, type: "story", title: `💬 ${nom} a commenté votre story`, body: texte.slice(0, 120),
+        link: `/communaute/u/${s.user_id}?onglet=stories`,
+      });
+    } catch { /* la notification ne bloque jamais le commentaire */ }
+  }
+  revalidatePath(`/communaute/u/${s.user_id}`);
+  return {
+    ok: true,
+    commentaire: {
+      id: r.data.id as string, userId: user.id, nom, avatar: moi ? avatarSur((moi as Personne).avatar_url) : null,
+      texte, createdAt: r.data.created_at as string, peutSupprimer: true,
+    },
+  };
+}
+
+export async function supprimerCommentaireStory(id: unknown): Promise<Reponse> {
+  const user = await connectee();
+  if (!user) return { ok: false, erreur: "Non connectée." };
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, erreur: "Commentaire invalide." };
+  const db = createAdminClient();
+  const { data: c } = await db.from("story_commentaires").select("id, user_id, story_id").eq("id", id).maybeSingle();
+  if (!c) return { ok: false, erreur: "Commentaire introuvable." };
+  if (c.user_id !== user.id) {
+    const s = await storyVisible(c.story_id, user.id);
+    if (!s || (s.user_id !== user.id && !s.admin)) return { ok: false, erreur: "Vous ne pouvez supprimer que vos commentaires (ou ceux de vos stories)." };
+  }
+  const del = await db.from("story_commentaires").delete().eq("id", id);
+  if (del.error) return { ok: false, erreur: del.error.message };
+  return { ok: true };
 }

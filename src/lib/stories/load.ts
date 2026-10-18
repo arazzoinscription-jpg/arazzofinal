@@ -59,17 +59,41 @@ export async function storiesActives(admin: SupabaseClient, userIds: string[] | 
     }
   }
   // Les stories en attente de validation (visiteuses) ne sont montrées à personne.
-  const visibles = lignes.filter((l) => l.a_valider !== true);
-  lignes.length = 0;
-  lignes.push(...visibles);
-  if (!lignes.length) return [];
+  return versVues(admin, lignes.filter((l) => l.a_valider !== true));
+}
 
+/**
+ * HISTORIQUE d'une personne (son profil) : toutes ses stories, même passées, les plus récentes d'abord (120 au plus).
+ * Les stories en attente de validation : seulement pour elle-même et l'administration (`voirEnAttente`).
+ */
+export async function historiqueStories(admin: SupabaseClient, userId: string, { voirEnAttente = false } = {}): Promise<StoryVue[]> {
+  const r = await admin.from(TABLE).select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(120);
+  if (r.error) return [];
+  return versVues(admin, ((r.data ?? []) as LigneStory[]).filter((l) => voirEnAttente || l.a_valider !== true));
+}
+
+/** Nombre de commentaires par story (migration 106 ; rien si elle manque). */
+async function compterCommentaires(admin: SupabaseClient, ids: string[]): Promise<Map<string, number>> {
+  const n = new Map<string, number>();
+  for (const lot of paquets([...new Set(ids)], 100)) {
+    // eslint-disable-next-line no-await-in-loop
+    const r = await admin.from("story_commentaires").select("story_id").in("story_id", lot).limit(5000);
+    if (r.error) return n;
+    for (const x of (r.data ?? []) as { story_id: string }[]) n.set(x.story_id, (n.get(x.story_id) ?? 0) + 1);
+  }
+  return n;
+}
+
+/** Lignes → stories affichables : nom PUBLIC de l'autrice, calques, nombre de commentaires, passée ou non. */
+async function versVues(admin: SupabaseClient, lignes: LigneStory[], maintenant = new Date()): Promise<StoryVue[]> {
+  if (!lignes.length) return [];
   const auteurs = new Map<string, { id: string; nom: string | null; username: string | null; role: string | null; roles: string[] | null; avatar_url: string | null }>();
   for (const lot of paquets([...new Set(lignes.map((l) => l.user_id))], 100)) {
     // eslint-disable-next-line no-await-in-loop
     const u = await admin.from("users").select("id, nom, username, role, roles, avatar_url").in("id", lot);
     for (const p of (u.data ?? []) as { id: string; nom: string | null; username: string | null; role: string | null; roles: string[] | null; avatar_url: string | null }[]) auteurs.set(p.id, p);
   }
+  const commentaires = await compterCommentaires(admin, lignes.map((l) => l.id));
   return lignes.filter((l) => auteurs.has(l.user_id)).map((l) => {
     const a = auteurs.get(l.user_id)!;
     return {
@@ -77,6 +101,9 @@ export async function storiesActives(admin: SupabaseClient, userIds: string[] | 
       kind: l.media_kind, mediaUrl: l.media_url, bunnyVideoId: l.bunny_video_id, debut: l.debut_s ?? 0, thumbnail: l.thumbnail_url,
       duree: l.duration_seconds, legende: l.legende, createdAt: l.created_at,
       calques: Array.isArray(l.calques) ? l.calques : [], fond: l.fond ?? null, equipe: estEquipePublique(a),
+      nbCommentaires: commentaires.get(l.id) ?? 0,
+      expiree: new Date(l.expires_at).getTime() <= maintenant.getTime(),
+      enAttente: l.a_valider === true,
     };
   });
 }

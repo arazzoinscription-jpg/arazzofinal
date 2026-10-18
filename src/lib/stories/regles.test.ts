@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decouperVideo, dureeLisible, ilYa, lireLegende, ordreBarre, regrouper, verifierDureeStory, verifierPhotoStory, type StoryVue } from "./regles";
+import { COMMENTAIRE_STORY_MAX, decouperVideo, dureeLisible, ilYa, lireCommentaire, lireLegende, ordreBarre, regrouper, verifierDureeStory, verifierPhotoStory, type StoryVue } from "./regles";
 
 const M = new Date("2026-10-16T12:00:00Z");
 const s = (id: string, userId: string, createdAt: string): StoryVue => ({ id, userId, nom: "x", avatar: null, kind: "image", mediaUrl: "u", bunnyVideoId: null, thumbnail: null, duree: null, legende: null, createdAt, calques: [], fond: null, equipe: false });
@@ -84,4 +84,13 @@ test("durée lisible", () => {
   assert.equal(dureeLisible(45), "45 s");
   assert.equal(dureeLisible(65), "1 min 05");
   assert.equal(dureeLisible(300), "5 min");
+});
+
+test("commentaire de story : espaces normalisés, sauts de ligne gardés (2 au plus), 500 caractères, vide = rien", () => {
+  assert.equal(lireCommentaire("  Trop   belle   robe ! "), "Trop belle robe !");
+  assert.equal(lireCommentaire("Bravo\n\n\n\nMerci"), "Bravo\n\nMerci");
+  assert.equal(lireCommentaire("a \n b"), "a\nb");
+  assert.equal(lireCommentaire("x".repeat(600))?.length, COMMENTAIRE_STORY_MAX);
+  assert.equal(lireCommentaire("   "), null);
+  assert.equal(lireCommentaire(42), null);
 });

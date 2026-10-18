@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Eye, Loader2, Trash2, X } from "lucide-react";
+import { Eye, Loader2, MessageCircle, Send, Trash2, X } from "lucide-react";
 import { DUREE_PHOTO_MS, ilYa, type StoryVue } from "@/lib/stories/regles";
 import { REACTIONS } from "@/lib/stories/calques";
-import { etatStories, interagirStory, statsStory, supprimerStory, voirStory, type EtatStoryVue, type StatsStory } from "@/app/actions/stories";
+import {
+  commentairesStory, commenterStory, etatStories, interagirStory, statsStory, supprimerCommentaireStory, supprimerStory, voirStory,
+  type CommentaireStory, type EtatStoryVue, type StatsStory,
+} from "@/app/actions/stories";
 import { FondStory, RenduCalques, STYLE_CADRE, ZONE_CADRE, type Interactions } from "./rendu-calques";
 import { signalerPleinEcran } from "./editeur-story";
 import { noterVues } from "./vues-locales";
@@ -91,14 +94,93 @@ function PanneauActivite({ story, onFermer }: { story: StoryVue; onFermer: () =>
   );
 }
 
+/** Les commentaires d'une story : la liste, et un champ pour commenter (toute personne connectée). */
+function PanneauCommentaires({ story, onFermer, onNombre }: { story: StoryVue; onFermer: () => void; onNombre: (n: number) => void }) {
+  const [liste, setListe] = useState<CommentaireStory[] | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [texte, setTexte] = useState("");
+  const [envoi, setEnvoi] = useState(false);
+  const fin = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let actif = true;
+    commentairesStory(story.id).then((r) => {
+      if (!actif) return;
+      if (r.ok) { setListe(r.commentaires); onNombre(r.commentaires.length); } else setErreur(r.erreur);
+    }).catch(() => { if (actif) setErreur("Commentaires indisponibles."); });
+    return () => { actif = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story.id]);
+  useEffect(() => { fin.current?.scrollIntoView({ block: "end" }); }, [liste?.length]);
+
+  async function envoyer(e: React.FormEvent) {
+    e.preventDefault();
+    if (envoi || !texte.trim()) return;
+    setEnvoi(true); setErreur(null);
+    const r = await commenterStory({ storyId: story.id, texte });
+    setEnvoi(false);
+    if (!r.ok) { setErreur(r.erreur); return; }
+    setTexte("");
+    setListe((l) => { const n = [...(l ?? []), r.commentaire]; onNombre(n.length); return n; });
+  }
+  async function retirer(id: string) {
+    if (!confirm("Supprimer ce commentaire ?")) return;
+    const r = await supprimerCommentaireStory(id);
+    if (!r.ok) { setErreur(r.erreur); return; }
+    setListe((l) => { const n = (l ?? []).filter((c) => c.id !== id); onNombre(n.length); return n; });
+  }
+
+  return (
+    <div className="absolute inset-0 z-30 bg-black/50 flex items-end" onClick={onFermer}>
+      <div className="w-full max-h-[78%] flex flex-col rounded-t-3xl bg-white text-gray-900" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 px-4 pt-3 pb-2 border-b border-gray-100">
+          <h3 className="font-semibold text-sm flex items-center gap-1.5"><MessageCircle size={16} aria-hidden /> Commentaires{liste ? ` (${liste.length})` : ""}</h3>
+          <button type="button" onClick={onFermer} aria-label="Fermer les commentaires" className="ms-auto p-1.5 rounded-full hover:bg-gray-100"><X size={18} /></button>
+        </div>
+        <div className="flex-1 min-h-[80px] overflow-y-auto px-4 py-3 space-y-3">
+          {!liste && !erreur ? <p className="text-sm text-gray-500 flex items-center gap-2"><Loader2 size={16} className="animate-spin" aria-hidden /> Chargement…</p> : null}
+          {liste && !liste.length ? <p className="text-sm text-gray-500 text-center py-4">Pas encore de commentaire. Soyez la première ✨</p> : null}
+          {(liste ?? []).map((c) => (
+            <div key={c.id} className="flex gap-2.5">
+              <span className="w-8 h-8 shrink-0 rounded-full overflow-hidden bg-[#5B16F9]/15 text-[#5B16F9] grid place-items-center text-xs font-bold">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {c.avatar ? <img src={c.avatar} alt="" className="w-full h-full object-cover" /> : c.nom.charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs text-gray-500"><b className="text-gray-800">{c.nom}</b> · {ilYa(c.createdAt, new Date())}</div>
+                <p className="text-sm whitespace-pre-wrap break-words">{c.texte}</p>
+              </div>
+              {c.peutSupprimer ? (
+                <button type="button" onClick={() => retirer(c.id)} aria-label="Supprimer ce commentaire" className="self-start p-1.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
+              ) : null}
+            </div>
+          ))}
+          <div ref={fin} />
+        </div>
+        {erreur ? <p className="px-4 pb-1 text-sm text-red-600">{erreur}</p> : null}
+        <form onSubmit={envoyer} className="flex gap-2 px-3 pt-2 pb-[max(12px,env(safe-area-inset-bottom))] border-t border-gray-100">
+          <input value={texte} onChange={(e) => setTexte(e.target.value)} maxLength={500} placeholder="Ajouter un commentaire…" aria-label="Votre commentaire"
+            className="flex-1 min-w-0 rounded-full bg-gray-100 px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#5B16F9]/40" />
+          <button type="submit" disabled={envoi || !texte.trim()} aria-label="Envoyer le commentaire"
+            className="shrink-0 w-10 h-10 grid place-items-center rounded-full bg-[#5B16F9] text-white disabled:opacity-40">
+            {envoi ? <Loader2 size={17} className="animate-spin" aria-hidden /> : <Send size={17} aria-hidden />}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Visionneuse plein écran : les stories d'une personne puis de la suivante. Photo et texte : 6 s ; vidéo : sa durée.
  * Toucher à droite = suivante, à gauche = précédente, glisser vers le bas ou ✕ = fermer.
  * Les autres répondent aux questions, votent aux sondages et réagissent ; l'autrice voit qui a vu et les réponses.
+ * Tout le monde commente (💬). Une story de l'historique (plus de 24 h) se revoit et se commente, sans voter ni réagir.
  */
-export function VisionneuseStories({ groupes, depart, meId, moderation = false, bibliotheque, onFermer }: {
+export function VisionneuseStories({ groupes, depart, departStory = 0, meId, moderation = false, bibliotheque, onFermer }: {
   groupes: GroupeStories[];
   depart: number;
+  /** La story par laquelle commencer dans le 1er groupe ouvert (historique du profil). */
+  departStory?: number;
   meId: string | null;
   /** Administration : peut supprimer n'importe quelle story et voir son activité. */
   moderation?: boolean;
@@ -108,11 +190,13 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
 }) {
   const router = useRouter();
   const [g, setG] = useState(depart);
-  const [i, setI] = useState(0);
+  const [i, setI] = useState(departStory);
   const [avance, setAvance] = useState(0);
   const [pauseToucher, setPauseToucher] = useState(false);
   const [pauseSaisie, setPauseSaisie] = useState(false);
   const [activite, setActivite] = useState(false);
+  const [commentaires, setCommentaires] = useState(false);
+  const [nbCom, setNbCom] = useState<Record<string, number>>({});
   const [etat, setEtat] = useState<Record<string, EtatStoryVue>>({});
   const [info, setInfo] = useState<string | null>(null);
   const [envol, setEnvol] = useState<{ emoji: string; cle: number } | null>(null);
@@ -122,19 +206,19 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
   const story = groupe?.stories[i];
   const interactive = Boolean(story?.calques.some((c) => c.type === "question" || c.type === "sondage"));
   const duree = story ? (story.kind === "video" ? Math.max(3, story.duree ?? 15) * 1000 : DUREE_PHOTO_MS + (interactive ? BONUS_INTERACTIF_MS : 0)) : DUREE_PHOTO_MS;
-  const pause = pauseToucher || pauseSaisie || activite;
+  const pause = pauseToucher || pauseSaisie || activite || commentaires;
   const autrice = Boolean(story && meId === story.userId);
 
   const suivante = useCallback(() => {
     if (!groupe) return;
-    setPauseSaisie(false); setActivite(false);
+    setPauseSaisie(false); setActivite(false); setCommentaires(false);
     if (i < groupe.stories.length - 1) { setI(i + 1); setAvance(0); return; }
     if (g < groupes.length - 1) { setG(g + 1); setI(0); setAvance(0); return; }
     onFermer();
   }, [g, i, groupe, groupes.length, onFermer]);
 
   const precedente = useCallback(() => {
-    setPauseSaisie(false); setActivite(false);
+    setPauseSaisie(false); setActivite(false); setCommentaires(false);
     if (i > 0) { setI(i - 1); setAvance(0); return; }
     if (g > 0) { setG(g - 1); setI(Math.max(0, groupes[g - 1].stories.length - 1)); setAvance(0); }
   }, [g, i, groupes]);
@@ -182,6 +266,7 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
 
   if (!groupe || !story) return null;
   const peutSupprimer = meId === story.userId || moderation;
+  const nombreCommentaires = nbCom[story.id] ?? story.nbCommentaires ?? 0;
   const etatStory = etat[story.id];
 
   async function supprimer() {
@@ -195,7 +280,8 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
     if (e) setEtat((avant) => ({ ...avant, [id]: e[id] ?? { mesVotes: {}, maReaction: null, sondages: {} } }));
   }
 
-  const inter: Interactions | undefined = meId ? {
+  // Story de l'historique : plus de votes ni de réponses (on la revoit telle quelle).
+  const inter: Interactions | undefined = meId && !story.expiree ? {
     autrice,
     mesVotes: etatStory?.mesVotes ?? {},
     sondages: etatStory?.sondages ?? {},
@@ -229,7 +315,7 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
       onTouchEnd={(e) => {
         setPauseToucher(false);
         const d = debut.current; debut.current = null;
-        if (!d || pauseSaisie || activite) return;
+        if (!d || pauseSaisie || activite || commentaires) return;
         const dy = e.changedTouches[0].clientY - d.y;
         if (dy > 120) onFermer();
       }}>
@@ -249,6 +335,7 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
         <span className="font-semibold text-sm truncate">{groupe.nom}</span>
         {story.equipe ? <span className="rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-semibold shrink-0">Équipe Arazzo</span> : null}
         <span className="text-xs text-white/60 shrink-0">{ilYa(story.createdAt, new Date())}</span>
+        {story.enAttente ? <span className="rounded-full bg-amber-400/25 text-amber-100 px-2 py-0.5 text-[10px] font-semibold shrink-0">⏳ en attente</span> : null}
         {peutSupprimer ? (
           <button type="button" onClick={supprimer} aria-label="Supprimer cette story" className="ms-auto p-2 rounded-full hover:bg-white/10"><Trash2 size={18} /></button>
         ) : <span className="ms-auto" />}
@@ -272,23 +359,31 @@ export function VisionneuseStories({ groupes, depart, meId, moderation = false, 
           {envol ? <span key={envol.cle} className="absolute z-20 start-1/2 bottom-[10%] -translate-x-1/2 text-[18cqw] pointer-events-none animate-[story-envol_1.1s_ease-out_forwards]" onAnimationEnd={() => setEnvol(null)} aria-hidden>{envol.emoji}</span> : null}
           {info ? <p role="status" className="absolute z-20 inset-x-[8%] bottom-[4%] rounded-full bg-black/75 text-white text-center text-sm px-3 py-2">{info}</p> : null}
           {activite ? <PanneauActivite story={story} onFermer={() => setActivite(false)} /> : null}
+          {commentaires ? <PanneauCommentaires story={story} onFermer={() => setCommentaires(false)} onNombre={(n) => setNbCom((m) => ({ ...m, [story.id]: n }))} /> : null}
         </div>
       </div>
 
       <div className="px-4 pt-2 pb-[max(14px,env(safe-area-inset-bottom))] text-white space-y-2" onTouchStart={(e) => e.stopPropagation()}>
         {story.legende ? <p className="text-sm text-center">{story.legende}</p> : null}
         {meId && (autrice || moderation) ? (
-          <div className="flex justify-center">
-            <button type="button" onClick={() => setActivite((a) => !a)} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2 text-sm font-semibold">
+          <div className="flex justify-center gap-2">
+            <button type="button" onClick={() => { setCommentaires(false); setActivite((a) => !a); }} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2 text-sm font-semibold">
               <Eye size={16} aria-hidden /> Vues et réponses
+            </button>
+            <button type="button" onClick={() => { setActivite(false); setCommentaires(true); }} className="inline-flex items-center gap-2 rounded-full bg-white/15 hover:bg-white/25 px-4 py-2 text-sm font-semibold">
+              <MessageCircle size={16} aria-hidden /> {nombreCommentaires ? `${nombreCommentaires} commentaire${nombreCommentaires > 1 ? "s" : ""}` : "Commentaires"}
             </button>
           </div>
         ) : meId ? (
-          <div className="flex justify-center gap-1.5" aria-label="Réagir à la story">
-            {REACTIONS.map((e) => (
+          <div className="flex justify-center items-center gap-1.5" aria-label="Réagir à la story">
+            {!story.expiree ? REACTIONS.map((e) => (
               <button key={e} type="button" onClick={() => reagir(e)} aria-label={`Réagir ${e}`} aria-pressed={etatStory?.maReaction === e}
-                className={`w-11 h-11 rounded-full text-2xl leading-none grid place-items-center transition ${etatStory?.maReaction === e ? "bg-white/30 scale-110" : "bg-white/10 hover:bg-white/20"}`}>{e}</button>
-            ))}
+                className={`w-10 h-10 rounded-full text-[22px] leading-none grid place-items-center transition ${etatStory?.maReaction === e ? "bg-white/30 scale-110" : "bg-white/10 hover:bg-white/20"}`}>{e}</button>
+            )) : null}
+            <button type="button" onClick={() => setCommentaires(true)} aria-label="Commenter la story"
+              className="h-10 rounded-full bg-white/15 hover:bg-white/25 px-3 inline-flex items-center gap-1.5 text-sm font-semibold">
+              <MessageCircle size={18} aria-hidden />{nombreCommentaires ? <span>{nombreCommentaires}</span> : (story.expiree ? <span>Commenter</span> : null)}
+            </button>
           </div>
         ) : null}
       </div>

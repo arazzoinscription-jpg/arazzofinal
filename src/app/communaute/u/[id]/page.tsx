@@ -6,13 +6,13 @@ import { normLang } from "@/lib/store-i18n";
 import { CommunityProfileCard } from "./community-profile-card";
 import { CommunityJourney } from "./community-journey";
 import { CommunityPortfolio } from "./community-portfolio";
-import { GrillePublications } from "./grille-publications";
+import { HistoriqueProfil } from "./historique-profil";
 import { FEED_LIBRARY_ID } from "@/lib/bunny/stream";
 import { BoutonRetour } from "@/components/community/bouton-retour";
 import { SignalPresenceMembre } from "@/components/presence/membres";
 import { ChoixActivite, PresenceDe } from "@/components/presence/activite";
 import { niveauxDuMembre } from "@/lib/niveaux-membre";
-import { storiesActives } from "@/lib/stories/load";
+import { historiqueStories, storiesActives } from "@/lib/stories/load";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRoles, isAdmin } from "@/lib/roles";
 import { estEquipePublique, nomPublic } from "@/lib/nom-public";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = { admin: "Arazzo", formateur: "Formatrice", patronniste: "Patronniste", eleve: "Membre" };
 
-export default async function CommunityProfilePage({ params }: { params: { id: string } }) {
+export default async function CommunityProfilePage({ params, searchParams }: { params: { id: string }; searchParams?: { onglet?: string } }) {
   // Profil PUBLIC : consultable par les visiteurs (me = null), qui sont invités
   // à se connecter au moment d'interagir (bouton Suivre).
   // Chargements LANCÉS ENSEMBLE (avant : 5 étapes l'une après l'autre, chacune attendant la base).
@@ -49,10 +49,16 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
   ]);
   // Compte sans formation : pastille « Visiteuse » (et, sur son propre profil, l'invitation à rejoindre une classe).
   const visiteuse = !isCreator && !(await inscritesParmi(createAdminClient(), [params.id])).has(params.id);
-  // Stories (24 h) : visibles des membres connectés ; l'administration peut les modérer.
-  const [stories, monProfil] = me
-    ? await Promise.all([storiesActives(createAdminClient(), [params.id]), createAdminClient().from("users").select("role, roles").eq("id", me.id).maybeSingle()])
-    : [[], { data: null }];
+  // Stories (24 h) et leur HISTORIQUE (toutes, même passées) : visibles des membres connectés ; l'administration
+  // peut les modérer. Une story en attente de validation : seulement pour son autrice et l'administration.
+  const [stories, monProfil, toutesStories] = me
+    ? await Promise.all([
+      storiesActives(createAdminClient(), [params.id]),
+      createAdminClient().from("users").select("role, roles").eq("id", me.id).maybeSingle(),
+      historiqueStories(createAdminClient(), params.id, { voirEnAttente: true }),
+    ])
+    : [[], { data: null }, null];
+  const historique = toutesStories ? toutesStories.filter((s) => !s.enAttente || isMe || isAdmin(monProfil.data)) : null;
 
   return (
     <div className="min-h-[100dvh] bg-[#0b0818] text-white">
@@ -119,19 +125,12 @@ export default async function CommunityProfilePage({ params }: { params: { id: s
           ? <CommunityPortfolio portfolio={portfolio} />
           : journey && <CommunityJourney journey={journey} lang={lang} />}
 
-        {/* Historique des publications */}
-        <div className="mt-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-white/90">Historique des publications</h2>
-            <span className="text-sm text-white/50">{items.length}</span>
-          </div>
-
-          {items.length === 0 ? (
-            <p className="text-white/50 font-dm text-center py-12">Aucune publication pour le moment.</p>
-          ) : (
-            <GrillePublications items={items} bibliotheque={FEED_LIBRARY_ID} />
-          )}
-        </div>
+        {/* Historique : deux onglets — Reels (publications) et Stories (toutes, même passées, à commenter) */}
+        <HistoriqueProfil
+          userId={params.id} nom={name} avatar={historique?.[0]?.avatar ?? null}
+          items={items} stories={historique} meId={me?.id ?? null} moderation={isAdmin(monProfil.data)}
+          bibliotheque={FEED_LIBRARY_ID} ongletInitial={searchParams?.onglet === "stories" ? "stories" : "reels"}
+        />
       </div>
     </div>
   );
