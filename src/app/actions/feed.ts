@@ -5,6 +5,8 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { TEXTE_COMMENTAIRE_VOCAL, verifierCommentaireVocal } from "@/lib/commentaires-vocaux";
+import { checkRateLimit } from "@/lib/security/rateLimit";
 
 const MAX_IMAGES = 4;
 const MAX_SIZE = 10 * 1024 * 1024; // 10 Mo
@@ -165,6 +167,47 @@ export async function addComment(postId: string, content: string) {
 }
 
 /**
+ * Commentaire VOCAL (1 minute au plus) : le fichier va dans le stockage public « posts »
+ * (commentaires-vocaux/<personne>/…), le commentaire garde son chemin et sa durée (migration 108).
+ */
+export async function addVoiceComment(fd: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Connectez-vous pour commenter." };
+  const postId = fd.get("postId");
+  const f = fd.get("audio");
+  if (typeof postId !== "string" || !/^[0-9a-f-]{36}$/i.test(postId)) return { ok: false as const, error: "Publication introuvable." };
+  if (!(f instanceof File)) return { ok: false as const, error: "Commentaire vocal vide." };
+  const v = verifierCommentaireVocal({ type: f.type, size: f.size, duree: Number(fd.get("duree")) });
+  if (!v.ok) return { ok: false as const, error: v.erreur };
+  if (!(await checkRateLimit("commentaire", user.id)).ok) return { ok: false as const, error: "Beaucoup de commentaires d'un coup : réessayez dans quelques minutes." };
+
+  const admin = createAdminClient();
+  const chemin = `commentaires-vocaux/${user.id}/${randomUUID()}.${v.extension}`;
+  const up = await admin.storage.from("posts").upload(chemin, Buffer.from(await f.arrayBuffer()), { contentType: f.type.split(";")[0], upsert: false });
+  if (up.error) return { ok: false as const, error: "Envoi du vocal impossible, réessayez." };
+  const { data, error } = await admin
+    .from("comments")
+    .insert({ post_id: postId, author_id: user.id, content: TEXTE_COMMENTAIRE_VOCAL, audio_path: chemin, audio_duree: v.duree })
+    .select("id, content, created_at, author_id, author:users(nom, username, role, roles, avatar_url)")
+    .single();
+  if (error || !data) {
+    await admin.storage.from("posts").remove([chemin]);
+    return { ok: false as const, error: /audio_(path|duree)|column|schema cache/i.test(error?.message ?? "") ? "Les commentaires vocaux ne sont pas encore activés (migration 108 à appliquer)." : "Commentaire non envoyé, réessayez." };
+  }
+  const a = (data as unknown as { author?: { nom: string | null; username: string | null; role: string | null; roles: string[] | null; avatar_url: string | null } | null }).author;
+  return {
+    ok: true as const,
+    comment: {
+      ...data,
+      author: a ? { id: user.id, nom: nomPublic({ id: user.id, ...a }), role: a.role, avatar_url: a.avatar_url } : null,
+      audioUrl: admin.storage.from("posts").getPublicUrl(chemin).data.publicUrl,
+      audioDuree: v.duree,
+    },
+  };
+}
+
+/**
  * Supprime un commentaire. L'AUTEUR supprime le sien ; la modération
  * (supprimer le commentaire d'un autre) est réservée à l'ADMIN.
  */
@@ -174,7 +217,7 @@ export async function deleteComment(commentId: string) {
   if (!user) return { ok: false, error: "Non authentifié." };
 
   const admin = createAdminClient();
-  const { data: comment } = await admin.from("comments").select("author_id").eq("id", commentId).maybeSingle();
+  const { data: comment } = await admin.from("comments").select("*").eq("id", commentId).maybeSingle();
   if (!comment) return { ok: false, error: "Commentaire introuvable." };
 
   const { data: prof } = await supabase.from("users").select("role").eq("id", user.id).single();
@@ -183,5 +226,8 @@ export async function deleteComment(commentId: string) {
 
   const { error } = await admin.from("comments").delete().eq("id", commentId);
   if (error) return { ok: false, error: error.message };
+  // Commentaire vocal : son fichier aussi.
+  const audio = (comment as { audio_path?: string | null }).audio_path;
+  if (audio) await admin.storage.from("posts").remove([audio]).catch(() => undefined);
   return { ok: true };
 }

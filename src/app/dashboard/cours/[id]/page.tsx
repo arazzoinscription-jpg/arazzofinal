@@ -14,6 +14,7 @@ import { PayNextInstallmentButton } from "./pay-next-installment";
 import { Section } from "./section";
 import { TravauxAutres } from "./travaux-autres";
 import { CarteEnseignante } from "@/components/presence/carte-enseignante";
+import { BarreActiviteCours } from "@/components/presence/activite";
 import { avatarSur } from "@/lib/classe/vue";
 import { nomPublic } from "@/lib/nom-public";
 
@@ -264,6 +265,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
           lockedChapterIds={lockedChapterIds}
           unlockMonthByChapter={access.unlockMonthByChapter}
         />
+
+        {/* Ce que je fais maintenant (petites icônes, expliqué en français et en arabe), juste devant la vidéo */}
+        <BarreActiviteCours />
 
         <LessonWatch
           prevHref={prevHref}

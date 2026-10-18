@@ -5,7 +5,12 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Heart, MessageCircle, Volume2, VolumeX, ArrowRight, ArrowLeft, LayoutGrid, Scissors, X, Send, Facebook, Loader2, Check, Share2, Trash2, Link2, MessageCircleMore, Music, Sparkles, Trophy } from "lucide-react";
-import { toggleLike, addComment, deletePost } from "@/app/actions/feed";
+import { toggleLike, addComment, addVoiceComment, deletePost } from "@/app/actions/feed";
+import { LecteurVocal, creerEnregistreur, formatEnregistrement } from "@/components/messaging/pieces";
+import { useAutorisationMedia } from "@/components/messaging/guide-autorisation";
+import { codeErreur } from "@/lib/autorisations-media";
+import { COMMENTAIRE_VOCAL_MAX_S } from "@/lib/commentaires-vocaux";
+import { Mic } from "lucide-react";
 import { getPostComments } from "@/app/actions/community";
 import { basculerEnvie } from "@/app/actions/visiteuses";
 import { addFacebookVideo } from "@/app/actions/community-upload";
@@ -36,6 +41,8 @@ function useEcranVertical(): boolean {
 interface Comment {
   id: string; content: string; created_at: string; author_id: string;
   author: { id: string; nom: string; avatar_url: string | null; role: string };
+  /** Commentaire vocal (migration 108). */
+  audioUrl?: string | null; audioDuree?: number | null;
 }
 
 export function FeedClient({ items, meId, bunnyLibraryId, canModerate = false, isGuest = false, welcome = null, stories = null, monEspace = "/mon-espace" }: { items: CommunityItem[]; meId: string; bunnyLibraryId: string; canModerate?: boolean; isGuest?: boolean; welcome?: { promo: Promo | null; page: Record<string, any> | null } | null; stories?: ReactNode; monEspace?: string }) {
@@ -681,6 +688,74 @@ function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [isPending, startTransition] = useTransition();
+  // 🎤 Commentaire vocal : 1 minute au plus (s'arrête tout seul), envoyé à l'arrêt ; ✕ annule.
+  const autorisation = useAutorisationMedia();
+  const enreg = useRef<{ rec: MediaRecorder; flux: MediaStream; morceaux: Blob[]; debut: number; minuteur: number; annule: boolean } | null>(null);
+  const [secondes, setSecondes] = useState<number | null>(null);
+  const [erreurVocal, setErreurVocal] = useState<string | null>(null);
+  useEffect(() => () => { const e = enreg.current; if (e) { e.annule = true; if (e.rec.state !== "inactive") e.rec.stop(); } }, []);
+
+  async function demarrerVocal() {
+    setErreurVocal(null);
+    if (enreg.current) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { setErreurVocal("Ce navigateur ne permet pas d'enregistrer un vocal."); return; }
+    if (!(await autorisation.preparer("micro", () => void demarrerVocal()))) return;
+    let flux: MediaStream;
+    try {
+      flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+      const m = autorisation.echec("micro", e, () => void demarrerVocal());
+      if (m) setErreurVocal(m);
+      return;
+    }
+    try {
+      const format = formatEnregistrement();
+      const rec = creerEnregistreur(flux, format ? { mimeType: format } : {});
+      const etat = { rec, flux, morceaux: [] as Blob[], debut: Date.now(), minuteur: 0, annule: false };
+      rec.ondataavailable = (ev) => { if (ev.data.size) etat.morceaux.push(ev.data); };
+      rec.onstop = () => {
+        window.clearInterval(etat.minuteur);
+        flux.getTracks().forEach((t) => t.stop());
+        enreg.current = null;
+        setSecondes(null);
+        if (etat.annule) return;
+        const duree = Math.max(1, Math.min(COMMENTAIRE_VOCAL_MAX_S, Math.round((Date.now() - etat.debut) / 1000)));
+        const type = (rec.mimeType || format || "audio/webm").split(";")[0];
+        const blob = new Blob(etat.morceaux, { type });
+        if (blob.size < 100) { setErreurVocal("Vocal vide, réessayez."); return; }
+        envoyerVocal(new File([blob], `vocal.${type.includes("mp4") ? "m4a" : type.split("/")[1]}`, { type }), duree);
+      };
+      etat.minuteur = window.setInterval(() => {
+        const s = Math.round((Date.now() - etat.debut) / 1000);
+        setSecondes(s);
+        if (s >= COMMENTAIRE_VOCAL_MAX_S && rec.state === "recording") rec.stop();
+      }, 250);
+      enreg.current = etat;
+      try { rec.start(250); } catch { rec.start(); }
+      setSecondes(0);
+    } catch (e) {
+      enreg.current = null;
+      flux.getTracks().forEach((t) => t.stop());
+      setErreurVocal(`Ce téléphone n'arrive pas à enregistrer le son ici (code : ${codeErreur(e)}).`);
+    }
+  }
+  function arreterVocal(annuler: boolean) {
+    const e = enreg.current;
+    if (!e) return;
+    e.annule = annuler;
+    if (e.rec.state !== "inactive") e.rec.stop();
+  }
+  function envoyerVocal(f: File, duree: number) {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append("postId", postId);
+      fd.append("audio", f);
+      fd.append("duree", String(duree));
+      const res = await addVoiceComment(fd);
+      if (res.ok) setComments((c) => [...c, res.comment as unknown as Comment]);
+      else setErreurVocal(res.error);
+    });
+  }
 
   useEffect(() => {
     let alive = true;
@@ -722,18 +797,43 @@ function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void
               </span>
               <div>
                 <p className="text-sm"><span className="font-semibold text-gray-900">{c.author.nom}</span></p>
-                <p className="text-sm text-gray-700 font-dm">{c.content}</p>
+                {c.audioUrl
+                  ? <div className="mt-1 w-56 max-w-full"><LecteurVocal url={c.audioUrl} duree={c.audioDuree ?? null} mine={false} /></div>
+                  : <p className="text-sm text-gray-700 font-dm">{c.content}</p>}
               </div>
             </div>
           ))}
         </div>
+        {erreurVocal ? <p className="px-4 pt-2 text-xs text-red-600">{erreurVocal}</p> : null}
         <div className="flex items-center gap-2 p-3 border-t border-cream-200 pb-[max(12px,env(safe-area-inset-bottom))]">
-          <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
-            placeholder="Ajoute un commentaire…"
-            className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
-          <button onClick={send} disabled={isPending || !text.trim()}
-            className="w-10 h-10 grid place-items-center rounded-full bg-orange-DEFAULT text-white disabled:opacity-50"><Send size={18} /></button>
+          {secondes !== null ? (
+            <>
+              <button type="button" onClick={() => arreterVocal(true)} aria-label="Annuler le vocal"
+                className="w-10 h-10 grid place-items-center rounded-full bg-gray-100 text-gray-600"><X size={18} /></button>
+              <div className="flex-1 flex items-center gap-2 rounded-full bg-red-50 px-4 py-2.5 text-sm text-red-700">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" aria-hidden />
+                <span className="tabular-nums font-semibold">0:{String(secondes).padStart(2, "0")}</span>
+                <span className="text-red-400">/ 1:00</span>
+              </div>
+              <button type="button" onClick={() => arreterVocal(false)} aria-label="Envoyer le vocal"
+                className="w-10 h-10 grid place-items-center rounded-full bg-orange-DEFAULT text-white"><Send size={18} /></button>
+            </>
+          ) : (
+            <>
+              <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()}
+                placeholder="Ajoute un commentaire…"
+                className="flex-1 border border-gray-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              {text.trim() ? (
+                <button onClick={send} disabled={isPending}
+                  className="w-10 h-10 grid place-items-center rounded-full bg-orange-DEFAULT text-white disabled:opacity-50"><Send size={18} /></button>
+              ) : (
+                <button type="button" onClick={() => void demarrerVocal()} disabled={isPending} aria-label="Commentaire vocal (1 minute au plus)"
+                  className="w-10 h-10 grid place-items-center rounded-full bg-[#5B16F9] text-white disabled:opacity-50"><Mic size={18} /></button>
+              )}
+            </>
+          )}
         </div>
+        {autorisation.rendu}
       </div>
     </div>
   );

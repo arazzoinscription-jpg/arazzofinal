@@ -12,6 +12,7 @@ import { groupesDeLespace } from "@/lib/classe/groupes";
 import { LIBELLE_TEINTE, TEINTES, avatarSur, compterTeintes, initiales, lireFiltresClasse } from "@/lib/classe/vue";
 import { STYLE_TEINTE } from "../teintes";
 import { ClasseInteractive } from "../classe-interactive";
+import { ChoixActivite } from "@/components/presence/activite";
 import { AjouterStory } from "@/components/stories/ajouter-story";
 import { bandeauDe } from "@/app/formateur/groupes/carte-groupe";
 
@@ -138,6 +139,9 @@ export async function EcranClasse({ espace, searchParams }: { espace: Espace; se
           ))}
         </div>
       </Tableau>
+
+      {/* Son statut (visible par ses élèves sur sa carte, dans leur classe et leurs cours). */}
+      <div className="mb-4"><ChoixActivite enseignante /></div>
 
       <ClasseInteractive
         base={b}

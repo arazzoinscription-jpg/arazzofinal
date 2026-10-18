@@ -60,6 +60,7 @@ export function ClasseEleveVue({ enseignantes, camarades, niveaux, groupes, stor
                   <div className="text-xs text-white/70">Votre enseignante{e.niveaux.length ? ` · ${e.niveaux.join(", ")}` : ""}</div>
                   <div className="font-playfair text-2xl font-bold leading-tight">{e.nom}</div>
                   <div className="mt-2"><PastillePresence etat={presence(e.id)} /></div>
+                  <ActiviteDe id={e.id} fond />
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Link href={`/communaute/u/${e.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-white text-[#2A0880] px-3 py-1.5 text-xs font-semibold hover:bg-white/90"><UserRound size={14} /> Son profil</Link>
                     <button type="button" onClick={() => ouvrirMessagerie({ id: e.id, nom: e.nom })} className="inline-flex items-center gap-1.5 rounded-xl border border-white/40 px-3 py-1.5 text-xs font-semibold hover:bg-white/10"><MessageCircle size={14} /> Lui écrire</button>

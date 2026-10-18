@@ -127,6 +127,57 @@ export function BadgeActivite({ code, pct, taille = "md" }: { code: CodeActivite
   );
 }
 
+const NOMS_COURTS: Record<CodeActivite, { fr: string; ar: string }> = {
+  theorie: { fr: "Cours", ar: "الدرس" },
+  patronage: { fr: "Patron", ar: "الباترون" },
+  couture: { fr: "Couture", ar: "الخياطة" },
+  modele: { fr: "Mon modèle", ar: "نموذجي" },
+};
+
+/**
+ * Dans « Mon cours », juste au-dessus de la vidéo : dire à sa classe ce qu'on fait, en un geste (petites icônes),
+ * avec l'explication en français et en arabe. Même statut que dans « Ma classe » (un seul pour tout le site).
+ */
+export function BarreActiviteCours() {
+  const [a, setA] = useState<MonActivite>(AUCUNE);
+  const [pret, setPret] = useState(false);
+  useEffect(() => { setA(lireMienne()); setPret(true); }, []);
+  function choisir(n: MonActivite) { setA(n); changerMienne(n); }
+  if (!pret) return null;
+  return (
+    <section aria-label="Ce que je fais en ce moment" className="mb-3 rounded-2xl border border-violet-100 bg-white p-3 shadow-sm">
+      <StylesActivite />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex gap-1.5 shrink-0">
+          {ACTIVITES.map((code) => {
+            const actif = a.code === code;
+            return (
+              <button key={code} type="button" aria-pressed={actif} title={LIBELLE_ACTIVITE[code].titre}
+                onClick={() => choisir(actif ? { ...a, code: null, pct: null, le: Date.now() } : { ...a, code, pct: code === "modele" ? a.pct ?? 0 : null, le: Date.now() })}
+                className={`flex flex-col items-center gap-0.5 rounded-xl border px-1 py-1.5 w-[64px] transition ${actif ? "border-[#5B16F9] bg-[#5B16F9]/10 ring-2 ring-[#5B16F9]/30" : "border-gray-200 hover:bg-gray-50"}`}>
+                {code === "modele" ? <span className="az-sourire text-xl leading-6" aria-hidden>😊</span> : <IconeActivite code={code} taille="sm" />}
+                <span className="text-[10px] font-semibold leading-tight text-gray-800">{NOMS_COURTS[code].fr}</span>
+                <span dir="rtl" lang="ar" className="text-[10px] leading-tight text-gray-500">{NOMS_COURTS[code].ar}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="min-w-0 text-[11.5px] leading-snug text-gray-600">
+          <p><b className="text-gray-800">Ce que je fais maintenant</b> — touchez une icône : vos camarades et votre enseignante le voient tant que vous êtes en ligne (s&apos;efface après 6 h).</p>
+          <p dir="rtl" lang="ar" className="mt-1"><b className="text-gray-800">ماذا أفعل الآن؟</b> — اضغطي على أيقونة: تراها زميلاتك وأستاذتك ما دمتِ متصلة (تختفي بعد 6 ساعات).</p>
+        </div>
+      </div>
+      {a.code === "modele" ? (
+        <label className="mt-2 block text-xs text-gray-600">
+          Mon modèle avance : <b>{a.pct ?? 0} %</b> <span dir="rtl" lang="ar" className="text-gray-400">· تقدّم نموذجي</span>
+          <input type="range" min={0} max={100} step={10} value={a.pct ?? 0} className="w-full accent-[#5B16F9] mt-1"
+            onChange={(e) => choisir({ ...a, pct: arrondirPct(e.target.value) ?? 0, le: Date.now() })} />
+        </label>
+      ) : null}
+    </section>
+  );
+}
+
 const PILULE: Record<EtatEnLigne, { texte: string; classe: string; point: string }> = {
   en_ligne: { texte: "En ligne", classe: "bg-emerald-50 text-emerald-700 border-emerald-200", point: "bg-emerald-500 animate-pulse" },
   hors_ligne: { texte: "Hors ligne", classe: "bg-gray-50 text-gray-500 border-gray-200", point: "bg-gray-300" },
@@ -152,10 +203,11 @@ export function PointEnLigne({ id, className = "" }: { id: string; className?: s
 }
 
 /** Sur une carte : l'activité d'un membre en ligne (rien s'il est hors ligne ou sans activité). */
-export function ActiviteDe({ id }: { id: string }) {
+export function ActiviteDe({ id, fond = false }: { id: string; /** Pastille claire (sur un bandeau de couleur). */ fond?: boolean }) {
   const p = useMembresEnLigne();
-  const { membre } = etatDe(p, id);
-  if (!membre?.activite) return null;
+  const { etat, membre } = etatDe(p, id);
+  if (etat !== "en_ligne" || !membre?.activite) return null;
+  if (fond) return <span className="mt-2 inline-flex rounded-xl bg-white/95 text-gray-800 px-2.5 py-1 shadow-sm"><BadgeActivite code={membre.activite} pct={membre.pct} taille="sm" /></span>;
   return <span className="mt-2 w-full flex justify-center text-gray-700"><BadgeActivite code={membre.activite} pct={membre.pct} taille="sm" /></span>;
 }
 
@@ -176,8 +228,18 @@ export function PresenceDe({ id, sombre = false }: { id: string; sombre?: boolea
   );
 }
 
-/** Le choix de l'élève, sur SON profil : ce qu'elle fait en ce moment (ou rien), et le mode discrète. */
-export function ChoixActivite({ sombre = false }: { sombre?: boolean }) {
+/** Libellés de l'enseignante (elle ne « regarde » pas le cours : elle le prépare ou le donne). */
+const LIBELLE_ENSEIGNANTE: Partial<Record<CodeActivite, string>> = {
+  theorie: "Je prépare / donne un cours",
+  patronage: "Je dessine un patron",
+  couture: "Je couds à la machine",
+};
+
+/**
+ * Le choix d'une élève (ou de l'ENSEIGNANTE, `enseignante`) : ce qu'elle fait en ce moment (ou rien), et le mode
+ * discrète. L'enseignante n'a pas « mon modèle est en cours » ; ses élèves voient son statut sur sa carte.
+ */
+export function ChoixActivite({ sombre = false, enseignante = false }: { sombre?: boolean; enseignante?: boolean }) {
   const [a, setA] = useState<MonActivite>(AUCUNE);
   const [pret, setPret] = useState(false);
   useEffect(() => { setA(lireMienne()); setPret(true); }, []);
@@ -190,15 +252,17 @@ export function ChoixActivite({ sombre = false }: { sombre?: boolean }) {
     <section aria-labelledby="titre-activite" className={`rounded-3xl border p-4 ${sombre ? "border-white/10 bg-white/5 text-white" : "border-gray-100 bg-white text-gray-800"}`}>
       <StylesActivite />
       <h2 id="titre-activite" className="font-semibold">Ce que je fais en ce moment</h2>
-      <p className={`text-xs mt-0.5 mb-3 ${sombre ? "text-white/60" : "text-gray-500"}`}>Visible par vos camarades tant que vous êtes en ligne. S&apos;efface tout seul après 6 heures.</p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {ACTIVITES.map((code) => {
+      <p className={`text-xs mt-0.5 mb-3 ${sombre ? "text-white/60" : "text-gray-500"}`}>
+        {enseignante ? "Visible par vos élèves (sur votre carte, dans leur classe et leurs cours) tant que vous êtes en ligne." : "Visible par vos camarades tant que vous êtes en ligne."} S&apos;efface tout seul après 6 heures.
+      </p>
+      <div className={`grid grid-cols-2 gap-2 ${enseignante ? "sm:grid-cols-3" : "sm:grid-cols-4"}`}>
+        {ACTIVITES.filter((code) => !enseignante || code !== "modele").map((code) => {
           const actif = a.code === code;
           return (
             <button key={code} type="button" aria-pressed={actif} className={carte(actif)}
               onClick={() => choisir(actif ? { ...a, code: null, pct: null, le: Date.now() } : { ...a, code, pct: code === "modele" ? a.pct ?? 0 : null, le: Date.now() })}>
               {code === "modele" ? <span className="az-sourire text-3xl" aria-hidden>😊</span> : <IconeActivite code={code} />}
-              <span className="text-[11.5px] font-semibold leading-tight">{LIBELLE_ACTIVITE[code].titre}</span>
+              <span className="text-[11.5px] font-semibold leading-tight">{(enseignante && LIBELLE_ENSEIGNANTE[code]) || LIBELLE_ACTIVITE[code].titre}</span>
             </button>
           );
         })}

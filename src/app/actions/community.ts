@@ -260,18 +260,23 @@ export async function getPostComments(postId: string) {
   if (!user) return { ok: false as const, error: "Non authentifié.", comments: [] };
 
   const admin = createAdminClient();
-  const { data } = await admin
+  const lire = (colonnes: string) => admin
     .from("comments")
-    .select("id, content, created_at, author_id, author:users(id, nom, username, avatar_url, role, roles)")
+    .select(colonnes)
     .eq("post_id", postId)
     .order("created_at", { ascending: true })
     .limit(200);
+  // Commentaires vocaux (migration 108) ; sans elle, la lecture d'origine.
+  let { data, error } = await lire("id, content, created_at, author_id, audio_path, audio_duree, author:users(id, nom, username, avatar_url, role, roles)");
+  if (error) ({ data } = await lire("id, content, created_at, author_id, author:users(id, nom, username, avatar_url, role, roles)"));
 
   const comments = (data ?? []).map((c: any) => ({
     id: c.id,
     content: c.content,
     created_at: c.created_at,
     author_id: c.author_id,
+    audioUrl: c.audio_path ? admin.storage.from("posts").getPublicUrl(c.audio_path).data.publicUrl : null,
+    audioDuree: c.audio_duree ?? null,
     author: {
       id: c.author?.id,
       nom: c.author ? nomPublic(c.author) : "Membre",

@@ -5,7 +5,7 @@ import { MessageCircle, UserRound } from "lucide-react";
 import { ouvrirMessagerie } from "@/lib/classe/ouvrir-messagerie";
 import { useEnseignantesEnLigne, type EtatPresence } from "./presence";
 import { etatDe, useMembresEnLigne } from "./membres";
-import { PiluleEnLigne } from "./activite";
+import { ActiviteDe, PiluleEnLigne, StylesActivite } from "./activite";
 
 /** En ligne si l'un des deux signaux le dit (espace enseignante ouvert, ou n'importe quelle page Arazzo). */
 function etatCombine(enseignante: EtatPresence, membre: EtatPresence): EtatPresence {
@@ -62,6 +62,8 @@ export function CarteEnseignante({ enseignante, compacte = false }: {
           <p className="text-[11px] text-gray-500">Votre enseignante</p>
           <p className="font-semibold text-gray-900 truncate">{enseignante.nom}</p>
           <div className="mt-1"><PiluleEnLigne etat={etat} /></div>
+          <StylesActivite />
+          <ActiviteDe id={enseignante.id} />
         </div>
         {boutons}
       </section>
@@ -74,6 +76,8 @@ export function CarteEnseignante({ enseignante, compacte = false }: {
       {photo("w-24 h-24")}
       <p className="font-playfair text-lg font-bold text-gray-900 leading-tight">{enseignante.nom}</p>
       <PiluleEnLigne etat={etat} />
+      <StylesActivite />
+      <ActiviteDe id={enseignante.id} />
       {boutons}
     </section>
   );
