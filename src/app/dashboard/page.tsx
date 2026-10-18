@@ -24,6 +24,13 @@ export const dynamic = "force-dynamic";
 
 const LOCALE: Record<string, string> = { fr: "fr-FR", ar: "ar", en: "en-US" };
 
+/** Les deux boutons de l'en-tête « La Cour » : entrer en classe, voir son cours. */
+const BOUTONS: Record<string, { classe: string; cours: string }> = {
+  fr: { classe: "Entrer en classe", cours: "Voir ton cours" },
+  ar: { classe: "ادخلي للقسم", cours: "شوفي الدرس تاعك" },
+  en: { classe: "Enter the class", cours: "See your course" },
+};
+
 const FALLBACKS = ["/images/mannequin-couture.jpg", "/images/mannequin-dessin.jpg", "/images/mannequin-mode.jpg"];
 
 export default async function DashboardPage() {
@@ -158,9 +165,75 @@ export default async function DashboardPage() {
         </AnimatedBadge>
       </div>
 
-      {/* Panneau communauté (globe 3D interactif) */}
+      {/* 1. L'ACCÈS AU COURS, en premier : le cours en cours (reprendre) puis les autres formations. */}
+      <section aria-label={t.resume} className="relative space-y-4 mb-6">
+          {/* Héro (image + lecteur) — texte blanc dans les deux thèmes (sur photo) */}
+        <Reveal className="relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-[22rem] text-white" duration={0.6}>
+          <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/40 to-transparent" />
+          {hero ? (
+            <>
+              <div className="absolute top-4 start-4">
+                <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">● {t.inProgress}</span>
+              </div>
+              <div className="absolute top-4 end-4 flex items-center gap-2 text-xs font-semibold">
+                <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{t.ofLessons(hero.done, hero.total)}</span>
+                <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{hero.pct}%</span>
+              </div>
+              <div className="absolute bottom-4 start-4 end-4">
+                <p className="text-white/60 text-xs font-dm mb-1">{t.resume}</p>
+                <h2 className="font-playfair text-2xl font-bold mb-3 line-clamp-1">{hero.titre}</h2>
+                <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md rounded-2xl p-2.5">
+                  <a href={`/dashboard/cours/${hero.firstLesson ?? hero.id}`}
+                    className="w-11 h-11 rounded-full bg-orange-DEFAULT hover:bg-orange-600 flex items-center justify-center flex-shrink-0 transition-colors">
+                    <Play size={18} className="text-white fill-white ml-0.5" />
+                  </a>
+                  <div className="flex-1 min-w-0">
+                    <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-orange-DEFAULT to-orange-400 rounded-full" style={{ width: `${hero.pct}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-xs text-white/70 font-dm flex-shrink-0">{hero.pct}%</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+              <p className="text-white/70 font-dm mb-4">{t.noCourse}</p>
+              <CtaLink href="/formations" className="bg-orange-DEFAULT px-6 py-3 rounded-xl font-semibold">{t.explore}</CtaLink>
+            </div>
+          )}
+        </Reveal>
+
+        {/* Cartes cours */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {others.length > 0 ? others.map((c, i) => (
+            <a key={c.id} href={`/dashboard/cours/${c.firstLesson ?? c.id}`}
+              className="group relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-44 text-white">
+              <img src={c.thumbnail || FALLBACKS[(i + 1) % FALLBACKS.length]} alt=""
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/30 to-transparent" />
+              <span className="absolute top-3 right-3 w-10 h-10 rounded-full bg-orange-DEFAULT group-hover:bg-orange-600 flex items-center justify-center transition-colors">
+                <Play size={15} className="text-white fill-white ml-0.5" />
+              </span>
+              <div className="absolute bottom-0 start-0 end-0 p-4">
+                <h3 className="font-semibold line-clamp-1">{c.titre}</h3>
+                <p className="text-xs text-white/50 font-dm mt-0.5">{c.pct}% {t.completed}</p>
+              </div>
+            </a>
+          )) : (
+            <div className={`sm:col-span-3 rounded-3xl p-6 text-center font-dm ${card} ${muted}`}>
+              {t.soonHere}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 2. La Cour (globe) — avec « Entrer en classe » et « Voir ton cours » */}
       <div className="relative">
-        <CommunityGlobe prenom={prenom} />
+        <CommunityGlobe prenom={prenom}
+          classe={{ href: "/dashboard/classe", label: BOUTONS[lang].classe }}
+          cours={hero ? { href: "/dashboard/mon-cours", label: BOUTONS[lang].cours } : undefined} />
       </div>
 
       {decouverte !== undefined && <CarteDecouverte essai={decouverte} />}
@@ -177,8 +250,8 @@ export default async function DashboardPage() {
       )}
 
       <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* ── Colonne gauche ── */}
-        <StaggerGroup className="space-y-4" stagger={0.1}>
+        {/* ── Série + activité ── */}
+        <StaggerGroup className="space-y-4 lg:col-span-2 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0" stagger={0.1}>
           {/* Carte série */}
           <StaggerItem className={`rounded-3xl p-6 ${card}`}>
             <div className="flex items-start justify-between">
@@ -234,71 +307,11 @@ export default async function DashboardPage() {
           </StaggerItem>
         </StaggerGroup>
 
-        {/* ── Colonne droite ── */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Héro (image + lecteur) — texte blanc dans les deux thèmes (sur photo) */}
-          <Reveal className="relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-[22rem] text-white" duration={0.6}>
-            <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/40 to-transparent" />
-            {hero ? (
-              <>
-                <div className="absolute top-4 start-4">
-                  <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">● {t.inProgress}</span>
-                </div>
-                <div className="absolute top-4 end-4 flex items-center gap-2 text-xs font-semibold">
-                  <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{t.ofLessons(hero.done, hero.total)}</span>
-                  <span className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full">{hero.pct}%</span>
-                </div>
-                <div className="absolute bottom-4 start-4 end-4">
-                  <p className="text-white/60 text-xs font-dm mb-1">{t.resume}</p>
-                  <h2 className="font-playfair text-2xl font-bold mb-3 line-clamp-1">{hero.titre}</h2>
-                  <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md rounded-2xl p-2.5">
-                    <a href={`/dashboard/cours/${hero.firstLesson ?? hero.id}`}
-                      className="w-11 h-11 rounded-full bg-orange-DEFAULT hover:bg-orange-600 flex items-center justify-center flex-shrink-0 transition-colors">
-                      <Play size={18} className="text-white fill-white ml-0.5" />
-                    </a>
-                    <div className="flex-1 min-w-0">
-                      <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-orange-DEFAULT to-orange-400 rounded-full" style={{ width: `${hero.pct}%` }} />
-                      </div>
-                    </div>
-                    <span className="text-xs text-white/70 font-dm flex-shrink-0">{hero.pct}%</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-                <p className="text-white/70 font-dm mb-4">{t.noCourse}</p>
-                <CtaLink href="/formations" className="bg-orange-DEFAULT px-6 py-3 rounded-xl font-semibold">{t.explore}</CtaLink>
-              </div>
-            )}
-          </Reveal>
-
-          {/* Cartes cours */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {others.length > 0 ? others.map((c, i) => (
-              <a key={c.id} href={`/dashboard/cours/${c.firstLesson ?? c.id}`}
-                className="group relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-44 text-white">
-                <img src={c.thumbnail || FALLBACKS[(i + 1) % FALLBACKS.length]} alt=""
-                  className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/30 to-transparent" />
-                <span className="absolute top-3 right-3 w-10 h-10 rounded-full bg-orange-DEFAULT group-hover:bg-orange-600 flex items-center justify-center transition-colors">
-                  <Play size={15} className="text-white fill-white ml-0.5" />
-                </span>
-                <div className="absolute bottom-0 start-0 end-0 p-4">
-                  <h3 className="font-semibold line-clamp-1">{c.titre}</h3>
-                  <p className="text-xs text-white/50 font-dm mt-0.5">{c.pct}% {t.completed}</p>
-                </div>
-              </a>
-            )) : (
-              <div className={`sm:col-span-3 rounded-3xl p-6 text-center font-dm ${card} ${muted}`}>
-                {t.soonHere}
-              </div>
-            )}
-          </div>
+        {/* ── Raccourcis ── */}
+        <div className="space-y-4">
 
           {/* Raccourcis */}
-          <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 gap-4" stagger={0.15}>
+          <StaggerGroup className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4" stagger={0.15}>
             <StaggerLink href="/dashboard/sessions" className={`flex items-center gap-3 rounded-3xl p-5 transition-colors hover:bg-cream-50 dark:hover:bg-white/[0.07] ${card}`}>
               <span className="w-11 h-11 rounded-2xl bg-violet-500/15 dark:bg-violet-500/20 text-violet-600 dark:text-violet-300 flex items-center justify-center"><Calendar size={20} /></span>
               <div className="flex-1 min-w-0">

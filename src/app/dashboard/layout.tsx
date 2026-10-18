@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { EcouteCloche } from "@/components/cloche/ecoute-cloche";
-import { BoutonMaClasse } from "@/components/layout/bouton-ma-classe";
-import { BoutonMonCours } from "@/components/layout/bouton-mon-cours";
+import { PileFlottante } from "@/components/layout/pile-flottante";
 import { coursEnCours } from "@/lib/cours-en-cours";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
@@ -200,10 +199,8 @@ export default async function DashboardLayout({
         <PublicationConsentPopup userId={user.id} username={profile?.username ?? null} />
       )}
       <ChatWidget />
-      {/* Accès direct à « Ma classe », depuis toutes les pages de l'espace. */}
-      <BoutonMaClasse href="/dashboard/classe" />
-      {/* Accès direct au cours en cours (programme + vidéo), sur la dernière leçon ouverte. */}
-      <BoutonMonCours cours={await coursEnCours(createAdminClient(), user.id)} />
+      {/* Accès directs, empilés à gauche : le cours en cours (dernière leçon ouverte), « Ma classe », « La Cour ». */}
+      <PileFlottante cours={await coursEnCours(createAdminClient(), user.id)} />
       {/* Cloche de la classe : bannière + son quand l'enseignante la fait sonner. */}
       <EcouteCloche userId={user.id} />
       {/* « En ligne » + activité choisie, visibles des camarades — temps réel, rien en base (mode discrète possible). */}

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { GraduationCap, Shapes } from "lucide-react";
-import { SECTIONS } from "./nav-data";
+import { SECTIONS_ACHETEUSE, SECTIONS } from "./nav-data";
 import { DICT, type Lang } from "./dash-i18n";
 import { isFormateur, isPatronniste } from "@/lib/roles";
 
@@ -16,7 +16,7 @@ export function DashboardNavFull({ role, roles = [], lang = "fr", buyer = false 
 
   const itemOn = (href: string) => pathname === href || pathname.startsWith(href + "/");
   // Acheteur de patrons : navigation réduite.
-  const sections = buyer ? SECTIONS.filter((s) => ["home", "shop", "account"].includes(s.key)) : SECTIONS;
+  const sections = buyer ? SECTIONS.filter((s) => SECTIONS_ACHETEUSE.includes(s.key)) : SECTIONS;
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-2">

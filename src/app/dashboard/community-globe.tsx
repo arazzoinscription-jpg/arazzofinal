@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, MapPin, Globe2, ArrowUpRight } from "lucide-react";
+import { Users, MapPin, Globe2, ArrowUpRight, PlayCircle, School } from "lucide-react";
 import { Globe } from "@/components/ui/globe";
 
 const STATS = [
@@ -11,18 +11,23 @@ const STATS = [
 /**
  * Panneau hero « Communauté » du tableau de bord — globe 3D interactif
  * (inspiré du template v0), aux couleurs Arazzo.
- * Réutilisable (élève / patronniste) via `href`, `cta`, `eyebrow`.
+ * Réutilisable (élève / patronniste) via `href`, `cta`, `eyebrow`. `classe` / `cours` : deux boutons de plus à côté
+ * de « Entrer dans La Cour » (espace élève : entrer en classe, voir son cours).
  */
 export function CommunityGlobe({
   prenom,
   href = "/dashboard/actualites",
   cta = "Entrer dans La Cour",
   eyebrow = "N° 00",
+  classe,
+  cours,
 }: {
   prenom: string;
   href?: string;
   cta?: string;
   eyebrow?: string;
+  classe?: { href: string; label: string };
+  cours?: { href: string; label: string };
 }) {
   return (
     <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1b0c3c] via-violet-900 to-[#2a1245] ring-1 ring-white/10 shadow-[0_34px_80px_-34px_rgba(43,18,69,0.8)] mb-6">
@@ -65,11 +70,25 @@ export function CommunityGlobe({
             ))}
           </div>
 
-          <Link href={href}
-            className="group inline-flex items-center gap-2 mt-8 bg-orange-DEFAULT hover:bg-orange-500 text-white px-6 py-3 rounded-xl font-semibold font-dm transition-colors shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
-            {cta}
-            <ArrowUpRight size={17} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform rtl:-scale-x-100" />
-          </Link>
+          <div className="flex flex-wrap gap-2.5 mt-8">
+            <Link href={href}
+              className="group inline-flex items-center gap-2 bg-orange-DEFAULT hover:bg-orange-500 text-white px-6 py-3 rounded-xl font-semibold font-dm transition-colors shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+              {cta}
+              <ArrowUpRight size={17} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform rtl:-scale-x-100" />
+            </Link>
+            {classe ? (
+              <Link href={classe.href}
+                className="inline-flex items-center gap-2 bg-white text-violet-900 hover:bg-violet-50 px-5 py-3 rounded-xl font-semibold font-dm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+                <School size={18} aria-hidden /> {classe.label}
+              </Link>
+            ) : null}
+            {cours ? (
+              <Link href={cours.href}
+                className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white ring-1 ring-white/30 px-5 py-3 rounded-xl font-semibold font-dm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300">
+                <PlayCircle size={18} aria-hidden /> {cours.label}
+              </Link>
+            ) : null}
+          </div>
         </div>
 
         {/* Globe */}

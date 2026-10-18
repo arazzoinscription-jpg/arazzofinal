@@ -93,7 +93,7 @@ export function InstallApp() {
     <div
       role="dialog"
       aria-label="Installer l'application Arazzo"
-      className="fixed inset-x-3 z-[60] rounded-2xl shadow-2xl bg-white text-[#1a1a2e] dark:bg-[#1c1730] dark:text-white border border-purple-200 dark:border-purple-900 p-3"
+      className="[html[data-chat-ouvert]_&]:hidden fixed inset-x-3 z-[60] rounded-2xl shadow-2xl bg-white text-[#1a1a2e] dark:bg-[#1c1730] dark:text-white border border-purple-200 dark:border-purple-900 p-3"
       style={{ bottom: "calc(env(safe-area-inset-bottom) + 84px)" }}
     >
       <div className="flex items-center gap-3">

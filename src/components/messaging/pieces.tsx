@@ -122,7 +122,11 @@ export function BulleVideo({ url, duree }: { url: string | null; duree: number |
  * Enregistrer une vidéo ronde (1 min) en se voyant : caméra de face (bascule possible), aperçu en miroir,
  * anneau de temps ; « Envoyer » arrête et envoie, la croix annule (rien n'est envoyé).
  */
-export function EnregistreurVideo({ maxS, onFermer, onEnvoyer }: { maxS: number; onFermer: () => void; onEnvoyer: (f: File, duree: number) => void }) {
+export function EnregistreurVideo({ maxS, onFermer, onEnvoyer, onRefus }: {
+  maxS: number; onFermer: () => void; onEnvoyer: (f: File, duree: number) => void;
+  /** La caméra n'a pas pu s'ouvrir (refus, pas de caméra…) : le guide d'autorisation prend le relais. */
+  onRefus?: (erreur: unknown) => void;
+}) {
   const apercu = useRef<HTMLVideoElement>(null);
   const flux = useRef<MediaStream | null>(null);
   const rec = useRef<{ r: MediaRecorder; morceaux: Blob[]; debut: number; annule: boolean } | null>(null);
@@ -145,11 +149,14 @@ export function EnregistreurVideo({ maxS, onFermer, onEnvoyer }: { maxS: number;
         flux.current = f;
         setErreur(null);
         if (apercu.current) { apercu.current.srcObject = f; void apercu.current.play().catch(() => {}); }
-      } catch {
+      } catch (e) {
+        if (!actif) return;
+        if (onRefus) { onRefus(e); return; }
         setErreur("Caméra ou micro refusé : autorisez-les pour enregistrer une vidéo.");
       }
     })();
     return () => { actif = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [face]);
 
   // Fermeture : caméra et micro éteints.

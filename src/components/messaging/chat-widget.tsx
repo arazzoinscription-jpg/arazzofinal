@@ -11,6 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { AUDIO_MAX_S, BUCKET_MESSAGES, VIDEO_MAX_S, dureeLisible } from "@/lib/messagerie-pieces";
 import { BulleVideo, EnregistreurVideo, LecteurVocal, PhotoEnGrand, compresserImage, formatEnregistrement } from "./pieces";
+import { useAutorisationMedia } from "./guide-autorisation";
 
 type Role = "eleve" | "formateur" | "patronniste" | "admin";
 interface Contact { id: string; nom: string; role: Role; avatar_url: string | null; group?: string }
@@ -39,6 +40,13 @@ const initial = (n: string) => (n?.[0] ?? "?").toUpperCase();
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
+  // Caméra / micro : explication avant la demande du navigateur, guide pas à pas après un refus.
+  const autorisation = useAutorisationMedia();
+  // Messagerie ouverte : les boutons flottants de gauche se cachent (sur téléphone, elle prend toute la largeur).
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-chat-ouvert", open);
+    return () => document.documentElement.removeAttribute("data-chat-ouvert");
+  }, [open]);
   const [view, setView] = useState<"list" | "contacts" | "conv">("list");
   const [role, setRole] = useState<Role>("eleve");
   const [conversations, setConversations] = useState<Conv[]>([]);
@@ -183,6 +191,7 @@ export function ChatWidget() {
   async function demarrerVocal() {
     if (enregistreur.current) return;
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { toast("Votre navigateur ne permet pas d'enregistrer un message vocal.", "error"); return; }
+    if (!(await autorisation.preparer("micro", () => void demarrerVocal()))) return;
     try {
       const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
       const format = formatEnregistrement();
@@ -209,9 +218,16 @@ export function ChatWidget() {
       enregistreur.current = etat;
       rec.start(250);
       setEnreg({ secondes: 0 });
-    } catch {
-      toast("Micro refusé : autorisez le micro pour enregistrer un message vocal.", "error");
+    } catch (e) {
+      const message = autorisation.echec("micro", e, () => void demarrerVocal());
+      if (message) toast(message, "error");
     }
+  }
+
+  /** 🎥 Vidéo ronde : explication / guide d'autorisation d'abord, puis l'enregistreur. */
+  async function ouvrirCamera() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") { toast("Votre navigateur ne permet pas d'enregistrer une vidéo ici.", "error"); return; }
+    if (await autorisation.preparer("camera", () => void ouvrirCamera())) setCamera(true);
   }
 
   function arreterVocal(annuler: boolean) {
@@ -253,7 +269,7 @@ export function ChatWidget() {
       </button>
 
       {open && (
-        <div className="fixed z-40 bottom-40 lg:bottom-24 end-4 lg:end-6 w-[calc(100vw-2rem)] sm:w-96 h-[70vh] sm:h-[560px] max-h-[70vh] bg-white dark:bg-[#15102b] rounded-2xl shadow-2xl border border-cream-200 dark:border-white/10 flex flex-col overflow-hidden">
+        <div className="fixed z-50 bottom-40 lg:bottom-24 end-4 lg:end-6 w-[calc(100vw-2rem)] sm:w-96 h-[70vh] sm:h-[560px] max-h-[70vh] bg-white dark:bg-[#15102b] rounded-2xl shadow-2xl border border-cream-200 dark:border-white/10 flex flex-col overflow-hidden">
           {/* En-tête */}
           <div className="flex items-center gap-2 px-4 py-3 bg-[#6B21C8] text-white shrink-0">
             {view === "conv" || view === "contacts" ? (
@@ -376,7 +392,7 @@ export function ChatWidget() {
                     <input ref={champPhoto} type="file" accept="image/*" className="hidden" onChange={(e) => { void choisirPhoto(e.target.files?.[0] ?? null); e.target.value = ""; }} />
                     <button type="button" onClick={() => champPhoto.current?.click()} disabled={pending} aria-label="Envoyer une photo"
                       className="w-10 h-10 rounded-full grid place-items-center text-[#6B21C8] dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-white/10 disabled:opacity-50 shrink-0"><ImageIcon size={19} /></button>
-                    <button type="button" onClick={() => setCamera(true)} disabled={pending} aria-label="Enregistrer une vidéo (1 minute)"
+                    <button type="button" onClick={() => void ouvrirCamera()} disabled={pending} aria-label="Enregistrer une vidéo (1 minute)"
                       className="w-10 h-10 rounded-full grid place-items-center text-[#6B21C8] dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-white/10 disabled:opacity-50 shrink-0"><Video size={20} /></button>
                     <textarea
                       value={text} onChange={(e) => setText(e.target.value)} rows={1}
@@ -402,7 +418,11 @@ export function ChatWidget() {
         </div>
       )}
       {photo ? <PhotoEnGrand url={photo} onFermer={() => setPhoto(null)} /> : null}
-      {camera ? <EnregistreurVideo maxS={VIDEO_MAX_S} onFermer={() => setCamera(false)} onEnvoyer={envoyerVideo} /> : null}
+      {camera ? (
+        <EnregistreurVideo maxS={VIDEO_MAX_S} onFermer={() => setCamera(false)} onEnvoyer={envoyerVideo}
+          onRefus={(e) => { setCamera(false); const message = autorisation.echec("camera", e, () => void ouvrirCamera()); if (message) toast(message, "error"); }} />
+      ) : null}
+      {autorisation.rendu}
     </>
   );
 }

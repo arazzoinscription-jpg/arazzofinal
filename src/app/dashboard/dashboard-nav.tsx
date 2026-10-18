@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { GraduationCap, Shapes } from "lucide-react";
-import { SECTIONS, activeSectionKey } from "./nav-data";
+import { SECTIONS_ACHETEUSE, SECTIONS, activeSectionKey } from "./nav-data";
 import { DICT, type Lang } from "./dash-i18n";
 import { isFormateur, isPatronniste } from "@/lib/roles";
 
@@ -19,7 +19,7 @@ export function DashboardNav({ role, roles = [], lang = "fr", buyer = false }: {
   const active = activeSectionKey(pathname);
   const t = DICT[lang];
   // Acheteur de patrons : on masque les sections orientées apprentissage/communauté.
-  const sections = buyer ? SECTIONS.filter((s) => ["home", "shop", "account"].includes(s.key)) : SECTIONS;
+  const sections = buyer ? SECTIONS.filter((s) => SECTIONS_ACHETEUSE.includes(s.key)) : SECTIONS;
 
   return (
     <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">

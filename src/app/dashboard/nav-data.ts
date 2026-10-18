@@ -3,7 +3,7 @@ import {
   TrendingUp, Trophy, Video, FolderOpen, Award,
   Package, Receipt, FileText, Store, Ruler,
   Newspaper, UsersRound, Megaphone, LifeBuoy,
-  User, Lock, Bell, Clapperboard, Scissors, MessageCircle, School,
+  User, Lock, Bell, Clapperboard, Scissors, MessageCircle, School, PlayCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "./dash-i18n";
@@ -14,10 +14,21 @@ export interface NavSection {
   key: string; label: L; icon: LucideIcon; home: string; items: SubItem[]; match?: string[];
 }
 
+// Ordre voulu par l'école : tableau de bord, La Cour, la classe, le cours, l'apprentissage, les patrons numériques,
+// commandes & boutique, le projet de fin d'études, (l'espace atelier), et « Mon compte » à la fin.
 export const SECTIONS: NavSection[] = [
   {
     key: "home", icon: LayoutDashboard, home: "/dashboard", items: [],
     label: { fr: "Tableau de bord", ar: "لوحة التحكم", en: "Dashboard" },
+  },
+  {
+    key: "community", icon: Users, home: "/communaute",
+    label: { fr: "La Cour", ar: "الساحة", en: "The Courtyard" },
+    items: [
+      { href: "/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات الساحة", en: "Video feed" } },
+      { href: "/dashboard/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
+      { href: "/dashboard/support", icon: LifeBuoy, label: { fr: "Support", ar: "الدعم", en: "Support" } },
+    ],
   },
   {
     key: "classe", icon: School, home: "/dashboard/classe",
@@ -32,8 +43,13 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
+    // Le cours en cours (programme + vidéo), sur la dernière leçon ouverte.
+    key: "cours", icon: PlayCircle, home: "/dashboard/mon-cours", items: [], match: ["/dashboard/cours"],
+    label: { fr: "Mon cours", ar: "الدرس تاعي", en: "My course" },
+  },
+  {
     key: "learn", icon: GraduationCap, home: "/dashboard/progression",
-    match: ["/dashboard/cours", "/dashboard/quiz"],
+    match: ["/dashboard/quiz"],
     label: { fr: "Apprentissage", ar: "التعلّم", en: "Learning" },
     items: [
       { href: "/dashboard/progression", icon: TrendingUp, label: { fr: "Progression", ar: "التقدّم", en: "Progress" } },
@@ -44,32 +60,26 @@ export const SECTIONS: NavSection[] = [
     ],
   },
   {
-    key: "projet", icon: Trophy, home: "/dashboard/projet", items: [],
-    label: { fr: "Projet de fin de stage", ar: "مشروع نهاية التربّص", en: "Final project" },
-  },
-  {
-    key: "atelier", icon: Lock, home: "/dashboard/espace-atelier", items: [],
-    label: { fr: "Espace Atelier 🔒", ar: "🔒 فضاء الورشة", en: "Atelier space 🔒" },
+    key: "patrons", icon: FileText, home: "/dashboard/patrons", items: [],
+    label: { fr: "Mes patrons numériques", ar: "باتروناتي الرقمية", en: "My digital patterns" },
   },
   {
     key: "shop", icon: ShoppingBag, home: "/dashboard/commandes", match: ["/boutique"],
-    label: { fr: "Boutique & commandes", ar: "المتجر والطلبات", en: "Shop & orders" },
+    label: { fr: "Commandes & boutique", ar: "الطلبات والمتجر", en: "Orders & shop" },
     items: [
       { href: "/dashboard/commandes", icon: Package, label: { fr: "Mes commandes", ar: "طلباتي", en: "My orders" } },
       { href: "/boutique", icon: Store, label: { fr: "Catalogue", ar: "الكتالوج", en: "Catalog" } },
       { href: "/dashboard/factures", icon: Receipt, label: { fr: "Mes factures", ar: "فواتيري", en: "My invoices" } },
-      { href: "/dashboard/patrons", icon: FileText, label: { fr: "Mes patrons", ar: "باتروناتي", en: "My patterns" } },
       { href: "/dashboard/sur-mesure", icon: Ruler, label: { fr: "Sur mesure", ar: "حسب المقاس", en: "Made-to-measure" } },
     ],
   },
   {
-    key: "community", icon: Users, home: "/dashboard/actualites",
-    label: { fr: "La Cour", ar: "الساحة", en: "The Courtyard" },
-    items: [
-      { href: "/communaute", icon: Clapperboard, label: { fr: "Feed vidéo", ar: "فيديوهات الساحة", en: "Video feed" } },
-      { href: "/dashboard/actualites", icon: Newspaper, label: { fr: "Actualités", ar: "المستجدات", en: "Feed" } },
-      { href: "/dashboard/support", icon: LifeBuoy, label: { fr: "Support", ar: "الدعم", en: "Support" } },
-    ],
+    key: "projet", icon: Trophy, home: "/dashboard/projet", items: [],
+    label: { fr: "Projet de fin d'études", ar: "مشروع نهاية الدراسة", en: "Final project" },
+  },
+  {
+    key: "atelier", icon: Lock, home: "/dashboard/espace-atelier", items: [],
+    label: { fr: "Espace Atelier 🔒", ar: "🔒 فضاء الورشة", en: "Atelier space 🔒" },
   },
   {
     key: "account", icon: UserCog, home: "/dashboard/profil",
@@ -81,6 +91,9 @@ export const SECTIONS: NavSection[] = [
     ],
   },
 ];
+
+/** Acheteuse de patrons (compte « patrons ») : seulement ce qui la concerne. */
+export const SECTIONS_ACHETEUSE = ["home", "patrons", "shop", "account"];
 
 /** Détermine la section active d'après l'URL. */
 export function activeSectionKey(pathname: string): string {
