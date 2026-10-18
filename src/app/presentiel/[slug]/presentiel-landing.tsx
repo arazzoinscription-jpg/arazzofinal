@@ -259,11 +259,13 @@ export default function PresentielLanding({ data, textes }: {
     setErreur(null);
     if (!accepte) { setErreur(t.errConsent); return; }
     // Méthode accélérée (2×/semaine) → obliger le choix d'au moins 2 jours.
+    // Niveaux 2 et 3 seulement : au niveau 1, l'accéléré n'impose pas 2 jours.
     const fo = (def.formulas ?? []).find((f: any) => f.id === formule);
     const txt = `${fo?.label ?? ""} ${fo?.schedule_label ?? ""}`.toLowerCase();
     const m = txt.match(/(\d)\s*(?:fois|x|×|\/)\s*(?:par\s*)?(?:semaine|sem|أسبوع|مرات)/);
     const requiredDays = m ? parseInt(m[1], 10) : (/(accél|مكثّ?ف)/.test(txt) ? 2 : 0);
-    if (requiredDays > 1 && creneaux.length < requiredDays) {
+    const niveau1 = /niveau[\s_-]*1(?!\d)/i.test(`${def.level ?? ""} ${def.slug ?? ""}`);
+    if (!niveau1 && requiredDays > 1 && creneaux.length < requiredDays) {
       setErreur(t.errDays(requiredDays));
       return;
     }
