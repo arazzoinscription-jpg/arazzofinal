@@ -156,6 +156,7 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
     .map((r: any) => mapRow(r, user?.id ?? ""));
 
   await enrichirVisiteuses(admin, items, user?.id ?? null);
+  await ajouterSonPropre(admin, items);
   return { me: user ? { id: user.id } : null, items };
 }
 
@@ -163,6 +164,16 @@ export async function loadCommunityFeed(): Promise<{ me: { id: string } | null; 
  * Comptes sans formation (migration 103) : pastille « Visiteuse » des autrices, titre du défi d'une participation,
  * « J'aimerais apprendre ce modèle » déjà touché. Best-effort : sans la migration, rien ne change.
  */
+/** « Son propre » des vidéos (migration 107), lu à part : sans la colonne, rien ne change (jamais d'erreur). */
+async function ajouterSonPropre(admin: ReturnType<typeof createAdminClient>, items: CommunityItem[]): Promise<void> {
+  const ids = items.filter((i) => i.mediaKind === "video").map((i) => i.id);
+  if (!ids.length) return;
+  const r = await admin.from("community_media").select("id, son_propre").in("id", ids.slice(0, 500));
+  if (r.error) return;
+  const son = new Map(((r.data ?? []) as { id: string; son_propre: boolean | null }[]).map((x) => [x.id, x.son_propre]));
+  for (const it of items) if (son.has(it.id)) it.sonPropre = son.get(it.id) ?? null;
+}
+
 async function enrichirVisiteuses(admin: ReturnType<typeof createAdminClient>, items: CommunityItem[], meId: string | null): Promise<void> {
   if (!items.length) return;
   try {
@@ -203,6 +214,7 @@ export async function loadUserMedia(userId: string): Promise<{ me: { id: string 
     .filter((r: any) => r.post && (r.post.published ?? true))
     .map((r: any) => mapRow(r, user?.id ?? ""));
 
+  await ajouterSonPropre(admin, items);
   return { me: user ? { id: user.id } : null, items };
 }
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteBunnyVideo } from "@/lib/bunny/stream";
+import { prevenirLaCour } from "@/lib/cour-notifications-envoi";
 
 /**
  * L'élève partage un de ses travaux pratiques DÉJÀ téléversé (lesson_practicals)
@@ -57,6 +58,7 @@ export async function sharePracticalToFeed(practicalId: string) {
     return { ok: false, error: cmErr.message };
   }
 
+  await prevenirLaCour(admin, { auteurId: user.id, quoi: "publication" });
   revalidatePath("/communaute");
   return { ok: true };
 }
@@ -110,6 +112,7 @@ export async function sharePracticalToFeedAsStaff(practicalId: string) {
   });
   if (cmErr) { await admin.from("posts").delete().eq("id", post.id); return { ok: false, error: cmErr.message }; }
 
+  await prevenirLaCour(admin, { auteurId: prac.user_id, quoi: "publication" });
   revalidatePath("/communaute");
   return { ok: true };
 }

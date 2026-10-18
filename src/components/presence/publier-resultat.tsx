@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { analyserSonVideo } from "@/lib/son-video";
 import * as tus from "tus-js-client";
 import { Camera, Loader2, PartyPopper, Video, X } from "lucide-react";
 import { verifierPhotoStory } from "@/lib/stories/regles";
@@ -17,6 +18,8 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
   const [fichier, setFichier] = useState<File | null>(null);
   const [apercu, setApercu] = useState<string | null>(null);
   const [duree, setDuree] = useState<number | null>(null);
+  // Son propre de la vidéo (parole, musique) — mesuré pendant l'envoi : décide de la musique automatique du feed.
+  const sonRef = useRef<Promise<boolean | null> | null>(null);
   const [legende, setLegende] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState<number | null>(null);
@@ -45,6 +48,7 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
         const d = Math.round(v.duration);
         if (!d || d > DUREE_VIDEO_RESULTAT_MAX_S) { setErreur(`La vidéo doit durer ${DUREE_VIDEO_RESULTAT_MAX_S / 60} minutes au plus.`); URL.revokeObjectURL(url); return; }
         setDuree(d); setFichier(f); setApercu(url);
+        sonRef.current = analyserSonVideo(f);
       };
       v.onerror = () => { setErreur("Impossible de lire cette vidéo."); URL.revokeObjectURL(url); };
       v.src = url;
@@ -79,7 +83,8 @@ export function PublierResultat({ onPublie, sombre = false }: { onPublie?: () =>
       onError: () => { setErreur("Échec de l'envoi de la vidéo, réessayez."); setEnvoi(null); },
       onProgress: (e, t) => setEnvoi(Math.round((e / t) * 100)),
       onSuccess: async () => {
-        const f = await finaliserResultatVideo({ videoId: d.videoId, duree, legende });
+        const sonPropre = sonRef.current ? await Promise.race([sonRef.current, new Promise<null>((ok) => setTimeout(() => ok(null), 4000))]) : null;
+        const f = await finaliserResultatVideo({ videoId: d.videoId, duree, legende, sonPropre });
         if (!f.ok) { setErreur(f.erreur); setEnvoi(null); return; }
         reussi(Boolean(f.enAttente));
       },

@@ -37,6 +37,8 @@ export interface CommunityItem {
   cta: { label: string; href: string } | null;
   // Musique de fond optionnelle (bibliothèque interne, servie depuis /feed-music/…).
   music: { url: string; title: string | null } | null;
+  /** La vidéo a SON propre son (parole, musique) : pas de musique automatique (migration 107 ; null = non mesuré). */
+  sonPropre?: boolean | null;
   /** Participation au défi de la semaine : son titre (migration 103). */
   defi?: string | null;
   /** « J'aimerais apprendre ce modèle » déjà touché par la personne connectée (migration 103). */

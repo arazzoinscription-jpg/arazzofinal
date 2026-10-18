@@ -7,6 +7,7 @@ import { startCommunityVideo, finalizeCommunityVideo } from "@/app/actions/commu
 import { MESSAGE_EN_ATTENTE } from "@/lib/visiteuses/regles";
 import { toast } from "@/components/ui/toast";
 import { FEED_MUSIC } from "@/lib/feed-music";
+import { analyserSonVideo } from "@/lib/son-video";
 
 type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
 
@@ -24,6 +25,8 @@ export function CommunityVideoUploader({
   const [progress, setProgress] = useState<number | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const previewRef = useRef<HTMLAudioElement | null>(null);
+  // Son propre de la vidéo (parole, musique) — mesuré pendant l'envoi : décide de la musique automatique du feed.
+  const sonRef = useRef<Promise<boolean | null> | null>(null);
 
   // Écoute rapide de la piste choisie (aperçu avant publication).
   function previewMusic(url: string) {
@@ -49,6 +52,7 @@ export function CommunityVideoUploader({
       if (!d || d < 1) { setErr("Vidéo illisible."); return; }
       if (d > maxSeconds) { setErr(`Vidéo trop longue (${d}s) — maximum ${maxLabel} (${maxSeconds}s).`); return; }
       setDuration(d); setFile(f);
+      sonRef.current = analyserSonVideo(f);
     };
     v.onerror = () => setErr("Impossible de lire cette vidéo.");
     v.src = URL.createObjectURL(f);
@@ -77,10 +81,11 @@ export function CommunityVideoUploader({
       onError: (e) => { setErr("Échec de l'envoi : " + (e instanceof Error && e.message ? e.message : "réessayez")); setProgress(null); },
       onProgress: (sent, total) => setProgress(Math.round((sent / total) * 100)),
       onSuccess: async () => {
+        const sonPropre = sonRef.current ? await Promise.race([sonRef.current, new Promise<null>((ok) => setTimeout(() => ok(null), 4000))]) : null;
         const fin = await finalizeCommunityVideo({
           videoId, sourceType, caption, durationSeconds: duration!,
           courseId: courseId ?? null, patronId: patronId ?? null,
-          musicUrl: musicUrl || null,
+          musicUrl: musicUrl || null, sonPropre,
         });
         if (fin.ok) {
           toast("enAttente" in fin && fin.enAttente ? MESSAGE_EN_ATTENTE : "Vidéo publiée dans La Cour 🎉", "enAttente" in fin && fin.enAttente ? "info" : "success");

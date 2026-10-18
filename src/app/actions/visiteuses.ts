@@ -9,6 +9,7 @@ import { VIE_STORY_MS, lireLegende, verifierPhotoStory } from "@/lib/stories/reg
 import { MIGRATION_103, chargerMissions, estInscrite, migration103, niveauDuTest, type MissionsVue } from "@/lib/visiteuses/load";
 import { formationSuggeree, lireDefi } from "@/lib/visiteuses/regles";
 import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
+import { prevenirLaCour } from "@/lib/cour-notifications-envoi";
 
 /**
  * Comptes SANS formation (« visiteuses ») : missions du feed, envies, défi de la semaine,
@@ -129,6 +130,7 @@ export async function validerPublication(postId: unknown): Promise<Reponse> {
   const auteur = (data?.[0] as { author_id: string } | undefined)?.author_id;
   if (!auteur) return { ok: false, erreur: "Déjà traitée." };
   await notifier(auteur, "✅ Votre publication est en ligne", "L'équipe Arazzo l'a validée : toute la communauté peut la voir.", `/communaute/u/${auteur}`);
+  await prevenirLaCour(admin, { auteurId: auteur, quoi: "publication" });
   revalidatePath("/communaute");
   revalidatePath("/admin/communaute");
   return { ok: true };
@@ -166,6 +168,7 @@ export async function validerStory(id: unknown): Promise<Reponse> {
   const auteur = (data?.[0] as { user_id: string } | undefined)?.user_id;
   if (!auteur) return { ok: false, erreur: "Déjà traitée." };
   await notifier(auteur, "✅ Votre story est en ligne", "L'équipe Arazzo l'a validée : elle est visible 24 h.", "/communaute");
+  await prevenirLaCour(admin, { auteurId: auteur, quoi: "story" });
   revalidatePath("/communaute");
   revalidatePath("/admin/communaute");
   return { ok: true };

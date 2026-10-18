@@ -8,6 +8,7 @@ import { createBunnyVideo, bunnyTusAuth, bunnyPlaybackUrls } from "@/lib/bunny/s
 import { isFacebookVideoUrl } from "@/lib/community-types";
 import { isAllowedMusicUrl, findTrackByUrl } from "@/lib/feed-music";
 import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
+import { prevenirLaCour } from "@/lib/cour-notifications-envoi";
 
 type Source = "admin" | "course_teaser" | "patron_demo" | "student_reel";
 
@@ -83,13 +84,15 @@ const FinalizeSchema = z.object({
   patronId: z.string().uuid().nullable().optional(),
   // Musique de fond optionnelle : doit appartenir à la bibliothèque interne.
   musicUrl: z.string().nullable().optional(),
+  // Son propre de la vidéo (parole, musique), mesuré dans le téléphone ; null = inconnu.
+  sonPropre: z.boolean().nullable().optional(),
 });
 
 /** Une fois l'upload Bunny terminé : crée le post + community_media. */
 export async function finalizeCommunityVideo(input: unknown) {
   const parsed = FinalizeSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Paramètres invalides." };
-  const { videoId, sourceType, caption, durationSeconds, courseId = null, patronId = null, musicUrl = null } = parsed.data;
+  const { videoId, sourceType, caption, durationSeconds, courseId = null, patronId = null, musicUrl = null, sonPropre = null } = parsed.data;
 
   // Reel élève : durée plafonnée à 2 minutes.
   if (sourceType === "student_reel" && durationSeconds > STUDENT_REEL_MAX_SECONDS) {
@@ -120,7 +123,7 @@ export async function finalizeCommunityVideo(input: unknown) {
     .single();
   if (postErr || !post) return { ok: false as const, error: "Publication impossible." };
 
-  const { error: cmErr } = await admin.from("community_media").insert({
+  const media = {
     post_id: post.id,
     source_type: sourceType,
     media_kind: "video",
@@ -132,12 +135,17 @@ export async function finalizeCommunityVideo(input: unknown) {
     music_url: music,
     music_title: musicTitle,
     status: "ready",
-  });
+  };
+  const ligne: Record<string, unknown> = sonPropre === null ? media : { ...media, son_propre: sonPropre };
+  let { error: cmErr } = await admin.from("community_media").insert(ligne);
+  // Migration 107 pas encore appliquée : la vidéo part sans la mesure.
+  if (cmErr && /son_propre/.test(cmErr.message)) ({ error: cmErr } = await admin.from("community_media").insert(media));
   if (cmErr) {
     await admin.from("posts").delete().eq("id", post.id);
     return { ok: false as const, error: cmErr.message };
   }
   if (enAttente) await signalerAValider(admin, `Un reel${caption?.trim() ? ` : « ${caption.trim().slice(0, 80)} »` : ""}`);
+  else await prevenirLaCour(admin, { auteurId: auth.userId, quoi: "video" });
 
   revalidatePath("/communaute");
   return { ok: true as const, enAttente };
@@ -192,6 +200,7 @@ export async function addFacebookVideo(input: unknown) {
     return { ok: false as const, error: cmErr.message };
   }
   if (st.a_valider) await signalerAValider(admin, "Une vidéo Facebook partagée");
+  else await prevenirLaCour(admin, { auteurId: user.id, quoi: "video" });
 
   revalidatePath("/communaute");
   return { ok: true as const, enAttente: st.a_valider };

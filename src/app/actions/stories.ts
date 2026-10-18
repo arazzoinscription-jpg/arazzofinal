@@ -13,6 +13,7 @@ import { nomPublic } from "@/lib/nom-public";
 import { avatarSur } from "@/lib/classe/vue";
 import { checkRateLimit } from "@/lib/security/rateLimit";
 import { signalerAValider, statutPourAuteur } from "@/lib/visiteuses/moderation";
+import { prevenirLaCour } from "@/lib/cour-notifications-envoi";
 
 /**
  * Stories : élèves ET enseignantes, connectées. Photo (stockage « posts », dossier stories/), vidéo de
@@ -96,6 +97,8 @@ export async function publierStoryPhoto(fd: FormData): Promise<Reponse> {
     cq.calques, null,
   );
   if (!r.ok) { await admin.storage.from("posts").remove([chemin]); return r; }
+  // Tout le monde est prévenu (au plus 1 notification « La Cour » toutes les 3 h par personne).
+  if (!r.enAttente) await prevenirLaCour(admin, { auteurId: user.id, quoi: "story" });
   revalidatePath("/dashboard/classe");
   revalidatePath("/communaute");
   return r;
@@ -113,6 +116,7 @@ export async function publierStoryTexte(entree: { fond: unknown; calques: unknow
   if (!calques.length) return { ok: false, erreur: "Ajoutez au moins un texte, un dessin ou un autocollant." };
   if (await etatMigrationStories(createAdminClient())) return { ok: false, erreur: INDISPONIBLE };
   const r = await inserer({ user_id: user.id, media_kind: "texte" }, calques, fond);
+  if (r.ok && !r.enAttente) await prevenirLaCour(createAdminClient(), { auteurId: user.id, quoi: "story" });
   if (r.ok) { revalidatePath("/dashboard/classe"); revalidatePath("/communaute"); }
   return r;
 }
@@ -147,6 +151,7 @@ export async function finaliserStoryVideo(entree: { videoId: unknown; duree: unk
     user_id: user.id, media_kind: "video", bunny_video_id: entree.videoId, thumbnail_url: bunnyPlaybackUrls(entree.videoId).thumbnail,
     duration_seconds: d.duree, legende: lireLegende(entree.legende),
   }, cq.calques, null);
+  if (r.ok && !r.enAttente) await prevenirLaCour(createAdminClient(), { auteurId: user.id, quoi: "story" });
   if (r.ok) { revalidatePath("/dashboard/classe"); revalidatePath("/communaute"); }
   return r;
 }
@@ -195,6 +200,7 @@ export async function finaliserStoryVideoLongue(entree: { videoId: unknown; dure
     return { ok: false, erreur: r.error.message };
   }
   if (st.a_valider) await signalerAValider(admin, `Une vidéo en ${lignes.length} stories`);
+  else await prevenirLaCour(admin, { auteurId: user.id, quoi: "story" });
   revalidatePath("/dashboard/classe");
   revalidatePath("/communaute");
   return { ok: true, enAttente: st.a_valider };
