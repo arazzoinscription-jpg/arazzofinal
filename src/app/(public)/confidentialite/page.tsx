@@ -36,7 +36,7 @@ export default function ConfidentialitePage() {
           <li><strong>Formation&nbsp;:</strong> cours suivis, progression, travaux pratiques envoyés, quiz, certificats et diplômes.</li>
           <li><strong>Paiements&nbsp;:</strong> historique de commandes et de factures. Les données bancaires sont traitées directement par nos prestataires de paiement — nous ne stockons jamais votre numéro de carte.</li>
           <li><strong>Communauté&nbsp;:</strong> publications, commentaires, mentions « j'aime », photos et vidéos que vous choisissez de partager.</li>
-          <li><strong>Techniques&nbsp;:</strong> adresse IP, type de navigateur, pages consultées (statistiques de fréquentation), cookies de session.</li>
+          <li><strong>Techniques&nbsp;:</strong> adresse IP, type de navigateur, pages consultées (statistiques de fréquentation), cookies de session. Lorsque vous êtes connecté(e), les pages consultées sont rattachées à votre compte&nbsp;; seule l'équipe de l'école les voit, et elles sont effacées après 90&nbsp;jours.</li>
           <li><strong>Diplôme&nbsp;:</strong> pièce d'identité (CNI) et adresse de livraison, uniquement lorsque vous demandez un diplôme physique.</li>
         </ul>
       </LegalSection>
@@ -48,7 +48,7 @@ export default function ConfidentialitePage() {
           <li>Traiter vos paiements, commandes et livraisons.</li>
           <li>Vous envoyer des notifications et e-mails liés à votre apprentissage (selon vos préférences).</li>
           <li>Assurer la sécurité, prévenir la fraude et le partage de compte.</li>
-          <li>Améliorer nos services grâce à des statistiques anonymisées.</li>
+          <li>Améliorer nos services et suivre l'activité de la communauté grâce aux statistiques de fréquentation.</li>
         </ul>
       </LegalSection>
 

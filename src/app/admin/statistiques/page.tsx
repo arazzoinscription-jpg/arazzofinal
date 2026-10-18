@@ -1,13 +1,40 @@
 ﻿import { BarChart3, Users, Eye, Clock, MousePointerClick, Smartphone, Monitor, AlertTriangle } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdmin, isFormateur } from "@/lib/roles";
+import { avatarSur } from "@/lib/classe/vue";
+import { inscritesParmi } from "@/lib/visiteuses/load";
+import { comptesParNavigateur, enCeMoment, libellePage, lirePeriode, personneDe, quiEstVenu, type Visite } from "@/lib/statistiques-visites";
 import { VisitsChart } from "./visits-chart";
+import { ChoixPeriode, EnCeMoment, ListePersonnes, PiedAnonymes, type Profil } from "./qui-est-venu";
 
 export const metadata = { title: "Statistiques — Admin" };
 export const dynamic = "force-dynamic";
 
 const DAY = 86_400_000;
 
-type Row = { path: string; source: string | null; session_id: string | null; duration_sec: number | null; device: string | null; created_at: string };
+type Row = Visite;
+
+/** Nom, photo et pastille des personnes vues ; l'équipe d'administration est mise à part (non comptée). */
+async function chargerProfils(admin: ReturnType<typeof createAdminClient>, ids: string[]): Promise<{ profils: Map<string, Profil>; equipe: Set<string> }> {
+  const profils = new Map<string, Profil>();
+  const equipe = new Set<string>();
+  const lignes: { id: string; nom: string | null; avatar_url: string | null; role: string | null; roles: string[] | null }[] = [];
+  for (let i = 0; i < ids.length; i += 200) {
+    // eslint-disable-next-line no-await-in-loop
+    const { data } = await admin.from("users").select("id, nom, avatar_url, role, roles").in("id", ids.slice(i, i + 200));
+    lignes.push(...((data ?? []) as typeof lignes));
+  }
+  const inscrites = await inscritesParmi(admin, lignes.map((u) => u.id));
+  for (const u of lignes) {
+    if (isAdmin(u)) { equipe.add(u.id); continue; }
+    profils.set(u.id, {
+      nom: u.nom?.trim() || "Sans nom",
+      avatar: avatarSur(u.avatar_url),
+      badge: isFormateur(u) ? "Formatrice" : inscrites.has(u.id) ? "Élève" : "Visiteuse",
+    });
+  }
+  return { profils, equipe };
+}
 
 const SOURCE_LABEL: Record<string, string> = {
   google: "Google", bing: "Bing", duckduckgo: "DuckDuckGo", facebook: "Facebook", instagram: "Instagram",
@@ -23,13 +50,14 @@ function fmtDur(sec: number): string {
   return r ? `${m} min ${r} s` : `${m} min`;
 }
 
-export default async function AdminStatsPage() {
+export default async function AdminStatsPage({ searchParams }: { searchParams: { periode?: string } }) {
   const admin = createAdminClient();
   const since = new Date(Date.now() - 30 * DAY).toISOString();
+  const periode = lirePeriode(searchParams?.periode);
 
   const { data, error } = await admin
     .from("page_visits")
-    .select("path, source, session_id, duration_sec, device, created_at")
+    .select("path, source, session_id, user_id, duration_sec, device, created_at")
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(100_000);
@@ -53,6 +81,17 @@ export default async function AdminStatsPage() {
   const rows = (data ?? []) as Row[];
   const now = Date.now();
 
+  // ── Qui est venu (personnes connectées, reconnues aussi par leur navigateur) ──
+  const navigateurs = comptesParNavigateur(rows);
+  const ids = [...new Set(rows.map((r) => personneDe(r, navigateurs)).filter((x): x is string => Boolean(x)))];
+  const { profils, equipe } = await chargerProfils(admin, ids);
+  const { personnes, anonymes } = quiEstVenu(rows, { depuis: now - periode * DAY, exclure: equipe });
+  const personnesCour = personnes
+    .filter((p) => p.derniereCour)
+    .sort((a, b) => (b.derniereCour ?? "").localeCompare(a.derniereCour ?? ""));
+  const maintenant = enCeMoment(rows, { maintenant: now, exclure: equipe });
+  const nomPeriode = periode === 1 ? "les dernières 24 h" : `les ${periode} derniers jours`;
+
   // ── Indicateurs ──
   const totalViews = rows.length;
   const sessions = new Set(rows.map((r) => r.session_id ?? r.path));
@@ -63,10 +102,11 @@ export default async function AdminStatsPage() {
   // ── Pages : vues + durée moyenne ──
   const pageAgg = new Map<string, { views: number; dur: number; durCount: number }>();
   rows.forEach((r) => {
-    const a = pageAgg.get(r.path) ?? { views: 0, dur: 0, durCount: 0 };
+    const cle = libellePage(r.path); // les profils, cours… regroupés sous un nom lisible
+    const a = pageAgg.get(cle) ?? { views: 0, dur: 0, durCount: 0 };
     a.views++;
     if (r.duration_sec && r.duration_sec > 0) { a.dur += r.duration_sec; a.durCount++; }
-    pageAgg.set(r.path, a);
+    pageAgg.set(cle, a);
   });
   const pageRows = [...pageAgg.entries()].map(([path, a]) => ({
     path, views: a.views, avg: a.durCount ? a.dur / a.durCount : 0,
@@ -125,8 +165,36 @@ export default async function AdminStatsPage() {
         <span className="w-9 h-9 rounded-xl bg-orange-DEFAULT/10 text-orange-600 flex items-center justify-center"><BarChart3 size={18} /></span>
         <h1 className="font-playfair text-3xl font-bold text-gray-900">Statistiques du site</h1>
       </div>
-      <p className="text-gray-500 mb-6 font-dm">Visites, sources d'entrée et temps passé — 30 derniers jours.</p>
+      <p className="text-gray-500 mb-5 font-dm">Qui regarde La Cour, qui entre sur le site, d'où viennent les visiteurs et combien de temps ils restent.</p>
 
+      {/* ── Qui est venu ── */}
+      <EnCeMoment {...maintenant} profils={profils} />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <h2 className="font-playfair text-xl font-bold text-gray-900">Qui est venu ?</h2>
+        <ChoixPeriode periode={periode} />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-3">
+        <ListePersonnes
+          titre="🏛️ Qui regarde La Cour"
+          sousTitre={`Les personnes connectées qui ont ouvert le feed, ${nomPeriode} — la plus récente en haut.`}
+          personnes={personnesCour} profils={profils} maintenant={now} cour
+          vide="Personne de connecté n'a encore ouvert La Cour sur cette période."
+          pied={<PiedAnonymes anonymes={anonymes} cour />}
+        />
+        <ListePersonnes
+          titre="🚪 Qui entre sur le site"
+          sousTitre={`Toutes les personnes connectées venues sur le site, ${nomPeriode}.`}
+          personnes={personnes} profils={profils} maintenant={now} cour={false}
+          vide="Personne de connecté sur cette période."
+          pied={<PiedAnonymes anonymes={anonymes} cour={false} />}
+        />
+      </div>
+      <p className="text-xs text-gray-400 font-dm mb-8">
+        Une visiteuse sans compte n'a pas de nom ; dès qu'elle se connecte, ses visites d'avant (même téléphone) lui sont rattachées.
+        Votre équipe d'administration n'est pas comptée. Les noms sont enregistrés depuis le 18 octobre 2026.
+      </p>
+
+      <h2 className="font-playfair text-xl font-bold text-gray-900 mb-4">Vue d'ensemble — 30 derniers jours</h2>
       {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map((k) => (

@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * La personne connectée, VÉRIFIÉE côté serveur (jamais un identifiant envoyé par le navigateur) : c'est ce qui
+ * permet à Admin → Statistiques de dire QUI regarde La Cour et le site. Visiteur sans compte → aucun appel.
+ */
+async function personneConnectee(): Promise<string | null> {
+  try {
+    const store = await cookies();
+    if (!store.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"))) return null;
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getClaims();
+    const sub = data?.claims?.sub;
+    return typeof sub === "string" && sub ? sub : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Extrait les UTM d'une chaîne de requête (`?utm_source=…`). */
 function parseUtm(search: string | null): Record<string, string> {
@@ -114,18 +133,22 @@ export async function POST(req: Request) {
     referrer: rawRef,
   });
 
-  const { data, error } = await admin
+  const userId = await personneConnectee();
+  const enregistrer = (user_id: string | null) => admin
     .from("page_visits")
     .insert({
       session_id: typeof body.sessionId === "string" ? body.sessionId.slice(0, 64) : null,
       path,
       referrer: sameOrigin ? null : rawRef,
       source,
-      user_id: typeof body.userId === "string" ? body.userId : null,
+      user_id,
       device: body.device === "mobile" ? "mobile" : "desktop",
     })
     .select("id")
     .maybeSingle();
+  let { data, error } = await enregistrer(userId);
+  // Compte de connexion sans fiche `users` (rare) : la visite est gardée, sans nom.
+  if (error && userId) ({ data, error } = await enregistrer(null));
 
   await arazzo; // best-effort, déjà à l'abri de ses propres erreurs
 
