@@ -10,6 +10,7 @@ import { CookieConsent } from "@/components/layout/cookie-consent";
 import { PwaRegister } from "@/components/pwa/pwa-register";
 import { InstallApp } from "@/components/pwa/install-app";
 import { IndicateurNavigation } from "@/components/layout/indicateur-navigation";
+import ModeDemo from "@/components/demo/mode-demo";
 
 // Polices auto-hébergées via next/font (non bloquant, sans requête externe à Google).
 // `display: swap` + `variable` exposé en CSS (voir globals.css / tailwind.config.ts).
@@ -86,6 +87,8 @@ export default function RootLayout({
         <MetaPixel />
         <GoogleTag />
         <CookieConsent />
+        {/* Mode démo (tutoriels) : seulement avec ?demo=1 — sinon ne fait rien. */}
+        <ModeDemo />
       </body>
     </html>
   );
