@@ -94,6 +94,7 @@ export const ADMIN_SECTIONS: ProSection[] = [
     label: { fr: "Personnes", ar: "الأشخاص", en: "People" },
     items: [
       { href: "/admin/utilisateurs", icon: Users, label: { fr: "Utilisateurs", ar: "المستخدمون", en: "Users" } },
+      { href: "/admin/visiteuses", icon: UserSearch, label: { fr: "Visiteuses (sans formation)", ar: "الزائرات (بدون تكوين)", en: "Visitors (no course)" } },
       { href: "/admin/formateurs", icon: GraduationCap, label: { fr: "Formateurs", ar: "المدرّبون", en: "Trainers" } },
       { href: "/admin/patronnistes", icon: Scissors, label: { fr: "Patronnistes", ar: "صانعو الباترون", en: "Pattern makers" } },
       { href: "/admin/acheteurs-patrons", icon: ShoppingBag, label: { fr: "Acheteurs de patrons", ar: "مشترو الباترونات", en: "Pattern buyers" } },

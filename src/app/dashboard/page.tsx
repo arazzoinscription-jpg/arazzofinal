@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin, isFormateur, isPatronniste } from "@/lib/roles";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { leconEssai } from "@/lib/visiteuses/load";
+import { coursGratuitsDe } from "@/lib/visiteuses/annuaire-load";
+import type { CoursGratuit } from "@/lib/visiteuses/annuaire";
 import { CarteDecouverte } from "./carte-decouverte";
 import { cookies } from "next/headers";
 import { DICT, normLang } from "./dash-i18n";
@@ -118,7 +120,7 @@ export default async function DashboardPage() {
   const streak = profile?.current_streak ?? 0;
   const lessonsDone = completed.size;
   const hero = courses.find((c) => c.pct < 100 && c.done > 0) ?? courses.find((c) => c.pct < 100) ?? courses[0];
-  const heroImg = hero?.thumbnail || FALLBACKS[0];
+  const heroImg = hero?.thumbnail || FALLBACKS[0]; // (une visiteuse : la couverture de son cours gratuit, plus bas)
   const others = courses.filter((c) => c.id !== hero?.id).slice(0, 3);
   const prenom = profile?.nom?.split(" ")[0] ?? "";
 
@@ -130,9 +132,21 @@ export default async function DashboardPage() {
   const t = DICT[lang];
 
   // Compte SANS formation (ni rôle d'équipe) : la leçon d'essai gratuite et les missions du feed, dès la création du compte.
-  const decouverte = courses.length === 0 && !hasFormateur && !hasPatronniste && !isAdmin(profile)
-    ? await leconEssai(createAdminClient(), user!.id).catch(() => null)
-    : undefined;
+  const visiteuse = courses.length === 0 && !hasFormateur && !hasPatronniste && !isAdmin(profile);
+  // …et ses COURS GRATUITS (Delivery Pages où elle s'est inscrite, puis les autres cours gratuits en ligne) : à la
+  // place du « Aucun cours » du héros — l'accès à son cours d'abord, comme une élève.
+  const [decouverte, gratuits] = visiteuse
+    ? await Promise.all([
+      leconEssai(createAdminClient(), user!.id).catch(() => null),
+      coursGratuitsDe(createAdminClient(), user!.email, { avecLesAutres: true }).then((l) => l.filter((c) => c.enLigne)).catch(() => [] as CoursGratuit[]),
+    ])
+    : [undefined, [] as CoursGratuit[]];
+  const gratuit = hero ? undefined : gratuits[0];
+  const TXT_GRATUIT = {
+    fr: { badge: "🎁 Cours gratuit", regarder: "Regarder mon cours gratuit", cadeau: "Votre cadeau", aussi: "Aussi offert" },
+    ar: { badge: "🎁 درس مجاني", regarder: "شاهدي درسك المجاني", cadeau: "هديتك", aussi: "مجاني أيضاً" },
+    en: { badge: "🎁 Free course", regarder: "Watch my free course", cadeau: "Your gift", aussi: "Also free" },
+  }[lang];
 
 
   // Styles réutilisés — surface « atelier » (clair / sombre)
@@ -175,7 +189,7 @@ export default async function DashboardPage() {
       <section aria-label={t.resume} className="relative space-y-4 mb-6">
           {/* Héro (image + lecteur) — texte blanc dans les deux thèmes (sur photo) */}
         <Reveal className="relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-[22rem] text-white" duration={0.6}>
-          <img src={heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={gratuit?.couverture || heroImg} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/40 to-transparent" />
           {hero ? (
             <>
@@ -203,6 +217,19 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </>
+          ) : gratuit ? (
+            <>
+              <div className="absolute top-4 start-4">
+                <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">{TXT_GRATUIT.badge}</span>
+              </div>
+              <div className="absolute bottom-4 start-4 end-4">
+                <p className="text-white/60 text-xs font-dm mb-1">{gratuit.inscriteLe ? TXT_GRATUIT.cadeau : TXT_GRATUIT.aussi}</p>
+                <h2 className="font-playfair text-2xl font-bold mb-3 line-clamp-2">{gratuit.titre}</h2>
+                <a href={gratuit.lien} className="inline-flex items-center gap-2 bg-orange-DEFAULT hover:bg-orange-600 rounded-xl px-5 py-3 font-semibold transition-colors">
+                  <Play size={16} className="text-white fill-white" /> {TXT_GRATUIT.regarder}
+                </a>
+              </div>
+            </>
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
               <p className="text-white/70 font-dm mb-4">{t.noCourse}</p>
@@ -227,6 +254,20 @@ export default async function DashboardPage() {
                 <p className="text-xs text-white/50 font-dm mt-0.5">{c.pct}% {t.completed}</p>
               </div>
             </a>
+          )) : gratuits.length > 1 && !hero ? gratuits.slice(1, 4).map((c, i) => (
+            <a key={c.slug} href={c.lien}
+              className="group relative rounded-3xl overflow-hidden border border-cream-200 dark:border-white/10 h-44 text-white">
+              <img src={c.couverture || FALLBACKS[(i + 1) % FALLBACKS.length]} alt=""
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d0a1c] via-[#0d0a1c]/30 to-transparent" />
+              <span className="absolute top-3 right-3 w-10 h-10 rounded-full bg-orange-DEFAULT group-hover:bg-orange-600 flex items-center justify-center transition-colors">
+                <Play size={15} className="text-white fill-white ml-0.5" />
+              </span>
+              <div className="absolute bottom-0 start-0 end-0 p-4">
+                <h3 className="font-semibold line-clamp-1">{c.titre}</h3>
+                <p className="text-xs text-white/60 font-dm mt-0.5">{c.inscriteLe ? TXT_GRATUIT.cadeau : TXT_GRATUIT.aussi}</p>
+              </div>
+            </a>
           )) : (
             <div className={`sm:col-span-3 rounded-3xl p-6 text-center font-dm ${card} ${muted}`}>
               {t.soonHere}
@@ -239,7 +280,7 @@ export default async function DashboardPage() {
       <div className="relative">
         <CommunityGlobe prenom={prenom} lang={lang}
           classe={{ href: "/dashboard/classe", label: BOUTONS[lang].classe }}
-          cours={hero ? { href: "/dashboard/mon-cours", label: BOUTONS[lang].cours } : undefined} />
+          cours={hero || gratuit ? { href: "/dashboard/mon-cours", label: BOUTONS[lang].cours } : undefined} />
       </div>
 
       {decouverte !== undefined && <CarteDecouverte essai={decouverte} />}
