@@ -62,7 +62,8 @@ export default async function AdminActivitePage() {
                 {rows.map((r, i) => {
                   const m = ACTION_LABELS[r.action] ?? { icon: "•", label: r.action };
                   const meta = r.meta as Record<string, unknown> | null;
-                  const detail = (meta?.lessonTitre || meta?.courseTitre || meta?.device || "") as string;
+                  const detail = (meta?.lessonTitre || meta?.courseTitre || meta?.device
+                    || (r.action === "client_error" ? `${meta?.traduite === "oui" ? "[page traduite] " : ""}${meta?.message ?? ""} — ${meta?.page ?? ""}` : "")) as string;
                   return (
                     <TableRow key={i} className="hover:bg-gray-50 font-dm">
                       <TableCell className="px-5 py-2.5 whitespace-nowrap">{m.icon} {m.label}</TableCell>

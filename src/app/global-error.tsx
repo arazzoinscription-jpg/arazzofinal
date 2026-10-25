@@ -1,11 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
+import { signalerErreur } from "@/lib/signaler-erreur";
+
 /**
  * Filet de sécurité GLOBAL (erreurs survenant jusque dans le layout racine).
  * Doit rendre son propre <html>/<body> et ne dépendre d'AUCUN composant lourd,
  * pour ne jamais planter lui-même (ex. vieux navigateur / WebView Galaxy M12).
  */
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ error }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => { signalerErreur(error); }, [error]);
   return (
     <html lang="fr">
       <body style={{ margin: 0, fontFamily: "system-ui, Arial, sans-serif", background: "#F5F0EB", color: "#2B2180" }}>
@@ -16,11 +20,14 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
             <p style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "0 0 20px" }}>
               Un souci d'affichage est survenu. Rechargez la page — vos données ne sont pas perdues.
             </p>
+            <p dir="rtl" lang="ar" style={{ fontSize: 14, color: "#555", lineHeight: 1.6, margin: "-12px 0 20px" }}>
+              حدث خلل في العرض. أعيدي تحميل الصفحة — بياناتك محفوظة.
+            </p>
             <button
-              onClick={() => { try { reset(); } catch { location.reload(); } }}
+              onClick={() => location.reload()}
               style={{ background: "#E07840", color: "#fff", border: 0, padding: "12px 26px", borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: "pointer" }}
             >
-              Recharger
+              Recharger · إعادة التحميل
             </button>
           </div>
         </div>

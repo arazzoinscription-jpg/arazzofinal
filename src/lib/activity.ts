@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ActivityAction =
   | "login" | "logout" | "course_view" | "video_watch"
-  | "download" | "question" | "answer";
+  | "download" | "question" | "answer" | "client_error";
 
 /**
  * Journalise une action utilisateur (best-effort, ne jette jamais).
@@ -30,4 +30,5 @@ export const ACTION_LABELS: Record<string, { icon: string; label: string }> = {
   download: { icon: "⬇️", label: "Téléchargement" },
   question: { icon: "❓", label: "Question posée" },
   answer: { icon: "💬", label: "Réponse reçue" },
+  client_error: { icon: "⚠️", label: "Erreur d'affichage" },
 };

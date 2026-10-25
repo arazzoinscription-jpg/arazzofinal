@@ -75,6 +75,15 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&localStorage.getItem('arazzo-dash')==='1'))document.documentElement.classList.add('dark');var s=localStorage.getItem('arazzo-sidebar');if(s)document.documentElement.dataset.sidebar=s;}catch(e){}})();`,
           }}
         />
+        {/* Traduction automatique du navigateur (Chrome « Traduire en arabe ») : elle remplace les textes de la page
+            par ses propres balises, puis React, en mettant la page à jour, ne retrouve plus ses textes et plante
+            (« removeChild / insertBefore : not a child of this node ») → écran « Une erreur s'est produite » chez
+            les élèves qui traduisent la page. Ces deux opérations tolèrent désormais un texte déplacé. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(typeof Node!=='function'||!Node.prototype)return;var P=Node.prototype,rc=P.removeChild,ib=P.insertBefore;P.removeChild=function(c){if(c&&c.parentNode!==this)return c;return rc.apply(this,arguments);};P.insertBefore=function(n,r){if(r&&r.parentNode!==this)return ib.call(this,n,null);return ib.apply(this,arguments);};}catch(e){}})();`,
+          }}
+        />
       </head>
       <body>
         {/* Barre de chargement dès qu'on touche un lien (le téléphone ne semble plus « bloqué »). */}
