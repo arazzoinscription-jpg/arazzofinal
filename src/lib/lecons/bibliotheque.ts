@@ -11,6 +11,7 @@ export interface LeconBrute {
   ordre: number | null;
   devoir?: string | null;
   devoir_obligatoire?: boolean | null;
+  created_at?: string | null;
 }
 export interface CoursBrut {
   id: string;
@@ -30,6 +31,9 @@ export interface LeconBiblio {
   coursTitre: string;
   coursPublie: boolean;
   chapitre: string;
+  creeLe: string | null;
+  devoir: string;
+  devoirObligatoire: boolean;
 }
 
 const parOrdre = <T extends { ordre: number | null }>(a: T, b: T) => (a.ordre ?? 9999) - (b.ordre ?? 9999);
@@ -61,7 +65,25 @@ export function aplatirLecons(cours: CoursBrut[], miniature: (video: string | nu
         coursTitre: (c.titre_fr ?? "").trim() || "Cours sans titre",
         coursPublie: !!c.published,
         chapitre: (ch.titre ?? "").trim(),
+        creeLe: l.created_at ?? null,
+        devoir: (l.devoir ?? "").trim(),
+        devoirObligatoire: !!l.devoir_obligatoire,
       }))));
+}
+
+/** Les leçons créées dernièrement d'abord (sans date : à la fin, dans l'ordre du parcours). */
+export function plusRecentes(lecons: LeconBiblio[]): LeconBiblio[] {
+  return lecons.map((l, i) => ({ l, i }))
+    .sort((a, b) => (b.l.creeLe ?? "").localeCompare(a.l.creeLe ?? "") || a.i - b.i)
+    .map((x) => x.l);
+}
+
+/** Cocher avec Maj : toute la plage entre la dernière ligne cochée et celle-ci prend l'état de cette ligne. */
+export function cocherPlage(selection: string[], ids: string[], depuis: number | null, jusqua: number): string[] {
+  const id = ids[jusqua];
+  const oui = !selection.includes(id);
+  const plage = depuis === null ? [id] : ids.slice(Math.min(depuis, jusqua), Math.max(depuis, jusqua) + 1);
+  return oui ? [...selection, ...plage.filter((x) => !selection.includes(x))] : selection.filter((x) => !plage.includes(x));
 }
 
 const plat = (s: string | null | undefined) => (s ?? "").normalize("NFD").replace(/\p{M}+/gu, "").toLowerCase().trim();

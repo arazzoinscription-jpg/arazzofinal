@@ -7,6 +7,8 @@ import { LessonVideoUploader } from "@/components/courses/lesson-video-uploader"
 import { saveCourseContent } from "../content-actions";
 import { toast } from "@/components/ui/toast";
 import { DevoirPicker } from "@/components/courses/devoir-picker";
+import { ChoisirLecons } from "@/components/courses/choisir-lecons";
+import type { LeconBiblio } from "@/lib/lecons/bibliotheque";
 
 export interface EditLesson { id: string | null; titre: string; video_url_bunny: string; devoir: string; devoir_obligatoire: boolean; duree_minutes: string; is_preview: boolean; }
 export interface EditChapter { id: string | null; titre: string; unlockMonth: string; lessons: EditLesson[]; }
@@ -27,6 +29,8 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
   );
   const [saving, startSave] = useTransition();
   const [error, setError] = useState("");
+  /** Chapitre dont la fenêtre « Ajouter des leçons » est ouverte. */
+  const [choix, setChoix] = useState<number | null>(null);
 
   function update(next: EditChapter[]) { setChapters(next); }
 
@@ -53,6 +57,16 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
     const next = [...chapters];
     next[ci] = { ...next[ci], lessons: [...next[ci].lessons, { id: null, titre: "", video_url_bunny: "", devoir: "Résumé du cours + dessin du patron (s'il y en a un dans la leçon) + vidéo d'une pièce que vous avez cousue.\nتلخيص الدرس مع رسم الباترون إن وُجد في الدرس مع فيديو لقطعة قمت بخياطتها.", devoir_obligatoire: false, duree_minutes: "", is_preview: false }] };
     update(next);
+  }
+  /** Leçons déjà créées, cochées dans la fenêtre : ajoutées d'un coup (même vidéo, même devoir), à enregistrer ensuite. */
+  function addExistingLessons(ci: number, lecons: LeconBiblio[]) {
+    const next = [...chapters];
+    next[ci] = { ...next[ci], lessons: [...next[ci].lessons, ...lecons.map((l) => ({
+      id: null, titre: l.titre, video_url_bunny: l.video ?? "", devoir: l.devoir, devoir_obligatoire: l.devoirObligatoire,
+      duree_minutes: l.duree ? String(l.duree) : "", is_preview: false,
+    }))] };
+    update(next);
+    toast(`${lecons.length} leçon${lecons.length > 1 ? "s" : ""} ajoutée${lecons.length > 1 ? "s" : ""} — cliquez sur « Enregistrer le contenu ».`, "success");
   }
   function removeLesson(ci: number, li: number) {
     const l = chapters[ci].lessons[li];
@@ -235,7 +249,7 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
                 </div>
               ))}
 
-              <button type="button" onClick={() => addLesson(ci)}
+              <button type="button" onClick={() => setChoix(ci)}
                 className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-orange-600 transition-colors">
                 <Plus size={15} /> Ajouter une leçon
               </button>
@@ -243,6 +257,16 @@ export function CourseContentEditor({ courseId, initial }: { courseId: string; i
           </div>
         ))}
       </div>
+
+      {/* « Ajouter une leçon » : une leçon vide, ou des leçons déjà créées cochées en masse */}
+      {choix !== null && chapters[choix] ? (
+        <ChoisirLecons
+          onFermer={() => setChoix(null)}
+          onVide={() => { addLesson(choix); setChoix(null); }}
+          onAjouter={(lecons) => { addExistingLessons(choix, lecons); setChoix(null); }}
+          videosDuCours={chapters.flatMap((c) => c.lessons.map((l) => l.video_url_bunny))}
+        />
+      ) : null}
 
       {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-3 rounded-xl mt-4">{error}</p>}
 

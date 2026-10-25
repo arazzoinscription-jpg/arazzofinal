@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { CategoryPicker } from "@/components/courses/category-picker";
 import { LessonVideoUploader } from "@/components/courses/lesson-video-uploader";
 import { setCourseCategories } from "../category-actions";
+import { ChoisirLecons } from "@/components/courses/choisir-lecons";
+import type { LeconBiblio } from "@/lib/lecons/bibliotheque";
 
 function slugify(str: string) {
   return str
@@ -36,8 +38,10 @@ export default function NewCoursePage() {
   const [catIds, setCatIds] = useState<string[]>([]);
 
   const [chapters, setChapters] = useState<
-    { titre: string; lessons: { titre: string; video_url_bunny: string; duree_minutes: string; is_preview: boolean }[] }[]
+    { titre: string; lessons: { titre: string; video_url_bunny: string; duree_minutes: string; is_preview: boolean; devoir?: string; devoir_obligatoire?: boolean }[] }[]
   >([{ titre: "Chapitre 1", lessons: [] }]);
+  /** Chapitre dont la fenêtre « Ajouter des leçons » est ouverte. */
+  const [choix, setChoix] = useState<number | null>(null);
 
   function addChapter() {
     setChapters([...chapters, { titre: `Chapitre ${chapters.length + 1}`, lessons: [] }]);
@@ -47,6 +51,14 @@ export default function NewCoursePage() {
     const updated = [...chapters];
     updated[chIdx].lessons.push({ titre: "", video_url_bunny: "", duree_minutes: "", is_preview: false });
     setChapters(updated);
+  }
+
+  /** Leçons déjà créées, cochées dans la fenêtre : ajoutées d'un coup au chapitre (même vidéo, même devoir). */
+  function addExistingLessons(chIdx: number, lecons: LeconBiblio[]) {
+    setChapters(chapters.map((ch, i) => i !== chIdx ? ch : { ...ch, lessons: [...ch.lessons, ...lecons.map((l) => ({
+      titre: l.titre, video_url_bunny: l.video ?? "", duree_minutes: l.duree ? String(l.duree) : "", is_preview: false,
+      devoir: l.devoir, devoir_obligatoire: l.devoirObligatoire,
+    }))] }));
   }
 
   async function handleSubmit(e: React.FormEvent, publish: boolean) {
@@ -104,14 +116,17 @@ export default function NewCoursePage() {
       if (chapter) {
         for (let li = 0; li < ch.lessons.length; li++) {
           const l = ch.lessons[li];
-          await supabase.from("lessons").insert({
+          const { data: lecon } = await supabase.from("lessons").insert({
             chapter_id: chapter.id,
             titre: l.titre,
             video_url_bunny: l.video_url_bunny,
             duree_minutes: l.duree_minutes ? Number(l.duree_minutes) : null,
             ordre: li + 1,
             is_preview: l.is_preview,
-          });
+          }).select("id").single();
+          // Leçon reprise d'un autre cours : son devoir suit (écrit à part, comme dans l'éditeur du contenu).
+          if (lecon && l.devoir) await supabase.from("lessons").update({ devoir: l.devoir }).eq("id", lecon.id);
+          if (lecon && l.devoir_obligatoire) await supabase.from("lessons").update({ devoir_obligatoire: true }).eq("id", lecon.id);
         }
       }
     }
@@ -353,7 +368,7 @@ export default function NewCoursePage() {
 
                 <button
                   type="button"
-                  onClick={() => addLesson(ci)}
+                  onClick={() => setChoix(ci)}
                   className="ml-4 text-sm text-gray-400 hover:text-orange-600 transition-colors"
                 >
                   + Ajouter une leçon
@@ -361,6 +376,16 @@ export default function NewCoursePage() {
               </div>
             ))}
           </div>
+
+          {/* « Ajouter une leçon » : une leçon vide, ou des leçons déjà créées cochées en masse */}
+          {choix !== null && chapters[choix] ? (
+            <ChoisirLecons
+              onFermer={() => setChoix(null)}
+              onVide={() => { addLesson(choix); setChoix(null); }}
+              onAjouter={(lecons) => { addExistingLessons(choix, lecons); setChoix(null); }}
+              videosDuCours={chapters.flatMap((c) => c.lessons.map((l) => l.video_url_bunny))}
+            />
+          ) : null}
         </div>
 
         {error && (

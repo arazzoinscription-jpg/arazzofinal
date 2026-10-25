@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aplatirLecons, copieDeLecon, filtrerLecons, miniatureDe, slugDeCours, videoBunny, type CoursBrut } from "./bibliotheque";
+import { aplatirLecons, cocherPlage, copieDeLecon, filtrerLecons, miniatureDe, plusRecentes, slugDeCours, videoBunny, type CoursBrut } from "./bibliotheque";
 
 const lecon = (id: string, titre: string, ordre: number, video: string | null = null) =>
   ({ id, titre, ordre, video_url_bunny: video, duree_minutes: 12 });
@@ -54,4 +54,26 @@ test("copie d'une leçon : même titre, même vidéo, nouvelle place, jamais en 
 test("adresse du nouveau cours sans accents", () => {
   assert.equal(slugDeCours("Robe d'été — Niveau 2", "a1b2c3"), "robe-d-ete-niveau-2-a1b2c3");
   assert.equal(slugDeCours("خياطة", "a1b2c3"), "cours-a1b2c3");
+});
+
+test("leçons créées dernièrement d'abord ; sans date à la fin, dans l'ordre du parcours ; le devoir suit la leçon", () => {
+  const cours: CoursBrut[] = [{ id: "c", titre_fr: "C", published: true, ordre: 1, chapters: [{ id: "ch", titre: "", ordre: 1, lessons: [
+    { ...lecon("a", "A", 1), created_at: "2026-10-01T10:00:00Z" },
+    { ...lecon("b", "B", 2), created_at: null },
+    { ...lecon("c", "C", 3), created_at: "2026-10-20T08:00:00Z", devoir: " Coudre ", devoir_obligatoire: true },
+    { ...lecon("d", "D", 4), created_at: null },
+  ] }] }];
+  const r = plusRecentes(aplatirLecons(cours));
+  assert.deepEqual(r.map((l) => l.id), ["c", "a", "b", "d"]);
+  assert.equal(r[0].devoir, "Coudre");
+  assert.equal(r[0].devoirObligatoire, true);
+  assert.equal(r[1].devoir, "");
+});
+
+test("cocher avec Maj : toute la plage, dans les deux sens ; décocher la plage si la ligne était cochée", () => {
+  const ids = ["a", "b", "c", "d", "e"];
+  assert.deepEqual(cocherPlage([], ids, null, 2), ["c"]);
+  assert.deepEqual(cocherPlage(["b"], ids, 1, 3), ["b", "c", "d"]);
+  assert.deepEqual(cocherPlage(["d"], ids, 3, 0), ["d", "a", "b", "c"]);
+  assert.deepEqual(cocherPlage(["a", "b", "c", "e"], ids, 0, 2), ["e"]);
 });

@@ -7,6 +7,21 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isFormateur, isAdmin } from "@/lib/roles";
 import { copieDeLecon, slugDeCours, type LeconBrute } from "@/lib/lecons/bibliotheque";
+import { chargerLecons } from "@/lib/lecons/charger";
+
+/**
+ * Fenêtre « Ajouter une leçon » de l'éditeur de cours : les leçons qu'on peut reprendre, dans l'ordre du parcours
+ * (la fenêtre les montre créées dernièrement d'abord, et insère les cochées dans l'ordre du parcours).
+ * Lue seulement à l'ouverture de la fenêtre (l'éditeur ne charge pas 700 leçons pour rien).
+ */
+export async function listerLecons() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false as const, error: "Non authentifié." };
+  const { data: prof } = await supabase.from("users").select("role, roles").eq("id", user.id).single();
+  if (!isFormateur(prof)) return { ok: false as const, error: "Accès refusé." };
+  return { ok: true as const, lecons: await chargerLecons(createAdminClient(), user.id, isAdmin(prof)) };
+}
 
 const Schema = z.object({
   titre: z.string().trim().min(2, "Donnez un titre au cours (2 caractères minimum).").max(200),
