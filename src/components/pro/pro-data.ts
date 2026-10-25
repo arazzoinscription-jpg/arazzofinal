@@ -4,7 +4,7 @@ import {
   Video, TrendingUp, Wallet, BarChart3,
   GraduationCap, ShoppingBag, Receipt, CreditCard, BadgeCheck, Ticket,
   Settings, Mail, ScrollText, MessageCircle, SlidersHorizontal,
-  Shapes, Ruler, Clapperboard, FileText, School, Radio,
+  Shapes, Ruler, Clapperboard, FileText, School, Radio, ListVideo,
   type LucideIcon,
 } from "lucide-react";
 import type { Lang } from "@/app/dashboard/dash-i18n";
@@ -29,6 +29,7 @@ export const FORMATEUR_SECTIONS: ProSection[] = [
     items: [
       { href: "/formateur/cours", icon: BookOpen, label: { fr: "Cours", ar: "الدورات", en: "Courses" } },
       { href: "/formateur/cours/nouveau", icon: PlusCircle, label: { fr: "Nouveau cours", ar: "دورة جديدة", en: "New course" } },
+      { href: "/formateur/lecons", icon: ListVideo, label: { fr: "Les leçons", ar: "الدروس", en: "Lessons" } },
       { href: "/formateur/quiz", icon: FileQuestion, label: { fr: "Quiz", ar: "اختبارات", en: "Quizzes" } },
       { href: "/formateur/diplomes", icon: GraduationCap, label: { fr: "Diplômes", ar: "الشهادات", en: "Diplomas" } },
       { href: "/formateur/ressources", icon: FolderOpen, label: { fr: "Ressources", ar: "الموارد", en: "Resources" } },

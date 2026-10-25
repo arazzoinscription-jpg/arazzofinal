@@ -17,7 +17,7 @@ interface BunnyPlayerProps {
  *  - Vimeo               https://vimeo.com/ID
  * Retourne { src } ou { error } si la valeur n'est pas une vidéo exploitable.
  */
-function resolveEmbed(raw: string): { src?: string; error?: string } {
+export function resolveEmbed(raw: string): { src?: string; error?: string } {
   if (!raw || raw.trim().length === 0) return { error: "empty" };
   const value = raw.trim();
 
