@@ -4,7 +4,7 @@ import { filtrerAnnuaire, fusionnerCoursGratuits, lirePeriodeAnnuaire, pageDe, t
 
 const snap = (slug: string, data: Record<string, unknown> | null) => ({ slug, data });
 
-test("cours gratuits : les siens d'abord (plus récent en haut, 1re inscription retenue), puis les autres cours en ligne", () => {
+test("cours gratuits : seulement les siens (plus récent en haut, 1re inscription retenue), jamais les autres cours en ligne", () => {
   const leads = [
     { slug: "robe-dinterieur", created_at: "2026-10-10T09:00:00Z" },
     { slug: "feed", created_at: "2026-10-15T09:00:00Z" },
@@ -18,14 +18,12 @@ test("cours gratuits : les siens d'abord (plus récent en haut, 1re inscription 
     snap("ferme", { active: false, title: "Cours fermé" }),
   ];
   const siens = fusionnerCoursGratuits(leads, instantanes);
+  // « jupe » est en ligne mais elle n'a pas rempli son formulaire : ce cadeau n'apparaît pas dans son compte.
   assert.deepEqual(siens.map((c) => [c.slug, c.inscriteLe]), [["feed", "2026-10-15T09:00:00Z"], ["robe-dinterieur", "2026-10-10T09:00:00Z"]]);
   assert.equal(siens[0].couverture, "https://img.youtube.com/vi/abcdefghijk/hqdefault.jpg");
   assert.equal(siens[1].couverture, "https://x/robe.jpg");
   assert.equal(siens[1].lien, "/free/robe-dinterieur?acces=1");
-
-  const tous = fusionnerCoursGratuits(leads, instantanes, { avecLesAutres: true });
-  assert.deepEqual(tous.map((c) => c.slug), ["feed", "robe-dinterieur", "jupe"]); // ni l'adresse déplacée, ni le cours fermé
-  assert.equal(tous[2].inscriteLe, null);
+  assert.deepEqual(fusionnerCoursGratuits([], instantanes), [], "un compte sans formulaire rempli n'a aucun cours gratuit");
 });
 
 test("cours gratuit dont la page a disparu : gardé pour l'équipe (titre tiré de l'adresse), marqué hors ligne", () => {

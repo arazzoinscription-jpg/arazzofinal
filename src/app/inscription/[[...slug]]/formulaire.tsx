@@ -12,6 +12,7 @@ const T = {
   fr: {
     dir: "ltr", toggle: "العربية", eyebrow: "Inscription gratuite", titre: "Votre compte", titreAccent: " Arazzo offert",
     accroche: "Créez votre compte en 30 secondes : votre cours gratuit, votre espace et l'application vous attendent.",
+    accrocheSans: "Créez votre compte en 30 secondes : votre espace, la leçon d'essai et l'application vous attendent.",
     cours: "Votre cadeau :", nom: "Nom et prénom", phNom: "Ex. Amina Belkacem", email: "Adresse e-mail", phEmail: "votre@email.com",
     tel: "Téléphone (WhatsApp)", phTel: "Facultatif", wilaya: "Wilaya", phWilaya: "Facultatif",
     consent: "Je souhaite recevoir les nouveautés et les offres d'Arazzo.", envoyer: "Créer mon compte gratuit", envoi: "Création…",
@@ -22,12 +23,13 @@ const T = {
     pasEnvoye: "L'e-mail tarde : vous êtes connectée ici, et vous pourrez choisir votre mot de passe dans votre profil.",
     existant: "Vous avez déjà un compte Arazzo", existantTxt: (e: string) => `Vos accès viennent d'être renvoyés à ${e}.`,
     voirCours: "▶ Regarder mon cours gratuit", installer: "📲 Installer l'application", plateforme: "Découvrir la plateforme", connexion: "Me connecter",
-    dejaConnectee: "Vous êtes déjà connectée", dejaTxt: "Votre cours gratuit et votre espace vous attendent.",
+    dejaConnectee: "Vous êtes déjà connectée", dejaTxt: "Votre cours gratuit et votre espace vous attendent.", dejaTxtSans: "Votre espace vous attend.",
     caseAbsente: "La case de vérification « Je ne suis pas un robot » ne s'affiche pas ?", recharger: "Recharger la page",
   },
   ar: {
     dir: "rtl", toggle: "Français", eyebrow: "تسجيل مجاني", titre: "حسابك في", titreAccent: " أرازو مجاناً",
     accroche: "أنشئي حسابك في 30 ثانية: درسك المجاني، مساحتك والتطبيق في انتظارك.",
+    accrocheSans: "أنشئي حسابك في 30 ثانية: مساحتك، الدرس التجريبي والتطبيق في انتظارك.",
     cours: "هديتك:", nom: "الاسم واللقب", phNom: "مثال: أمينة بلقاسم", email: "البريد الإلكتروني", phEmail: "votre@email.com",
     tel: "الهاتف (واتساب)", phTel: "اختياري", wilaya: "الولاية", phWilaya: "اختياري",
     consent: "أرغب في تلقي جديد وعروض أرازو.", envoyer: "إنشاء حسابي المجاني", envoi: "جارٍ الإنشاء…",
@@ -38,7 +40,7 @@ const T = {
     pasEnvoye: "تأخر البريد: أنتِ متصلة هنا، ويمكنك اختيار كلمة السر من ملفك الشخصي.",
     existant: "لديك حساب في أرازو مسبقاً", existantTxt: (e: string) => `أعدنا إرسال معلومات الدخول إلى ${e}.`,
     voirCours: "▶ شاهدي درسي المجاني", installer: "📲 تثبيت التطبيق", plateforme: "اكتشفي المنصة", connexion: "تسجيل الدخول",
-    dejaConnectee: "أنتِ متصلة مسبقاً", dejaTxt: "درسك المجاني ومساحتك في انتظارك.",
+    dejaConnectee: "أنتِ متصلة مسبقاً", dejaTxt: "درسك المجاني ومساحتك في انتظارك.", dejaTxtSans: "مساحتك في انتظارك.",
     caseAbsente: "خانة التحقق « لستُ روبوتاً » لا تظهر؟", recharger: "إعادة تحميل الصفحة",
   },
 } as const;
@@ -49,7 +51,7 @@ declare global {
 
 const CLE_TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
-/** Le formulaire du lien d'inscription gratuite (compte visiteuse + cours gratuit). */
+/** Le formulaire du lien d'inscription gratuite (compte visiteuse ; + le cours gratuit quand le lien nomme sa page). */
 export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnectee }: { slug: string | null; coursTitre: string | null; coursHref: string | null; dejaConnectee: boolean }) {
   const [langue, setLangue] = useState<"fr" | "ar">("fr");
   const t = T[langue];
@@ -161,7 +163,7 @@ export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnect
           </div>
           <span className="pl-eyebrow">{t.eyebrow}</span>
           <h1 className="pl-titre">{t.titre}<em>{t.titreAccent}</em></h1>
-          <p className="pl-tagline">{t.accroche}</p>
+          <p className="pl-tagline">{coursTitre ? t.accroche : t.accrocheSans}</p>
         </div>
       </header>
 
@@ -172,7 +174,7 @@ export function FormulaireInscription({ slug, coursTitre, coursHref, dejaConnect
           {dejaConnectee && !resultat ? (
             <section className="pl-section">
               <h2 className="pl-h2">{t.dejaConnectee}</h2>
-              <p className="pl-lede">{t.dejaTxt}</p>
+              <p className="pl-lede">{coursTitre ? t.dejaTxt : t.dejaTxtSans}</p>
               {boutons(false)}
             </section>
           ) : resultat ? (

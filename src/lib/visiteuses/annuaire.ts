@@ -13,8 +13,8 @@ export interface CoursGratuit {
   slug: string;
   titre: string;
   couverture: string | null;
-  /** Date d'inscription de la personne à ce cours (null = cours ouvert, pas encore choisi par elle). */
-  inscriteLe: string | null;
+  /** Date d'inscription de la personne à ce cours (formulaire de la page, ou lien d'inscription de la page). */
+  inscriteLe: string;
   /** Le cours est-il encore en ligne ? (dépublié → on le montre à l'équipe, pas à la visiteuse). */
   enLigne: boolean;
   /** Lien qui ouvre le cours sans redemander le formulaire. */
@@ -32,17 +32,18 @@ export function couvertureCours(data: Record<string, unknown> | null): string | 
 }
 
 /**
- * Les cours gratuits d'une personne (les plus récents d'abord), puis — si `avecLesAutres` — les autres cours gratuits
- * en ligne, qu'elle peut aussi ouvrir. Une page fermée « déplacée » (ancienne adresse) n'est jamais un cours.
+ * Les cours gratuits d'une personne, les plus récents d'abord : SEULEMENT les Delivery Pages dont elle a rempli le
+ * formulaire (ou le lien d'inscription de la page). Les autres cours gratuits ne s'ajoutent jamais d'office à son
+ * compte : un cadeau se gagne par sa page. Une page fermée « déplacée » (ancienne adresse) n'est jamais un cours.
  */
-export function fusionnerCoursGratuits(leads: LeadCours[], instantanes: InstantaneCours[], { avecLesAutres = false } = {}): CoursGratuit[] {
+export function fusionnerCoursGratuits(leads: LeadCours[], instantanes: InstantaneCours[]): CoursGratuit[] {
   const parSlug = new Map(instantanes.map((s) => [s.slug, s.data]));
   const premiereFois = new Map<string, string>();
   for (const l of leads) {
     const avant = premiereFois.get(l.slug);
     if (!avant || l.created_at < avant) premiereFois.set(l.slug, l.created_at);
   }
-  const cours = (slug: string, inscriteLe: string | null): CoursGratuit | null => {
+  const cours = (slug: string, inscriteLe: string): CoursGratuit | null => {
     const data = parSlug.get(slug) ?? null;
     if (data && data.status === "moved") return null;
     return {
@@ -54,17 +55,10 @@ export function fusionnerCoursGratuits(leads: LeadCours[], instantanes: Instanta
       lien: `/free/${encodeURIComponent(slug)}?acces=1`,
     };
   };
-  const siens = [...premiereFois.entries()]
+  return [...premiereFois.entries()]
     .sort((a, b) => b[1].localeCompare(a[1]))
     .map(([slug, le]) => cours(slug, le))
     .filter((c): c is CoursGratuit => c !== null);
-  if (!avecLesAutres) return siens;
-  const deja = new Set(siens.map((c) => c.slug));
-  const autres = instantanes
-    .filter((s) => !deja.has(s.slug) && s.data?.active === true)
-    .map((s) => cours(s.slug, null))
-    .filter((c): c is CoursGratuit => c !== null);
-  return [...siens, ...autres];
 }
 
 /**

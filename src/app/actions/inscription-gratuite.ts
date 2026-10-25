@@ -8,15 +8,15 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
 import { createPasswordSetupLink } from "@/lib/magic-link";
 import { checkRateLimit, getClientIp } from "@/lib/security/rateLimit";
-import { feedWelcomeSlug } from "@/lib/feed-welcome";
 import { estRobot, lireInscription, motDePasseLisible, suggestionEmail } from "@/lib/inscription-gratuite";
 import { emailCompteCree, emailDejaInscrite } from "@/lib/inscription-gratuite-email";
 
 /**
  * Lien d'inscription GRATUITE (/inscription ou /inscription/<page>) partagé sur les réseaux :
  * formulaire → compte « visiteuse » sur le site (aucune formation : missions, leçon d'essai) → connexion
- * immédiate → e-mail d'accès (identifiant, mot de passe, cours gratuit, plateforme, application) → le cours
- * gratuit de la Delivery Page. La personne entre aussi dans le CRM de l'OS (prospect de la Delivery Page).
+ * immédiate → e-mail d'accès (identifiant, mot de passe, plateforme, application). Le cours gratuit d'une
+ * Delivery Page n'est donné QUE par le lien de cette page (/inscription/<page>) : la personne devient alors son
+ * prospect (CRM de l'OS). /inscription seul crée le compte, sans cadeau d'office.
  *
  * Prévu pour des centaines d'inscriptions par jour : anti-robots (champ piège, délai, Turnstile si configuré),
  * limite par adresse, un seul compte par e-mail (jamais de mot de passe changé pour un compte existant).
@@ -43,9 +43,10 @@ async function turnstileValide(jeton: unknown, ip: string): Promise<boolean> {
   }
 }
 
-/** La Delivery Page du cours gratuit (ouverte), ou null. */
+/** La Delivery Page du cours gratuit — seulement si le lien en nomme une, et qu'elle est ouverte — ou null. */
 async function pageCours(slugDemande: unknown): Promise<{ slug: string; titre: string | null; source: string | null; campaign: string | null } | null> {
-  const slug = typeof slugDemande === "string" && slugDemande.trim() ? slugDemande.trim().slice(0, 160) : await feedWelcomeSlug();
+  const slug = typeof slugDemande === "string" && slugDemande.trim() ? slugDemande.trim().slice(0, 160) : null;
+  if (!slug) return null;
   const { data } = await createPublicClient().from("delivery_page_snapshots").select("data").eq("slug", slug).maybeSingle();
   const page = (data?.data ?? null) as Record<string, unknown> | null;
   if (!page || page.active !== true) return null;

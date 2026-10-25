@@ -53,10 +53,10 @@ export async function inscriptionsCoursParEmail(admin: Admin, emails: (string | 
   return out;
 }
 
-/** Les cours gratuits d'une personne (par son e-mail) ; `avecLesAutres` ajoute les autres cours gratuits en ligne. */
-export async function coursGratuitsDe(admin: Admin, email: string | null | undefined, { avecLesAutres = false } = {}): Promise<CoursGratuit[]> {
+/** Les cours gratuits d'une personne (par son e-mail) : seulement ceux dont elle a rempli le formulaire. */
+export async function coursGratuitsDe(admin: Admin, email: string | null | undefined): Promise<CoursGratuit[]> {
   const [leads, instantanes] = await Promise.all([inscriptionsCoursParEmail(admin, [email ?? null]), instantanesCours(admin)]);
-  return fusionnerCoursGratuits(leads.get((email ?? "").trim().toLowerCase()) ?? [], instantanes, { avecLesAutres });
+  return fusionnerCoursGratuits(leads.get((email ?? "").trim().toLowerCase()) ?? [], instantanes);
 }
 
 export async function infosConnexion(admin: Admin, id: string): Promise<InfosConnexion> {

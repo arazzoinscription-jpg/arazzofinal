@@ -133,19 +133,19 @@ export default async function DashboardPage() {
 
   // Compte SANS formation (ni rôle d'équipe) : la leçon d'essai gratuite et les missions du feed, dès la création du compte.
   const visiteuse = courses.length === 0 && !hasFormateur && !hasPatronniste && !isAdmin(profile);
-  // …et ses COURS GRATUITS (Delivery Pages où elle s'est inscrite, puis les autres cours gratuits en ligne) : à la
-  // place du « Aucun cours » du héros — l'accès à son cours d'abord, comme une élève.
+  // …et ses COURS GRATUITS : seulement les Delivery Pages dont elle a rempli le formulaire (jamais les autres cours
+  // gratuits d'office) — à la place du « Aucun cours » du héros, l'accès à son cours d'abord, comme une élève.
   const [decouverte, gratuits] = visiteuse
     ? await Promise.all([
       leconEssai(createAdminClient(), user!.id).catch(() => null),
-      coursGratuitsDe(createAdminClient(), user!.email, { avecLesAutres: true }).then((l) => l.filter((c) => c.enLigne)).catch(() => [] as CoursGratuit[]),
+      coursGratuitsDe(createAdminClient(), user!.email).then((l) => l.filter((c) => c.enLigne)).catch(() => [] as CoursGratuit[]),
     ])
     : [undefined, [] as CoursGratuit[]];
   const gratuit = hero ? undefined : gratuits[0];
   const TXT_GRATUIT = {
-    fr: { badge: "🎁 Cours gratuit", regarder: "Regarder mon cours gratuit", cadeau: "Votre cadeau", aussi: "Aussi offert" },
-    ar: { badge: "🎁 درس مجاني", regarder: "شاهدي درسك المجاني", cadeau: "هديتك", aussi: "مجاني أيضاً" },
-    en: { badge: "🎁 Free course", regarder: "Watch my free course", cadeau: "Your gift", aussi: "Also free" },
+    fr: { badge: "🎁 Cours gratuit", regarder: "Regarder mon cours gratuit", cadeau: "Votre cadeau" },
+    ar: { badge: "🎁 درس مجاني", regarder: "شاهدي درسك المجاني", cadeau: "هديتك" },
+    en: { badge: "🎁 Free course", regarder: "Watch my free course", cadeau: "Your gift" },
   }[lang];
 
 
@@ -223,7 +223,7 @@ export default async function DashboardPage() {
                 <span className="inline-flex items-center gap-1.5 bg-orange-DEFAULT text-white text-xs font-bold px-3 py-1.5 rounded-full">{TXT_GRATUIT.badge}</span>
               </div>
               <div className="absolute bottom-4 start-4 end-4">
-                <p className="text-white/60 text-xs font-dm mb-1">{gratuit.inscriteLe ? TXT_GRATUIT.cadeau : TXT_GRATUIT.aussi}</p>
+                <p className="text-white/60 text-xs font-dm mb-1">{TXT_GRATUIT.cadeau}</p>
                 <h2 className="font-playfair text-2xl font-bold mb-3 line-clamp-2">{gratuit.titre}</h2>
                 <a href={gratuit.lien} className="inline-flex items-center gap-2 bg-orange-DEFAULT hover:bg-orange-600 rounded-xl px-5 py-3 font-semibold transition-colors">
                   <Play size={16} className="text-white fill-white" /> {TXT_GRATUIT.regarder}
@@ -265,7 +265,7 @@ export default async function DashboardPage() {
               </span>
               <div className="absolute bottom-0 start-0 end-0 p-4">
                 <h3 className="font-semibold line-clamp-1">{c.titre}</h3>
-                <p className="text-xs text-white/60 font-dm mt-0.5">{c.inscriteLe ? TXT_GRATUIT.cadeau : TXT_GRATUIT.aussi}</p>
+                <p className="text-xs text-white/60 font-dm mt-0.5">{TXT_GRATUIT.cadeau}</p>
               </div>
             </a>
           )) : (
