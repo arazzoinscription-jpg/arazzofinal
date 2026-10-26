@@ -1,6 +1,7 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { getLandingTexts } from "@/lib/landing-texts";
 import PresentielLanding from "./presentiel-landing";
+import { unstable_noStore as noStore } from "next/cache";
 
 // Landing PRÉSENTIELLE — identique à Arazzo OS, 24/7 sur Vercel (sans tunnel).
 // Les données (places, groupes, formules, centre, textes bilingues) viennent
@@ -10,6 +11,8 @@ import PresentielLanding from "./presentiel-landing";
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  // Relire la base à CHAQUE visite : sinon Vercel resservait les places d'avant la synchro.
+  noStore();
   const { slug } = await params;
   const supabase = createPublicClient();
   const { data: row } = await supabase
