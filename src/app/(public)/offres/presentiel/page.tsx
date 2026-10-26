@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import OffreListe, { type Item } from "../offres-liste";
+import { unstable_noStore as noStore } from "next/cache";
 
 // Page SÉPARÉE « Formations en présentiel » — liste TOUTES les offres
 // présentielles synchronisées par l'OS (`presentiel_snapshots`), chacune menant
@@ -16,6 +17,8 @@ function lieuDe(d: Record<string, any> | null | undefined): "setif" | "eulma" {
 }
 
 export default async function Page({ searchParams }: { searchParams?: { lieu?: string } }) {
+  // Relire la base à CHAQUE visite : sinon Vercel resservait la liste d'avant la synchro (El Eulma invisible).
+  noStore();
   let items: Item[] = [];
   try {
     const pub = createPublicClient();

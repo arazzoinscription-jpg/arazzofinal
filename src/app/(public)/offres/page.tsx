@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import { getLandingTexts } from "@/lib/landing-texts";
 import OffresHub, { type Offre } from "./offres-hub";
+import { unstable_noStore as noStore } from "next/cache";
 
 // Hub NATIF (24/7) de toutes les offres, au DESIGN de l'OS (kit `pl-` partagé,
 // bilingue). Liste les 3 niveaux → landings natives, les packs publiés → boutique,
@@ -20,6 +21,8 @@ const daPrice = (n: number | null | undefined) =>
   n ? `${Number(n).toLocaleString("fr-FR")} DA` : null;
 
 export default async function Page() {
+  // Relire la base à CHAQUE visite : sinon Vercel resservait la liste d'avant la synchro (El Eulma invisible).
+  noStore();
   const supabase = await createClient();
   const { data: courses } = await supabase
     .from("courses")
