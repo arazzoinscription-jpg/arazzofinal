@@ -14,7 +14,7 @@ import { LandingStyles, utmDeLURL } from "@/lib/landing-kit";
 import { NavLanding } from "@/components/landing/nav-landing";
 import LevelTestPopup from "@/lib/level-test-popup";
 
-export type Offre = { slug: string; name: string; sous?: string | null; prix?: string | null };
+export type Offre = { slug: string; name: string; sous?: string | null; prix?: string | null; lieu?: "setif" | "eulma"; };
 
 const CLE_LANGUE = "arazzo_formation_langue";
 
@@ -28,8 +28,8 @@ const T: Record<"ar" | "fr", any> = {
     bPres: "🏫 تكوينات حضورية", bOnline: "🖥️ تكوينات عن بُعد", bPat: "🧵 باترونات رقمية",
     online: "التكوينات عن بُعد", onlineSub: "عبر المنصّة · بإيقاعك · وصول مدى الحياة",
     packs: "الحزم (Packs) بسعر مخفّض", packsSub: "تكوينان معًا · بسعر مخفّض",
-    presentiel: "التكوينات الحضورية بسطيف", presentielSub: "في المركز · مجموعات صغيرة",
-    patrons: "🧵 باترونات رقمية", presentielCta: "تكوين حضوري بسطيف",
+    presentiel: "التكوينات الحضورية · سطيف · العلمة", presentielSub: "مركزان · مجموعات صغيرة — اختاري مدينتكِ", setif: "سطيف", eulma: "العلمة",
+    patrons: "🧵 باترونات رقمية", presentielCta: "تكوين حضوري",
     pied: "Arazzo · مدرسة الخياطة", toggle: "Français",
   },
   fr: {
@@ -41,8 +41,8 @@ const T: Record<"ar" | "fr", any> = {
     bPres: "🏫 Formations en présentiel", bOnline: "🖥️ Formations en ligne", bPat: "🧵 Patronage numérique",
     online: "Formations en ligne", onlineSub: "Sur la plateforme · à votre rythme · accès à vie",
     packs: "Packs à prix réduit", packsSub: "Deux formations réunies · à prix réduit",
-    presentiel: "Formations en présentiel à Sétif", presentielSub: "Au centre · petits groupes",
-    patrons: "🧵 Patronage numérique", presentielCta: "Formation en présentiel à Sétif",
+    presentiel: "Formations en présentiel · Sétif · El Eulma", presentielSub: "Deux centres · petits groupes — choisissez votre ville", setif: "Sétif", eulma: "El Eulma",
+    patrons: "🧵 Patronage numérique", presentielCta: "Formation en présentiel",
     pied: "Arazzo · École de couture", toggle: "العربية",
   },
 };
@@ -156,8 +156,19 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
           <section id="sec-presentiel" className="pl-section" style={{ ["--d" as string]: ".12s" }}>
             <h2 className="pl-h2">🏫 {t.presentiel}</h2>
             <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.presentielSub}</p>
+            {/* Les deux centres : chacun ses offres (ses formulaires, ses prospects). */}
+            {presentiel.some((o) => o.lieu === "eulma") ? (
+              <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 12 }}>
+                {(["setif", "eulma"] as const).map((l) => (
+                  <a key={l} className="pl-ghost pl-ghost-alt" href={`/offres/presentiel?lieu=${l}`}
+                    style={{ justifyContent: "center", borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
+                    <span style={{ flex: 1, textAlign: "center" }}><strong>📍 {t[l]}</strong></span>
+                  </a>
+                ))}
+              </div>
+            ) : null}
             {presentiel.length ? (
-              presentiel.map((o) => (
+              presentiel.filter((o) => !presentiel.some((x) => x.lieu === "eulma") || (o.lieu ?? "setif") === "setif").map((o) => (
                 <a key={o.slug} className="pl-ghost pl-ghost-alt" href={`/presentiel/${o.slug}`}
                   style={{ marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
                   <span className="pl-ghost-ico">🏫</span>

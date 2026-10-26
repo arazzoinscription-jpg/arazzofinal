@@ -68,7 +68,7 @@ const T: Record<"ar" | "fr", any> = {
     merciNote: "لإتمام تسجيلك، مرّي بمركز التكوين وأحضري معك ملفك الرسمي. لا يُعتبر التسجيل نهائيًا إلا بعد إيداع الملف كاملاً ومصادقة إدارة المركز عليه.",
     merciMap: "🗺️ موقع مركز التكوين على الخريطة",
     dossierTitle: "📌 الملف المطلوب عند التسجيل بالمركز",
-    pied: "Arazzo · مدرسة الخياطة — سطيف",
+    pied: "Arazzo · مدرسة الخياطة",
     closed: "هذا التكوين غير مفتوح حاليًا.",
     toggle: "Français",
   },
@@ -110,7 +110,7 @@ const T: Record<"ar" | "fr", any> = {
     merciNote: "Pour finaliser votre inscription, passez par notre centre de formation avec votre dossier officiel. L’inscription n’est définitive qu’après dépôt du dossier complet et validation par l’administration du centre.",
     merciMap: "🗺️ Ouvrir la localisation du centre",
     dossierTitle: "📌 Dossier à apporter au centre",
-    pied: "Arazzo · École de couture — Sétif",
+    pied: "Arazzo · École de couture",
     closed: "Cette offre n’est pas ouverte pour le moment.",
     toggle: "العربية",
   },
@@ -644,7 +644,7 @@ export default function PresentielLanding({ data, textes }: {
           )}
         </div>
 
-        <p className="pl-pied">{t.pied}</p>
+        <p className="pl-pied">{t.pied} — {t.dir === "rtl" ? (def.city_ar ?? (/eulma|علمة/i.test(def.city ?? "") ? "العلمة" : "سطيف")) : (def.city ?? "Sétif")}</p>
       </div>
 
       {showTest ? (

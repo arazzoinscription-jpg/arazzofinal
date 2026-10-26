@@ -51,6 +51,11 @@ export default async function Page() {
   // par niveau/atelier), lues dans `presentiel_snapshots`. Best-effort : si la
   // synchro n'a rien poussé, la liste est vide et le hub retombe sur son lien par
   // défaut. Lecture ANON (RLS publique), comme la landing `/presentiel/[slug]`.
+/** Le centre d'une offre présentielle : celui poussé par l'OS, sinon déduit de la ville (Sétif par défaut). */
+function lieuDe(d: Record<string, any> | null | undefined): "setif" | "eulma" {
+  if (d?.location === "eulma" || d?.location === "setif") return d.location;
+  return /eulma|علمة/i.test(String(d?.city ?? "")) ? "eulma" : "setif";
+}
   let presentiel: Offre[] = [];
   try {
     const pub = createPublicClient();
@@ -63,10 +68,12 @@ export default async function Page() {
       .map((s) => {
         const d = s.data as Record<string, any>;
         const atelier = d?.kind === "atelier";
+        const ville = (d?.city as string) || (lieuDe(d) === "eulma" ? "El Eulma" : "Sétif");
         return {
           slug: s.slug,
           name: (d?.name as string) || s.slug,
-          sous: atelier ? "Atelier · Sétif" : "Formation · petits groupes · Sétif",
+          sous: atelier ? `Atelier · ${ville}` : `Formation · petits groupes · ${ville}`,
+          lieu: lieuDe(d),
         };
       });
   } catch { presentiel = []; }
