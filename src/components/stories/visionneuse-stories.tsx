@@ -348,6 +348,9 @@ export function VisionneuseStories({ groupes, depart, departStory = 0, meId, mod
             story.bunnyVideoId && bibliotheque ? (
               <iframe key={story.id} src={`https://iframe.mediadelivery.net/embed/${bibliotheque}/${story.bunnyVideoId}?autoplay=true&loop=false&preload=true&responsive=true${story.debut ? `&t=${story.debut}` : ""}`}
                 title="Story vidéo" allow="autoplay; encrypted-media" className="absolute inset-0 w-full h-full" style={{ border: 0 }} />
+            ) : story.mediaUrl ? (
+              // Story publiée par l'OS (Arazzo) : la vidéo est lue à son adresse publique, avec le son.
+              <video key={story.id} src={story.mediaUrl} poster={story.thumbnail ?? undefined} autoPlay playsInline className="absolute inset-0 w-full h-full object-contain" />
             ) : <p className="absolute inset-0 grid place-items-center text-white/70 text-sm">Story indisponible.</p>
           ) : story.kind === "texte" || story.mediaUrl ? (
             <FondStory key={story.id} kind={story.kind} url={story.mediaUrl} fond={story.fond} alt={story.legende ?? `Story de ${groupe.nom}`} />
