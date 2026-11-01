@@ -9,10 +9,12 @@ import { verifierEmail } from "@/lib/email-verification-serveur";
  * Avant de créer un compte ou de se connecter (formulaires du navigateur) : la case anti-robots Cloudflare,
  * et — à l'inscription — l'adresse e-mail (forme, faute de frappe, domaine qui reçoit des e-mails).
  */
-export async function verifierAvantCompte(entree: { jeton?: unknown; email?: unknown; inscription?: boolean }):
+export async function verifierAvantCompte(entree: { jeton?: unknown; email?: unknown; inscription?: boolean; sansCase?: boolean }):
   Promise<{ ok: true; email?: string } | { ok: false; erreur: string; suggestion?: string }> {
   const ip = getClientIp(await headers());
-  if (!(await turnstileValide(entree.jeton, ip))) return { ok: false, erreur: "Vérification anti-robot non validée : cochez la case puis réessayez." };
+  // La case Cloudflare n'a pas pu s'afficher chez la visiteuse : on ne bloque pas (la page n'est pas la seule porte
+  // d'un robot — l'adresse, elle, reste vérifiée).
+  if (!entree.sansCase && !(await turnstileValide(entree.jeton, ip))) return { ok: false, erreur: "Vérification anti-robot non validée : cochez la case puis réessayez." };
   if (!entree.inscription) return { ok: true };
   const v = await verifierEmail(entree.email);
   if (!v.ok) return { ok: false, erreur: v.message, ...(v.suggestion ? { suggestion: v.suggestion } : {}) };

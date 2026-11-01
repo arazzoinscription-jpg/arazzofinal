@@ -18,12 +18,17 @@ export const CLE_TURNSTILE = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
  * `onJeton` reçoit le jeton ("" quand il expire) ; changer `remise` redessine la case (après un refus, le jeton
  * ne sert qu'une fois). Sans clé configurée, rien ne s'affiche et `onJeton` n'est jamais appelé.
  */
-export function CaseAntiRobot({ onJeton, remise = 0, langue = "fr" }: { onJeton: (jeton: string) => void; remise?: number; langue?: string }) {
+export function CaseAntiRobot({ onJeton, onPanne, remise = 0, langue = "fr" }: { onJeton: (jeton: string) => void; onPanne?: (panne: boolean) => void; remise?: number; langue?: string }) {
   const zone = useRef<HTMLDivElement>(null);
   const id = useRef<string | null>(null);
   const [absente, setAbsente] = useState(false);
+  const recu = useRef(false); // un jeton est-il déjà arrivé ?
   const rappel = useRef(onJeton);
   rappel.current = onJeton;
+  // Cloudflare ne s'affiche pas (réseau, bloqueur) : le formulaire ne doit pas rester bloqué pour autant.
+  const panne = useRef(onPanne);
+  panne.current = onPanne;
+  useEffect(() => { panne.current?.(absente); }, [absente]);
 
   function dessiner() {
     const t = ts();
@@ -31,7 +36,7 @@ export function CaseAntiRobot({ onJeton, remise = 0, langue = "fr" }: { onJeton:
     if (!CLE_TURNSTILE || !t || !z || id.current) return;
     id.current = t.render(z, {
       sitekey: CLE_TURNSTILE, language: langue,
-      callback: (j: string) => { rappel.current(j); setAbsente(false); },
+      callback: (j: string) => { recu.current = true; rappel.current(j); setAbsente(false); },
       "expired-callback": () => rappel.current(""),
       "error-callback": () => setAbsente(true),
     });
@@ -43,8 +48,8 @@ export function CaseAntiRobot({ onJeton, remise = 0, langue = "fr" }: { onJeton:
     const debut = Date.now();
     const m = window.setInterval(() => {
       dessiner();
-      const visible = Boolean(zone.current?.querySelector('input[name="cf-turnstile-response"]'));
-      if (visible || Date.now() - debut > 10_000) { window.clearInterval(m); if (!visible) setAbsente(true); }
+      // Aucun jeton au bout de 12 s (case invisible, bloqueur, réseau) : on ne bloque pas le formulaire.
+      if (recu.current || Date.now() - debut > 12_000) { window.clearInterval(m); if (!recu.current) setAbsente(true); }
     }, 400);
     return () => {
       window.clearInterval(m);
@@ -64,7 +69,7 @@ export function CaseAntiRobot({ onJeton, remise = 0, langue = "fr" }: { onJeton:
       <div ref={zone} style={{ margin: "8px 0", minHeight: 65 }} />
       {absente ? (
         <p style={{ fontSize: 12, color: "#b45309" }}>
-          La vérification anti-robot ne s’affiche pas. <button type="button" onClick={() => window.location.reload()} style={{ textDecoration: "underline" }}>Recharger la page</button>
+          La vérification anti-robot ne répond pas : vous pouvez continuer.
         </p>
       ) : null}
     </>

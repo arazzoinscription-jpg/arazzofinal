@@ -58,6 +58,7 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
   // La case anti-robots (Cloudflare) : un jeton par tentative de connexion.
   const [jeton, setJeton] = useState("");
   const [remise, setRemise] = useState(0);
+  const [casePanne, setCasePanne] = useState(false);
 
   // Message si l'élève a été déconnecté parce que son compte a été utilisé ailleurs.
   useEffect(() => {
@@ -74,8 +75,8 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     setLoading(true);
     setError("");
 
-    if (CLE_TURNSTILE && !jeton) { setError("Cochez la case « Je ne suis pas un robot »."); setLoading(false); return; }
-    const humain = await verifierAvantCompte({ jeton }).catch(() => ({ ok: true as const }));
+    if (CLE_TURNSTILE && !jeton && !casePanne) { setError("Cochez la case « Je ne suis pas un robot »."); setLoading(false); return; }
+    const humain = await verifierAvantCompte({ jeton, sansCase: casePanne && !jeton }).catch(() => ({ ok: true as const }));
     setRemise((n) => n + 1); // le jeton ne sert qu'une fois
     if (!humain.ok) { setError(humain.erreur); setLoading(false); return; }
 
@@ -195,7 +196,7 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
               </button>
             </div>
 
-            <CaseAntiRobot onJeton={setJeton} remise={remise} langue={lang} />
+            <CaseAntiRobot onJeton={setJeton} onPanne={setCasePanne} remise={remise} langue={lang} />
             <div className="flex items-center justify-between min-h-[1.25rem]">
               {error ? <span className="text-sm text-red-500">{error}</span> : <span />}
               <button type="button" onClick={handleForgotPassword} disabled={loading}

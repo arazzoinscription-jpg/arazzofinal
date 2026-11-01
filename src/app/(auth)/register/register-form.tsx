@@ -77,6 +77,7 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
   // La case anti-robots (Cloudflare) et la correction proposée pour une adresse mal tapée.
   const [jeton, setJeton] = useState("");
   const [remise, setRemise] = useState(0);
+  const [casePanne, setCasePanne] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
 
   function pick(type: AccountType) {
@@ -91,8 +92,8 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
     setSuggestion(null);
 
     // 1) Robot ? adresse mal tapée (gamil.com) ou domaine sans boîte mail ? — AVANT de créer le compte.
-    if (CLE_TURNSTILE && !jeton) { setError("Cochez la case « Je ne suis pas un robot »."); setLoading(false); return; }
-    const verif = await verifierAvantCompte({ jeton, email: form.email, inscription: true }).catch(() => ({ ok: true as const, email: undefined }));
+    if (CLE_TURNSTILE && !jeton && !casePanne) { setError("Cochez la case « Je ne suis pas un robot »."); setLoading(false); return; }
+    const verif = await verifierAvantCompte({ jeton, email: form.email, inscription: true, sansCase: casePanne && !jeton }).catch(() => ({ ok: true as const, email: undefined }));
     if (!verif.ok) {
       setError(verif.erreur);
       setSuggestion(verif.suggestion ?? null);
@@ -302,7 +303,7 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
                   </div>
                 </div>
 
-                <CaseAntiRobot onJeton={setJeton} remise={remise} langue={lang} />
+                <CaseAntiRobot onJeton={setJeton} onPanne={setCasePanne} remise={remise} langue={lang} />
                 {error && (
                   <p className="text-red-600 text-sm bg-red-50 px-4 py-2.5 rounded-xl">
                     {error}
