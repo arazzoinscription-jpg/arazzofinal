@@ -6,6 +6,8 @@ import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowRight, MailCheck } from "lucide
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
 import { confirmAccountByEmail } from "@/app/actions/auth";
+import { verifierAvantCompte } from "@/app/actions/verification";
+import { CaseAntiRobot, CLE_TURNSTILE } from "@/components/security/case-anti-robot";
 import { requestPasswordReset } from "@/app/actions/forgot-password";
 import { requestMagicLink } from "@/app/actions/magic-link";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
@@ -53,6 +55,9 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
   const [loading, setLoading] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
   const [notice, setNotice] = useState("");
+  // La case anti-robots (Cloudflare) : un jeton par tentative de connexion.
+  const [jeton, setJeton] = useState("");
+  const [remise, setRemise] = useState(0);
 
   // Message si l'élève a été déconnecté parce que son compte a été utilisé ailleurs.
   useEffect(() => {
@@ -68,6 +73,11 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (CLE_TURNSTILE && !jeton) { setError("Cochez la case « Je ne suis pas un robot »."); setLoading(false); return; }
+    const humain = await verifierAvantCompte({ jeton }).catch(() => ({ ok: true as const }));
+    setRemise((n) => n + 1); // le jeton ne sert qu'une fois
+    if (!humain.ok) { setError(humain.erreur); setLoading(false); return; }
 
     const supabase = createClient();
     const mail = email.trim();
@@ -185,6 +195,7 @@ export function LoginForm({ lang = "fr" }: { lang?: Lang }) {
               </button>
             </div>
 
+            <CaseAntiRobot onJeton={setJeton} remise={remise} langue={lang} />
             <div className="flex items-center justify-between min-h-[1.25rem]">
               {error ? <span className="text-sm text-red-500">{error}</span> : <span />}
               <button type="button" onClick={handleForgotPassword} disabled={loading}

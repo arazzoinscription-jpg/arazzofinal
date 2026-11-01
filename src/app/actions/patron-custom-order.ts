@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
+import { zEmail } from "@/lib/security/schemas";
 
 // Demande de patron SUR MESURE sur la landing → déposée dans Supabase
 // (`patron_custom_order_leads`). Arazzo OS la rapatrie au clic « Synchroniser »
@@ -12,7 +13,7 @@ const ADMIN = process.env.ARAZZO_ADMIN_EMAIL || "arazzoinscription@gmail.com";
 
 const Schema = z.object({
   first_name: z.string().trim().min(1),
-  email: z.string().email(),
+  email: zEmail(),
   phone: z.string().trim().min(4),
   photo_url: z.string().url(),
   message: z.string().trim().max(2000).optional().or(z.literal("")),

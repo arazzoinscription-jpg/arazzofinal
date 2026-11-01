@@ -13,7 +13,16 @@ async function envoyer(msg: { from: string; to: string; subject: string; html: s
   let resendId: string | null = null;
   let erreur: string | null = null;
   try {
-    const r = await resend.emails.send(msg);
+    // Domaine sans boîte mail : l'e-mail rebondirait (et nuirait à TOUS les autres) — on ne l'envoie pas.
+    const { domaineRecoitEmails } = await import("@/lib/email-verification-serveur");
+    if (!(await domaineRecoitEmails(String(msg.to).split("@")[1] ?? ""))) {
+      erreur = "Domaine sans boîte mail (l'e-mail rebondirait) — non envoyé";
+      return { data: null, error: { message: erreur } };
+    }
+    const { enveloppe } = await import("@/lib/email");
+    // Toujours avec le NOM de l'expéditeur (une adresse nue ressemble à un envoi automatique douteux).
+    const from = msg.from.includes("<") ? msg.from : `Arazzo Formation <${msg.from}>`;
+    const r = await resend.emails.send({ ...msg, from, ...enveloppe(category, msg.html) });
     resendId = (r as { data?: { id?: string } })?.data?.id ?? null;
     const e = (r as { error?: unknown })?.error;
     if (e) erreur = typeof e === "string" ? e : JSON.stringify(e);

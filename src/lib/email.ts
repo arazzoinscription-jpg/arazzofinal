@@ -8,6 +8,32 @@ const contenu = (html: string) => String(html ?? "").slice(0, 200_000);
 
 const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder_build_key");
 const FROM = process.env.RESEND_FROM || "onboarding@resend.dev";
+const REPONDRE_A = (process.env.RESEND_REPLY_TO || "arazzoinscription@gmail.com").trim();
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
+/** E-mails « de masse » (annonces, relances) : un lien de désinscription dans l'en-tête, comme l'exigent Gmail et Yahoo. */
+const MASSE = new Set<EmailCategory>(["announcements", "prospect", "reactivation", "new_content"]);
+
+/** La version TEXTE d'un e-mail HTML : un e-mail sans texte brut ressemble à de la publicité pour les filtres. */
+export function texteBrut(html: string): string {
+  return String(html ?? "")
+    .replace(/<(style|script|head)[\s\S]*?<\/\1>/gi, "")
+    .replace(/<a\s[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, txt: string) => `${txt.replace(/<[^>]+>/g, "").trim()} (${href})`)
+    .replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;|&rsquo;/g, "’").replace(/&quot;/g, '"')
+    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Ce qu'on ajoute à CHAQUE envoi : nom de l'expéditeur, adresse de réponse, texte brut, désinscription. */
+export function enveloppe(category: string, html: string) {
+  return {
+    replyTo: REPONDRE_A || undefined,
+    text: texteBrut(html),
+    ...(MASSE.has(category as EmailCategory) ? {
+      headers: { "List-Unsubscribe": `<${SITE}/dashboard/preferences>, <mailto:${REPONDRE_A}?subject=desinscription>` },
+    } : {}),
+  };
+}
 
 interface SendArgs {
   userId?: string | null;   // pour vérifier les préférences + journaliser
@@ -63,6 +89,19 @@ export async function sendEmail({ userId, to, category, subject, html, force }: 
     }
   }
 
+  // 1 bis) Une adresse dont le domaine ne reçoit pas d'e-mails REBONDIT — et chaque rebond fait classer l'école en
+  //    indésirables chez Gmail. On ne l'envoie pas ; le journal dit pourquoi.
+  try {
+    const { domaineRecoitEmails } = await import("@/lib/email-verification-serveur");
+    if (!(await domaineRecoitEmails(String(to).split("@")[1] ?? ""))) {
+      await admin.from("email_log").insert({
+        user_id: userId ?? null, to_email: to, category, subject, status: "skipped",
+        error: "Domaine sans boîte mail (l'e-mail rebondirait)", html: contenu(html), source: "lms",
+      });
+      return { ok: false, skipped: true as const };
+    }
+  } catch { /* le contrôle ne bloque jamais un envoi */ }
+
   // 2) Envoyer
   try {
     const { data, error } = await resend.emails.send({
@@ -70,6 +109,7 @@ export async function sendEmail({ userId, to, category, subject, html, force }: 
       to,
       subject,
       html,
+      ...enveloppe(category, html),
     });
     if (error) throw new Error(typeof error === "string" ? error : JSON.stringify(error));
 

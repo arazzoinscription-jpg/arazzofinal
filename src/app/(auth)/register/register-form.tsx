@@ -7,6 +7,8 @@ import { GraduationCap, Scissors, ArrowRight, ArrowLeft, Check, Eye, EyeOff } fr
 import { createClient } from "@/lib/supabase/client";
 import { mergeCartOnLogin } from "@/app/actions/cart";
 import { autoConfirmNewAccount } from "@/app/actions/auth";
+import { verifierAvantCompte } from "@/app/actions/verification";
+import { CaseAntiRobot, CLE_TURNSTILE } from "@/components/security/case-anti-robot";
 import { notifyAdminSignup } from "@/app/actions/admin-notify";
 import { onProspectSignup } from "@/app/actions/prospect";
 import { DotMap } from "@/components/ui/dot-map";
@@ -72,6 +74,10 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // La case anti-robots (Cloudflare) et la correction proposée pour une adresse mal tapée.
+  const [jeton, setJeton] = useState("");
+  const [remise, setRemise] = useState(0);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
 
   function pick(type: AccountType) {
     setAccountType(type);
@@ -82,10 +88,23 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuggestion(null);
+
+    // 1) Robot ? adresse mal tapée (gamil.com) ou domaine sans boîte mail ? — AVANT de créer le compte.
+    if (CLE_TURNSTILE && !jeton) { setError("Cochez la case « Je ne suis pas un robot »."); setLoading(false); return; }
+    const verif = await verifierAvantCompte({ jeton, email: form.email, inscription: true }).catch(() => ({ ok: true as const, email: undefined }));
+    if (!verif.ok) {
+      setError(verif.erreur);
+      setSuggestion(verif.suggestion ?? null);
+      setRemise((n) => n + 1);
+      setLoading(false);
+      return;
+    }
+    const email = verif.email ?? form.email.trim().toLowerCase();
 
     const supabase = createClient();
     const { data, error: authError } = await supabase.auth.signUp({
-      email: form.email,
+      email,
       password: form.password,
       options: {
         data: { nom: form.nom, ville: form.ville, pays: form.pays, account_type: accountType },
@@ -105,7 +124,7 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
     if (data.user && !data.session) {
       const conf = await autoConfirmNewAccount(data.user.id);
       if (conf.ok) {
-        const { error: signInErr } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password: form.password });
         if (signInErr) {
           setError("Compte créé ✅ Connectez-vous avec votre email et votre mot de passe.");
           setLoading(false);
@@ -120,16 +139,16 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
 
     if (data.user) {
       await supabase.from("users").upsert({
-        id: data.user.id, nom: form.nom, email: form.email, ville: form.ville, pays: form.pays, role: "eleve",
+        id: data.user.id, nom: form.nom, email, ville: form.ville, pays: form.pays, role: "eleve",
       });
     }
 
     // Notifie l'admin par email (best-effort, ne bloque pas l'inscription).
-    await notifyAdminSignup({ nom: form.nom, email: form.email, ville: form.ville, pays: form.pays, accountType }).catch(() => {});
+    await notifyAdminSignup({ nom: form.nom, email, ville: form.ville, pays: form.pays, accountType }).catch(() => {});
 
     // Démarre le suivi prospect + email de bienvenue (best-effort, non bloquant).
     if (data.user) {
-      await onProspectSignup({ userId: data.user.id, nom: form.nom, email: form.email, source: "direct" }).catch(() => {});
+      await onProspectSignup({ userId: data.user.id, nom: form.nom, email, source: "direct" }).catch(() => {});
     }
 
     await mergeCartOnLogin().catch(() => {});
@@ -283,7 +302,13 @@ export function RegisterForm({ lang = "fr" }: { lang?: Lang }) {
                   </div>
                 </div>
 
-                {error && <p className="text-red-600 text-sm bg-red-50 px-4 py-2.5 rounded-xl">{error}</p>}
+                <CaseAntiRobot onJeton={setJeton} remise={remise} langue={lang} />
+                {error && (
+                  <p className="text-red-600 text-sm bg-red-50 px-4 py-2.5 rounded-xl">
+                    {error}
+                    {suggestion ? <> <button type="button" className="underline font-semibold" onClick={() => { setForm((f) => ({ ...f, email: suggestion })); setSuggestion(null); setError(""); }}>Utiliser {suggestion}</button></> : null}
+                  </p>
+                )}
 
                 <motion.button
                   type="submit" disabled={loading}

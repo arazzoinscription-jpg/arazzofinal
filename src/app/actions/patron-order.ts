@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
+import { zEmail } from "@/lib/security/schemas";
 
 // Commande d'un patron existant sur la landing → déposée dans Supabase
 // (`patron_order_leads`). Arazzo OS la rapatrie au clic « Synchroniser » (il crée
@@ -15,7 +16,7 @@ const Schema = z.object({
   patron_title: z.string().trim().optional(),
   format: z.enum(["pdf", "a0", "placement"]).default("pdf"),
   first_name: z.string().trim().min(1),
-  email: z.string().email(),
+  email: zEmail(),
   phone: z.string().trim().min(4),
   address: z.string().trim().optional().or(z.literal("")),
   city: z.string().trim().optional().or(z.literal("")),

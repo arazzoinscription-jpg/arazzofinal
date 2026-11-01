@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { validateCoupon } from "@/lib/coupons";
 import { sendOrderReceived } from "./emails";
 import { generateInvoice } from "./invoices";
+import { zEmail } from "@/lib/security/schemas";
 
 // ── Schémas ──────────────────────────────────────────────────────────────
 const CartItemSchema = z.object({
@@ -18,7 +19,7 @@ const CartItemSchema = z.object({
 const CustomerSchema = z.object({
   full_name: z.string().min(2, "Nom complet requis."),
   phone: z.string().min(6, "Téléphone requis."),
-  email: z.string().email("Email invalide."),
+  email: zEmail(),
   address: z.string().optional().nullable(),
   city: z.string().optional().nullable(),
   wilaya: z.string().optional().nullable(),

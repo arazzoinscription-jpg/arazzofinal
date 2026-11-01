@@ -10,6 +10,7 @@ import { createMagicLink, createPasswordSetupLink } from "@/lib/magic-link";
 import { monthlyAmount, fullDiscountedAmount } from "@/lib/subscription-plan";
 import { verifierCouponOs } from "@/lib/coupon-os";
 import { NIVEAUX } from "@/lib/niveaux";
+import { zEmail } from "@/lib/security/schemas";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.store";
 const PROOFS_BUCKET = "proofs";
@@ -18,7 +19,7 @@ const PROCESSING = ["pending", "payment_pending", "payment_review"];
 
 const LeadSchema = z.object({
   full_name: z.string().trim().min(2, "Nom complet requis."),
-  email: z.string().email("Email invalide."),
+  email: zEmail(),
   phone: z.string().trim().min(6, "Téléphone requis."),
   wilaya: z.string().trim().optional().nullable(),
   courseId: z.string().uuid().optional(),
@@ -124,7 +125,7 @@ export async function getPackFiche(packId: string) {
  */
 export async function sendPaymentInfo(email: string) {
   const clean = (email ?? "").trim().toLowerCase();
-  if (!z.string().email().safeParse(clean).success) return { ok: false as const, error: "Email invalide." };
+  if (!zEmail().safeParse(clean).success) return { ok: false as const, error: "Email invalide." };
 
   const admin = createAdminClient();
   const { data: pay } = await admin
@@ -287,7 +288,7 @@ export async function submitLead(input: unknown) {
 
 const DeliverySchema = z.object({
   full_name: z.string().trim().min(2, "Nom complet requis."),
-  email: z.string().email("Email invalide."),
+  email: zEmail(),
   phone: z.string().trim().min(6, "Téléphone requis."),
   wilaya: z.string().trim().optional().nullable(),
   address: z.string().trim().min(4, "Adresse de livraison requise."),
@@ -386,7 +387,7 @@ export async function submitDeliveryOrder(input: unknown) {
 
 const DeliveryPackSchema = z.object({
   full_name: z.string().trim().min(2, "Nom complet requis."),
-  email: z.string().email("Email invalide."),
+  email: zEmail(),
   phone: z.string().trim().min(6, "Téléphone requis."),
   wilaya: z.string().trim().optional().nullable(),
   address: z.string().trim().min(4, "Adresse de livraison requise."),
@@ -489,7 +490,7 @@ async function latestPendingOrder(admin: ReturnType<typeof createAdminClient>, e
  * identifié par l'email saisi au formulaire.
  */
 export async function createLeadProofUploadUrl(email: string, ext: string) {
-  const emailOk = z.string().email().safeParse((email ?? "").trim().toLowerCase());
+  const emailOk = zEmail().safeParse((email ?? "").trim().toLowerCase());
   if (!emailOk.success) return { ok: false as const, error: "Email invalide." };
   const cleanExt = (ext || "").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
   if (!["jpg", "jpeg", "png", "pdf"].includes(cleanExt)) return { ok: false as const, error: "Format non supporté (JPG, PNG, PDF)." };

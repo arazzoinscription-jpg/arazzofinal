@@ -1,10 +1,22 @@
 import { z } from "zod";
+import { analyserEmail } from "@/lib/email-verification";
+
+/**
+ * Une adresse e-mail VÉRIFIÉE : forme, adresse jetable, faute de frappe (« gamil.com » → message « Vouliez-vous dire
+ * …@gmail.com ? »). Les adresses fausses rebondissaient et faisaient classer les e-mails de l'école en indésirables.
+ */
+export function zEmail() {
+  return z.string().trim().toLowerCase().superRefine((v, ctx) => {
+    const a = analyserEmail(v);
+    if (!a.ok) ctx.addIssue({ code: "custom", message: a.message });
+  });
+}
 
 /** Schémas Zod réutilisables pour valider les entrées (longueurs, formats, bornes). */
 
 export const userInputSchema = z.object({
   name: z.string().trim().min(1, "Nom requis.").max(80, "Nom trop long (80 max)."),
-  email: z.string().trim().email("Email invalide.").max(160),
+  email: zEmail().pipe(z.string().max(160)),
   bio: z.string().trim().max(500, "Bio trop longue (500 max).").optional().nullable(),
 });
 

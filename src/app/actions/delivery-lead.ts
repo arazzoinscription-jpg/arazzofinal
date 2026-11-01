@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
 import { deliveryCourseEmail } from "@/lib/delivery-email";
+import { zEmail } from "@/lib/security/schemas";
 
 // Capture d'un PROSPECT sur une Delivery Page (cours gratuit), 24/7, sans
 // tunnel. Le prospect est DÉPOSÉ dans Supabase (`delivery_page_leads`, clé anon,
@@ -15,7 +16,7 @@ const Schema = z.object({
   slug: z.string().trim().min(1).max(160),
   full_name: z.string().trim().max(120).optional().or(z.literal("")),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
-  email: z.string().trim().email().optional().or(z.literal("")),
+  email: zEmail().optional().or(z.literal("")),
   wilaya: z.string().trim().max(80).optional().or(z.literal("")),
   consent: z.boolean().optional(),
   lang: z.enum(["fr", "ar"]).optional(),

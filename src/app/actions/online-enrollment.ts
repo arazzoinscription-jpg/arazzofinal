@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { zEmail } from "@/lib/security/schemas";
 
 /**
  * Inscription EN LIGNE avec PREUVE de paiement (CCP / BaridiMob), 24/7, sans
@@ -41,7 +42,7 @@ const Schema = z.object({
   course_id: z.string().trim().max(64).optional().or(z.literal("")),
   full_name: z.string().trim().min(2, "validation_failed"),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
-  email: z.string().email().optional().or(z.literal("")),
+  email: zEmail().optional().or(z.literal("")),
   wilaya: z.string().trim().max(80).optional().or(z.literal("")),
   amount: z.union([z.number(), z.string()]).optional().nullable(),
   method: z.string().trim().max(40).optional().or(z.literal("")),
@@ -157,7 +158,7 @@ const CreateSchema = z.object({
   course_id: z.string().trim().max(64).optional().or(z.literal("")),
   full_name: z.string().trim().min(2, "validation_failed"),
   phone: z.string().trim().max(40).optional().or(z.literal("")),
-  email: z.string().email().optional().or(z.literal("")),
+  email: zEmail().optional().or(z.literal("")),
   wilaya: z.string().trim().max(80).optional().or(z.literal("")),
   amount: z.union([z.number(), z.string()]).optional().nullable(),
   coupon_code: z.string().trim().max(60).optional().or(z.literal("")),

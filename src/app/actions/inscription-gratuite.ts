@@ -8,6 +8,8 @@ import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
 import { createPasswordSetupLink } from "@/lib/magic-link";
 import { checkRateLimit, getClientIp } from "@/lib/security/rateLimit";
+import { turnstileValide } from "@/lib/security/turnstile";
+import { verifierEmail } from "@/lib/email-verification-serveur";
 import { estRobot, lireInscription, motDePasseLisible, suggestionEmail } from "@/lib/inscription-gratuite";
 import { emailCompteCree, emailDejaInscrite } from "@/lib/inscription-gratuite-email";
 
@@ -27,21 +29,6 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://www.formation-arazzo.s
 export type ResultatInscription =
   | { ok: true; statut: "cree" | "existant"; coursHref: string | null; connectee: boolean; emailEnvoye: boolean }
   | { ok: false; erreur: string; suggestion?: string };
-
-/** Vérifie le jeton Cloudflare Turnstile — seulement si les clés sont configurées (sinon les autres protections suffisent). */
-async function turnstileValide(jeton: unknown, ip: string): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY;
-  if (!secret) return true;
-  if (typeof jeton !== "string" || !jeton) return false;
-  try {
-    const corps = new URLSearchParams({ secret, response: jeton, ...(ip !== "unknown" ? { remoteip: ip } : {}) });
-    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: corps });
-    const d = (await r.json()) as { success?: boolean };
-    return d.success === true;
-  } catch {
-    return false;
-  }
-}
 
 /** La Delivery Page du cours gratuit — seulement si le lien en nomme une, et qu'elle est ouverte — ou null. */
 async function pageCours(slugDemande: unknown): Promise<{ slug: string; titre: string | null; source: string | null; campaign: string | null } | null> {
@@ -73,6 +60,10 @@ export async function inscrireGratuitement(entree: {
     if (lu.erreur === "jetable") return { ok: false, erreur: "Utilisez votre adresse e-mail habituelle (pas une adresse temporaire)." };
     return { ok: false, erreur: "Adresse e-mail invalide.", suggestion: suggestionEmail(String(entree.email ?? "")) ?? undefined };
   }
+  // L'adresse : faute de frappe (gamil.com…) et domaine qui reçoit vraiment des e-mails — une adresse fausse rebondit
+  // et fait classer TOUS les e-mails de l'école en indésirables.
+  const v = await verifierEmail(lu.donnees.email);
+  if (!v.ok) return { ok: false, erreur: v.message, suggestion: v.suggestion };
   const d = lu.donnees;
   const utm = (entree.utm && typeof entree.utm === "object" ? entree.utm : {}) as Record<string, string>;
 

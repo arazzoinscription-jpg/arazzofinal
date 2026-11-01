@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
 import { sendEmail } from "@/lib/email";
 import { presentielConfirmationEmail } from "@/lib/presentiel-email";
+import { zEmail } from "@/lib/security/schemas";
 
 // Capture d'un PROSPECT présentiel (formation/atelier à Sétif), 24/7, sans
 // tunnel. Le prospect est écrit dans Supabase (`presentiel_leads`) ; Arazzo OS
@@ -17,7 +18,7 @@ const Schema = z.object({
   offer: z.string().trim().optional(),
   first_name: z.string().trim().min(2, "validation_failed"),
   phone: z.string().trim().min(6, "validation_failed"),
-  email: z.string().email().optional().or(z.literal("")),
+  email: zEmail().optional().or(z.literal("")),
   city: z.string().trim().max(120).optional().or(z.literal("")),
   availabilities: z.array(z.string().trim().max(60)).max(20).optional(),
   formula_id: z.string().trim().max(120).optional(),

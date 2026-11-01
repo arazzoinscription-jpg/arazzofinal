@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/public";
 import { scoreLevelTest, explainResult, type LevelTest } from "@/lib/level-test-score";
+import { zEmail } from "@/lib/security/schemas";
 
 // Soumission d'un test de niveau depuis le site : calcul du résultat CÔTÉ SERVEUR
 // (le barème ne transite pas par le navigateur) + enregistrement du passage dans
@@ -17,7 +18,7 @@ const Schema = z.object({
     first_name: z.string().trim().max(120).optional().or(z.literal("")),
     last_name: z.string().trim().max(120).optional().or(z.literal("")),
     // E-mail OBLIGATOIRE : sans lui, ni résultat envoyé ni suivi (l'OS dédoublonne sur l'e-mail et le téléphone).
-    email: z.string().trim().email(),
+    email: zEmail(),
     phone: z.string().trim().max(40).optional().or(z.literal("")),
     city: z.string().trim().max(120).optional().or(z.literal("")),
   }),

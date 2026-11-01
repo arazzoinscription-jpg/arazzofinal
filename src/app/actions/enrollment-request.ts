@@ -3,11 +3,12 @@
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyAdminEmail } from "@/lib/admin-notify";
+import { zEmail } from "@/lib/security/schemas";
 
 const Schema = z.object({
   courseId: z.string().uuid("Formation invalide."),
   full_name: z.string().trim().min(2, "Nom complet requis."),
-  email: z.string().email("Email invalide."),
+  email: zEmail(),
   phone: z.string().trim().max(40).optional().nullable(),
   wilaya: z.string().trim().max(80).optional().nullable(),
   // Code promo / cadeau (Live) saisi sur la landing. Capturé et stocké ; la
