@@ -22,13 +22,44 @@ const LIEUX = [
 
 const CLE_LANGUE = "arazzo_formation_langue";
 
+const COULEURS_LIGNE = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#C2185B,#F06292)", "linear-gradient(135deg,#1E1442,#5B4B9A)"];
+const COULEURS_VERT = ["linear-gradient(135deg,#128a4c,#4CC38A)", "linear-gradient(135deg,#0F766E,#2DD4BF)", "linear-gradient(135deg,#3F6212,#84CC16)"];
+
+/** Un grand carré coloré : icône, nom court, une petite ligne, le prix. */
+function Carre({ href, ico, nom, sous, prix, fond }: { href: string; ico: string; nom: string; sous?: string | null; prix?: string | null; fond: string }) {
+  const [titre, detail] = nom.split(" · ");
+  return (
+    <a href={href} className="of-carre" style={{ background: fond }}>
+      <span className="of-ico" aria-hidden="true">{ico}</span>
+      <strong>{titre}</strong>
+      {detail ? <em>{detail}</em> : null}
+      {sous ? <small>{sous}</small> : null}
+      {prix ? <span className="of-prix">{prix}</span> : null}
+    </a>
+  );
+}
+
+const CSS_CARRES = `.of-carres{display:grid;gap:14px;grid-template-columns:1fr;max-width:860px;margin:0 auto 22px}
+.of-carre{display:grid;align-content:center;justify-items:center;gap:6px;min-height:200px;border-radius:26px;color:#fff;text-decoration:none;text-align:center;padding:22px;box-shadow:0 18px 34px -20px rgba(30,20,66,.6);transition:transform .18s ease}
+.of-carre:hover{transform:translateY(-3px)}
+.of-carre strong{font-size:1.7rem;line-height:1.3}
+.of-carre em{font-style:normal;font-weight:700;font-size:1.1rem;opacity:.95}
+.of-carre small{font-size:.95rem;opacity:.9}
+.of-prix{margin-top:6px;background:rgba(255,255,255,.95);color:#1E1442;border-radius:999px;padding:4px 16px;font-weight:800;font-size:1.05rem}
+.of-ico{font-size:3.2rem;line-height:1}
+.of-h2{max-width:860px;margin:6px auto 12px;font-size:1.4rem}
+.of-villes{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:860px;margin:0 auto 16px}
+.of-ville{border:2px solid #128a4c;background:#fff;color:#128a4c;border-radius:18px;padding:14px;font:inherit;font-weight:800;font-size:1.15rem;cursor:pointer}
+.of-ville[aria-pressed="true"]{background:#128a4c;color:#fff}
+@media (min-width:700px){.of-carres{grid-template-columns:repeat(3,1fr)}.of-carre{aspect-ratio:1;min-height:0}}`;
+
 const T: Record<"ar" | "fr", any> = {
   ar: {
     dir: "rtl", toggle: "Français", back: "← كل العروض",
-    presentiel: { eyebrow: "🏫 تكوينات حضورية · سطيف · العلمة", titre: "التكوينات الحضورية", lede: "مركزان: سطيف والعلمة — اختاري مدينتكِ، ثم المستوى الذي يناسبكِ." },
-    choisirLieu: "اختاري المركز", aucunLieu: "لا توجد عروض في هذا المركز حاليًا.",
-    online: { eyebrow: "🖥️ تكوينات عن بُعد", titre: "التكوينات عن بُعد", lede: "كل تكويناتنا عن بُعد — عبر المنصّة، بإيقاعكِ، وصول مدى الحياة." },
-    packs: "الحزم (Packs) بسعر مخفّض", packsSub: "تكوينان معًا · بسعر مخفّض", onlineTitre: "التكوينات عن بُعد",
+    presentiel: { eyebrow: "🏫 حضوري", titre: "التكوين الحضوري", lede: "فوج صغير مع الأستاذة · اختاري مدينتكِ" },
+    choisirLieu: "اختاري المدينة", aucunLieu: "لا توجد عروض في هذا المركز حاليًا.",
+    online: { eyebrow: "💻 عن بُعد", titre: "التكوين عن بُعد", lede: "بالفيديو، من الدار، وقت ما تحبي" },
+    packs: "الحزم بسعر مخفّض", packsSub: "", onlineTitre: "المستويات",
     empty: "لا توجد عروض متاحة حاليًا.", pied: "Arazzo · مدرسة الخياطة",
   },
   fr: {
@@ -76,7 +107,6 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
   const montres = vert ? items.filter((o) => (o.lieu ?? "setif") === lieu) : items;
   const ar = langue === "ar";
   const nom = (o: Item) => (ar && o.nameAr ? o.nameAr : o.name);
-  const sousDe = (o: Item) => [ar ? (o.sousAr ?? null) : o.sous, ar ? (o.prixAr ?? null) : o.prix].filter(Boolean).join(" · ");
 
   return (
     <div className="pl" dir={t.dir}>
@@ -101,67 +131,45 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
         </div>
       </header>
 
+      {/* 09/11 : comme /offres — de GRANDS CARRÉS colorés, noms courts, pas de liste de liens. */}
       <div className="pl-wrap">
-        <div className="pl-card">
-          <a className="pl-ghost" href="/offres" style={{ marginBottom: 14 }}>
-            <span style={{ flex: 1 }}><strong>{t.back}</strong></span>
-          </a>
+        {vert && lieuxPresents.length > 1 ? (
+          <div className="of-villes" role="group" aria-label={t.choisirLieu}>
+            {LIEUX.map((l) => (
+              <button key={l.id} type="button" onClick={() => choisirLieu(l.id)} aria-pressed={lieu === l.id} className="of-ville">
+                📍 {langue === "ar" ? l.ar : l.fr}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
-          {/* Packs à prix réduit (en ligne) — chacun → sa page /pack/[slug] avec le détail. */}
-          {kind === "online" && packs.length ? (
-            <section className="pl-section" style={{ marginBottom: 8 }}>
-              <h2 className="pl-h2">🎁 {t.packs}</h2>
-              <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.packsSub}</p>
-              {packs.map((o) => (
-                <a key={o.slug} className="pl-ghost" href={`/pack/${o.slug}`} style={{ marginBottom: 10 }}>
-                  <span className="pl-ghost-ico">🎁</span>
-                  <span style={{ flex: 1 }}>
-                    <strong>{nom(o)}</strong>
-                    {sousDe(o) ? <small>{sousDe(o)}</small> : null}
-                  </span>
-                  <span className="pl-ghost-ico" aria-hidden="true">→</span>
-                </a>
+        {montres.length ? (
+          <>
+            {kind === "online" && packs.length ? <h2 className="of-h2">🎓 {t.onlineTitre}</h2> : null}
+            <div className="of-carres">
+              {montres.map((o, i) => (
+                <Carre key={o.slug} href={`${base}${o.slug}`} ico={vert ? (/ورشة|atelier/i.test(o.name + (o.nameAr ?? "")) ? "🧵" : "🏫") : ["🌱", "👗", "✨"][i % 3]}
+                  nom={nom(o)} sous={ar ? o.sousAr : o.sous} prix={ar ? o.prixAr : o.prix}
+                  fond={vert ? COULEURS_VERT[i % COULEURS_VERT.length] : COULEURS_LIGNE[i % COULEURS_LIGNE.length]} />
               ))}
-            </section>
-          ) : null}
+            </div>
+          </>
+        ) : <p className="pl-note">{vert && items.length ? t.aucunLieu : t.empty}</p>}
 
-          {kind === "online" && packs.length ? (
-            <h2 className="pl-h2" style={{ marginTop: 6 }}>🖥️ {t.onlineTitre}</h2>
-          ) : null}
+        {kind === "online" && packs.length ? (
+          <>
+            <h2 className="of-h2">🎁 {t.packs}</h2>
+            <div className="of-carres">
+              {packs.map((o) => (
+                <Carre key={o.slug} href={`/pack/${o.slug}`} ico="🎁" nom={nom(o)} sous={ar ? null : o.sous} prix={ar ? o.prixAr : o.prix}
+                  fond="linear-gradient(135deg,#FE7223,#FFB27A)" />
+              ))}
+            </div>
+          </>
+        ) : null}
 
-          {vert && lieuxPresents.length > 1 ? (
-            <section className="pl-section" style={{ marginBottom: 6 }}>
-              <h2 className="pl-h2">📍 {t.choisirLieu}</h2>
-              <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 12 }}>
-                {LIEUX.map((l) => (
-                  <button key={l.id} type="button" className="pl-ghost pl-ghost-alt" onClick={() => choisirLieu(l.id)}
-                    aria-pressed={lieu === l.id}
-                    style={lieu === l.id
-                      ? { justifyContent: "center", borderColor: "#128a4c", background: "#128a4c", color: "#fff", fontWeight: 800 }
-                      : { justifyContent: "center", borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
-                    <span style={{ flex: 1, textAlign: "center" }}><strong>📍 {langue === "ar" ? l.ar : l.fr}</strong></span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {montres.length ? montres.map((o) => (
-            <a key={o.slug} className={`pl-ghost${vert ? " pl-ghost-alt" : ""}`} href={`${base}${o.slug}`}
-              style={vert
-                ? { marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }
-                : { marginBottom: 10 }}>
-              <span className="pl-ghost-ico">{vert ? "🏫" : "🎓"}</span>
-              <span style={{ flex: 1 }}>
-                <strong>{nom(o)}</strong>
-                {sousDe(o) ? <small>{sousDe(o)}</small> : null}
-              </span>
-              <span className="pl-ghost-ico" aria-hidden="true">→</span>
-            </a>
-          )) : <p className="pl-note">{vert && items.length ? t.aucunLieu : t.empty}</p>}
-
-          <p className="pl-pied">{t.pied}</p>
-        </div>
+        <p className="pl-pied">{t.pied}</p>
+        <style>{CSS_CARRES}</style>
       </div>
     </div>
   );
