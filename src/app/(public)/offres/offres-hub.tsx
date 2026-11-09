@@ -31,6 +31,7 @@ const T: Record<"ar" | "fr", any> = {
     presentiel: "التكوينات الحضورية · سطيف · العلمة", presentielSub: "مركزان · مجموعات صغيرة — اختاري مدينتكِ", setif: "سطيف", eulma: "العلمة",
     patrons: "🧵 باترونات رقمية", presentielCta: "تكوين حضوري",
     pied: "Arazzo · مدرسة الخياطة", toggle: "Français",
+    cOnline: "عن بُعد", cOnlineSub: "بالفيديو، من الدار", cPres: "حضوري", cPresSub: "سطيف · العلمة", cPat: "الباترونات الرقمية", cPatSub: "باترونات جاهزة",
   },
   fr: {
     dir: "ltr",
@@ -44,6 +45,7 @@ const T: Record<"ar" | "fr", any> = {
     presentiel: "Formations en présentiel · Sétif · El Eulma", presentielSub: "Deux centres · petits groupes — choisissez votre ville", setif: "Sétif", eulma: "El Eulma",
     patrons: "🧵 Patronage numérique", presentielCta: "Formation en présentiel",
     pied: "Arazzo · École de couture", toggle: "العربية",
+    cOnline: "En ligne", cOnlineSub: "En vidéo, depuis chez vous", cPres: "Présentiel", cPresSub: "Sétif · El Eulma", cPat: "Patronage numérique", cPatSub: "Patrons prêts à l’emploi",
   },
 };
 
@@ -64,7 +66,8 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
   online: Offre[]; packs: Offre[]; presentiel?: Offre[];
   textes?: { fr?: Record<string, string>; ar?: Record<string, string> };
 }) {
-  const [langue, setLangue] = useState<"ar" | "fr">("fr");
+  // 09/11 : la page s'ouvre en ARABE ; le français seulement si on appuie sur le bouton de langue (choix gardé).
+  const [langue, setLangue] = useState<"ar" | "fr">("ar");
   const [showTest, setShowTest] = useState(false);
   const testSlug = langue === "ar" ? "niveau-couture-ar" : "niveau-couture";
 
@@ -88,7 +91,7 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
-      <NavLanding />
+      <NavLanding lang={langue} />
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}
       </button>
@@ -106,92 +109,28 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
         </div>
       </header>
 
+      {/* 09/11 : la page ne montre QUE 3 grands carrés (en ligne / présentiel / patronage numérique), sans liste de liens. */}
       <div className="pl-wrap">
-        <div className="pl-card">
-          {/* 3 accès rapides — chacun ouvre SA page (toutes les offres du service). */}
-          <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr 1fr", marginBottom: 12 }}>
-            <a className="pl-ghost pl-ghost-alt" href="/offres/presentiel"
-              style={{ borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
-              <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bPres}</strong></span>
+        <div className="of-carres">
+          {[
+            { href: "/offres/en-ligne", ico: "💻", nom: t.cOnline, sous: t.cOnlineSub, fond: "linear-gradient(135deg,#5B16F9,#9B6BFF)" },
+            { href: "/offres/presentiel", ico: "🏫", nom: t.cPres, sous: t.cPresSub, fond: "linear-gradient(135deg,#128a4c,#4CC38A)" },
+            { href: "/patrons-arazzo", ico: "🧵", nom: t.cPat, sous: t.cPatSub, fond: "linear-gradient(135deg,#FE7223,#FFB27A)" },
+          ].map((c) => (
+            <a key={c.href} href={c.href} className="of-carre" style={{ background: c.fond }}>
+              <span className="of-ico" aria-hidden="true">{c.ico}</span>
+              <strong>{c.nom}</strong>
+              <small>{c.sous}</small>
             </a>
-            <a className="pl-ghost" href="/offres/en-ligne">
-              <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bOnline}</strong></span>
-            </a>
-            <a className="pl-ghost" href="/patrons-arazzo">
-              <span style={{ flex: 1, textAlign: "center" }}><strong>{t.bPat}</strong></span>
-            </a>
-          </div>
-
-          {/* Test de niveau — ouvre le POPUP (résultat renvoyé au CRM de l'OS). */}
-          <button type="button" className="pl-cta" style={{ marginTop: 0 }} onClick={() => setShowTest(true)}>
-            {t.doTest}
-          </button>
-
-          {/* Les PACKS d'abord (prix réduit). */}
-          {packs.length ? (
-            <section className="pl-section" style={{ ["--d" as string]: ".05s" }}>
-              <h2 className="pl-h2">🎁 {t.packs}</h2>
-              <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.packsSub}</p>
-              {packs.map((o) => (
-                <Carte key={o.slug} href={`/pack/${o.slug}`} icone="🎁" name={o.name} sous={o.prix} />
-              ))}
-            </section>
-          ) : null}
-
-          {/* Formations en ligne. */}
-          {online.length ? (
-            <section id="sec-online" className="pl-section" style={{ ["--d" as string]: ".09s" }}>
-              <h2 className="pl-h2">🖥️ {t.online}</h2>
-              <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.onlineSub}</p>
-              {online.map((o) => (
-                <Carte key={o.slug} href={`/formation/${o.slug}`} icone="🎓" name={o.name}
-                  sous={[o.sous, o.prix].filter(Boolean).join(" · ")} />
-              ))}
-            </section>
-          ) : null}
-
-          {/* Présentiel : une carte = une page (niveau 1/2/3, ateliers…), lues des
-              offres synchronisées. Repli sur le lien par défaut si rien n'est encore
-              poussé, pour que la section ne soit jamais vide. */}
-          <section id="sec-presentiel" className="pl-section" style={{ ["--d" as string]: ".12s" }}>
-            <h2 className="pl-h2">🏫 {t.presentiel}</h2>
-            <p className="pl-note" style={{ textAlign: "start", marginBottom: 12 }}>{t.presentielSub}</p>
-            {/* Les deux centres : chacun ses offres (ses formulaires, ses prospects). */}
-            {presentiel.some((o) => o.lieu === "eulma") ? (
-              <div className="pl-actions" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 12 }}>
-                {(["setif", "eulma"] as const).map((l) => (
-                  <a key={l} className="pl-ghost pl-ghost-alt" href={`/offres/presentiel?lieu=${l}`}
-                    style={{ justifyContent: "center", borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
-                    <span style={{ flex: 1, textAlign: "center" }}><strong>📍 {t[l]}</strong></span>
-                  </a>
-                ))}
-              </div>
-            ) : null}
-            {presentiel.length ? (
-              presentiel.filter((o) => !presentiel.some((x) => x.lieu === "eulma") || (o.lieu ?? "setif") === "setif").map((o) => (
-                <a key={o.slug} className="pl-ghost pl-ghost-alt" href={`/presentiel/${o.slug}`}
-                  style={{ marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
-                  <span className="pl-ghost-ico">🏫</span>
-                  <span style={{ flex: 1 }}>
-                    <strong>{o.name}</strong>
-                    {o.sous ? <small>{o.sous}</small> : null}
-                  </span>
-                  <span className="pl-ghost-ico" aria-hidden="true">→</span>
-                </a>
-              ))
-            ) : (
-              <a className="pl-ghost pl-ghost-alt" href="/presentiel/presentiel-niveau-1"
-                style={{ marginBottom: 10, borderColor: "#128a4c", background: "color-mix(in srgb, #128a4c 8%, var(--panel))" }}>
-                <span className="pl-ghost-ico">🏫</span>
-                <span style={{ flex: 1 }}><strong>{t.presentielCta}</strong></span>
-                <span className="pl-ghost-ico" aria-hidden="true">→</span>
-              </a>
-            )}
-            <Carte href="/patrons-arazzo" icone="🧵" name={t.patrons} />
-          </section>
-
-          <p className="pl-pied">{t.pied}</p>
+          ))}
         </div>
+        <style>{`.of-carres{display:grid;gap:14px;grid-template-columns:1fr;max-width:860px;margin:0 auto}
+.of-carre{display:grid;align-content:center;justify-items:center;gap:6px;min-height:180px;border-radius:26px;color:#fff;text-decoration:none;text-align:center;padding:22px;box-shadow:0 18px 34px -20px rgba(30,20,66,.6);transition:transform .18s ease}
+.of-carre:hover{transform:translateY(-3px)}
+.of-carre strong{font-size:1.7rem;line-height:1.3}
+.of-carre small{font-size:1rem;opacity:.92}
+.of-ico{font-size:3.4rem;line-height:1}
+@media (min-width:700px){.of-carres{grid-template-columns:repeat(3,1fr)}.of-carre{aspect-ratio:1;min-height:0}}`}</style>
       </div>
 
       {showTest ? (

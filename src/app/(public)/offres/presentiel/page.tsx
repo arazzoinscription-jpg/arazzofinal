@@ -1,5 +1,6 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import OffreListe, { type Item } from "../offres-liste";
+import { niveauDe, nomCourtAtelier, nomCourtNiveau } from "@/lib/noms-courts-ar";
 import { unstable_noStore as noStore } from "next/cache";
 
 // Page SÉPARÉE « Formations en présentiel » — liste TOUTES les offres
@@ -41,6 +42,9 @@ export default async function Page({ searchParams }: { searchParams?: { lieu?: s
           sous: atelier ? `Atelier · ${ville}` : `Formation · petits groupes · ${ville}`,
           prix,
           lieu: lieuDe(d),
+          nameAr: atelier ? nomCourtAtelier(d?.name_ar, d?.name) : (nomCourtNiveau(niveauDe(d?.level, s.slug)) ?? nomCourtAtelier(d?.name_ar, d?.name)),
+          sousAr: `${atelier ? "🧵 ورشة" : "👭 فوج صغير"} · ${lieuDe(d) === "eulma" ? "العلمة" : "سطيف"}`,
+          prixAr: d?.price_month != null ? `${d.price_month} دج/شهر` : null,
         };
       });
   } catch { items = []; }

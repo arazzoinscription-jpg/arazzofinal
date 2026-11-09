@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createPublicClient } from "@/lib/supabase/public";
 import OffreListe, { type Item } from "../offres-liste";
+import { nomCourtNiveau, nomCourtPack } from "@/lib/noms-courts-ar";
 
 // Page SÉPARÉE « Formations en ligne » — liste les 3 niveaux (cours du LMS),
 // chacun menant à sa landing `/formation/[niveau]`. Ouverte depuis le bouton du
@@ -27,7 +28,8 @@ export default async function Page() {
 
   const items: Item[] = NIVEAUX.map((n) => {
     const c = byId.get(n.id);
-    return { slug: n.slug, name: c?.titre_fr || n.slug, sous: n.sous, prix: daPrice(c?.prix_dzd) };
+    return { slug: n.slug, name: c?.titre_fr || n.slug, sous: n.sous, prix: daPrice(c?.prix_dzd),
+      nameAr: nomCourtNiveau(n.slug), sousAr: "💻 بالفيديو · وقت ما تحبي", prixAr: c?.prix_dzd ? `${c.prix_dzd} دج` : null };
   });
 
   // Packs à prix réduit — UNIQUEMENT ceux COMPOSÉS dans l'OS (pack_snapshots).
@@ -41,7 +43,8 @@ export default async function Page() {
       if (!row.slug || !row.data || row.data.active === false || connus.has(row.slug)) continue;
       connus.add(row.slug);
       const members = Array.isArray(row.data.member_slugs) ? row.data.member_slugs.join(" + ") : null;
-      packs.push({ slug: row.slug, name: row.data.name || row.slug, sous: members, prix: daPrice(row.data.price_amount) });
+      packs.push({ slug: row.slug, name: row.data.name || row.slug, sous: members, prix: daPrice(row.data.price_amount),
+        nameAr: nomCourtPack(row.data.member_slugs, row.data.name), prixAr: row.data.price_amount ? `${row.data.price_amount} دج` : null });
     }
   } catch { /* best-effort : si rien n'est poussé, pas de pack */ }
 

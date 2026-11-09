@@ -10,12 +10,12 @@ import { MobileQuickNav } from "@/components/layout/mobile-quick-nav";
  * la hauteur de la barre, et le bouton de langue de la landing passe juste en dessous.
  * Sur mobile : la barre du bas du site aussi (rendue DANS la landing, sinon le plein écran la cache).
  */
-export function NavLanding() {
+export function NavLanding({ lang = "fr" }: { lang?: "fr" | "ar" } = {}) {
   return (
     <>
       <Navbar solid retourToujours />
       <div aria-hidden style={{ height: "calc(80px + env(safe-area-inset-top))" }} />
-      <MobileQuickNav lampId="quicknav-landing" />
+      <MobileQuickNav lampId="quicknav-landing" lang={lang} />
       {/* Langue de la landing sous le menu ; place pour la barre du bas ; panneau « Menu » opaque (fond violet plein écran). */}
       <style>{`.pl .pl-langue{top:calc(env(safe-area-inset-top) + 92px);z-index:40}
 @media (max-width:639px){.pl{padding-bottom:calc(88px + env(safe-area-inset-bottom))}}

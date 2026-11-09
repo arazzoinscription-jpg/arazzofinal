@@ -10,7 +10,9 @@ import { useEffect, useState } from "react";
 import { LandingStyles } from "@/lib/landing-kit";
 import { NavLanding } from "@/components/landing/nav-landing";
 
-export type Item = { slug: string; name: string; sous?: string | null; prix?: string | null; lieu?: "setif" | "eulma" };
+export type Item = { slug: string; name: string; sous?: string | null; prix?: string | null; lieu?: "setif" | "eulma";
+  /** 09/11 : nom COURT en arabe (4-5 mots), sous-titre et prix en arabe. */
+  nameAr?: string | null; sousAr?: string | null; prixAr?: string | null };
 
 /** Les deux centres de l'école. */
 const LIEUX = [
@@ -42,7 +44,8 @@ const T: Record<"ar" | "fr", any> = {
 export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial = null }: {
   kind: "presentiel" | "online"; items: Item[]; packs?: Item[]; lieu?: "setif" | "eulma" | null;
 }) {
-  const [langue, setLangue] = useState<"ar" | "fr">("fr");
+  // 09/11 : la page s'ouvre en ARABE ; le français seulement si on appuie sur le bouton de langue (choix gardé).
+  const [langue, setLangue] = useState<"ar" | "fr">("ar");
   // Présentiel : le centre choisi (Sétif par défaut). Chaque centre a ses offres, ses formulaires, ses prospects.
   const [lieu, setLieuEtat] = useState<"setif" | "eulma">(lieuInitial ?? "setif");
   function choisirLieu(id: "setif" | "eulma") {
@@ -71,11 +74,14 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
   const vert = kind === "presentiel";
   const lieuxPresents = LIEUX.filter((l) => items.some((o) => (o.lieu ?? "setif") === l.id));
   const montres = vert ? items.filter((o) => (o.lieu ?? "setif") === lieu) : items;
+  const ar = langue === "ar";
+  const nom = (o: Item) => (ar && o.nameAr ? o.nameAr : o.name);
+  const sousDe = (o: Item) => [ar ? (o.sousAr ?? null) : o.sous, ar ? (o.prixAr ?? null) : o.prix].filter(Boolean).join(" · ");
 
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
-      <NavLanding />
+      <NavLanding lang={langue} />
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
         🌐 {t.toggle}
       </button>
@@ -110,8 +116,8 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
                 <a key={o.slug} className="pl-ghost" href={`/pack/${o.slug}`} style={{ marginBottom: 10 }}>
                   <span className="pl-ghost-ico">🎁</span>
                   <span style={{ flex: 1 }}>
-                    <strong>{o.name}</strong>
-                    {[o.sous, o.prix].filter(Boolean).length ? <small>{[o.sous, o.prix].filter(Boolean).join(" · ")}</small> : null}
+                    <strong>{nom(o)}</strong>
+                    {sousDe(o) ? <small>{sousDe(o)}</small> : null}
                   </span>
                   <span className="pl-ghost-ico" aria-hidden="true">→</span>
                 </a>
@@ -147,9 +153,8 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
                 : { marginBottom: 10 }}>
               <span className="pl-ghost-ico">{vert ? "🏫" : "🎓"}</span>
               <span style={{ flex: 1 }}>
-                <strong>{o.name}</strong>
-                {[o.sous, o.prix].filter(Boolean).length
-                  ? <small>{[o.sous, o.prix].filter(Boolean).join(" · ")}</small> : null}
+                <strong>{nom(o)}</strong>
+                {sousDe(o) ? <small>{sousDe(o)}</small> : null}
               </span>
               <span className="pl-ghost-ico" aria-hidden="true">→</span>
             </a>
