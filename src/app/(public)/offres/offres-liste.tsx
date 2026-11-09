@@ -22,8 +22,9 @@ const LIEUX = [
 
 const CLE_LANGUE = "arazzo_formation_langue";
 
-const COULEURS_LIGNE = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#C2185B,#F06292)", "linear-gradient(135deg,#1E1442,#5B4B9A)"];
-const COULEURS_VERT = ["linear-gradient(135deg,#128a4c,#4CC38A)", "linear-gradient(135deg,#0F766E,#2DD4BF)", "linear-gradient(135deg,#3F6212,#84CC16)"];
+// Couleurs du thème Arazzo seulement (violet, orange, vert).
+const COULEURS_LIGNE = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#3D0FB0,#5B16F9)", "linear-gradient(135deg,#1E1442,#5B16F9)"];
+const COULEURS_VERT = ["linear-gradient(135deg,#128a4c,#4CC38A)", "linear-gradient(135deg,#0d6b3a,#128a4c)", "linear-gradient(135deg,#128a4c,#FE7223)"];
 
 /** Un grand carré coloré : icône, nom court, une petite ligne, le prix. */
 function Carre({ href, ico, nom, sous, prix, fond }: { href: string; ico: string; nom: string; sous?: string | null; prix?: string | null; fond: string }) {

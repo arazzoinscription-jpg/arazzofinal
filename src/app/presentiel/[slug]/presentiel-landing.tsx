@@ -23,6 +23,8 @@ import { NavLanding } from "@/components/landing/nav-landing";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitPresentielLead } from "@/app/actions/presentiel-lead";
 import { trackLead } from "@/lib/track-conversion";
+import { niveauDe, nomCourtAtelier, nomCourtNiveau } from "@/lib/noms-courts-ar";
+import { creneauAr, dureeAr, horaireAr, methodeAr, prixAr, seanceAr } from "@/lib/presentiel-ar";
 
 type OfferView = Record<string, any>;
 
@@ -34,32 +36,32 @@ const T: Record<"ar" | "fr", any> = {
     dir: "rtl",
     formation: "تكوين", atelier: "ورشة",
     eyebrowF: "🎓 تكوين حضوري", eyebrowA: "🧵 ورشة حضورية",
-    testPhrase: "لا تعرفين من أين تبدئين؟ قومي باختبار المستوى.", testBtn: "📝 اختبار المستوى",
+    testPhrase: "ما عرفتيش مستواكِ؟", testBtn: "📝 اختبار مجاني",
     sessions: (n: number) => `🎓 ${n} حصة`,
     programTitle: "البرنامج المفصّل", programSub: "البرنامج كامل، وحدة بوحدة",
     onlineTitle: "أفضّل التكوين عن بُعد", onlineSub: "نفس التكوين، من المنزل",
     comingH2: "كيفية الوصول إلى المركز",
     maps: "🗺️ افتحي في خرائط قوقل", video: "▶️ فيديو: الطريق بالضبط",
-    interested: "أنا مهتمة",
-    seatsTitle: "أماكن المجموعة القادمة",
-    placesLeft: (n: number) => (n <= 0 ? "اكتمل العدد" : `بقيت ${n} أماكن فقط!`),
+    interested: "✋ نحجز بلاصتي",
+    seatsTitle: "البلايص",
+    placesLeft: (n: number) => (n <= 0 ? "اكتمل العدد" : `🔥 بقات ${n} بلايص`),
     seatsFull: "اكتمل العدد — قائمة الانتظار", takeSeat: "أحجز مكاني",
     groupN: (n: number) => `المجموعة ${n}`,
-    sentBadge: "✓ تم إرسال طلبك — لإتمام التسجيل، مرّي بمركز التكوين مع ملفك.",
-    interestedCount: (n: number) => `${n} مهتمة حاليًا`,
+    sentBadge: "✓ وصلنا طلبكِ — كمّلي التسجيل في المركز بالملف.",
+    interestedCount: (n: number) => `${n} مهتمة`,
     fName: "الاسم", fPhone: "رقم واتساب", fEmail: "البريد الإلكتروني", optional: "(اختياري)", fCity: "المدينة",
     phName: "اسمك", phPhone: "0X XX XX XX XX", phEmail: "you@example.com", phCity: "سطيف",
-    slotsLegend: "ما هي الأيام التي يمكنك الحضور فيها؟",
-    slotsHint: "اختاري كل الأوقات المناسبة لك — سنعتمد اليوم الأكثر طلبًا.",
-    dayFilter: "تصفية حسب اليوم",
+    slotsLegend: "📅 واش من أيام تقدري تجي؟",
+    slotsHint: "اختاري كل الأوقات اللي تناسبكِ.",
+    dayFilter: "اليوم",
     allDays: "كل الأيام",
     chosenSlots: "الأوقات التي اخترتِها",
-    formulaLegend: "اختاري طريقة الدراسة (المدة، التوقيت والسعر)",
+    formulaLegend: "🧭 اختاري الطريقة",
     pricingTitle: "الأسعار والتوقيت", perMonth: "/ الشهر", priceFrom: "ابتداءً من",
     importantTitle: "⭐ ملاحظة مهمة",
     send: "إرسال…",
-    note: "هذا ليس تسجيلاً نهائيًا بعد. لإتمام تسجيلك، يجب أن تمرّي بمركز التكوين مع ملفك الرسمي (العنوان وموقع المركز أدناه).",
-    consent: "أوافق على أن يتم التواصل معي من طرف Arazzo Formation بخصوص تسجيلي.",
+    note: "التسجيل يكمل في المركز بالملف.",
+    consent: "نقبل يتصلو بيا Arazzo على التسجيل.",
     errConsent: "يرجى الموافقة لكي نتمكن من التواصل معك.",
     errDays: (n: number) => `هذه الطريقة مكثّفة (${n} أيام في الأسبوع): يرجى اختيار ${n} أيام على الأقل من المواعيد.`,
     errValidation: "يرجى إدخال اسمك ورقم واتساب.",
@@ -151,6 +153,12 @@ function slotLabelAr(id: string) {
 function groupeLisible(group: any, langue: "ar" | "fr") {
   if (!group) return null;
   const ar = langue === "ar";
+  // 09/11 : en arabe, une ligne courte « الخميس مساءً · 🌿 مدة طويلة · 6 أشهر ونصف ».
+  if (ar) {
+    const bouts = [creneauAr(group.slot, group.day, group.period), methodeAr(group.formula_label, group.formula_id), dureeAr(group.duration_label)];
+    const ligne = bouts.filter(Boolean).join(" · ");
+    return ligne || null;
+  }
   const parts: string[] = [];
   const slot = group.slot ?? (group.day && group.period ? `${group.day}-${group.period}` : null);
   if (ar && slot) {
@@ -300,16 +308,26 @@ export default function PresentielLanding({ data, textes }: {
   }
 
   const estAtelier = def.kind === "atelier";
-  const nomAffiche = (langue === "ar" && def.name_ar) ? def.name_ar : def.name;
-  const { debut, fin } = titreAvecAccent(nomAffiche);
+  const ar = langue === "ar";
+  // 09/11 : en arabe, le nom COURT (« المستوى الأول · للمبتدئات ») au lieu du long nom saisi dans l'OS.
+  const nomCourt = estAtelier ? nomCourtAtelier(def.name_ar, def.name) : nomCourtNiveau(niveauDe(def.level, def.slug));
+  const nomAffiche = ar ? (nomCourt ?? def.name_ar ?? def.name) : def.name;
+  const { debut, fin } = ar ? { debut: nomAffiche.split(" · ")[0], fin: nomAffiche.split(" · ")[1] ?? "" } : titreAvecAccent(nomAffiche);
+  const villeAr = def.city_ar ?? (/eulma|علمة/i.test(def.city ?? "") ? "العلمة" : "سطيف");
+  // Prix le plus bas (formules ou prix unique), pour « ابتداءً من … ».
+  const prixMin = (() => {
+    const ps = (def.formulas ?? []).map((f: any) => Number(String(f.price_label ?? "").replace(/[^\d]/g, ""))).filter((n: number) => n > 0);
+    if (def.price_month != null) ps.push(Number(def.price_month));
+    return ps.length ? Math.min(...ps) : null;
+  })();
   const center = def.center ?? {};
   // Lien vers la version EN LIGNE : ce que l'école a collé, sinon déduit du niveau.
-  const onlineUrl = def.online_url || (def.level ? `/formation/${def.level}` : null);
+  const onlineUrl = (def.level ? `/formation/${def.level}` : null) || def.online_url;
 
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
-      <NavLanding />
+      <NavLanding lang={langue} />
 
 
       {/* Bascule de langue — toujours accessible, en haut. */}
@@ -328,13 +346,23 @@ export default function PresentielLanding({ data, textes }: {
             </a>
           </div>
           <span className="pl-eyebrow">
-            {estAtelier ? t.eyebrowA : t.eyebrowF} · {def.city ?? "Sétif"}
+            {estAtelier ? t.eyebrowA : t.eyebrowF} · {ar ? villeAr : (def.city ?? "Sétif")}
           </span>
           <h1 className="pl-titre">
             {debut ? <>{debut} </> : null}<em>{fin}</em>
           </h1>
-          {def.tagline ? <p className="pl-tagline">{def.tagline}</p> : null}
-          <div className="pl-specs">
+          {ar ? (
+            <>
+              <p className="pl-tagline">👭 فوج صغير مع الأستاذة</p>
+              <div className="pl-specs">
+                <span className="pl-spec">📍 {villeAr}</span>
+                {!estAtelier && def.sessions_count ? <span className="pl-spec">🎓 {def.sessions_count} حصة</span> : null}
+                {prixMin ? <span className="pl-spec pl-spec-prix">💰 من {prixAr(`${prixMin} mois`)}</span> : null}
+              </div>
+            </>
+          ) : null}
+          {!ar && def.tagline ? <p className="pl-tagline">{def.tagline}</p> : null}
+          {!ar ? <div className="pl-specs">
             <span className="pl-spec">📍 {def.city ?? "Sétif"}</span>
             {def.duration_label ? <span className="pl-spec">⏱️ {def.duration_label}</span> : null}
             {!estAtelier && def.sessions_count
@@ -344,9 +372,9 @@ export default function PresentielLanding({ data, textes }: {
             {def.formulas?.length
               ? <span className="pl-spec pl-spec-prix">💰 {def.formulas.length} formules ↓</span>
               : (def.price_month != null
-                ? <span className="pl-spec pl-spec-prix">💰 {Number(def.price_month).toLocaleString(langue === "ar" ? "ar-DZ" : "fr-FR")} {def.price_currency ?? "DZD"} {t.perMonth}</span>
+                ? <span className="pl-spec pl-spec-prix">💰 {Number(def.price_month).toLocaleString("fr-FR")} {def.price_currency ?? "DZD"} {t.perMonth}</span>
                 : null)}
-          </div>
+          </div> : null}
         </div>
       </header>
 
@@ -391,7 +419,7 @@ export default function PresentielLanding({ data, textes }: {
 
           {etape === "form" && (
             <>
-              {def.description ? (
+              {!ar && def.description ? (
                 <p className="pl-lede" style={cssVar("--d", ".05s")}>{def.description}</p>
               ) : null}
 
@@ -404,6 +432,13 @@ export default function PresentielLanding({ data, textes }: {
               {/* Dossier obligatoire — alerte rouge, s'ouvre au clic. */}
               <details className="pl-acc pl-acc-alert" style={cssVar("--d", ".08s")}>
                 <summary>📌 {langue === "ar" ? "ملف مطلوب عند التسجيل بالمركز" : "Dossier obligatoire au centre"}</summary>
+                {ar ? (
+                  <div className="pl-acc-body pl-rtl-block" dir="rtl">
+                    <div className="pl-line"><span>🪪 نسخة من بطاقة التعريف</span></div>
+                    <div className="pl-line"><span>📷 صورة شمسية</span></div>
+                    <div className="pl-line"><span>💵 حقوق التسجيل</span><b>{prixAr("500 DA")}</b></div>
+                  </div>
+                ) : (
                 <div className="pl-acc-body pl-rtl-block" dir="rtl">
                   <p><strong>الملف الإجباري للتسجيل في المركز</strong></p>
                   <p>يُشترط على كل متربصة إيداع ملف التسجيل كاملاً لدى مركز التكوين. ولا يُعتبر التسجيل نهائياً إلا بعد استلام الملف كاملاً والمصادقة عليه من طرف إدارة المركز.</p>
@@ -411,17 +446,26 @@ export default function PresentielLanding({ data, textes }: {
                   <div className="pl-line"><span>1 photo d’identité · صورة واحدة شمسية</span></div>
                   <div className="pl-line"><span>Frais d’inscription · حقوق التسجيل</span><b>500 DA</b></div>
                 </div>
+                )}
               </details>
 
               {/* Services additionnels — option en plus, s'ouvre au clic. */}
               <details className="pl-acc" style={cssVar("--d", ".09s")}>
-                <summary>➕ {langue === "ar" ? "خدمات إضافية (اختياري)" : "En plus (options)"} · خدمات إضافية</summary>
+                <summary>➕ {ar ? "خدمات إضافية (اختياري)" : "En plus (options) · خدمات إضافية"}</summary>
+                {ar ? (
+                  <div className="pl-acc-body">
+                    <div className="pl-line"><span>🎬 فيديوهات التشطيب (مدى الحياة)</span><b>{prixAr("4000")}</b></div>
+                    <div className="pl-line"><span>🧵 حصة خاصة: آلة الخياطة</span><b>{prixAr("2000")}</b></div>
+                    <div className="pl-line"><span>✂️ ورشة موديل خاص (للحصة)</span><b>{"⁦"}1500–2500{"⁩"} دج</b></div>
+                  </div>
+                ) : (
                 <div className="pl-acc-body">
                   <div className="pl-line"><span>Pack vidéos de finition (accès à vie, plateforme)</span><b>4 000 DA</b></div>
                   <div className="pl-line"><span>Séance spéciale : machine à coudre</span><b>2 000 DA</b></div>
                   <div className="pl-line"><span>Atelier spécialisé (modèle/design précis) — par séance</span><b>1 500–2 500 DA</b></div>
-                  <p className="pl-acc-note">⭐ {langue === "ar" ? "حسب اختياراتكم" : "Selon vos choix"}</p>
+                  <p className="pl-acc-note">⭐ Selon vos choix</p>
                 </div>
+                )}
               </details>
 
               {/* Tarifs & horaires — quand l'offre a UN seul prix (pas de formules). */}
@@ -431,14 +475,14 @@ export default function PresentielLanding({ data, textes }: {
                   <div className="pl-tarif">
                     {def.price_month != null ? (
                       <div className="pl-tarif-prix">
-                        {Number(def.price_month).toLocaleString(langue === "ar" ? "ar-DZ" : "fr-FR")} {def.price_currency ?? "DZD"}
-                        <span> {t.perMonth}</span>
+                        {ar ? prixAr(`${def.price_month} mois`) : <>{Number(def.price_month).toLocaleString("fr-FR")} {def.price_currency ?? "DZD"}
+                        <span> {t.perMonth}</span></>}
                       </div>
                     ) : null}
                     <ul className="pl-check-list" style={{ marginTop: def.price_month != null ? 10 : 0 }}>
-                      {def.duration_label ? <li>⏱️ {def.duration_label}</li> : null}
-                      {def.schedule_label ? <li>🕐 {def.schedule_label}</li> : null}
-                      {!estAtelier && def.sessions_count ? <li>🎓 {def.sessions_count} séances</li> : null}
+                      {(ar ? dureeAr(def.duration_label) : def.duration_label) ? <li>⏱️ {ar ? dureeAr(def.duration_label) : def.duration_label}</li> : null}
+                      {(ar ? horaireAr(def.schedule_label) : def.schedule_label) ? <li>🕐 {ar ? horaireAr(def.schedule_label) : def.schedule_label}</li> : null}
+                      {!estAtelier && def.sessions_count ? <li>🎓 {def.sessions_count} {ar ? "حصة" : "séances"}</li> : null}
                     </ul>
                   </div>
                 </section>
@@ -456,11 +500,20 @@ export default function PresentielLanding({ data, textes }: {
                           onClick={() => setFormule(fo.id)} aria-pressed={on}>
                           <span className="pl-formule-tick" aria-hidden="true">{on ? "✓" : ""}</span>
                           <span className="pl-formule-corps">
-                            <strong>{fo.label}</strong>
-                            <span className="pl-formule-meta">
-                              {[fo.session_duration, fo.duration_label, fo.schedule_label].filter(Boolean).join(" · ")}
-                            </span>
-                            {fo.price_label ? <span className="pl-formule-prix">{fo.price_label}</span> : null}
+                            <strong>{ar ? (methodeAr(fo.label, fo.id) ?? fo.label) : fo.label}</strong>
+                            {ar ? (
+                              <>
+                                <span className="pl-formule-meta">
+                                  {[dureeAr(fo.duration_label) && `📅 ${dureeAr(fo.duration_label)}`, seanceAr(fo.session_duration) && `⏱️ ${seanceAr(fo.session_duration)}`].filter(Boolean).join(" · ")}
+                                </span>
+                                {horaireAr(fo.schedule_label) ? <span className="pl-formule-meta">🕗 {horaireAr(fo.schedule_label)}</span> : null}
+                              </>
+                            ) : (
+                              <span className="pl-formule-meta">
+                                {[fo.session_duration, fo.duration_label, fo.schedule_label].filter(Boolean).join(" · ")}
+                              </span>
+                            )}
+                            {fo.price_label ? <span className="pl-formule-prix">{ar ? (prixAr(fo.price_label) ?? fo.price_label) : fo.price_label}</span> : null}
                           </span>
                         </button>
                       );
@@ -519,7 +572,7 @@ export default function PresentielLanding({ data, textes }: {
 
               {/* Formulaire. */}
               <form id="pl-form" className="pl-form" onSubmit={envoyer} style={cssVar("--d", ".25s")}>
-                <h2 className="pl-h2">{def.cta_label || t.interested}</h2>
+                <h2 className="pl-h2">{(ar ? null : def.cta_label) || t.interested}</h2>
 
                 <div className="pl-fields">
                   <label className="pl-field">
@@ -608,7 +661,7 @@ export default function PresentielLanding({ data, textes }: {
                 </label>
                 {erreur ? <div className="pl-erreur">{erreur}</div> : null}
                 <button type="submit" className="pl-cta" disabled={envoi}>
-                  {envoi ? t.send : (def.cta_label || t.interested)}
+                  {envoi ? t.send : ((ar ? null : def.cta_label) || t.interested)}
                 </button>
                 <p className="pl-note">{t.note}</p>
               </form>
