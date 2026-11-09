@@ -16,16 +16,19 @@ export const NIVEAUX_AR = [
     slug: "niveau-1", id: "23bee490-103a-492d-9253-256178658e02", rang: 1, icone: "🌱", couleur: "#128a4c",
     pour: "للمبتدئات — من الصفر", promesse: "من أول غرزة إلى أول قطعة تخيطيها بيديكِ",
     resultats: ["أخذ المقاسات", "الباترون الأساسي", "فساتين البيت", "الحجابات", "السروال", "التنورة"],
+    court: "من الصفر",
   },
   {
     slug: "niveau-2", id: "b100190c-4f95-4f63-bd22-7a561f9666de", rang: 2, icone: "🌸", couleur: "#5B16F9",
     pour: "عندكِ الأساسيات", promesse: "الملابس الكلاسيكية وفساتين السهرة",
     resultats: ["ملابس كلاسيكية", "فساتين السهرة", "تشطيب احترافي"],
+    court: "الكلاسيك والسهرة",
   },
   {
     slug: "niveau-3", id: "de1da439-6dc9-4cf0-9526-e44af4c5073b", rang: 3, icone: "👑", couleur: "#FE7223",
     pour: "متقدمة", promesse: "ماستر كلاس فساتين السهرة: من الكورسيه إلى الهوت كوتور",
     resultats: ["الكورسيه", "فساتين السهرة", "قطع معقدة"],
+    court: "ماستر كلاس",
   },
 ] as const;
 
@@ -237,7 +240,7 @@ export async function niveauAr(slug: string): Promise<NiveauAr | null> {
   const c2: any = c ?? {};
   return {
     meta, titre: titreCourt(c2.titre_ar, meta.rang), description: c2.description_ar ? nettoyer(c2.description_ar) : null,
-    image: c2.thumbnail ?? null, galerie: Array.isArray(c2.gallery) ? c2.gallery.slice(0, 12) : [],
+    image: c2.thumbnail ?? null, galerie: Array.isArray(c2.gallery) ? c2.gallery.slice(0, 20) : [],
     prixEnLigne: dzd(c2.prix_dzd), lecons: lecons.length, heures: minutes >= 60 ? Math.round(minutes / 60) : null,
     mois: Math.max(0, ...chapitres.map((x) => x.mois ?? 0)) || c2.duration_months || null,
     chapitres,
