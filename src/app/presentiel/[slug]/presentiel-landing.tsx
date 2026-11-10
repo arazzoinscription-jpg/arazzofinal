@@ -472,8 +472,10 @@ export default function PresentielLanding({ data, textes }: {
               </div>
               <style>{`.pl-rangee{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0;align-items:stretch}
 .pl-rangee>.pl-acc{margin:0!important}
-.pl-rangee>.pl-acc>summary{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.86rem;line-height:1.35;padding:10px 8px;gap:4px}
+.pl-rangee>.pl-acc>summary{display:flex;align-items:center;justify-content:center;text-align:center;font-size:.86rem;line-height:1.35;padding:10px 8px;gap:4px}
 .pl-rangee>.pl-acc>summary::after{display:none}
+.pl-rangee>.pl-acc:not([open])>summary{height:100%}
+.pl-rangee>.pl-acc[open]>summary{justify-content:flex-start;font-size:.95rem}
 .pl-rangee>.pl-acc[open]{grid-column:1/-1;order:5}
 .pl-case{display:grid;align-content:center;justify-items:center;gap:3px;border-radius:14px;border:1.5px solid var(--violet,#5B16F9);background:color-mix(in srgb,var(--violet,#5B16F9) 7%,var(--panel,#fff));color:var(--violet-deep,#3D0FB0);cursor:pointer;padding:10px 6px;font:inherit;text-align:center}
 .pl-case small{font-size:.74rem;opacity:.85;line-height:1.3}
