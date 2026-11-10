@@ -324,6 +324,41 @@ export default function PresentielLanding({ data, textes }: {
   // Lien vers la version EN LIGNE : ce que l'école a collé, sinon déduit du niveau.
   const onlineUrl = (def.level ? `/formation/${def.level}` : null) || def.online_url;
 
+  // La jauge des places (un ou plusieurs groupes en constitution).
+  const jauges = (() => {
+            const versLeForm = () => {
+              const el = (document.querySelector(".pl-cta") ?? document.getElementById("pl-form"));
+              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            };
+            const ouverts: any[] = def.groups_open ?? [];
+            if (ouverts.length > 1) {
+              return (
+                <div className="pl-groupes-duo">
+                  {ouverts.map((gs, i) => (
+                    <div key={gs.id}>
+                      <div style={{ fontWeight: 800, color: "var(--violet-deep)", margin: "0 0 6px", fontSize: ".9rem" }}>
+                        {t.groupN(i + 1)}
+                      </div>
+                      <SeatsBanner
+                        seats={gs as Seats} t={t} sent={dejaEnvoye}
+                        groupInfo={groupeLisible(gs.group, langue)}
+                        onTake={versLeForm}
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+            const seul = ouverts[0] ?? def.seats;
+            return seul ? (
+              <SeatsBanner
+                seats={seul as Seats} t={t} sent={dejaEnvoye}
+                groupInfo={seul.group_open ? groupeLisible(seul.group, langue) : null}
+                onTake={versLeForm}
+              />
+            ) : null;
+          })();
+
   return (
     <div className="pl" dir={t.dir}>
       <LandingStyles />
@@ -383,39 +418,8 @@ export default function PresentielLanding({ data, textes }: {
         <div className="pl-card">
           {/* Jauge de places : visible en permanence (formulaire ET après envoi).
               Plusieurs groupes en constitution → affichés CÔTE À CÔTE. */}
-          {(() => {
-            const versLeForm = () => {
-              const el = document.getElementById("pl-form");
-              if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-            };
-            const ouverts: any[] = def.groups_open ?? [];
-            if (ouverts.length > 1) {
-              return (
-                <div className="pl-groupes-duo">
-                  {ouverts.map((gs, i) => (
-                    <div key={gs.id}>
-                      <div style={{ fontWeight: 800, color: "var(--violet-deep)", margin: "0 0 6px", fontSize: ".9rem" }}>
-                        {t.groupN(i + 1)}
-                      </div>
-                      <SeatsBanner
-                        seats={gs as Seats} t={t} sent={dejaEnvoye}
-                        groupInfo={groupeLisible(gs.group, langue)}
-                        onTake={versLeForm}
-                      />
-                    </div>
-                  ))}
-                </div>
-              );
-            }
-            const seul = ouverts[0] ?? def.seats;
-            return seul ? (
-              <SeatsBanner
-                seats={seul as Seats} t={t} sent={dejaEnvoye}
-                groupInfo={seul.group_open ? groupeLisible(seul.group, langue) : null}
-                onTake={versLeForm}
-              />
-            ) : null;
-          })()}
+          {/* 10/11 : les places sont montrées SOUS le choix des journées (dans le formulaire) ; ici seulement après l'envoi. */}
+          {etape === "done" ? jauges : null}
 
           {etape === "form" && (
             <>
@@ -667,6 +671,9 @@ export default function PresentielLanding({ data, textes }: {
                     })()}
                   </fieldset>
                 ) : null}
+
+                {/* Les places restantes, juste sous le choix des journées. */}
+                <div style={{ margin: "14px 0" }}>{jauges}</div>
 
                 <label className="pl-consent">
                   <input type="checkbox" checked={accepte} onChange={(e) => setAccepte(e.target.checked)} />
