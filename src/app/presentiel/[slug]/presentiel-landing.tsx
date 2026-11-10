@@ -423,14 +423,16 @@ export default function PresentielLanding({ data, textes }: {
                 <p className="pl-lede" style={cssVar("--d", ".05s")}>{def.description}</p>
               ) : null}
 
+              {/* 10/11 : test, dossier et options SUR UNE SEULE LIGNE (3 cases) ; une case ouverte prend toute la largeur. */}
+              <div className="pl-rangee" style={cssVar("--d", ".07s")}>
               {/* Invitation au test de niveau — ouvre le POPUP (résultat → CRM OS). */}
-              <div className="pl-testbox" style={cssVar("--d", ".07s")}>
-                <p>{t.testPhrase}</p>
-                <button type="button" className="pl-testbtn" onClick={() => setShowTest(true)}>{t.testBtn}</button>
-              </div>
+              <button type="button" className="pl-case pl-case-test" onClick={() => setShowTest(true)}>
+                <small>{t.testPhrase}</small>
+                <b>{t.testBtn}</b>
+              </button>
 
               {/* Dossier obligatoire — alerte rouge, s'ouvre au clic. */}
-              <details className="pl-acc pl-acc-alert" style={cssVar("--d", ".08s")}>
+              <details className="pl-acc pl-acc-alert">
                 <summary>📌 {langue === "ar" ? "ملف مطلوب عند التسجيل بالمركز" : "Dossier obligatoire au centre"}</summary>
                 {ar ? (
                   <div className="pl-acc-body pl-rtl-block" dir="rtl">
@@ -450,7 +452,7 @@ export default function PresentielLanding({ data, textes }: {
               </details>
 
               {/* Services additionnels — option en plus, s'ouvre au clic. */}
-              <details className="pl-acc" style={cssVar("--d", ".09s")}>
+              <details className="pl-acc">
                 <summary>➕ {ar ? "خدمات إضافية (اختياري)" : "En plus (options) · خدمات إضافية"}</summary>
                 {ar ? (
                   <div className="pl-acc-body">
@@ -467,6 +469,15 @@ export default function PresentielLanding({ data, textes }: {
                 </div>
                 )}
               </details>
+              </div>
+              <style>{`.pl-rangee{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0;align-items:stretch}
+.pl-rangee>.pl-acc{margin:0!important}
+.pl-rangee>.pl-acc>summary{height:100%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.86rem;line-height:1.35;padding:10px 8px;gap:4px}
+.pl-rangee>.pl-acc>summary::after{display:none}
+.pl-rangee>.pl-acc[open]{grid-column:1/-1;order:5}
+.pl-case{display:grid;align-content:center;justify-items:center;gap:3px;border-radius:14px;border:1.5px solid var(--violet,#5B16F9);background:color-mix(in srgb,var(--violet,#5B16F9) 7%,var(--panel,#fff));color:var(--violet-deep,#3D0FB0);cursor:pointer;padding:10px 6px;font:inherit;text-align:center}
+.pl-case small{font-size:.74rem;opacity:.85;line-height:1.3}
+.pl-case b{font-size:.86rem;line-height:1.3}`}</style>
 
               {/* Tarifs & horaires — quand l'offre a UN seul prix (pas de formules). */}
               {!def.formulas?.length && (def.price_month != null || def.schedule_label || def.duration_label) ? (
