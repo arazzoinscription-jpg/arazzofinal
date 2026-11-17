@@ -128,7 +128,7 @@ const CSS = `
 .pm-video{position:relative;width:min(300px,78vw);aspect-ratio:9/16;margin:6px auto 16px;border-radius:22px;overflow:hidden;border:3px solid #FE7223;background:#000;box-shadow:0 18px 40px -18px rgba(20,8,60,.7)}
 .pm-video video{width:100%;height:100%;object-fit:cover;display:block}
 .pm-son{position:absolute;inset:auto 10px 12px 10px;background:rgba(42,8,128,.92);color:#fff;border:2px solid #fff;border-radius:12px;padding:10px;font-weight:700;font-size:1rem;cursor:pointer;font-family:inherit}
-.pm-bloc{max-width:1000px;margin:18px auto 8px;padding:0 16px}
+.pm-bloc{max-width:1000px;margin:18px auto 64px;padding:0 16px}
 .pm-h2{font-size:1.25rem;font-weight:700;color:var(--violet-deep,#2A0880);margin:14px 0 10px;padding-bottom:6px;border-bottom:3px solid #FE7223;display:inline-block}
 .pm-rang{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;-webkit-overflow-scrolling:touch}
 .pm-photo,.pm-seq{flex:0 0 150px;scroll-snap-align:start;margin:0}
