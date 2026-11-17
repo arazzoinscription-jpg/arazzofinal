@@ -418,7 +418,7 @@ const CSS = `
 .rm-jour-l span{font-weight:700}
 .rm-jour-l button{border:2px solid var(--line);background:transparent;color:var(--ink);border-radius:10px;padding:10px 4px;font-weight:600;cursor:pointer;font-family:inherit;min-height:44px}
 .rm-jour-l button.on{border-color:var(--v2);background:var(--v2);color:#fff}
-.rm-champs{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.rm-champs{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))}
 .rm-champs label{display:grid;gap:6px;font-weight:600}
 .rm-champs .rm-large{grid-column:1/-1}
 .rm-bloc{scroll-margin-top:100px}
