@@ -421,7 +421,8 @@ const CSS = `
 .rm-champs{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
 .rm-champs label{display:grid;gap:6px;font-weight:600}
 .rm-champs .rm-large{grid-column:1/-1}
-.rm-champs input,.rm-champs textarea{border:2px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;background:var(--bg);color:var(--ink)}
+.rm-bloc{scroll-margin-top:100px}
+.rm-champs input,.rm-champs textarea{width:100%;box-sizing:border-box;min-width:0;border:2px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;background:var(--bg);color:var(--ink)}
 .rm-err{color:#B3261E;font-weight:700;margin:0}
 .rm-ok{background:color-mix(in srgb,#1F7A55 14%,transparent);border:2px solid #1F7A55;border-radius:14px;padding:16px;font-weight:700;line-height:1.8;margin-top:16px}
 .rm-faq{display:grid;gap:8px;margin-top:16px}
