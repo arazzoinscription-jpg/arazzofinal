@@ -24,6 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ["/formations", 0.9, "weekly"],
     ["/offres", 0.9, "weekly"],
     ["/tarifs", 0.9, "monthly"],
+    ["/reparation-machines", 0.8, "monthly"],
     ["/patrons", 0.8, "weekly"],
     ["/boutique", 0.8, "weekly"],
     ["/rejoindre", 0.7, "monthly"],
