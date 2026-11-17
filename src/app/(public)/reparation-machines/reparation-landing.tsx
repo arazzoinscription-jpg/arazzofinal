@@ -378,6 +378,7 @@ const CSS = `
 .rm-cta:disabled{opacity:.6}
 .rm-video{position:relative;border-radius:22px;overflow:hidden;border:3px solid var(--o);background:#000;max-width:420px;width:100%;justify-self:center;aspect-ratio:9/16}
 .rm-video video{width:100%;height:100%;object-fit:cover;display:block}
+@media (max-width:859px){.rm-video{order:-1;max-width:300px}.rm-hero-txt{text-align:center}.rm-puces{justify-content:center}}
 .rm-son{position:absolute;inset:auto 12px 14px 12px;background:rgba(42,8,128,.92);color:#fff;border:2px solid #fff;border-radius:12px;padding:12px;
   font-weight:700;font-size:1.05rem;cursor:pointer;font-family:inherit}
 .rm-main{max-width:1100px;margin:0 auto;padding:0 16px}
