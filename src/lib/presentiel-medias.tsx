@@ -23,7 +23,12 @@ const MEDIAS: Record<string, Medias> = {
     photos: NIVEAU_PHOTOS([
       ["الشرح على السبورة", "Explication au tableau"], ["تحضير القماش", "Préparer le tissu"], ["القص بالمقص", "La coupe"],
       ["الرسم على القماش بالمسطرة", "Tracer sur le tissu"], ["التخييط على الماشينة", "Coudre à la machine"],
-      ["الأستاذة ترافقك", "La formatrice vous accompagne"], ["نتعرف على الماشينة", "Connaître la machine"],
+      ["الماشينة من الداخل", "La machine de l'intérieur"], ["نتعرف على الماشينة", "Connaître la machine"],
+    ]),
+    sequences: NIVEAU_PHOTOS([
+      ["الأستاذة تشرح على السبورة", "La formatrice explique au tableau"], ["تحضير القماش قبل القص", "Préparer le tissu avant la coupe"],
+      ["القص: نصائح الأستاذة", "La coupe : les conseils de la formatrice"], ["الرسم على القماش بالمسطرة", "Tracer sur le tissu à la règle"],
+      ["التخييط على الماشينة", "Coudre à la machine"], ["الماشينة من الداخل", "La machine de l'intérieur"],
     ]),
   },
   "presentiel-niveau-2": {
@@ -33,6 +38,11 @@ const MEDIAS: Record<string, Medias> = {
       ["تركيب القطع", "Assembler les pièces"], ["الخياطة مع الأستاذة", "Coudre avec la formatrice"], ["الشرح على الماشينة", "Explication à la machine"],
       ["الكورسي على المانكان", "Le corset sur mannequin"], ["الفينيسيون", "Les finitions"],
     ]),
+    sequences: NIVEAU_PHOTOS([
+      ["أخذ القياسات", "Prendre les mesures"], ["رسم الباترون", "Tracer le patron"], ["تحضير القماش", "Préparer le tissu"],
+      ["الأستاذة تشرح على الماشينة", "La formatrice explique à la machine"], ["الخياطة خطوة بخطوة", "Coudre pas à pas"],
+      ["الكورسي على المانكان", "Le corset sur mannequin"],
+    ]),
   },
   "presentiel-niveau-3": {
     dossier: "niveau-3",
@@ -40,25 +50,32 @@ const MEDIAS: Record<string, Medias> = {
       ["الشرح على السبورة", "Explication au tableau"], ["الباترون خطوة بخطوة", "Le patron pas à pas"], ["رسم الموديل على القماش", "Reporter sur le tissu"],
       ["تحضير القطع", "Préparer les pièces"], ["القص على القماش", "Couper le tissu"], ["خياطة الكورسي", "Coudre le corset"], ["التخييط الدقيق", "Couture de précision"],
     ]),
+    sequences: NIVEAU_PHOTOS([
+      ["الأستاذة تشرح على السبورة", "La formatrice explique au tableau"], ["الباترون خطوة بخطوة", "Le patron pas à pas"],
+      ["رسم الموديل على القماش", "Reporter le modèle sur le tissu"], ["تحضير القطع على القماش", "Préparer les pièces sur le tissu"],
+      ["خياطة الكورسي", "Coudre le corset"], ["التخييط الدقيق", "Couture de précision"],
+    ]),
   },
   "utilisation-machine-a-coudre-point-droite": {
     dossier: "atelier-machine",
     photos: NIVEAU_PHOTOS([
       ["الأستاذة تشرح الماشينة", "La formatrice explique la machine"], ["أول خياطة مستقيمة", "Première couture droite"],
-      ["السرجيتوز", "La surjeteuse"], ["الأستاذة تصحّح", "La formatrice corrige"], ["تمرين المنحنيات", "Exercice des courbes"],
-      ["نصائح الأستاذة", "Les conseils de la formatrice"], ["الضبط والتخييط", "Réglages et couture"],
+      ["السرجيتوز", "La surjeteuse"], ["تمرين الخياطة على الورق", "Exercice de couture sur papier"], ["تمرين المنحنيات", "Exercice des courbes"],
+      ["السرجيتوز من الداخل", "La surjeteuse de l'intérieur"], ["الضبط والتخييط", "Réglages et couture"],
     ]),
     sequences: NIVEAU_PHOTOS([
       ["الأستاذة تشرح الماشينة للمجموعة", "La formatrice présente la machine"], ["تخييط مستقيم على الماشينة الدروات", "Couture droite"],
-      ["السرجيتوز: تخييط القماش", "Surjeteuse sur tissu"], ["الأستاذة تصحّح الطالبة", "La formatrice corrige"],
-      ["تمرين المنحنيات على الورق", "Exercice des courbes sur papier"], ["الأستاذة تشرح وتصحّح", "Explication et correction"],
+      ["السرجيتوز: تخييط القماش", "Surjeteuse sur tissu"], ["تمرين الخياطة على الورق", "Exercice de couture sur papier"],
+      ["تمرين المنحنيات على الورق", "Exercice des courbes sur papier"], ["تعمار الإبرة وضبط الخيط", "Enfiler l'aiguille, régler le fil"],
       ["تعمار خيوط السرجيتوز", "Enfiler la surjeteuse"], ["تصحيح الغرزة", "Corriger le point"],
     ]),
   },
 };
 
 export function mediasDe(slug: string): Medias | null {
-  return MEDIAS[slug.replace(/-eulma$/, "")] ?? null;
+  const s = slug.replace(/-eulma$/, "");
+  // Landing EN LIGNE (/formation/niveau-1) : mêmes médias que le présentiel du même niveau.
+  return MEDIAS[s] ?? MEDIAS[`presentiel-${s}`] ?? null;
 }
 
 /** Vidéo d'en-tête (muette au départ, bouton pour le son). */
@@ -102,7 +119,9 @@ export function GaleriePresentiel({ slug, ar }: { slug: string; ar: boolean }) {
       </div>
       {m.sequences?.length ? (
         <>
-          <h2 className="pm-h2">{ar ? "🎬 الطالبات على الماشينات — 10 ثواني" : "🎬 Les élèves à la machine — 10 secondes"}</h2>
+          <h2 className="pm-h2">{m.dossier === "atelier-machine"
+            ? (ar ? "🎬 على الماشينات — 10 ثواني" : "🎬 À la machine — 10 secondes")
+            : (ar ? "🎬 الأستاذة تشرح — 10 ثواني" : "🎬 La formatrice explique — 10 secondes")}</h2>
           <div className="pm-rang">
             {m.sequences.map((s, i) => (
               <figure key={i} className="pm-seq">

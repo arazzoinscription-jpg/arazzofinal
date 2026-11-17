@@ -13,6 +13,7 @@
  * jauge de places : l'accès en ligne est immédiat, sans cohorte à capacité).
  */
 
+import { GaleriePresentiel, VideoEntete } from "@/lib/presentiel-medias";
 import { useEffect, useState } from "react";
 import { LandingStyles, SeatsBanner, utmDeLURL } from "@/lib/landing-kit";
 import { NavLanding } from "@/components/landing/nav-landing";
@@ -386,6 +387,8 @@ export default function FormationLanding({ data, textes }: {
               <span className="pl-marque-nom">Arazzo <em>Formation</em></span>
             </a>
           </div>
+          {/* Vidéo d'en-tête du niveau (tableau, coupe, machine) — en premier. */}
+          <VideoEntete slug={data.niveau} ar={langue === "ar"} />
           <span className="pl-eyebrow">{t.eyebrow}</span>
           <h1 className="pl-titre">{debut ? <>{debut} </> : null}<em>{fin}</em></h1>
           {data.tagline ? <p className="pl-tagline">{data.tagline}</p> : null}
@@ -401,6 +404,9 @@ export default function FormationLanding({ data, textes }: {
           </a>
         </div>
       </header>
+
+      {/* Photos du cours + séquences de 10 s (la formatrice explique). */}
+      <GaleriePresentiel slug={data.niveau} ar={langue === "ar"} />
 
       {/* --------------------------------------------------------- Contenu --- */}
       <div className="pl-wrap">
