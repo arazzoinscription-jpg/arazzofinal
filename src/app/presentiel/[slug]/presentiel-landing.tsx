@@ -22,6 +22,7 @@ import { LandingStyles, SeatsBanner, utmDeLURL, type Seats } from "@/lib/landing
 import { NavLanding } from "@/components/landing/nav-landing";
 import LevelTestPopup from "@/lib/level-test-popup";
 import { submitPresentielLead } from "@/app/actions/presentiel-lead";
+import { GaleriePresentiel, VideoEntete } from "@/lib/presentiel-medias";
 import { trackLead } from "@/lib/track-conversion";
 import { niveauDe, nomCourtAtelier, nomCourtNiveau } from "@/lib/noms-courts-ar";
 import { creneauAr, dureeAr, horaireAr, methodeAr, prixAr, seanceAr } from "@/lib/presentiel-ar";
@@ -380,6 +381,8 @@ export default function PresentielLanding({ data, textes }: {
               <span className="pl-marque-nom">Arazzo <em>{estAtelier ? t.atelier : t.formation}</em></span>
             </a>
           </div>
+          {/* Vidéo d'en-tête (tableau, coupe, machine) — en premier. */}
+          <VideoEntete slug={slug} ar={ar} />
           <span className="pl-eyebrow">
             {estAtelier ? t.eyebrowA : t.eyebrowF} · {ar ? villeAr : (def.city ?? "Sétif")}
           </span>
@@ -412,6 +415,9 @@ export default function PresentielLanding({ data, textes }: {
           </div> : null}
         </div>
       </header>
+
+      {/* Photos du cours (+ séquences de 10 s pour l'atelier machine). */}
+      <GaleriePresentiel slug={slug} ar={ar} />
 
       {/* --------------------------------------------------------- Contenu --- */}
       <div className="pl-wrap">
