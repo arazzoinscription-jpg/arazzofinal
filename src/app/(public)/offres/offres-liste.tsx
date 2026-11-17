@@ -12,7 +12,9 @@ import { NavLanding } from "@/components/landing/nav-landing";
 
 export type Item = { slug: string; name: string; sous?: string | null; prix?: string | null; lieu?: "setif" | "eulma";
   /** 09/11 : nom COURT en arabe (4-5 mots), sous-titre et prix en arabe. */
-  nameAr?: string | null; sousAr?: string | null; prixAr?: string | null };
+  nameAr?: string | null; sousAr?: string | null; prixAr?: string | null;
+  /** Page dédiée (ex. /reparation-machines) au lieu de la landing générique. */
+  href?: string | null };
 
 /** Les deux centres de l'école. */
 const LIEUX = [
@@ -149,7 +151,7 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
             {kind === "online" && packs.length ? <h2 className="of-h2">🎓 {t.onlineTitre}</h2> : null}
             <div className="of-carres">
               {montres.map((o, i) => (
-                <Carre key={o.slug} href={`${base}${o.slug}`} ico={vert ? (/ورشة|atelier/i.test(o.name + (o.nameAr ?? "")) ? "🧵" : "🏫") : ["🌱", "👗", "✨"][i % 3]}
+                <Carre key={o.slug} href={o.href || `${base}${o.slug}`} ico={vert ? (o.href ? "🛠️" : /ورشة|atelier/i.test(o.name + (o.nameAr ?? "")) ? "🧵" : "🏫") : ["🌱", "👗", "✨"][i % 3]}
                   nom={nom(o)} sous={ar ? o.sousAr : o.sous} prix={ar ? o.prixAr : o.prix}
                   fond={vert ? COULEURS_VERT[i % COULEURS_VERT.length] : COULEURS_LIGNE[i % COULEURS_LIGNE.length]} />
               ))}

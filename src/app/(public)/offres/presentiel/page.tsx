@@ -49,6 +49,23 @@ export default async function Page({ searchParams }: { searchParams?: { lieu?: s
       });
   } catch { items = []; }
 
+  // Réparation des machines : sa page dédiée /reparation-machines (vidéo, photos), dans les DEUX centres,
+  // même tant que l'offre n'est pas ouverte dans l'OS (le prix s'affiche sur la page dédiée).
+  const rep = (slug: string, lieu: "setif" | "eulma"): Item => ({
+    slug, lieu, href: "/reparation-machines",
+    name: "Réparation des machines à coudre — 3 jours",
+    sous: `Formation accélérée · niveau 0 · ${lieu === "eulma" ? "El Eulma" : "Sétif"}`,
+    prix: null,
+    nameAr: "تصليح ماشينات الخياطة — 3 أيام",
+    sousAr: `🛠️ تكوين مكثّف · ${lieu === "eulma" ? "العلمة" : "سطيف"}`,
+    prixAr: null,
+  });
+  items = [
+    ...items.filter((i) => !i.slug.startsWith("reparation-machines")),
+    rep("reparation-machines", "setif"),
+    rep("reparation-machines-eulma", "eulma"),
+  ];
+
   const lieu = searchParams?.lieu === "eulma" || searchParams?.lieu === "setif" ? searchParams.lieu : null;
   return <OffreListe kind="presentiel" items={items} lieu={lieu} />;
 }

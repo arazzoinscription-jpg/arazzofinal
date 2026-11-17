@@ -32,6 +32,7 @@ const T: Record<"ar" | "fr", any> = {
     patrons: "🧵 باترونات رقمية", presentielCta: "تكوين حضوري",
     pied: "Arazzo · مدرسة الخياطة", toggle: "Français",
     cOnline: "عن بُعد", cOnlineSub: "بالفيديو، من الدار", cPres: "حضوري", cPresSub: "سطيف · العلمة", cPat: "الباترونات الرقمية", cPatSub: "باترونات جاهزة",
+    cRep: "تصليح الماشينات", cRepSub: "3 أيام · سطيف · العلمة",
   },
   fr: {
     dir: "ltr",
@@ -46,6 +47,7 @@ const T: Record<"ar" | "fr", any> = {
     patrons: "🧵 Patronage numérique", presentielCta: "Formation en présentiel",
     pied: "Arazzo · École de couture", toggle: "العربية",
     cOnline: "En ligne", cOnlineSub: "En vidéo, depuis chez vous", cPres: "Présentiel", cPresSub: "Sétif · El Eulma", cPat: "Patronage numérique", cPatSub: "Patrons prêts à l’emploi",
+    cRep: "Réparation des machines", cRepSub: "3 jours · Sétif · El Eulma",
   },
 };
 
@@ -116,6 +118,7 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
             { href: "/offres/en-ligne", ico: "💻", nom: t.cOnline, sous: t.cOnlineSub, fond: "linear-gradient(135deg,#5B16F9,#9B6BFF)" },
             { href: "/offres/presentiel", ico: "🏫", nom: t.cPres, sous: t.cPresSub, fond: "linear-gradient(135deg,#128a4c,#4CC38A)" },
             { href: "/patrons-arazzo", ico: "🧵", nom: t.cPat, sous: t.cPatSub, fond: "linear-gradient(135deg,#FE7223,#FFB27A)" },
+            { href: "/reparation-machines", ico: "🛠️", nom: t.cRep, sous: t.cRepSub, fond: "linear-gradient(135deg,#2A0880,#5B16F9)" },
           ].map((c) => (
             <a key={c.href} href={c.href} className="of-carre" style={{ background: c.fond }}>
               <span className="of-ico" aria-hidden="true">{c.ico}</span>
@@ -130,7 +133,7 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
 .of-carre strong{font-size:1.7rem;line-height:1.3}
 .of-carre small{font-size:1rem;opacity:.92}
 .of-ico{font-size:3.4rem;line-height:1}
-@media (min-width:700px){.of-carres{grid-template-columns:repeat(3,1fr)}.of-carre{aspect-ratio:1;min-height:0}}`}</style>
+@media (min-width:700px){.of-carres{grid-template-columns:repeat(2,1fr)}.of-carre{aspect-ratio:1;min-height:0}}`}</style>
       </div>
 
       {showTest ? (
