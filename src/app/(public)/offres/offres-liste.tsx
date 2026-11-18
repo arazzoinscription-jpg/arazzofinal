@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { LandingStyles } from "@/lib/landing-kit";
 import { NavLanding } from "@/components/landing/nav-landing";
+import PresentielVitrine from "./presentiel-vitrine";
 
 export type Item = { slug: string; name: string; sous?: string | null; prix?: string | null; lieu?: "setif" | "eulma";
   /** 09/11 : nom COURT en arabe (4-5 mots), sous-titre et prix en arabe. */
@@ -127,6 +128,8 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
         🌐 {t.toggle}
       </button>
 
+      {/* 18/11 : présentiel = vitrine « atelier de couture » (étiquettes, mètre ruban, ville en géant). */}
+      {vert ? <PresentielVitrine items={items} lieu={lieu} setLieu={choisirLieu} langue={langue} /> : (<>
       <header className="pl-hero">
         <div className="pl-hero-in">
           <div className="pl-marque">
@@ -183,6 +186,7 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
         <p className="pl-pied">{t.pied}</p>
         <style>{CSS_CARRES}</style>
       </div>
+      </>)}
     </div>
   );
 }
