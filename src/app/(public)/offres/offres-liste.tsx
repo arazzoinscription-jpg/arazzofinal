@@ -24,9 +24,11 @@ const LIEUX = [
 
 const CLE_LANGUE = "arazzo_formation_langue";
 
-// Couleurs du thème Arazzo seulement (violet, orange, vert).
+// Couleurs du LOGO seulement (violet, orange, bleu nuit) — plus de vert (18/11).
 const COULEURS_LIGNE = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#3D0FB0,#5B16F9)", "linear-gradient(135deg,#1E1442,#5B16F9)"];
-const COULEURS_VERT = ["linear-gradient(135deg,#128a4c,#4CC38A)", "linear-gradient(135deg,#0d6b3a,#128a4c)", "linear-gradient(135deg,#128a4c,#FE7223)"];
+// Sétif = violet ; El Eulma = orange + bleu nuit : on sent qu'on a changé de centre.
+const COULEURS_SETIF = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#2A0880,#5B16F9)", "linear-gradient(135deg,#5B16F9,#FE7223)"];
+const COULEURS_EULMA = ["linear-gradient(150deg,#FE7223,#E8521A)", "linear-gradient(150deg,#FE7223,#1E1442)", "linear-gradient(150deg,#1E1442,#3D0FB0)"];
 
 /** Un grand carré coloré : icône, nom court, une petite ligne, le prix. */
 function Carre({ href, ico, nom, sous, prix, fond }: { href: string; ico: string; nom: string; sous?: string | null; prix?: string | null; fond: string }) {
@@ -52,8 +54,13 @@ const CSS_CARRES = `.of-carres{display:grid;gap:14px;grid-template-columns:1fr;m
 .of-ico{font-size:3.2rem;line-height:1}
 .of-h2{max-width:860px;margin:6px auto 12px;font-size:1.4rem}
 .of-villes{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:860px;margin:0 auto 16px}
-.of-ville{border:2px solid #128a4c;background:#fff;color:#128a4c;border-radius:18px;padding:14px;font:inherit;font-weight:800;font-size:1.15rem;cursor:pointer}
-.of-ville[aria-pressed="true"]{background:#128a4c;color:#fff}
+.of-ville{border:2px solid #5B16F9;background:#fff;color:#5B16F9;border-radius:18px;padding:14px;font:inherit;font-weight:800;font-size:1.15rem;cursor:pointer;transition:transform .15s ease}
+.of-ville:hover{transform:translateY(-2px)}
+.of-ville[aria-pressed="true"]{background:#5B16F9;color:#fff}
+.of-ville-eulma{border-color:#FE7223;color:#E8521A;border-radius:8px}
+.of-ville-eulma[aria-pressed="true"]{background:#FE7223;color:#fff;box-shadow:5px 5px 0 #1E1442}
+.pl-eulma .of-carre{border-radius:10px;border:2px solid #1E1442;box-shadow:8px 8px 0 #FE7223}
+.pl-eulma .of-prix{background:#1E1442;color:#fff}
 @media (min-width:700px){.of-carres{grid-template-columns:repeat(3,1fr)}.of-carre{aspect-ratio:1;min-height:0}}`;
 
 const T: Record<"ar" | "fr", any> = {
@@ -106,13 +113,14 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
   const s = kind === "presentiel" ? t.presentiel : t.online;
   const base = kind === "presentiel" ? "/presentiel/" : "/formation/";
   const vert = kind === "presentiel";
+  const eulma = vert && lieu === "eulma";
   const lieuxPresents = LIEUX.filter((l) => items.some((o) => (o.lieu ?? "setif") === l.id));
   const montres = vert ? items.filter((o) => (o.lieu ?? "setif") === lieu) : items;
   const ar = langue === "ar";
   const nom = (o: Item) => (ar && o.nameAr ? o.nameAr : o.name);
 
   return (
-    <div className="pl" dir={t.dir}>
+    <div className={vert ? (eulma ? "pl pl-eulma" : "pl pl-setif") : "pl"} dir={t.dir}>
       <LandingStyles />
       <NavLanding lang={langue} />
       <button type="button" className="pl-langue" onClick={changerLangue} aria-label={t.toggle}>
@@ -128,6 +136,7 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
               <span className="pl-marque-nom">Arazzo <em>Formation</em></span>
             </a>
           </div>
+          {vert ? <span key={lieu} className="pl-ville-ruban pl-centre-anim">📍 {LIEUX.find((l) => l.id === lieu)?.[ar ? "ar" : "fr"]}</span> : null}
           <span className="pl-eyebrow">{s.eyebrow}</span>
           <h1 className="pl-titre">{s.titre}</h1>
           <p className="pl-tagline">{s.lede}</p>
@@ -139,7 +148,7 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
         {vert && lieuxPresents.length > 1 ? (
           <div className="of-villes" role="group" aria-label={t.choisirLieu}>
             {LIEUX.map((l) => (
-              <button key={l.id} type="button" onClick={() => choisirLieu(l.id)} aria-pressed={lieu === l.id} className="of-ville">
+              <button key={l.id} type="button" onClick={() => choisirLieu(l.id)} aria-pressed={lieu === l.id} className={`of-ville of-ville-${l.id}`}>
                 📍 {langue === "ar" ? l.ar : l.fr}
               </button>
             ))}
@@ -149,11 +158,11 @@ export default function OffreListe({ kind, items, packs = [], lieu: lieuInitial 
         {montres.length ? (
           <>
             {kind === "online" && packs.length ? <h2 className="of-h2">🎓 {t.onlineTitre}</h2> : null}
-            <div className="of-carres">
+            <div className="of-carres pl-centre-anim" key={vert ? lieu : "liste"}>
               {montres.map((o, i) => (
                 <Carre key={o.slug} href={o.href || `${base}${o.slug}`} ico={vert ? (o.href ? "🛠️" : /ورشة|atelier/i.test(o.name + (o.nameAr ?? "")) ? "🧵" : "🏫") : ["🌱", "👗", "✨"][i % 3]}
                   nom={nom(o)} sous={ar ? o.sousAr : o.sous} prix={ar ? o.prixAr : o.prix}
-                  fond={vert ? COULEURS_VERT[i % COULEURS_VERT.length] : COULEURS_LIGNE[i % COULEURS_LIGNE.length]} />
+                  fond={vert ? (eulma ? COULEURS_EULMA : COULEURS_SETIF)[i % 3] : COULEURS_LIGNE[i % COULEURS_LIGNE.length]} />
               ))}
             </div>
           </>

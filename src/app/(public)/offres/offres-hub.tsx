@@ -116,7 +116,7 @@ export default function OffresHub({ online, packs, presentiel = [], textes }: {
         <div className="of-carres">
           {[
             { href: "/offres/en-ligne", ico: "💻", nom: t.cOnline, sous: t.cOnlineSub, fond: "linear-gradient(135deg,#5B16F9,#9B6BFF)" },
-            { href: "/offres/presentiel", ico: "🏫", nom: t.cPres, sous: t.cPresSub, fond: "linear-gradient(135deg,#128a4c,#4CC38A)" },
+            { href: "/offres/presentiel", ico: "🏫", nom: t.cPres, sous: t.cPresSub, fond: "linear-gradient(135deg,#FE7223,#1E1442)" },
             { href: "/patrons-arazzo", ico: "🧵", nom: t.cPat, sous: t.cPatSub, fond: "linear-gradient(135deg,#FE7223,#FFB27A)" },
             { href: "/reparation-machines", ico: "🛠️", nom: t.cRep, sous: t.cRepSub, fond: "linear-gradient(135deg,#2A0880,#5B16F9)" },
           ].map((c) => (

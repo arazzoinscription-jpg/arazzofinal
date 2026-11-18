@@ -315,6 +315,8 @@ export default function PresentielLanding({ data, textes }: {
   const nomAffiche = ar ? (nomCourt ?? def.name_ar ?? def.name) : def.name;
   const { debut, fin } = ar ? { debut: nomAffiche.split(" · ")[0], fin: nomAffiche.split(" · ")[1] ?? "" } : titreAvecAccent(nomAffiche);
   const villeAr = def.city_ar ?? (/eulma|علمة/i.test(def.city ?? "") ? "العلمة" : "سطيف");
+  // 18/11 : El Eulma a SON style (orange + bleu nuit), Sétif garde le violet.
+  const eulma = def.location === "eulma" || (def.location !== "setif" && /eulma|علمة/i.test(`${def.city ?? ""} ${def.city_ar ?? ""} ${slug}`));
   // Prix le plus bas (formules ou prix unique), pour « ابتداءً من … ».
   const prixMin = (() => {
     const ps = (def.formulas ?? []).map((f: any) => Number(String(f.price_label ?? "").replace(/[^\d]/g, ""))).filter((n: number) => n > 0);
@@ -361,7 +363,7 @@ export default function PresentielLanding({ data, textes }: {
           })();
 
   return (
-    <div className="pl" dir={t.dir}>
+    <div className={eulma ? "pl pl-eulma" : "pl pl-setif"} dir={t.dir}>
       <LandingStyles />
       <NavLanding lang={langue} />
 
@@ -382,6 +384,7 @@ export default function PresentielLanding({ data, textes }: {
             </a>
           </div>
           {/* Vidéo d'en-tête (tableau, coupe, machine) — en premier. */}
+          <span className="pl-ville-ruban">📍 {ar ? villeAr : (def.city ?? "Sétif")}</span>
           <VideoEntete slug={slug} ar={ar} />
           <span className="pl-eyebrow">
             {estAtelier ? t.eyebrowA : t.eyebrowF} · {ar ? villeAr : (def.city ?? "Sétif")}
