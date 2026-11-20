@@ -230,8 +230,10 @@ export async function createOnlineEnrollment(input: unknown) {
   // E-mail à la cliente — MÊME contenu que l'e-mail de l'OS (« Votre inscription — comment payer ») :
   // la formation, le prix, 1) réglez le montant (CCP/BaridiMob), 2) envoyez la preuve (bouton direct), + fiche livraison.
   if (d.email) {
-    const confirmUrl = `${SITE}/formation/${encodeURIComponent(d.level)}?req=${lead.id}`;
-    const ficheUrl = `${SITE}/formation/${encodeURIComponent(d.level)}?methode=fiche`;
+    // 20/11 : un PACK a sa page /pack/<slug> (/formation/<slug-du-pack> affichait « cette formation n'existe pas »).
+    const page = /^niveau-\d+$/.test(d.level) ? "formation" : "pack";
+    const confirmUrl = `${SITE}/${page}/${encodeURIComponent(d.level)}?req=${lead.id}`;
+    const ficheUrl = `${SITE}/${page}/${encodeURIComponent(d.level)}?methode=fiche`;
     const infos = pay ? [
       ["Bénéficiaire", pay.beneficiary_name],
       ["N° CCP", pay.account_number],
