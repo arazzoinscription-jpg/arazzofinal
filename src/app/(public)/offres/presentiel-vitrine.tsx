@@ -7,8 +7,8 @@
  *  · chaque niveau = une ÉTIQUETTE de vêtement (trou, fil, couture pointillée) qui se balance au survol ;
  *  · ateliers / réparation = des ÉCUSSONS bleu nuit.
  * Identité gardée : logo, violet #5B16F9, bleu nuit #1E1442 (orange #FE7223 seulement à Sétif), Playfair / IBM Plex Sans Arabic.
- * Sétif = violet ; El Eulma (21/11, demande user : « pas d'orange ») = « atelier de nuit » bleu nuit + violet +
- * lavande, coutures pointillées et craie de tailleur. Jamais de vert, plus d'orange côté El Eulma.
+ * Sétif = violet ; El Eulma (21/11, demande user) = NUDE BEIGE + bleu nuit, motifs en POINTS (pas de rayures),
+ * jamais d'orange foncé. Jamais de vert.
  */
 
 import type { Item } from "./offres-liste";
@@ -134,15 +134,11 @@ export default function PresentielVitrine({ items, lieu, setLieu, langue }: {
 const CSS = `
 .pv{--c1:#5B16F9;--c2:#2A0880;--nuit:#1E1442;--acc:#FE7223;--papier:#F7F3FF;--fil:#9B6BFF;
   --serif:"Playfair Display",Georgia,serif;--ar:"IBM Plex Sans Arabic","Segoe UI","Noto Naskh Arabic",sans-serif}
-.pv-eulma{--c1:#5B16F9;--c2:#3D2A8C;--acc:#C9B6FF;--papier:#FFFFFF;--fil:#B9A2FF;--craie:#EDE7FF}
 .pl[dir="rtl"] .pv{font-family:var(--ar)}
 
 /* Bandeau */
 .pv-hero{position:relative;overflow:hidden;color:#fff;padding:clamp(28px,6vw,64px) 20px clamp(70px,9vw,104px);
   background:radial-gradient(120% 140% at 85% -20%,var(--c1) 0%,var(--c2) 48%,var(--nuit) 100%);animation:pvFondu .5s ease both}
-.pv-eulma .pv-hero{background:radial-gradient(70% 90% at 12% 0%,rgba(91,22,249,.55) 0%,transparent 60%),
-  radial-gradient(60% 80% at 100% 100%,rgba(155,107,255,.28) 0%,transparent 65%),linear-gradient(170deg,#1E1442 0%,#160E33 100%)}
-.pv-eulma .pv-hero::after{content:"";position:absolute;inset:14px;pointer-events:none;border:2px dashed rgba(201,182,255,.35);border-radius:22px}
 .pv-hero::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.09;
   background-image:repeating-linear-gradient(-45deg,#fff 0 1.5px,transparent 1.5px 14px)}
 .pv-setif .pv-hero::before{background-image:radial-gradient(#fff 1px,transparent 1.5px);background-size:20px 20px}
@@ -157,20 +153,12 @@ const CSS = `
 .pv-marque{display:inline-flex;align-items:center;gap:11px;color:#fff;text-decoration:none;font-family:var(--serif);font-weight:700;font-size:1.15rem;margin-bottom:22px}
 .pv-marque img{width:42px;height:42px;border-radius:12px;background:#fff;padding:3px;box-shadow:0 8px 18px -8px rgba(0,0,0,.5)}
 .pv-marque em{color:var(--acc);font-style:italic}
-.pv-eulma .pv-marque em{color:var(--acc)}
 .pv-eyebrow{display:inline-block;margin:0;padding:7px 14px;border-radius:999px;font-weight:700;font-size:.85rem;
   background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(4px)}
-.pv-eulma .pv-eyebrow{background:#5B16F9;border-color:#5B16F9;border-radius:6px;box-shadow:4px 4px 0 rgba(201,182,255,.35)}
 .pv-titre{margin:16px 0 0;font-family:var(--serif);font-weight:700;line-height:1.08;font-size:clamp(2.3rem,1.2rem + 5vw,4.2rem);max-width:14ch}
 .pl[dir="rtl"] .pv-titre{font-family:var(--ar);line-height:1.25}
 .pv-titre em{font-style:italic;color:var(--acc)}
 .pl[dir="rtl"] .pv-titre em{font-style:normal}
-.pv-eulma .pv-titre em{position:relative;color:#fff;font-style:italic}
-.pv-eulma .pv-titre em::after{content:"";position:absolute;inset-inline:-.05em;bottom:-.08em;height:.22em;border-radius:99px;
-  background:repeating-linear-gradient(90deg,var(--acc) 0 14px,transparent 14px 22px);opacity:.9;animation:pvCraie .9s .35s cubic-bezier(.2,.7,.2,1) both;transform-origin:left}
-.pl[dir="rtl"] .pv-eulma .pv-titre em::after{transform-origin:right}
-.pv-eulma .pv-geant{-webkit-text-stroke:2px rgba(201,182,255,.28)}
-.pv-eulma .pv-puces li{background:rgba(91,22,249,.22);border-color:rgba(201,182,255,.3)}
 .pv-lede{margin:14px 0 0;max-width:46ch;font-size:clamp(1rem,.95rem + .4vw,1.2rem);line-height:1.6;color:rgba(255,255,255,.9)}
 .pv-puces{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-wrap:wrap;gap:8px}
 .pv-puces li{font-size:.86rem;font-weight:600;padding:6px 12px;border-radius:999px;background:rgba(30,20,66,.28);border:1px solid rgba(255,255,255,.22)}
@@ -180,7 +168,6 @@ const CSS = `
   background-image:repeating-linear-gradient(90deg,var(--nuit) 0 2px,transparent 2px 60px),repeating-linear-gradient(90deg,var(--nuit) 0 1px,transparent 1px 12px);
   background-size:100% 14px,100% 7px;background-repeat:repeat-x;background-position:0 0,0 0;border-top:2px solid var(--nuit)}
 .pv-setif .pv-metre{background-color:#E9DEFF}
-.pv-eulma .pv-metre{background-color:#C9B6FF}
 
 /* Choix de la ville */
 .pv-ruban{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:0;max-width:560px;margin:-30px auto 0;
@@ -189,7 +176,6 @@ const CSS = `
   font:inherit;font-weight:800;font-size:1.2rem;background:transparent;color:var(--nuit);transition:background .25s ease,color .25s ease,transform .15s ease}
 .pv-ville:hover{transform:translateY(-1px)}
 .pv-ville-setif[aria-pressed="true"]{background:#5B16F9;color:#fff}
-.pv-ville-eulma[aria-pressed="true"]{background:#1E1442;color:#fff;box-shadow:inset 0 -4px 0 #5B16F9}
 .pv-ville[aria-pressed="false"] .pv-ville-pin{filter:grayscale(1);opacity:.5}
 
 /* Corps */
@@ -206,14 +192,7 @@ const CSS = `
   box-shadow:0 20px 34px -22px rgba(30,20,66,.6);transform-origin:50% -18px;
   transition:transform .35s cubic-bezier(.3,1.4,.5,1),box-shadow .3s ease;
   animation:pvMonte .55s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0) * 80ms + .1s)}
-.pv-eulma .pv-tag{border-radius:8px;box-shadow:8px 8px 0 var(--nuit);outline-color:color-mix(in srgb,#5B16F9 45%,transparent)}
 .pv-tag:hover{transform:rotate(-2.5deg) translateY(-3px);box-shadow:0 26px 40px -22px rgba(30,20,66,.7)}
-.pv-eulma .pv-tag:hover{box-shadow:11px 11px 0 #5B16F9}
-.pv-eulma .pv-tag-num{color:var(--nuit);-webkit-text-stroke:0}
-.pv-eulma .pv-tag-prix{background:#5B16F9;box-shadow:3px 3px 0 var(--nuit)}
-.pv-eulma .pv-tag-voir{color:#5B16F9}
-.pv-eulma .pv-ecusson{background:linear-gradient(135deg,#1E1442,#2A1A63)}
-.pv-eulma{background-color:#F4F1FC;background-image:radial-gradient(rgba(30,20,66,.08) 1px,transparent 1.5px);background-size:18px 18px}
 .pv-tag-trou{position:absolute;top:14px;left:50%;width:16px;height:16px;margin-left:-8px;border-radius:50%;
   background:var(--bg,#F5F0EB);border:2px solid var(--nuit);box-shadow:inset 0 2px 3px rgba(0,0,0,.2)}
 .pv-tag-trou::after{content:"";position:absolute;left:50%;bottom:100%;width:2px;height:34px;margin-left:-1px;
@@ -243,6 +222,33 @@ const CSS = `
 
 .pv-vide{text-align:center;color:var(--ink-3,#8B85A0);padding:30px 0}
 .pv-pied{text-align:center;margin-top:40px;color:var(--ink-3,#8B85A0);font-size:.85rem}
+
+/* ── El Eulma : nude beige + bleu nuit, motifs en points (21/11) ── */
+.pv-eulma{--c1:#A98467;--c2:#8B6B55;--acc:#1E1442;--papier:#FFFBF7;--fil:#E3CDB9;--nude:#EAD7C7;--nude2:#F6ECE3;
+  background-color:#FBF6F1;background-image:radial-gradient(rgba(169,132,103,.22) 1.2px,transparent 1.7px);background-size:18px 18px}
+.pv-eulma .pv-hero{color:var(--nuit);background:radial-gradient(70% 90% at 10% 0%,#FFF8F2 0%,transparent 60%),
+  linear-gradient(165deg,#F4E6DA 0%,#EAD5C3 55%,#DDBFA8 100%)}
+.pv-eulma .pv-hero::before{opacity:.5;background-image:radial-gradient(rgba(30,20,66,.28) 1.3px,transparent 1.8px);background-size:16px 16px}
+.pv-eulma .pv-hero::after{content:"";position:absolute;inset:14px;pointer-events:none;border:3px dotted rgba(30,20,66,.3);border-radius:22px}
+.pv-eulma .pv-geant{-webkit-text-stroke:2px rgba(139,107,85,.32)}
+.pv-eulma .pv-marque{color:var(--nuit)}
+.pv-eulma .pv-marque em{color:var(--c2)}
+.pv-eulma .pv-eyebrow{background:var(--nuit);border-color:var(--nuit);color:#fff;border-radius:999px}
+.pv-eulma .pv-titre em{color:var(--nuit);font-style:italic;text-decoration:underline dotted var(--c1);text-decoration-thickness:.12em;text-underline-offset:.18em}
+.pv-eulma .pv-lede{color:color-mix(in srgb,var(--nuit) 80%,transparent)}
+.pv-eulma .pv-puces li{background:rgba(255,255,255,.6);border-color:rgba(30,20,66,.15);color:var(--nuit)}
+.pv-eulma .pv-metre{background-color:var(--nude)}
+.pv-ville-eulma[aria-pressed="true"]{background:var(--nude,#EAD7C7);color:#1E1442;box-shadow:inset 0 0 0 2px #1E1442}
+.pv-eulma .pv-h2::after{border-top:3px dotted var(--c1)}
+.pv-eulma .pv-tag{border-radius:14px;outline:3px dotted color-mix(in srgb,var(--c1) 60%,transparent);box-shadow:8px 8px 0 var(--nude)}
+.pv-eulma .pv-tag:hover{box-shadow:11px 11px 0 var(--c1)}
+.pv-eulma .pv-tag-trou::after{background:repeating-linear-gradient(180deg,var(--c1) 0 3px,transparent 3px 7px)}
+.pv-eulma .pv-tag-num{color:var(--c1)}
+.pv-eulma .pv-tag-prix{background:var(--nuit);box-shadow:3px 3px 0 var(--nude)}
+.pv-eulma .pv-tag-voir{color:var(--c2)}
+.pv-eulma .pv-ecusson{background:var(--nuit);border:3px dotted var(--fil)}
+.pv-eulma .pv-ecusson-ico{background:var(--nude)}
+.pv-eulma .pv-ecusson-prix,.pv-eulma .pv-ecusson-fleche{color:var(--fil)}
 
 @keyframes pvMonte{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes pvFondu{from{opacity:.4}to{opacity:1}}

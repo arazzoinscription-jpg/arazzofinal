@@ -29,7 +29,7 @@ const CLE_LANGUE = "arazzo_formation_langue";
 const COULEURS_LIGNE = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#3D0FB0,#5B16F9)", "linear-gradient(135deg,#1E1442,#5B16F9)"];
 // Sétif = violet ; El Eulma = orange + bleu nuit : on sent qu'on a changé de centre.
 const COULEURS_SETIF = ["linear-gradient(135deg,#5B16F9,#9B6BFF)", "linear-gradient(135deg,#2A0880,#5B16F9)", "linear-gradient(135deg,#5B16F9,#FE7223)"];
-const COULEURS_EULMA = ["linear-gradient(150deg,#1E1442,#3D2A8C)", "linear-gradient(150deg,#1E1442,#5B16F9)", "linear-gradient(150deg,#2A1A63,#8F6BFF)"];
+const COULEURS_EULMA = ["linear-gradient(150deg,#EAD7C7,#C9A78E)", "linear-gradient(150deg,#1E1442,#8B6B55)", "linear-gradient(150deg,#A98467,#1E1442)"];
 
 /** Un grand carré coloré : icône, nom court, une petite ligne, le prix. */
 function Carre({ href, ico, nom, sous, prix, fond }: { href: string; ico: string; nom: string; sous?: string | null; prix?: string | null; fond: string }) {
@@ -59,8 +59,8 @@ const CSS_CARRES = `.of-carres{display:grid;gap:14px;grid-template-columns:1fr;m
 .of-ville:hover{transform:translateY(-2px)}
 .of-ville[aria-pressed="true"]{background:#5B16F9;color:#fff}
 .of-ville-eulma{border-color:#1E1442;color:#1E1442;border-radius:8px}
-.of-ville-eulma[aria-pressed="true"]{background:#1E1442;color:#fff;box-shadow:5px 5px 0 #5B16F9}
-.pl-eulma .of-carre{border-radius:10px;border:2px solid #1E1442;box-shadow:8px 8px 0 #5B16F9}
+.of-ville-eulma[aria-pressed="true"]{background:#EAD7C7;color:#1E1442;box-shadow:5px 5px 0 #1E1442}
+.pl-eulma .of-carre{border-radius:14px;border:2px solid #1E1442;box-shadow:8px 8px 0 #EAD7C7}
 .pl-eulma .of-prix{background:#1E1442;color:#fff}
 @media (min-width:700px){.of-carres{grid-template-columns:repeat(3,1fr)}.of-carre{aspect-ratio:1;min-height:0}}`;
 

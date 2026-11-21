@@ -703,44 +703,45 @@ export function LandingStyles() {
   .pl-pack-carte-lien { font-size: .72rem; }
   .pl-pack-duo::before { width: 26px; height: 26px; font-size: 1rem; }
 }
-/* 21/11 : El Eulma SANS orange (demande user) = bleu nuit + violet + lavande.
-   --- 18/11 : DEUX CENTRES, DEUX STYLES (couleurs du logo seulement : violet, orange, bleu nuit) ---
-   Sétif = violet (style d'origine). El Eulma = bleu nuit + violet (plus d'orange depuis le 21/11), cadres carrés à ombre décalée,
-   rayures « points de couture » : on SENT qu'on a changé de centre. */
+/* --- DEUX CENTRES, DEUX STYLES (jamais de vert) ---
+   Sétif = violet (style d'origine). El Eulma (21/11, demande user) = NUDE BEIGE + bleu nuit, motifs en POINTS
+   (pas de rayures), jamais d'orange foncé : on SENT qu'on a changé de centre. */
 .pl.pl-eulma {
-  --bg: #F4F1FC; --panel: #FFFFFF; --panel-2: #ECE7FA; --line: #D9D1F2;
-  --thread: #5B16F9; --violet-deep: #1E1442; --violet-soft: #ECE6FF; --brass: #8F6BFF;
-  --radius-xl: 10px;
+  --bg: #FBF6F1; --panel: #FFFFFF; --panel-2: #F4EAE1; --line: #E8D8CA;
+  --thread: #1E1442; --violet-deep: #1E1442; --violet-soft: #F4EAE1; --brass: #A98467;
+  --radius-xl: 14px;
 }
 @media (prefers-color-scheme: dark) {
-  .pl.pl-eulma { --bg: #120C26; --panel: #1C1438; --panel-2: #241A4A; --line: #3A2E66;
-    --thread: #A784FF; --violet-deep: #D9CCFF; --violet-soft: #241A4A; --brass: #C9B6FF; }
+  .pl.pl-eulma { --bg: #1C1714; --panel: #26201C; --panel-2: #302823; --line: #4A3D34;
+    --thread: #EAD7C7; --violet-deep: #F4E6DA; --violet-soft: #302823; --brass: #D9BFA8; }
 }
 .pl-eulma .pl-hero {
-  background: radial-gradient(70% 90% at 12% 0%, rgba(91,22,249,.55) 0%, transparent 60%), linear-gradient(170deg, #1E1442 0%, #160E33 100%);
-  border-bottom: 6px solid #5B16F9;
+  color: #1E1442;
+  background: radial-gradient(70% 90% at 10% 0%, #FFF8F2 0%, transparent 60%), linear-gradient(165deg, #F4E6DA 0%, #EAD5C3 55%, #DDBFA8 100%);
+  border-bottom: 6px dotted #1E1442;
 }
 .pl-eulma .pl-hero::before {
-  opacity: .12; background-size: auto;
-  background-image: repeating-linear-gradient(-45deg, #fff 0 2px, transparent 2px 16px);
+  opacity: .5; background-size: 16px 16px;
+  background-image: radial-gradient(rgba(30,20,66,.28) 1.3px, transparent 1.8px);
 }
-.pl-eulma .pl-hero::after { border-top: 3px dotted rgba(255,255,255,.85); opacity: .7; }
-.pl-eulma .pl-marque-nom em { color: #C9B6FF; }
-.pl-eulma .pl-titre em { color: #fff; text-decoration: underline dashed #C9B6FF; text-decoration-thickness: 4px; text-underline-offset: 10px; }
-.pl-eulma .pl-eyebrow { background: #5B16F9; border-color: #5B16F9; color: #fff; }
-.pl-eulma .pl-spec { background: rgba(91,22,249,.22); border-color: rgba(201,182,255,.35); }
-.pl-eulma .pl-spec-prix { background: #5B16F9; border-color: #5B16F9; }
-.pl-eulma .pl-langue { background: rgba(91,22,249,.35); }
-.pl-eulma .pl-card { border: 2px solid #1E1442; box-shadow: 9px 9px 0 #5B16F9; }
-.pl-eulma .pl-cta { background: linear-gradient(135deg, #1E1442, #5B16F9);
-  box-shadow: 0 16px 30px -14px rgba(30,20,66,.7); }
-.pl-eulma .pl-tarif-prix, .pl-eulma .pl-pack-net { color: #5B16F9; }
+.pl-eulma .pl-hero::after { border-top: 3px dotted rgba(30,20,66,.45); opacity: 1; }
+.pl-eulma .pl-marque { color: #1E1442; }
+.pl-eulma .pl-marque-nom em { color: #8B6B55; }
+.pl-eulma .pl-titre em { color: #1E1442; text-decoration: underline dotted #A98467; text-decoration-thickness: .12em; text-underline-offset: .18em; }
+.pl-eulma .pl-eyebrow { background: #1E1442; border-color: #1E1442; color: #fff; }
+.pl-eulma .pl-tagline { color: rgba(30,20,66,.8); }
+.pl-eulma .pl-spec { color: #1E1442; background: rgba(255,255,255,.6); border-color: rgba(30,20,66,.15); }
+.pl-eulma .pl-spec-prix { color: #fff; background: #1E1442; border-color: #1E1442; }
+.pl-eulma .pl-langue { color: #fff; background: #1E1442; border-color: #1E1442; }
+.pl-eulma .pl-card { border: 2px solid #1E1442; box-shadow: 9px 9px 0 #EAD7C7; }
+.pl-eulma .pl-cta { background: #1E1442; box-shadow: 0 16px 30px -14px rgba(30,20,66,.6); }
+.pl-eulma .pl-tarif-prix, .pl-eulma .pl-pack-net { color: #8B6B55; }
 .pl-ville-ruban {
   display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px;
   font-weight: 800; font-size: 1rem; color: #fff; padding: 8px 16px; border-radius: 999px;
   background: #5B16F9; box-shadow: 0 8px 18px -10px rgba(0,0,0,.5);
 }
-.pl-eulma .pl-ville-ruban { background: #5B16F9; border-radius: 6px; box-shadow: 5px 5px 0 rgba(201,182,255,.4); }
+.pl-eulma .pl-ville-ruban { background: #1E1442; border-radius: 999px; box-shadow: 4px 4px 0 #EAD7C7; }
 @keyframes plCentre { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
 .pl-centre-anim { animation: plCentre .45s cubic-bezier(.2,.7,.2,1) both; }
 @media (prefers-reduced-motion: reduce) {
