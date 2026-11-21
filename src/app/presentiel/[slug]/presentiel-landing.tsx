@@ -707,7 +707,7 @@ export default function PresentielLanding({ data, textes }: {
               <p className="pl-note">{t.merciNote}</p>
               {(center.dossier_items?.length || center.dossier_notice) ? (
                 <div className="pl-dossier" style={{ textAlign: "start", marginTop: 16 }}>
-                  <div className="pl-dossier-tete" style={{ color: "var(--orange, #FE7223)" }}>{t.dossierTitle}</div>
+                  <div className="pl-dossier-tete" style={{ color: "var(--brass, #FE7223)" }}>{t.dossierTitle}</div>
                   {center.dossier_notice ? <p>{nettoyerDossier(center.dossier_notice)}</p> : null}
                   {center.dossier_items?.length ? (
                     <ul style={{ margin: "8px 0 0", paddingInlineStart: 20, textAlign: "start" }}>

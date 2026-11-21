@@ -703,43 +703,44 @@ export function LandingStyles() {
   .pl-pack-carte-lien { font-size: .72rem; }
   .pl-pack-duo::before { width: 26px; height: 26px; font-size: 1rem; }
 }
-/* --- 18/11 : DEUX CENTRES, DEUX STYLES (couleurs du logo seulement : violet, orange, bleu nuit) ---
-   Sétif = violet (style d'origine). El Eulma = orange + bleu nuit, cadres carrés à ombre décalée,
+/* 21/11 : El Eulma SANS orange (demande user) = bleu nuit + violet + lavande.
+   --- 18/11 : DEUX CENTRES, DEUX STYLES (couleurs du logo seulement : violet, orange, bleu nuit) ---
+   Sétif = violet (style d'origine). El Eulma = bleu nuit + violet (plus d'orange depuis le 21/11), cadres carrés à ombre décalée,
    rayures « points de couture » : on SENT qu'on a changé de centre. */
 .pl.pl-eulma {
-  --bg: #FFF6EE; --panel: #FFFFFF; --panel-2: #FFEBDD; --line: #F3D5BF;
-  --thread: #FE7223; --violet-deep: #1E1442; --violet-soft: #FFE6D4; --brass: #5B16F9;
+  --bg: #F4F1FC; --panel: #FFFFFF; --panel-2: #ECE7FA; --line: #D9D1F2;
+  --thread: #5B16F9; --violet-deep: #1E1442; --violet-soft: #ECE6FF; --brass: #8F6BFF;
   --radius-xl: 10px;
 }
 @media (prefers-color-scheme: dark) {
-  .pl.pl-eulma { --bg: #1A1020; --panel: #231629; --panel-2: #2C1B30; --line: #4A2C33;
-    --thread: #FF8A45; --violet-deep: #FFD2B3; --violet-soft: #3A1F1A; --brass: #A784FF; }
+  .pl.pl-eulma { --bg: #120C26; --panel: #1C1438; --panel-2: #241A4A; --line: #3A2E66;
+    --thread: #A784FF; --violet-deep: #D9CCFF; --violet-soft: #241A4A; --brass: #C9B6FF; }
 }
 .pl-eulma .pl-hero {
-  background: linear-gradient(155deg, #FE7223 0%, #E8521A 42%, #1E1442 100%);
-  border-bottom: 6px solid #1E1442;
+  background: radial-gradient(70% 90% at 12% 0%, rgba(91,22,249,.55) 0%, transparent 60%), linear-gradient(170deg, #1E1442 0%, #160E33 100%);
+  border-bottom: 6px solid #5B16F9;
 }
 .pl-eulma .pl-hero::before {
   opacity: .12; background-size: auto;
   background-image: repeating-linear-gradient(-45deg, #fff 0 2px, transparent 2px 16px);
 }
 .pl-eulma .pl-hero::after { border-top: 3px dotted rgba(255,255,255,.85); opacity: .7; }
-.pl-eulma .pl-marque-nom em { color: #1E1442; }
-.pl-eulma .pl-titre em { color: #1E1442; text-decoration: underline wavy rgba(255,255,255,.75); text-underline-offset: 8px; }
-.pl-eulma .pl-eyebrow { background: #1E1442; border-color: #1E1442; color: #fff; }
-.pl-eulma .pl-spec { background: rgba(30,20,66,.28); border-color: rgba(255,255,255,.35); }
-.pl-eulma .pl-spec-prix { background: #1E1442; border-color: #1E1442; }
-.pl-eulma .pl-langue { background: rgba(30,20,66,.35); }
-.pl-eulma .pl-card { border: 2px solid #1E1442; box-shadow: 9px 9px 0 #FE7223; }
+.pl-eulma .pl-marque-nom em { color: #C9B6FF; }
+.pl-eulma .pl-titre em { color: #fff; text-decoration: underline dashed #C9B6FF; text-decoration-thickness: 4px; text-underline-offset: 10px; }
+.pl-eulma .pl-eyebrow { background: #5B16F9; border-color: #5B16F9; color: #fff; }
+.pl-eulma .pl-spec { background: rgba(91,22,249,.22); border-color: rgba(201,182,255,.35); }
+.pl-eulma .pl-spec-prix { background: #5B16F9; border-color: #5B16F9; }
+.pl-eulma .pl-langue { background: rgba(91,22,249,.35); }
+.pl-eulma .pl-card { border: 2px solid #1E1442; box-shadow: 9px 9px 0 #5B16F9; }
 .pl-eulma .pl-cta { background: linear-gradient(135deg, #1E1442, #5B16F9);
   box-shadow: 0 16px 30px -14px rgba(30,20,66,.7); }
-.pl-eulma .pl-tarif-prix, .pl-eulma .pl-pack-net { color: #FE7223; }
+.pl-eulma .pl-tarif-prix, .pl-eulma .pl-pack-net { color: #5B16F9; }
 .pl-ville-ruban {
   display: inline-flex; align-items: center; gap: 8px; margin: 0 0 14px;
   font-weight: 800; font-size: 1rem; color: #fff; padding: 8px 16px; border-radius: 999px;
   background: #5B16F9; box-shadow: 0 8px 18px -10px rgba(0,0,0,.5);
 }
-.pl-eulma .pl-ville-ruban { background: #1E1442; border-radius: 6px; box-shadow: 5px 5px 0 rgba(255,255,255,.35); }
+.pl-eulma .pl-ville-ruban { background: #5B16F9; border-radius: 6px; box-shadow: 5px 5px 0 rgba(201,182,255,.4); }
 @keyframes plCentre { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
 .pl-centre-anim { animation: plCentre .45s cubic-bezier(.2,.7,.2,1) both; }
 @media (prefers-reduced-motion: reduce) {
